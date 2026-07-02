@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Vymazanie dát – Connect Sports Pro</title>
+  <style>
+    :root{
+      --bg:#050507;--bg2:#0c0c0f;--line:rgba(255,255,255,.08);
+      --text:#f0f0f4;--muted:#888;--gold:#d4a843;--green:#1ec86a;--red:#d94f4f;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;
+      color:var(--text);
+      background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(212,168,67,.07),transparent 55%),var(--bg);
+      padding:40px 16px 80px;
+    }
+    .wrap{max-width:780px;margin:0 auto}
+    .back{
+      display:inline-flex;align-items:center;gap:8px;
+      color:var(--muted);font-size:.85rem;text-decoration:none;
+      margin-bottom:32px;transition:.15s;
+    }
+    .back:hover{color:var(--text)}
+    .brand-name{font-size:1.2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:40px;display:block}
+    .brand-name span{color:var(--gold)}
+    h1{
+      font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;
+      letter-spacing:-.04em;color:var(--gold);margin-bottom:8px;
+    }
+    .subtitle{color:var(--muted);font-size:.9rem;margin-bottom:40px}
+    .card{
+      border:1px solid var(--line);border-radius:20px;
+      background:rgba(255,255,255,.02);padding:28px 32px;
+      margin-bottom:16px;
+    }
+    .card.green{border-color:rgba(30,200,106,.2);background:rgba(30,200,106,.04)}
+    h2{font-size:1.05rem;font-weight:800;color:var(--gold);margin-bottom:12px;letter-spacing:-.02em}
+    h2.green{color:var(--green)}
+    p{color:rgba(240,240,244,.75);line-height:1.7;font-size:.92rem;margin-bottom:10px}
+    p:last-child{margin-bottom:0}
+    ol{color:rgba(240,240,244,.75);line-height:1.7;font-size:.92rem;padding-left:20px;margin-bottom:10px}
+    ol li{margin-bottom:8px}
+    a{color:var(--gold);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .email-box{
+      display:flex;align-items:center;gap:12px;
+      background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);
+      border-radius:14px;padding:18px 22px;margin-top:16px;
+    }
+    .email-box .icon{font-size:1.4rem;flex:0 0 auto}
+    .email-box .label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:3px}
+    .email-box a{font-size:1rem;font-weight:700;color:var(--gold)}
+    .steps{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+    .step{display:flex;gap:14px;align-items:flex-start}
+    .step-num{
+      width:28px;height:28px;border-radius:8px;flex:0 0 28px;
+      background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.25);
+      color:var(--gold);font-weight:800;font-size:.82rem;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .step-text{font-size:.9rem;color:rgba(240,240,244,.75);line-height:1.6;padding-top:4px}
+    .note{
+      background:rgba(217,79,79,.07);border:1px solid rgba(217,79,79,.18);
+      border-radius:12px;padding:14px 18px;font-size:.85rem;
+      color:rgba(240,240,244,.7);line-height:1.6;margin-top:8px;
+    }
+    .footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back">← Späť na hlavnú stránku</a>
+
+  <span class="brand-name"><span>CardScores</span>Pro</span>
+
+  <h1>Vymazanie osobných dát</h1>
+  <p class="subtitle">Informácie o tom, ako požiadať o zmazanie vašich údajov z platformy Connect Sports Pro</p>
+
+  <div class="card green">
+    <h2 class="green">Vaše právo na vymazanie</h2>
+    <p>V súlade s nariadením GDPR (čl. 17) máte právo požiadať o vymazanie všetkých osobných údajov, ktoré o vás uchovávame. Vašu žiadosť vybavíme do <strong>30 dní</strong>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Čo bude vymazané</h2>
+    <p>Po prijatí vašej žiadosti vymažeme:</p>
+    <div class="steps" style="margin-top:12px">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Váš používateľský účet a prihlasovacie údaje</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Profil — meno, email, profilový obrázok</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Herné štatistiky a výsledky turnajov priradené k vášmu účtu</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Všetky rezervácie a udalosti vytvorené pod vaším účtom</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">Prepojenie s Facebook / Google účtom</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ako požiadať o vymazanie</h2>
+    <p>Pošlite nám email s predmetom <strong>„Žiadosť o vymazanie dát"</strong> z emailovej adresy priradenej k vášmu účtu:</p>
+    <div class="email-box">
+      <div class="icon">✉️</div>
+      <div>
+        <div class="label">Kontaktný email</div>
+        <a href="mailto:kontakt@connectsportspro.com?subject=Žiadosť o vymazanie dát">kontakt@connectsportspro.com</a>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px">
+      ⚠️ Pre overenie identity použite prosím emailovú adresu, ktorou ste sa registrovali. Žiadosti zaslané z inej adresy môžu vyžadovať dodatočné overenie.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Prihlásenie cez Facebook</h2>
+    <p>Ak ste sa prihlásili cez Facebook a chcete odstrániť prístup aplikácie Connect Sports Pro, môžete to urobiť priamo cez Facebook:</p>
+    <div class="steps" style="margin-top:12px">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Otvorte <strong>Facebook → Nastavenia → Aplikácie a webové stránky</strong></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Nájdite <strong>Connect Sports Pro</strong> v zozname aplikácií</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Kliknite <strong>Odstrániť</strong> — tým odvoláte prístup Facebooku k vašim dátam</div></div>
+    </div>
+    <p style="margin-top:14px">Pre úplné vymazanie dát z našej databázy nás napriek tomu kontaktujte emailom vyššie.</p>
+  </div>
+
+  <div class="footer">© 2026 Connect Sports Pro · connectsportspro.com · <a href="/ochrana-osobnych-udajov/">Ochrana osobných údajov</a></div>
+</div>
+</body>
+</html>

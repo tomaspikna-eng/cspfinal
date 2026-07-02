@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Stanice — nastavenie scoreboardov · Connect Sports Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#050505;--panel:#101010;--panel2:#161616;--gold:#d4a843;--green:#18c964;
+  --white:#f8f8f8;--muted:#9ca3af;--border:rgba(255,255,255,.1);
+  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--white);font-size:15px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--panel);color:var(--white);border-radius:10px;padding:9px 14px;font-size:14px;transition:.12s}
+button:hover{border-color:var(--gold)}
+button.gold{background:var(--gold);border-color:var(--gold);color:#050505;font-weight:700}
+input,select{font-family:inherit;background:var(--panel);border:1px solid var(--border);color:var(--white);border-radius:10px;padding:10px 12px;font-size:14px;width:100%}
+a{color:var(--gold);text-decoration:none}
+
+.app{max-width:1100px;margin:0 auto;padding:24px}
+header{margin-bottom:24px}
+.kicker{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;color:var(--muted);font-weight:600}
+h1{font-size:2rem;font-weight:800;margin-top:4px}
+.sub{color:var(--muted);margin-top:6px;max-width:640px}
+
+.config{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:28px}
+.config-grid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:14px;align-items:end}
+@media(max-width:760px){.config-grid{grid-template-columns:1fr 1fr}}
+.field label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:6px;font-weight:600}
+.field .hint{font-size:11px;color:var(--muted)}
+.lock-row{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--muted);font-size:.86rem}
+.lock-row input{width:auto}
+
+.section-title{font-size:1.1rem;font-weight:700;color:var(--gold);margin:26px 0 14px;display:flex;align-items:center;gap:8px}
+.board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.board{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.board .bname{font-weight:700;font-size:1rem}
+.board .qr{background:#fff;padding:8px;border-radius:10px;line-height:0}
+.board .qr img,.board .qr canvas{display:block;width:120px;height:120px}
+.board .btns{display:flex;gap:8px;width:100%}
+.board .btns button{flex:1;font-size:12px;padding:8px}
+.board .url{font-family:var(--mono);font-size:10px;color:var(--muted);word-break:break-all;line-height:1.4}
+
+.howto{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:28px}
+.howto h3{font-size:.95rem;color:var(--gold);margin-bottom:10px}
+.howto ol{margin-left:18px;color:var(--muted);font-size:.88rem;line-height:1.8}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#031108;font-weight:700;padding:12px 24px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="kicker">CONNECT SPORTS PRO · CLUB MANAGER</div>
+    <h1>Stanice — nastavenie scoreboardov</h1>
+    <p class="sub">Nastav počet stolov a terčov, vygeneruj odkazy a QR kódy. Na každom tablete naskenuj QR kód jeho stanice — otvorí sa scoreboard a pridáš ho na plochu. Hotovo.</p>
+  </header>
+
+  <div class="config">
+    <div class="config-grid">
+      <div class="field">
+        <label>Adresa scoreboardu (kde je nasadený)</label>
+        <input id="baseUrl" value="/scoreboard/"/>
+        <div class="hint">napr. https://cspmanager.app/scoreboard/</div>
+      </div>
+      <div class="field">
+        <label>Biliardové stoly</label>
+        <input id="billiardCount" type="number" min="0" max="50" value="6"/>
+      </div>
+      <div class="field">
+        <label>Šípkové terče</label>
+        <input id="dartsCount" type="number" min="0" max="50" value="15"/>
+      </div>
+      <div class="field">
+        <button class="gold" id="genBtn" style="width:100%">Generovať</button>
+      </div>
+    </div>
+    <label class="lock-row"><input type="checkbox" id="lockMode" checked/> Lock mód (tablet zamknutý na svojej hre — hráči nezmenia šport/nastavenia)</label>
+  </div>
+
+  <div id="output"></div>
+
+  <div class="howto">
+    <h3>Ako nastaviť tablet (raz pre každý)</h3>
+    <ol>
+      <li>Otvor túto stránku na PC alebo veľkom tablete.</li>
+      <li>Na tablete danej stanice naskenuj jej <strong>QR kód</strong> (fotoaparát) — otvorí sa jeho scoreboard.</li>
+      <li>V prehliadači daj <strong>"Pridať na plochu"</strong> (Add to Home Screen) — vznikne ikona.</li>
+      <li>Tablet odteraz otvára rovno svoj scoreboard. Opakuj pre každú stanicu.</li>
+    </ol>
+  </div>
+</div>
+<div class="toast" id="toast">Odkaz skopírovaný</div>
+
+<script>
+function buildUrl(base, station, sport){
+  const lock = document.getElementById('lockMode').checked ? '&lock=1' : '';
+  const params = `?station=${encodeURIComponent(station)}&sport=${sport}${lock}`;
+  // ak base obsahuje už '?', použijeme '&'
+  return base + params;
+}
+
+function makeBoard(base, name, sport, icon){
+  const url = buildUrl(base, name, sport);
+  const card = document.createElement('div');
+  card.className = 'board';
+  card.innerHTML = `
+    <div class="bname">${icon} ${name}</div>
+    <div class="qr" data-url="${url.replace(/"/g,'&quot;')}"></div>
+    <div class="btns">
+      <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Otvoriť</button>
+      <button onclick="copyUrl('${url.replace(/'/g,"\\'")}')">Kopírovať</button>
+    </div>
+    <div class="url">${url}</div>`;
+  return card;
+}
+
+function renderQRs(){
+  document.querySelectorAll('.qr').forEach(el=>{
+    el.innerHTML='';
+    const url = el.dataset.url;
+    try{
+      new QRCode(el, { text: url, width:120, height:120, colorDark:'#050505', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    }catch(e){ el.innerHTML='<div style="color:#050505;font-size:10px;padding:10px">QR sa nenačítal (potrebný internet)</div>'; }
+  });
+}
+
+function generate(){
+  const base = document.getElementById('baseUrl').value.trim() || '/scoreboard/';
+  const bCount = +document.getElementById('billiardCount').value || 0;
+  const dCount = +document.getElementById('dartsCount').value || 0;
+  const out = document.getElementById('output');
+  out.innerHTML='';
+
+  if(bCount>0){
+    const t=document.createElement('div');t.className='section-title';t.innerHTML='🎱 Biliardové stoly';out.appendChild(t);
+    const g=document.createElement('div');g.className='board-grid';
+    for(let i=1;i<=bCount;i++) g.appendChild(makeBoard(base, `Biliard ${i}`, 'billiard', '🎱'));
+    out.appendChild(g);
+  }
+  if(dCount>0){
+    const t=document.createElement('div');t.className='section-title';t.innerHTML='🎯 Šípkové terče';out.appendChild(t);
+    const g=document.createElement('div');g.className='board-grid';
+    for(let i=1;i<=dCount;i++) g.appendChild(makeBoard(base, `Šípky ${i}`, 'darts', '🎯'));
+    out.appendChild(g);
+  }
+  renderQRs();
+}
+
+function copyUrl(url){
+  // ak je relatívna, doplň absolútnu pre tablet
+  const abs = url.startsWith('http') ? url : new URL(url, location.href).href;
+  navigator.clipboard?.writeText(abs).then(()=>{
+    const t=document.getElementById('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);
+  });
+}
+
+document.getElementById('genBtn').onclick=generate;
+generate();
+</script>
+</body>
+</html>

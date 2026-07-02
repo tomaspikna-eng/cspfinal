@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Editor článku — CMS Magazín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#08080c;--bg-soft:#0c0c12;--card:#131319;--card-2:#16161d;
+  --line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.05);
+  --fg:#fafafa;--muted:#7e7e8a;--muted-2:#9a9aa6;
+  --gold:#d4a843;--gold-soft:#a8862e;--gold-dim:rgba(212,168,67,.12);--gold-b:rgba(212,168,67,.3);
+  --green:#26d07d;--green-dark:#06230f;--green-dim:rgba(38,208,125,.14);
+  --amber:#e0a83e;--amber-dim:rgba(224,168,62,.14);
+  --red:#e35149;--red-dim:rgba(227,81,73,.14);--red-b:rgba(227,81,73,.4);
+  --font:'Inter',system-ui,sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+input,select,textarea{font-family:inherit;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:10px 12px;font-size:14px;outline:none;width:100%;resize:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+.hidden{display:none!important}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:30;background:rgba(8,8,12,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.tb-left{display:flex;align-items:center;gap:14px;min-width:0}
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--muted-2);font-size:.86rem;font-weight:600;transition:.12s}
+.back:hover{color:var(--gold)}
+.tb-title{font-weight:700;font-size:.95rem}
+.status-pill{padding:4px 11px;border-radius:99px;font-size:.7rem;font-weight:700;font-family:var(--mono)}
+.status-pill.draft{background:var(--amber-dim);color:var(--amber)}
+.status-pill.published{background:var(--green-dim);color:var(--green)}
+.tb-actions{display:flex;gap:10px}
+.btn{padding:10px 16px;border-radius:9px;font-weight:700;font-size:.84rem;transition:.14s;border:1px solid var(--line)}
+.btn-ghost{color:var(--fg)}.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-pub{background:var(--green);border-color:var(--green);color:var(--green-dark)}.btn-pub:hover{background:#33dd8a}
+
+/* LAYOUT */
+.wrap{max-width:1140px;margin:0 auto;padding:28px 22px 80px;display:grid;grid-template-columns:1fr 300px;gap:32px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr;gap:22px}}
+
+/* MAIN EDITOR */
+.title-input{width:100%;border:none;background:none;font-family:var(--serif);font-weight:700;font-size:2.2rem;line-height:1.1;color:var(--fg);padding:0;margin-bottom:22px}
+.title-input::placeholder{color:var(--muted)}
+.title-input:focus{border:none;outline:none}
+
+.blocks{display:flex;flex-direction:column;gap:6px}
+.block{position:relative;border:1px solid transparent;border-radius:10px;padding:6px 6px 6px 36px;transition:.1s}
+.block:hover{border-color:var(--line-2);background:rgba(255,255,255,.015)}
+.block-handle{position:absolute;left:6px;top:8px;display:flex;flex-direction:column;gap:2px;opacity:0;transition:.12s}
+.block:hover .block-handle{opacity:1}
+.block-type{position:absolute;left:8px;bottom:6px;font-family:var(--mono);font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;opacity:0}
+.block:hover .block-type{opacity:.7}
+.block-ctrls{position:absolute;right:6px;top:6px;display:flex;gap:3px;opacity:0;transition:.12s}
+.block:hover .block-ctrls{opacity:1}
+.bc{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.74rem;background:var(--card)}
+.bc:hover{border-color:var(--gold);color:var(--gold)}
+.bc.del:hover{border-color:var(--red-b);color:var(--red)}
+
+.b-text{width:100%;border:none;background:none;color:var(--fg);font-size:1.02rem;line-height:1.65;padding:8px 6px;font-family:var(--font)}
+.b-heading{font-family:var(--serif);font-weight:600;font-size:1.6rem;line-height:1.2}
+.b-quote{border-left:3px solid var(--gold);padding-left:16px;font-family:var(--serif);font-style:italic;font-size:1.15rem;color:var(--muted-2)}
+.b-list{font-family:var(--mono);font-size:.92rem}
+.b-text:focus{outline:none}
+.b-text::placeholder{color:var(--muted)}
+
+.img-block{display:flex;flex-direction:column;gap:8px;padding:8px 6px}
+.img-block .img-preview{border-radius:10px;overflow:hidden;background:var(--card-2);max-height:280px}
+.img-block .img-preview img{width:100%;display:block;object-fit:cover}
+.img-row{display:flex;gap:8px}
+.img-row input{flex:1}
+.img-upload-btn{white-space:nowrap;padding:10px 14px;border:1px solid var(--line);border-radius:9px;font-size:.82rem;font-weight:600}
+.img-upload-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ADD BLOCK */
+.add-block{margin-top:14px}
+.add-toggle{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted-2);font-size:.86rem;font-weight:600;transition:.12s}
+.add-toggle:hover{border-color:var(--gold);color:var(--gold)}
+.add-menu{display:none;gap:8px;flex-wrap:wrap;margin-top:10px}
+.add-menu.open{display:flex}
+.add-opt{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:.82rem;font-weight:600;transition:.12s}
+.add-opt:hover{border-color:var(--gold);color:var(--gold)}
+
+/* SIDEBAR */
+.side{display:flex;flex-direction:column;gap:18px}
+.side-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.side-card h3{font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.side-field{margin-bottom:14px}
+.side-field:last-child{margin-bottom:0}
+.side-field label{display:block;font-size:.74rem;color:var(--muted-2);margin-bottom:6px;font-weight:600}
+.side-field .help{font-size:11px;color:var(--muted);margin-top:5px}
+.cover-preview{border-radius:10px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px;aspect-ratio:16/10;background:var(--card-2)}
+.cover-preview svg,.cover-preview img{width:100%;height:100%;object-fit:cover;display:block}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-dark);font-weight:700;padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:100}
+.toast.show{opacity:1}
+.toast.err{background:var(--red);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-left">
+    <a class="back" href="/cms/">← Späť</a>
+    <span class="tb-title" id="tbTitle">Nový článok</span>
+    <span class="status-pill draft" id="statusPill">Koncept</span>
+  </div>
+  <div class="tb-actions">
+    <button class="btn btn-ghost" onclick="save('draft')">Uložiť koncept</button>
+    <button class="btn btn-pub" onclick="save('published')">Publikovať</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- MAIN -->
+  <div class="editor-main">
+    <textarea class="title-input" id="titleInput" rows="1" placeholder="Titulok článku…" oninput="autoGrow(this);genSlug()"></textarea>
+
+    <div class="blocks" id="blocks"></div>
+
+    <div class="add-block">
+      <button class="add-toggle" onclick="document.getElementById('addMenu').classList.toggle('open')">＋ Pridať blok</button>
+      <div class="add-menu" id="addMenu">
+        <button class="add-opt" onclick="addBlock('paragraph')">¶ Odstavec</button>
+        <button class="add-opt" onclick="addBlock('heading')">H Nadpis</button>
+        <button class="add-opt" onclick="addBlock('quote')">❝ Citát</button>
+        <button class="add-opt" onclick="addBlock('list')">• Zoznam</button>
+        <button class="add-opt" onclick="addBlock('image')">🖼 Obrázok</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-card">
+      <h3>Nastavenia</h3>
+      <div class="side-field">
+        <label>Rubrika</label>
+        <select id="catSelect" onchange="updateCover()">
+          <option value="biliard">Biliard</option>
+          <option value="sipky">Šípky</option>
+          <option value="bowling">Bowling</option>
+          <option value="general">Novinky</option>
+        </select>
+      </div>
+      <div class="side-field">
+        <label>Autor</label>
+        <input id="authorInput" value="Redakcia CSP"/>
+      </div>
+      <div class="side-field">
+        <label>URL slug</label>
+        <input id="slugInput" placeholder="auto-generuje sa"/>
+        <div class="help">Adresa článku na webe</div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>Náhľad (excerpt)</h3>
+      <div class="side-field">
+        <textarea id="excerptInput" rows="3" placeholder="2-3 vety pre náhľad v zozname a na sociálnych sieťach" oninput="autoGrow(this)"></textarea>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>Obálka</h3>
+      <div class="cover-preview" id="coverPreview"></div>
+      <div class="side-field">
+        <label>Vlastný obrázok obálky (URL)</label>
+        <input id="coverUrl" placeholder="https://… (nepovinné)" oninput="updateCover()"/>
+        <div class="help">Prázdne = automatická grafika podľa rubriky</div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY="csp_magazine_articles";
+const CAT_LABEL={biliard:"Biliard",sipky:"Šípky",bowling:"Bowling",general:"Novinky"};
+
+function loadArticles(){try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){}return[];}
+function saveArticles(a){localStorage.setItem(STORE_KEY,JSON.stringify(a));}
+
+/* ── SVG obálky ── */
+function coverSVG(cat){
+  const G='#d4a843',W='#ece9e2',F='#2a5a3c',FD='#16301f';
+  if(cat==='biliard')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="${FD}"/><g transform="translate(200,128)"><circle cx="0" cy="-34" r="15" fill="${G}"/><circle cx="-17" cy="-5" r="15" fill="${W}"/><circle cx="17" cy="-5" r="15" fill="${W}"/><circle cx="0" cy="24" r="15" fill="#1a1a22"/><circle cx="0" cy="24" r="6" fill="${W}"/></g></svg>`;
+  if(cat==='sipky')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0e0e13"/><g transform="translate(200,125)"><circle r="78" fill="none" stroke="${G}" stroke-width="2" opacity=".5"/><circle r="40" fill="none" stroke="${G}" stroke-width="2" opacity=".5"/><circle r="8" fill="${G}"/><line x1="120" y1="-90" x2="6" y2="-5" stroke="${W}" stroke-width="3"/></g></svg>`;
+  if(cat==='bowling')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0d0d12"/><g transform="translate(200,120)"><ellipse cx="-24" cy="-30" rx="7" ry="20" fill="${W}"/><ellipse cx="0" cy="-30" rx="7" ry="20" fill="${G}"/><ellipse cx="24" cy="-30" rx="7" ry="20" fill="${W}"/><circle cx="0" cy="58" r="26" fill="${G}"/></g></svg>`;
+  return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0e0e13"/><g transform="translate(200,125)" stroke="${G}" stroke-width="3" fill="none"><line x1="-70" y1="50" x2="40" y2="-55"/><line x1="70" y1="50" x2="-40" y2="-55"/></g></svg>`;
+}
+function updateCover(){
+  const url=document.getElementById('coverUrl').value.trim();
+  const cat=document.getElementById('catSelect').value;
+  const el=document.getElementById('coverPreview');
+  el.innerHTML = url ? `<img src="${url}" alt="" onerror="this.parentNode.innerHTML='${'covererr'}'"/>` : coverSVG(cat);
+}
+
+/* ── Slug ── */
+function slugify(s){
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+}
+let slugEdited=false;
+document.getElementById('slugInput').addEventListener('input',()=>slugEdited=true);
+function genSlug(){
+  if(slugEdited)return;
+  document.getElementById('slugInput').value=slugify(document.getElementById('titleInput').value);
+}
+
+/* ── Auto-grow ── */
+function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+/* ════════ BLOKY ════════ */
+let blocks=[];
+const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'}};
+
+function addBlock(type){
+  blocks.push(type==='image'?{type,url:'',caption:''}:{type,text:''});
+  document.getElementById('addMenu').classList.remove('open');
+  renderBlocks();
+  // focus posledný
+  const els=document.querySelectorAll('.b-text, .img-row input');
+  if(els.length)els[els.length-1].focus();
+}
+function moveBlock(i,dir){
+  const j=i+dir;if(j<0||j>=blocks.length)return;
+  [blocks[i],blocks[j]]=[blocks[j],blocks[i]];renderBlocks();
+}
+function delBlock(i){blocks.splice(i,1);renderBlocks();}
+
+function renderBlocks(){
+  const wrap=document.getElementById('blocks');
+  wrap.innerHTML=blocks.map((b,i)=>{
+    const ctrls=`<div class="block-ctrls">
+      <button class="bc" title="Hore" onclick="moveBlock(${i},-1)">↑</button>
+      <button class="bc" title="Dole" onclick="moveBlock(${i},1)">↓</button>
+      <button class="bc del" title="Zmazať" onclick="delBlock(${i})">✕</button>
+    </div>`;
+    const typeLbl=`<span class="block-type">${BLOCK_META[b.type].label}</span>`;
+    if(b.type==='image'){
+      const prev=b.url?`<div class="img-preview"><img src="${b.url}" alt=""/></div>`:'';
+      return `<div class="block">${ctrls}${typeLbl}
+        <div class="img-block">
+          ${prev}
+          <div class="img-row">
+            <input placeholder="URL obrázka alebo nahraj →" value="${(b.url||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].url=this.value" onchange="renderBlocks()"/>
+            <button class="img-upload-btn" onclick="document.getElementById('file${i}').click()">Nahrať</button>
+            <input type="file" id="file${i}" accept="image/*" class="hidden" onchange="uploadImg(${i},this)"/>
+          </div>
+          <input placeholder="Popis obrázka (nepovinné)" value="${(b.caption||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].caption=this.value"/>
+        </div>
+      </div>`;
+    }
+    const cls={paragraph:'b-text',heading:'b-text b-heading',quote:'b-text b-quote',list:'b-text b-list'}[b.type];
+    return `<div class="block">${ctrls}${typeLbl}
+      <textarea class="${cls}" rows="1" placeholder="${BLOCK_META[b.type].ph}" oninput="blocks[${i}].text=this.value;autoGrow(this)">${b.text||''}</textarea>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('textarea').forEach(autoGrow);
+}
+
+function uploadImg(i,input){
+  const f=input.files[0];if(!f)return;
+  if(f.size>900*1024){toast('Obrázok je veľký (>900KB). Pre web použi menší alebo URL.',true);return;}
+  const r=new FileReader();
+  r.onload=()=>{blocks[i].url=r.result;renderBlocks();};
+  r.readAsDataURL(f);
+}
+
+/* ════════ NAČÍTANIE existujúceho ════════ */
+const params=new URLSearchParams(location.search);
+const editId=params.get('id');
+let current=null;
+
+function init(){
+  if(editId){
+    const all=loadArticles();
+    current=all.find(a=>a.id===editId);
+    if(current){
+      document.getElementById('tbTitle').textContent='Úprava článku';
+      document.getElementById('titleInput').value=current.title||'';
+      document.getElementById('excerptInput').value=current.excerpt||'';
+      document.getElementById('catSelect').value=current.category||'biliard';
+      document.getElementById('authorInput').value=current.author||'Redakcia CSP';
+      document.getElementById('slugInput').value=current.slug||'';
+      document.getElementById('coverUrl').value=current.cover||'';
+      slugEdited=true;
+      blocks=Array.isArray(current.body)?structuredClone(current.body):[];
+      setStatus(current.status||'draft');
+    }
+  }
+  if(blocks.length===0) blocks=[{type:'paragraph',text:''}];
+  renderBlocks();updateCover();
+  autoGrow(document.getElementById('titleInput'));
+  autoGrow(document.getElementById('excerptInput'));
+}
+function setStatus(s){
+  const pill=document.getElementById('statusPill');
+  pill.className='status-pill '+s;
+  pill.textContent=s==='published'?'Publikované':'Koncept';
+}
+
+/* ════════ ULOŽENIE ════════ */
+function save(status){
+  const title=document.getElementById('titleInput').value.trim();
+  if(!title){toast('Doplň titulok článku.',true);return;}
+  const all=loadArticles();
+  const data={
+    title,
+    slug:document.getElementById('slugInput').value.trim()||slugify(title),
+    excerpt:document.getElementById('excerptInput').value.trim(),
+    category:document.getElementById('catSelect').value,
+    author:document.getElementById('authorInput').value.trim()||'Redakcia CSP',
+    cover:document.getElementById('coverUrl').value.trim(),
+    body:blocks.filter(b=>b.type==='image'?b.url:(b.text||'').trim()),
+    status,
+  };
+  if(current){
+    Object.assign(current,data);
+    if(status==='published'&&!current.date)current.date=new Date().toISOString().slice(0,10);
+    current.updated=new Date().toISOString().slice(0,10);
+  }else{
+    data.id='a'+Date.now();
+    data.date=status==='published'?new Date().toISOString().slice(0,10):'';
+    all.push(data);
+    current=data;
+  }
+  saveArticles(all);
+  setStatus(status);
+  document.getElementById('tbTitle').textContent='Úprava článku';
+  toast(status==='published'?'Článok publikovaný ✓':'Koncept uložený ✓');
+  // po publikovaní krátko počkaj a vráť na dashboard
+  if(status==='published') setTimeout(()=>location.href='/cms/',900);
+}
+
+function toast(msg,err){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(err?' err':'');
+  setTimeout(()=>t.className='toast'+(err?' err':''),2200);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Connect Sports Pro – Nastavenia</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#060608;--bg2:#0d0d11;--bg3:#131318;
+  --line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.04);
+  --text:#f4f4f8;--muted:#55556a;--muted2:#80809a;
+  --gold:#d4a843;--gold-bright:#e8b94f;
+  --gold-dim:rgba(212,168,67,.09);--gold-b:rgba(212,168,67,.25);
+  --green:#1ec86a;--green-dim:rgba(30,200,106,.08);--green-b:rgba(30,200,106,.22);
+  --red:#d94f4f;--red-dim:rgba(217,79,79,.08);--red-b:rgba(217,79,79,.22);
+  --font:'Syne',sans-serif;--display:'Bebas Neue',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(212,168,67,.06),transparent 55%),var(--bg);
+  padding:32px 16px 80px;}
+.shell{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.topbar{display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:1.15rem;font-weight:800;letter-spacing:-.03em}
+.brand .gold{color:var(--gold)}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;color:var(--muted2);text-decoration:none;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.02);transition:.15s}
+.back:hover{color:var(--text)}
+h1{font-family:var(--display);font-size:2.4rem;letter-spacing:.04em;color:var(--gold);margin-bottom:6px}
+.sub{color:var(--muted2);font-size:.92rem}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:22px}
+.card-title{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted2);font-weight:700;margin-bottom:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted2)}
+.field input,.field textarea{background:var(--bg3);border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:var(--font);font-size:.88rem;padding:10px 12px;outline:none;width:100%}
+.field input:focus,.field textarea:focus{border-color:var(--gold-b)}
+.field textarea{min-height:80px;resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:0 18px;min-height:42px;border-radius:11px;font:700 .88rem/1 var(--font);cursor:pointer;border:none;text-decoration:none;transition:.15s}
+.btn-gold{background:var(--gold);color:#1a1000}.btn-gold:hover{background:var(--gold-bright)}
+.btn-dark{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--line)}.btn-dark:hover{background:rgba(255,255,255,.09)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{padding:10px 14px;border-radius:10px;font-size:.82rem;font-weight:600;display:none;text-align:center;margin-top:4px}
+.msg.ok{background:var(--green-dim);border:1px solid var(--green-b);color:#c8ffdc;display:block}
+.msg.err{background:var(--red-dim);border:1px solid var(--red-b);color:#ffd0d0;display:block;text-align:left}
+.avatar-row{display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.015)}
+.avatar-ring{width:70px;height:70px;border-radius:50%;padding:3px;background:linear-gradient(135deg,var(--gold),rgba(74,130,204,.5));cursor:pointer;flex:0 0 70px}
+.avatar-ring img{width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--bg3);display:block}
+.ctx-info{padding:14px 16px;border:1px solid var(--gold-b);border-radius:12px;background:var(--gold-dim);display:flex;align-items:center;gap:12px}
+.ctx-info .icon{font-size:1.4rem}
+.ctx-info .info{flex:1}
+.ctx-info .label{font-size:.65rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.ctx-info .val{font-family:var(--display);font-size:1.2rem;color:var(--gold);letter-spacing:.04em;line-height:1.1}
+.loading{text-align:center;padding:40px;color:var(--muted2)}
+@media(max-width:600px){.row2{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand"><span class="gold">Connect</span><span class="white">Sports</span> <span class="gold">Pro</span></div>
+    <a href="/profil/" class="back">← Späť na profil</a>
+  </div>
+
+  <div>
+    <h1>Nastavenia</h1>
+    <p class="sub" id="subText">Uprav svoje údaje.</p>
+  </div>
+
+  <div id="content">
+    <div class="loading">Načítavam...</div>
+  </div>
+
+</div>
+
+<script>
+const SB = window.supabase.createClient(
+  'https://gilzomwhuwcxpkegtlhj.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbHpvbXdodXdjeHBrZWd0bGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzMwMTgsImV4cCI6MjA5MjYwOTAxOH0.-KiLSdiB2mRWqUDB9GWyISfCu2o_ZBM80aGUEW9CcUg'
+);
+
+const CTX_STORAGE_KEY = 'csp_active_context_v1';
+let currentUser = null;
+let activeCtx = null;
+let editingProfile = null;  // profile alebo organization
+
+SB.auth.onAuthStateChange(async (event, session) => {
+  if(!session){ window.location.href = '/login/'; return; }
+  if(event === 'SIGNED_IN' || event === 'INITIAL_SESSION'){
+    currentUser = session.user;
+    await loadAndRender();
+  }
+});
+
+async function loadAndRender(){
+  // Načítaj aktívny context
+  try{
+    activeCtx = JSON.parse(localStorage.getItem(CTX_STORAGE_KEY)) || { type:'user', id: currentUser.id };
+  }catch{
+    activeCtx = { type:'user', id: currentUser.id };
+  }
+
+  if(activeCtx.type === 'user'){
+    await loadUserProfile();
+  } else {
+    await loadOrgProfile();
+  }
+}
+
+async function loadUserProfile(){
+  const { data: p, error } = await SB.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  if(error || !p){
+    document.getElementById('content').innerHTML = `<div class="card"><div class="msg err">Profil sa nepodarilo načítať.</div></div>`;
+    return;
+  }
+  editingProfile = p;
+  renderUserForm(p);
+}
+
+async function loadOrgProfile(){
+  const { data: o, error } = await SB.from('organizations').select('*').eq('id', activeCtx.id).maybeSingle();
+  if(error || !o){
+    document.getElementById('content').innerHTML = `<div class="card"><div class="msg err">Organizácia sa nenašla.</div></div>`;
+    return;
+  }
+  editingProfile = o;
+  renderOrgForm(o);
+}
+
+function renderUserForm(p){
+  document.getElementById('subText').textContent = 'Upravuješ svoj osobný profil.';
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title">Aktívny profil</div>
+      <div class="ctx-info">
+        <div class="icon">👤</div>
+        <div class="info">
+          <div class="label">Osobný profil</div>
+          <div class="val">#${p.public_id || '—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Profilový obrázok</div>
+      <div class="avatar-row">
+        <div class="avatar-ring" onclick="document.getElementById('avatarFile').click()">
+          <img id="avatarImg" src="${p.avatar_url ? p.avatar_url + '?t=' + Date.now() : ''}" alt=""/>
+        </div>
+        <input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="uploadAvatar(this)"/>
+        <div>
+          <div style="font-size:.85rem;font-weight:700" id="avatarStatus">Nahrať foto</div>
+          <div style="font-size:.73rem;color:var(--muted2);margin-top:3px">JPG, PNG, WebP · max 5 MB</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Údaje</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="row2">
+          <div class="field"><label>Meno a priezvisko</label><input id="fName" value="${esc(p.full_name)}"/></div>
+          <div class="field"><label>Prezývka</label><input id="fNick" value="${esc(p.username)}"/></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Mesto</label><input id="fCity" value="${esc(p.city)}"/></div>
+          <div class="field"><label>Krajina</label><input id="fCountry" value="${esc(p.country || 'SK')}"/></div>
+        </div>
+        <div class="field"><label>O mne</label><textarea id="fBio">${esc(p.bio)}</textarea></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="msg" id="saveMsg"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <a href="/profil/" class="btn btn-dark">Zrušiť</a>
+        <button class="btn btn-gold" id="btnSave">💾 Uložiť</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnSave').addEventListener('click', saveUserProfile);
+}
+
+function renderOrgForm(o){
+  const typeLabel = o.type === 'club' ? '🏛️ Klub' : '🏆 Organizácia';
+  document.getElementById('subText').textContent = 'Upravuješ profil pre: ' + o.name;
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title">Aktívny profil</div>
+      <div class="ctx-info">
+        <div class="icon">${o.type === 'club' ? '🏛️' : '🏆'}</div>
+        <div class="info">
+          <div class="label">${typeLabel}</div>
+          <div class="val">${esc(o.name)} · #${o.public_id || '—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Údaje ${o.type === 'club' ? 'klubu' : 'organizácie'}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label>Názov</label><input id="fName" value="${esc(o.name)}"/></div>
+        <div class="row2">
+          <div class="field"><label>Mesto</label><input id="fCity" value="${esc(o.city)}"/></div>
+          <div class="field"><label>Krajina</label><input id="fCountry" value="${esc(o.country || 'SK')}"/></div>
+        </div>
+        ${o.type === 'club' ? `
+          <div class="field"><label>Adresa</label><input id="fAddress" value="${esc(o.address)}"/></div>
+          <div class="row2">
+            <div class="field"><label>Kontaktný e-mail</label><input id="fEmail" type="email" value="${esc(o.contact_email)}"/></div>
+            <div class="field"><label>Telefón</label><input id="fPhone" value="${esc(o.phone)}"/></div>
+          </div>
+          <div class="field"><label>Otváracie hodiny</label><input id="fHours" value="${esc(o.open_hours)}" placeholder="15:00 – 23:00"/></div>
+        ` : `
+          <div class="field"><label>Kontaktný e-mail</label><input id="fEmail" type="email" value="${esc(o.contact_email)}"/></div>
+        `}
+        <div class="field"><label>O ${o.type === 'club' ? 'klube' : 'organizácii'}</label><textarea id="fBio">${esc(o.bio)}</textarea></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="msg" id="saveMsg"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <a href="/profil/" class="btn btn-dark">Zrušiť</a>
+        <button class="btn btn-gold" id="btnSave">💾 Uložiť</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnSave').addEventListener('click', () => saveOrgProfile(o.type));
+}
+
+async function saveUserProfile(){
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = '⏳ Ukladám...';
+
+  const payload = {
+    id: currentUser.id,
+    full_name: val('fName'),
+    username: val('fNick')?.toLowerCase().replace(/[^a-z0-9_.]/g,'') || null,
+    city: val('fCity'),
+    country: val('fCountry') || 'SK',
+    bio: val('fBio'),
+  };
+
+  const { error } = await SB.from('profiles').upsert(payload, { onConflict: 'id' });
+  btn.disabled = false; btn.textContent = '💾 Uložiť';
+
+  if(error){
+    console.error('Save error:', error);
+    showMsg('Chyba: ' + error.message, 'err');
+    return;
+  }
+  showMsg('✓ Uložené!', 'ok');
+  setTimeout(() => window.location.href = '/profil/', 1000);
+}
+
+async function saveOrgProfile(orgType){
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = '⏳ Ukladám...';
+
+  const payload = {
+    name: val('fName'),
+    city: val('fCity'),
+    country: val('fCountry') || 'SK',
+    bio: val('fBio'),
+    contact_email: val('fEmail'),
+  };
+
+  if(orgType === 'club'){
+    payload.address = val('fAddress');
+    payload.phone = val('fPhone');
+    payload.open_hours = val('fHours');
+  }
+
+  const { error } = await SB.from('organizations').update(payload).eq('id', activeCtx.id);
+  btn.disabled = false; btn.textContent = '💾 Uložiť';
+
+  if(error){
+    console.error('Save error:', error);
+    let msg = 'Chyba: ' + error.message;
+    if(error.message.includes('row-level security')){
+      msg = '⚠ Nemáš oprávnenie upraviť túto organizáciu. Musíš byť manager.';
+    }
+    showMsg(msg, 'err');
+    return;
+  }
+  showMsg('✓ Uložené!', 'ok');
+  setTimeout(() => window.location.href = '/profil/', 1000);
+}
+
+async function uploadAvatar(input){
+  const file = input.files[0];
+  if(!file || !currentUser) return;
+  if(file.size > 5*1024*1024){ alert('Max 5 MB.'); return; }
+  document.getElementById('avatarStatus').textContent = '⏳ Nahrávam...';
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = 'avatars/' + currentUser.id + '/avatar.' + ext;
+  const { error } = await SB.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+  if(error){ alert('Chyba: ' + error.message); document.getElementById('avatarStatus').textContent = 'Nahrať foto'; return; }
+  const { data: u } = SB.storage.from('avatars').getPublicUrl(path);
+  await SB.from('profiles').update({ avatar_url: u.publicUrl }).eq('id', currentUser.id);
+  document.getElementById('avatarImg').src = u.publicUrl + '?t=' + Date.now();
+  document.getElementById('avatarStatus').textContent = '✓ Aktualizované';
+  input.value = '';
+}
+
+function val(id){
+  const el = document.getElementById(id);
+  if(!el) return null;
+  const v = el.value.trim();
+  return v || null;
+}
+
+function esc(s){
+  if(!s) return '';
+  return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function showMsg(text, type){
+  const el = document.getElementById('saveMsg');
+  if(!el) return;
+  el.innerHTML = text;
+  el.className = 'msg ' + type;
+}
+</script>
+</body>
+</html>
