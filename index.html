@@ -821,16 +821,6 @@ button,input,select{font:inherit}
 .manifesto-statement .em-divider{display:block;width:60px;height:3px;background:var(--gold);margin:24px auto;border-radius:99px}
 .manifesto-statement p{font-size:1.05rem;color:var(--muted2);max-width:640px;margin:18px auto 0;line-height:1.6}
 
-/* ═══ Sport ktorý nikto nepokrýva ═══ */
-.sports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
-@media(max-width:760px){.sports-grid{grid-template-columns:1fr 1fr}}
-.sport-tile{padding:28px 20px;border-radius:18px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);text-align:center;transition:.2s}
-.sport-tile:hover{background:rgba(212,168,67,.06);border-color:rgba(212,168,67,.25);transform:translateY(-2px)}
-.sport-tile .ico{font-size:2.6rem;display:block;margin-bottom:12px}
-.sport-tile .label{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--text);letter-spacing:.04em}
-.sport-tile .stat{font-size:.72rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-top:8px}
-.multi-tagline{font-size:1.05rem;color:var(--text);text-align:center;margin-top:24px;font-style:italic}
-.multi-tagline .gold-accent{color:var(--gold);font-style:normal;font-weight:700}
 
 /* ═══ Tvoj sportový profil ═══ */
 .profile-spotlight{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;margin-top:16px}
@@ -936,7 +926,6 @@ document.addEventListener('click', function(e){
   <div class="hero-copy">
     <div class="hero-kicker">Domov pre šport.</div>
     <h1>Športuj.<br><span class="gold-accent">Buď videný.</span><br>Patri ku komunite.</h1>
-    <p>Disciplíny, kluby a hráči — prvý raz na jednom mieste.</p>
     <div class="hero-actions">
       <a href="./login/" class="btn btn-green" style="display:inline-flex;align-items:center;">Pridaj sa</a>
       <a href="./login/" class="btn btn-dark" style="display:inline-flex;align-items:center;">Prihlásiť</a>
@@ -982,47 +971,132 @@ document.addEventListener('click', function(e){
 <!-- ═══════ MANIFESTO STATEMENT ═══════ -->
 <section class="panel">
   <div class="manifesto-statement">
-    <p style="color:var(--green);font-weight:600">Connect Sports Pro je prvá platforma postavená pre komunitu cue sports, šípok, bowlingu a kartových hier. Nie ďalší bracket generator. Sociálna sieť pre disciplíny ktoré si ju zaslúžia.</p>
+    <p style="color:var(--green);font-weight:600;display:flex;flex-wrap:wrap;gap:0.5em;align-items:baseline;">
+      <span>Biliard – pool 8-ball, 9-ball, 10-ball, straight pool 14.1</span>
+      <span aria-hidden="true">·</span>
+      <span>Snooker</span>
+      <span aria-hidden="true">·</span>
+      <span>Karambol – trojband, jednoband, voľná hra</span>
+      <span aria-hidden="true">·</span>
+      <span>Pyramída</span>
+      <span aria-hidden="true">·</span>
+      <span>Blackball</span>
+      <span aria-hidden="true">·</span>
+      <span>English billiards</span>
+      <span aria-hidden="true">·</span>
+      <span>Artistic billiards</span>
+      <span aria-hidden="true">·</span>
+      <span>Bank pool</span>
+      <span aria-hidden="true">·</span>
+      <span>One-pocket</span>
+      <span aria-hidden="true">·</span>
+      <span>Speed pool</span>
+      <span aria-hidden="true">·</span>
+      <span>Šípky – steel, soft, elektronické</span>
+      <span aria-hidden="true">·</span>
+      <span>Stolný futbal – foosball</span>
+      <span aria-hidden="true">·</span>
+      <span>Shuffleboard</span>
+      <span aria-hidden="true">·</span>
+      <span>Stolný shuffleboard</span>
+      <span aria-hidden="true">·</span>
+      <span>Novuss</span>
+      <span aria-hidden="true">·</span>
+      <span>Cornhole</span>
+      <span aria-hidden="true">·</span>
+      <span>Horseshoes</span>
+      <span aria-hidden="true">·</span>
+      <span>Quoits</span>
+      <span aria-hidden="true">·</span>
+      <span>Teqball</span>
+      <span aria-hidden="true">·</span>
+      <span>Subbuteo</span>
+      <span aria-hidden="true">·</span>
+      <span>Pitch-and-putt</span>
+      <span aria-hidden="true">·</span>
+      <span>Minigolf</span>
+      <span aria-hidden="true">·</span>
+      <span>Footgolf</span>
+      <span aria-hidden="true">·</span>
+      <span>Discgolf</span>
+      <span aria-hidden="true">·</span>
+      <span>Ten-pin bowling</span>
+      <span aria-hidden="true">·</span>
+      <span>Nine-pin bowling</span>
+      <span aria-hidden="true">·</span>
+      <span>Klasické kolky</span>
+      <span aria-hidden="true">·</span>
+      <span>Candlepin bowling</span>
+      <span aria-hidden="true">·</span>
+      <span>Duckpin bowling</span>
+      <span aria-hidden="true">·</span>
+      <span>Five-pin bowling</span>
+      <span aria-hidden="true">·</span>
+      <span>Lawn bowls</span>
+      <span aria-hidden="true">·</span>
+      <span>Indoor bowls</span>
+      <span aria-hidden="true">·</span>
+      <span>Boccia</span>
+      <span aria-hidden="true">·</span>
+      <span>Bocce</span>
+      <span aria-hidden="true">·</span>
+      <span>Pétanque</span>
+      <span aria-hidden="true">·</span>
+      <span>Raffa</span>
+      <span aria-hidden="true">·</span>
+      <span>Boule lyonnaise</span>
+      <span aria-hidden="true">·</span>
+      <span>Jeu provençal</span>
+      <span aria-hidden="true">·</span>
+      <span>Mölkky</span>
+      <span aria-hidden="true">·</span>
+      <span>Kubb</span>
+      <span aria-hidden="true">·</span>
+      <span>Skittles</span>
+      <span aria-hidden="true">·</span>
+      <span>Squash</span>
+      <span aria-hidden="true">·</span>
+      <span>Racquetball</span>
+      <span aria-hidden="true">·</span>
+      <span>Padel</span>
+      <span aria-hidden="true">·</span>
+      <span>Pickleball</span>
+      <span aria-hidden="true">·</span>
+      <span>Platform tennis</span>
+      <span aria-hidden="true">·</span>
+      <span>Soft tennis</span>
+      <span aria-hidden="true">·</span>
+      <span>Real tennis</span>
+      <span aria-hidden="true">·</span>
+      <span>Rackets</span>
+      <span aria-hidden="true">·</span>
+      <span>Crossminton</span>
+      <span aria-hidden="true">·</span>
+      <span>Speed badminton</span>
+      <span aria-hidden="true">·</span>
+      <span>Pelota</span>
+      <span aria-hidden="true">·</span>
+      <span>Jai alai</span>
+      <span aria-hidden="true">·</span>
+      <span>Frontenis</span>
+      <span aria-hidden="true">·</span>
+      <span>Frescobol</span>
+      <span aria-hidden="true">·</span>
+      <span>Beach tennis</span>
+      <span aria-hidden="true">·</span>
+      <span>Paddleball</span>
+      <span aria-hidden="true">·</span>
+      <span>Touchtennis</span>
+      <span aria-hidden="true">·</span>
+      <span>Tamburello</span>
+      <span aria-hidden="true">·</span>
+      <span>Ball badminton</span>
+      <span aria-hidden="true">·</span>
+      <span>a mnoho ďalšieho…</span>
+    </p>
   </div>
 </section>
 
-
-<!-- ═══════ MULTI-SPORT POSITIONING ═══════ -->
-<section class="panel section">
-  <div class="section-head">
-    <div>
-      <h2 class="section-title">Šport ktorý nikto nepokrýval</h2>
-      <p>Štyri disciplíny pod jednou strechou. Tvoji ľudia v biliarde vidia tvoju formu v šípkach. Multi-sport DNA od prvého dňa.</p>
-    </div>
-  </div>
-
-  <div class="sports-grid">
-    <div class="sport-tile">
-      <span class="ico">🎱</span>
-      <div class="label">Biliard</div>
-      <div class="stat">Pool · Snooker · Karambol</div>
-    </div>
-    <div class="sport-tile">
-      <span class="ico">🎯</span>
-      <div class="label">Šípky</div>
-      <div class="stat">501 · Cricket · Steel · Soft</div>
-    </div>
-    <div class="sport-tile">
-      <span class="ico">🎳</span>
-      <div class="label">Bowling</div>
-      <div class="stat">Ligy · Turnaje · Štatistiky</div>
-    </div>
-    <div class="sport-tile">
-      <span class="ico">🃏</span>
-      <div class="label">Karty</div>
-      <div class="stat">Klubové aj turnajové hry</div>
-    </div>
-  </div>
-
-  <div class="multi-tagline">
-    Jedna sieť. <span class="gold-accent">Všetky disciplíny.</span>
-  </div>
-</section>
 
 
 <!-- ═══════ TVOJ ŠPORTOVÝ PROFIL ═══════ -->
