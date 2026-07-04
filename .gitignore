@@ -1,0 +1,6 @@
+# Supabase CLI local cache (contains DB credentials, must never be committed)
+supabase/.temp/
+supabase/.branches/
+
+# OS / editor
+.DS_Store
