@@ -197,8 +197,15 @@ cspAuth.client.auth.onAuthStateChange(async (event, session) => {
 });
 
 (async function init(){
-  const { data: { session } } = await cspAuth.getSession();
-  if(session) window.location.href = '/profil/';
+  try {
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(session) window.location.href = '/profil/';
+  } catch(err){
+    // Not fatal here: worst case the user just sees the signup form even
+    // though they may already have a session. Logged so it isn't a
+    // silent unhandled rejection.
+    console.error('[registracia] initial session check failed or timed out:', err);
+  }
 })();
 
 document.getElementById('btnGoogle').addEventListener('click', async () => {

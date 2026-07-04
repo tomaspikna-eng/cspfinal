@@ -83,17 +83,32 @@
    * is allowed by existing RLS (any authenticated user can read any
    * profile, including their own). Returns { data: null, error: null } if
    * there is no active session, in the same { data, error } shape
-   * supabase-js itself uses. */
-  async function getCurrentProfile() {
-    var sessionResult = await client.auth.getSession();
-    var session = sessionResult.data && sessionResult.data.session;
-    if (!session) {
-      return { data: null, error: null };
+   * supabase-js itself uses.
+   *
+   * Optionally accepts an already-known user object (e.g. the one you
+   * already got back from getSession()) to avoid an extra internal
+   * getSession() round trip. Calling supabase-js's getSession() twice in
+   * quick succession has been a real source of hangs in some v2 releases
+   * (its internal session lock can contend with itself) — if the caller
+   * already has the session, pass its `.user` here instead of leaving
+   * this function to re-fetch it. Still safe to call with no argument at
+   * all, matching the original documented API. */
+  async function getCurrentProfile(knownUser) {
+    var userId;
+    if (knownUser && knownUser.id) {
+      userId = knownUser.id;
+    } else {
+      var sessionResult = await client.auth.getSession();
+      var session = sessionResult.data && sessionResult.data.session;
+      if (!session) {
+        return { data: null, error: null };
+      }
+      userId = session.user.id;
     }
     return client
       .from('profiles')
       .select('id, full_name, email, role, plan, is_admin, avatar_url')
-      .eq('id', session.user.id)
+      .eq('id', userId)
       .single();
   }
 
@@ -126,6 +141,23 @@
     return !!(data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0);
   }
 
+  /** Races a promise against a timeout so a stuck network/auth call can
+   * never hang a page's init logic silently and indefinitely. Rejects
+   * with a clear Error after `ms` if `promise` hasn't settled yet —
+   * callers should wrap this in try/catch (see profil/index.html for the
+   * pattern) so a timeout just logs and falls back gracefully instead of
+   * becoming an unhandled rejection. */
+  function withTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise(function (_, reject) {
+        setTimeout(function () {
+          reject(new Error((label || 'operation') + ' timed out after ' + ms + 'ms'));
+        }, ms);
+      })
+    ]);
+  }
+
   global.cspAuth = {
     // Raw client, exposed for one-off queries this helper doesn't wrap
     // (e.g. reading/writing other tables once a session exists).
@@ -137,6 +169,7 @@
     getSession: getSession,
     getCurrentProfile: getCurrentProfile,
     friendlyError: friendlyError,
-    isDuplicateSignup: isDuplicateSignup
+    isDuplicateSignup: isDuplicateSignup,
+    withTimeout: withTimeout
   };
 })(window);

@@ -1007,42 +1007,16 @@ a{color:inherit;text-decoration:none}
 </button>
 
 <script>
-// ── Real Supabase Auth gate ──────────────────────────────────────────
-// Everything below in this page (stats bar, activity feed, followers,
-// rating graph, similar players, upcoming tournaments) is still the
-// original static design mockup — none of that data exists in the
-// backend yet (no followers/posts/ratings tables were built), so it is
-// intentionally left untouched here. Only identity (name/avatar/title)
-// and auth (session gate + logout) are wired to the real csp-staging
-// backend; see the task summary for details.
-(async function initAuthGate(){
-  const { data: { session } } = await cspAuth.getSession();
-  if(!session){
-    window.location.href = '/login/';
-    return;
-  }
-
-  const { data: profile } = await cspAuth.getCurrentProfile();
-  const displayName = (profile && profile.full_name) || (session.user.email ? session.user.email.split('@')[0] : 'Hráč');
-  const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
-
-  document.title = displayName + ' · Connect Sports Pro';
-  const nameEl = document.getElementById('profileName');
-  if(nameEl) nameEl.textContent = displayName;
-  const avatarEl = document.getElementById('profileAvatarInitials');
-  if(avatarEl) avatarEl.textContent = initials;
-  const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
-  if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
-  const topbarNameEl = document.getElementById('topbarUserName');
-  if(topbarNameEl) topbarNameEl.textContent = displayName;
-})();
-
-document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  await cspAuth.signOut();
-  window.location.href = '/login/';
-});
-
+// ── Page interactions — defined and wired up FIRST, unconditionally ──
+// These must never depend on the auth/profile-loading work below in any
+// way, so a slow or failing network call can never make buttons on this
+// page unresponsive. (This fixes an incident where almost every button
+// except logout stopped responding after real Supabase Auth was wired
+// in — root cause was a redundant internal getSession() call inside
+// getCurrentProfile() that could hang; see cspAuth.getCurrentProfile()
+// and the auth gate below for the fix. Button wiring itself was not
+// actually gated behind that call, but it's moved here and made
+// unconditional as well so there is no possible ambiguity about it.)
 function setSport(btn){
   if(btn.classList.contains('muted')) return;
   document.querySelectorAll('.sport-tab').forEach(b => b.classList.remove('active'));
@@ -1072,6 +1046,61 @@ document.addEventListener('keydown', e => {
     document.querySelector('.search-box input')?.focus();
   }
 });
+
+document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  try {
+    await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()');
+  } catch(err){
+    console.error('[profil] signOut failed or timed out, redirecting to /login/ anyway:', err);
+  }
+  window.location.href = '/login/';
+});
+
+// ── Real Supabase Auth gate ──────────────────────────────────────────
+// Everything below in this page (stats bar, activity feed, followers,
+// rating graph, similar players, upcoming tournaments) is still the
+// original static design mockup — none of that data exists in the
+// backend yet (no followers/posts/ratings tables were built), so it is
+// intentionally left untouched here. Only identity (name/avatar/title)
+// and auth (session gate + logout) are wired to the real csp-staging
+// backend.
+//
+// Wrapped in try/catch with a timeout on every awaited call: a
+// network/auth hiccup here now always logs clearly instead of becoming
+// a silent unhandled promise rejection, and can never hang indefinitely.
+(async function initAuthGate(){
+  try {
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){
+      window.location.href = '/login/';
+      return;
+    }
+
+    // Pass session.user through so getCurrentProfile() doesn't need to
+    // call getSession() again internally — see its definition in
+    // csp-auth.js for why that redundant second call mattered.
+    const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
+    if(profileError){
+      console.error('[profil] Could not load profile row, falling back to email-derived name:', profileError);
+    }
+
+    const displayName = (profile && profile.full_name) || (session.user.email ? session.user.email.split('@')[0] : 'Hráč');
+    const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
+
+    document.title = displayName + ' · Connect Sports Pro';
+    const nameEl = document.getElementById('profileName');
+    if(nameEl) nameEl.textContent = displayName;
+    const avatarEl = document.getElementById('profileAvatarInitials');
+    if(avatarEl) avatarEl.textContent = initials;
+    const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
+    if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
+    const topbarNameEl = document.getElementById('topbarUserName');
+    if(topbarNameEl) topbarNameEl.textContent = displayName;
+  } catch(err) {
+    console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
+  }
+})();
 </script>
 </body>
 </html>
