@@ -424,6 +424,18 @@ a{color:inherit;text-decoration:none}
 .action.kudos.given{color:var(--gold);background:var(--gold-dim)}
 
 /* ════════════════════════════════════
+   EMPTY STATES (genuine zero-data states,
+   replacing what used to be fake demo content)
+═══════════════════════════════════ */
+.empty-state{
+  text-align:center;padding:36px 20px;color:var(--muted2);
+}
+.empty-state .empty-icon{font-size:2rem;margin-bottom:10px;opacity:.6}
+.empty-state .empty-title{font-size:.92rem;font-weight:700;color:var(--text-soft);margin-bottom:4px}
+.empty-state .empty-sub{font-size:.8rem;line-height:1.5;max-width:320px;margin:0 auto}
+.empty-state.small{padding:20px 12px}
+
+/* ════════════════════════════════════
    SIDE WIDGETS
 ═══════════════════════════════════ */
 .content-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:84px}
@@ -583,7 +595,7 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" title="Notifikácie">🔔<span class="bell-dot"></span></button>
+        <button class="icon-btn" title="Notifikácie">🔔</button>
         <button class="user-pill" onclick="toggleUserMenu(event)">
           <span class="av-mini" id="topbarAvatarInitials">JN</span>
           <span id="topbarUserName">Ján Novák</span>
@@ -616,16 +628,15 @@ a{color:inherit;text-decoration:none}
 
         <div class="identity">
           <div class="name-row">
-            <h1 class="name" id="profileName">Ján Novák</h1>
-            <span class="verified" title="Overený profil">✓</span>
+            <h1 class="name" id="profileName">Hráč</h1>
           </div>
-          <div class="handle">@jannovak</div>
-          <div class="bio">Hrávam biliard 12 rokov, šípky pre relax. Snažím sa zlepšovať každý deň. Vždy rád spoznám nových hráčov.</div>
+          <!-- Bio/handle/club/location are not real fields on `profiles` yet
+               (no bio, username, or club-membership columns exist) — no fake
+               placeholder content is shown for them, they simply don't
+               render until those features actually exist. Only "member
+               since" is genuine (profiles.created_at), filled in by JS. -->
           <div class="meta">
-            <span class="meta-item"><span class="meta-i">🏛</span> ŠK Pohoda</span>
-            <span class="meta-item"><span class="meta-i">📍</span> Trenčín, SK</span>
-            <span class="meta-item"><span class="meta-i">🎱 🎯</span> Biliard · Šípky</span>
-            <span class="meta-item"><span class="meta-i">📅</span> Člen od marca 2026</span>
+            <span class="meta-item" id="memberSinceMeta"><span class="meta-i">📅</span> Člen od —</span>
           </div>
         </div>
 
@@ -636,42 +647,49 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <!-- STATS BAR -->
+      <!-- Genuine zero/empty state: none of these are backed by real data
+           yet (no followers, respects, or match-history tables exist), so
+           every new real user sees honest zeros/dashes here instead of
+           leftover demo numbers. -->
       <div class="stats-bar">
         <div class="stat">
-          <div class="stat-num">347</div>
+          <div class="stat-num">0</div>
           <div class="stat-label">Sledujú</div>
         </div>
         <div class="stat">
-          <div class="stat-num">512</div>
+          <div class="stat-num">0</div>
           <div class="stat-label">Sledovatelia</div>
         </div>
         <div class="stat">
-          <div class="stat-num">1 247</div>
+          <div class="stat-num">0</div>
           <div class="stat-label">Respekty</div>
         </div>
         <div class="stat">
-          <div class="stat-num">87</div>
+          <div class="stat-num">0</div>
           <div class="stat-label">Zápasy</div>
         </div>
         <div class="stat">
-          <div class="stat-num">62–25</div>
+          <div class="stat-num">0–0</div>
           <div class="stat-label">V – P</div>
         </div>
         <div class="stat highlight">
-          <div class="stat-num">#34</div>
+          <div class="stat-num">—</div>
           <div class="stat-label">Rank SK</div>
         </div>
       </div>
 
       <!-- SPORT TABS -->
+      <!-- Ratings are "—" (no fake number) since there is no ratings
+           table yet — a genuinely new player has no rating until they
+           actually play. -->
       <div class="sport-tabs">
         <button class="sport-tab active" onclick="setSport(this)">
           <span class="icon">🎱</span> Biliard
-          <span class="rating">2 145</span>
+          <span class="rating">—</span>
         </button>
         <button class="sport-tab" onclick="setSport(this)">
           <span class="icon">🎯</span> Šípky
-          <span class="rating">1 850</span>
+          <span class="rating">—</span>
         </button>
         <button class="sport-tab muted" onclick="setSport(this)">
           <span class="icon">🎳</span> Bowling
@@ -696,171 +714,17 @@ a{color:inherit;text-decoration:none}
             <button class="content-tab" onclick="setContentTab(this)">Zápasy</button>
           </div>
 
+          <!-- Genuine empty state: there is no posts/activity-feed table
+               yet, so a real new user sees an honest "nothing here yet"
+               message instead of fabricated match wins/records/tournament
+               results. This replaces what was previously 5 hardcoded fake
+               posts for a fictional "Ján Novák". -->
           <div class="feed">
-
-            <!-- POST: Match win -->
-            <article class="post">
-              <div class="post-head">
-                <div class="post-avatar">JN</div>
-                <div class="post-meta">
-                  <div class="post-name">Ján Novák <span class="post-action">vyhral zápas</span></div>
-                  <div class="post-time">Pred 2 hodinami · 🎱 Biliard · Mestský pohár</div>
-                </div>
-                <button class="post-menu">⋯</button>
-              </div>
-              <div class="post-body">
-                <div class="match-card">
-                  <div class="match-player">
-                    <div class="mp-av">JN</div>
-                    <div class="mp-info">
-                      <div class="mp-name">Ján Novák</div>
-                      <div class="mp-club">ŠK Pohoda</div>
-                    </div>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:14px">
-                    <div class="mp-score winner">5</div>
-                    <div class="match-vs">VS</div>
-                    <div class="mp-score">3</div>
-                  </div>
-                  <div class="match-player right">
-                    <div class="mp-av opp">PT</div>
-                    <div class="mp-info" style="text-align:right">
-                      <div class="mp-name">Peter Toth</div>
-                      <div class="mp-club">KK Trnava</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="match-info">
-                  <span>Štvrťfinále · 9-ball</span>
-                  <span class="rating-change positive">+24 hodnotenie</span>
-                </div>
-              </div>
-              <div class="post-actions">
-                <button class="action kudos given">👏 Respekt <span>34</span></button>
-                <button class="action">💬 Komentár <span>5</span></button>
-                <button class="action">↗ Share</button>
-              </div>
-            </article>
-
-            <!-- POST: Personal record -->
-            <article class="post">
-              <div class="post-head">
-                <div class="post-avatar">JN</div>
-                <div class="post-meta">
-                  <div class="post-name">Ján Novák <span class="post-action">prekonal osobný rekord</span></div>
-                  <div class="post-time">Pred 1 dňom · 🎯 Šípky</div>
-                </div>
-                <button class="post-menu">⋯</button>
-              </div>
-              <div class="post-body">
-                <div class="record-card">
-                  <div class="record-trophy">🏆</div>
-                  <div>
-                    <div class="record-title">3× 180 v jednom zápase</div>
-                    <div class="record-sub">Predchádzajúci rekord: 2× 180 · pred 3 mesiacmi</div>
-                  </div>
-                </div>
-              </div>
-              <div class="post-actions">
-                <button class="action kudos">👏 Respekt <span>87</span></button>
-                <button class="action">💬 Komentár <span>12</span></button>
-                <button class="action">↗ Share</button>
-              </div>
-            </article>
-
-            <!-- POST: Tournament finish -->
-            <article class="post">
-              <div class="post-head">
-                <div class="post-avatar">JN</div>
-                <div class="post-meta">
-                  <div class="post-name">Ján Novák <span class="post-action">skončil 3. v turnaji</span></div>
-                  <div class="post-time">Pred 3 dňami · 🎱 Biliard</div>
-                </div>
-                <button class="post-menu">⋯</button>
-              </div>
-              <div class="post-body">
-                <div class="tournament-card">
-                  <div class="medal">🥉</div>
-                  <div>
-                    <div class="t-name">Bronzové miesto · Mestský pohár 2026</div>
-                    <div class="t-stats">12 hráčov · 6 zápasov · 4 výhry · 2 prehry</div>
-                  </div>
-                </div>
-              </div>
-              <div class="post-actions">
-                <button class="action kudos">👏 Respekt <span>56</span></button>
-                <button class="action">💬 Komentár <span>9</span></button>
-                <button class="action">↗ Share</button>
-              </div>
-            </article>
-
-            <!-- POST: Milestone -->
-            <article class="post">
-              <div class="post-head">
-                <div class="post-avatar">JN</div>
-                <div class="post-meta">
-                  <div class="post-name">Ján Novák <span class="post-action">dosiahol milník 🎉</span></div>
-                  <div class="post-time">Pred 5 dňami</div>
-                </div>
-                <button class="post-menu">⋯</button>
-              </div>
-              <div class="post-body">
-                <div class="milestone-card">
-                  <div class="milestone-num">100</div>
-                  <div class="milestone-text">odohraných zápasov na CSP</div>
-                </div>
-              </div>
-              <div class="post-actions">
-                <button class="action kudos">👏 Respekt <span>124</span></button>
-                <button class="action">💬 Komentár <span>23</span></button>
-                <button class="action">↗ Share</button>
-              </div>
-            </article>
-
-            <!-- POST: Match loss -->
-            <article class="post">
-              <div class="post-head">
-                <div class="post-avatar">JN</div>
-                <div class="post-meta">
-                  <div class="post-name">Ján Novák <span class="post-action">prehral zápas</span></div>
-                  <div class="post-time">Pred 1 týždňom · 🎱 Biliard · Liga</div>
-                </div>
-                <button class="post-menu">⋯</button>
-              </div>
-              <div class="post-body">
-                <div class="match-card">
-                  <div class="match-player">
-                    <div class="mp-av">JN</div>
-                    <div class="mp-info">
-                      <div class="mp-name">Ján Novák</div>
-                      <div class="mp-club">ŠK Pohoda</div>
-                    </div>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:14px">
-                    <div class="mp-score">2</div>
-                    <div class="match-vs">VS</div>
-                    <div class="mp-score winner">5</div>
-                  </div>
-                  <div class="match-player right">
-                    <div class="mp-av opp">MK</div>
-                    <div class="mp-info" style="text-align:right">
-                      <div class="mp-name">Marek Krajči</div>
-                      <div class="mp-club">ŠK Trnava</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="match-info">
-                  <span>Liga · 2. kolo · 8-ball</span>
-                  <span class="rating-change negative">−18 hodnotenie</span>
-                </div>
-              </div>
-              <div class="post-actions">
-                <button class="action kudos">👏 Respekt <span>18</span></button>
-                <button class="action">💬 Komentár <span>3</span></button>
-                <button class="action">↗ Share</button>
-              </div>
-            </article>
-
+            <div class="empty-state">
+              <div class="empty-icon">🎯</div>
+              <div class="empty-title">Zatiaľ žiadna aktivita</div>
+              <div class="empty-sub">Tvoje zápasy, turnaje a míľniky sa tu zobrazia, hneď ako začneš hrať na CSP.</div>
+            </div>
           </div>
         </div>
 
@@ -868,129 +732,54 @@ a{color:inherit;text-decoration:none}
         <aside class="content-side">
 
           <!-- PERFORMANCE GRAPH -->
+          <!-- Genuine empty state: no ratings-history table exists yet,
+               so no fake chart/numbers are shown for a real user. -->
           <div class="widget">
             <div class="widget-head">
               <h3>Vývoj hodnotenia</h3>
-              <select>
-                <option>30 dní</option>
-                <option>3 mesiace</option>
-                <option>Rok</option>
-                <option>Všetko</option>
-              </select>
             </div>
-            <div class="graph-wrap">
-              <svg class="graph-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
-                <!-- Grid lines -->
-                <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,.04)" stroke-dasharray="2 4"/>
-                <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,.04)" stroke-dasharray="2 4"/>
-                <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,.04)" stroke-dasharray="2 4"/>
-
-                <!-- Gradient fill under line -->
-                <defs>
-                  <linearGradient id="gradFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#d4a843" stop-opacity=".3"/>
-                    <stop offset="100%" stop-color="#d4a843" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path d="M 0 80 L 30 75 L 60 78 L 90 65 L 120 70 L 150 55 L 180 50 L 210 45 L 240 38 L 270 32 L 300 25 L 300 120 L 0 120 Z" fill="url(#gradFill)"/>
-
-                <!-- Line -->
-                <polyline points="0,80 30,75 60,78 90,65 120,70 150,55 180,50 210,45 240,38 270,32 300,25"
-                  fill="none" stroke="#d4a843" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-
-                <!-- End dot -->
-                <circle cx="300" cy="25" r="4" fill="#d4a843"/>
-                <circle cx="300" cy="25" r="8" fill="#d4a843" opacity=".3"/>
-              </svg>
-              <div class="graph-stats">
-                <span>2 145 aktuálne</span>
-                <span class="positive">+78 za 30 dní</span>
-              </div>
+            <div class="empty-state small">
+              <div class="empty-icon">📈</div>
+              <div class="empty-sub">Graf sa zobrazí po odohraní prvých zápasov.</div>
             </div>
           </div>
 
           <!-- FOLLOWERS PREVIEW -->
+          <!-- Genuine empty state: no followers table exists yet. -->
           <div class="widget">
             <div class="widget-head">
-              <h3>Sledovatelia · 512</h3>
-              <a href="#" class="see-all">Všetci →</a>
+              <h3>Sledovatelia · 0</h3>
             </div>
-            <div class="avatar-grid">
-              <div class="av-tile">MK</div>
-              <div class="av-tile alt-1">PT</div>
-              <div class="av-tile alt-2">AS</div>
-              <div class="av-tile">JK</div>
-              <div class="av-tile alt-3">MV</div>
-              <div class="av-tile alt-4">RH</div>
-              <div class="av-tile alt-1">DM</div>
-              <div class="av-tile">TB</div>
-              <div class="av-tile alt-2">LC</div>
-              <div class="av-tile alt-3">PS</div>
-              <div class="av-tile">KN</div>
-              <div class="av-tile alt-4">+501</div>
+            <div class="empty-state small">
+              <div class="empty-sub">Zatiaľ nemáš žiadnych sledovateľov.</div>
             </div>
           </div>
 
           <!-- SIMILAR PLAYERS -->
+          <!-- Genuine empty state: no player-similarity/matching feature
+               has been built yet, so no fabricated player list is shown. -->
           <div class="widget">
             <div class="widget-head">
               <h3>Hráči podobní tebe</h3>
             </div>
-            <div class="player-list">
-              <div class="player-row">
-                <div class="av-mini">MK</div>
-                <div class="player-info">
-                  <div class="player-name">Marek Krajči</div>
-                  <div class="player-meta">2 198 · ŠK Trnava · 🎱</div>
-                </div>
-                <button class="follow-btn">Sledovať</button>
-              </div>
-              <div class="player-row">
-                <div class="av-mini alt-1">PD</div>
-                <div class="player-info">
-                  <div class="player-name">Peter Dvořák</div>
-                  <div class="player-meta">2 102 · ŠKB Žilina · 🎱</div>
-                </div>
-                <button class="follow-btn">Sledovať</button>
-              </div>
-              <div class="player-row">
-                <div class="av-mini alt-2">LB</div>
-                <div class="player-info">
-                  <div class="player-name">Lukáš Bárdoš</div>
-                  <div class="player-meta">1 920 · TK Nitra · 🎯</div>
-                </div>
-                <button class="follow-btn">Sledovať</button>
-              </div>
-              <div class="player-row">
-                <div class="av-mini">AS</div>
-                <div class="player-info">
-                  <div class="player-name">Adam Solár</div>
-                  <div class="player-meta">2 056 · ŠK Banská</div>
-                </div>
-                <button class="follow-btn following">✓ Sleduješ</button>
-              </div>
+            <div class="empty-state small">
+              <div class="empty-sub">Táto funkcia sa pripravuje.</div>
             </div>
           </div>
 
           <!-- UPCOMING TOURNAMENTS -->
+          <!-- Genuine empty state: tournaments do exist in the backend
+               (see supabase/migrations/0003), but this widget isn't wired
+               up to query the real tournaments/tournament_players tables
+               yet -- that's real follow-up work, not something to fake
+               here in the meantime. -->
           <div class="widget">
             <div class="widget-head">
               <h3>Nadchádzajúce turnaje</h3>
-              <a href="#" class="see-all">Všetky →</a>
+              <a href="/search/" class="see-all">Hľadať →</a>
             </div>
-            <div class="t-list">
-              <div class="t-card">
-                <div class="t-card-title">🎱 Jarný pohár 2026</div>
-                <div class="t-card-meta"><span class="date">15. mar 2026</span> · ŠK Pohoda · 24 hráčov</div>
-              </div>
-              <div class="t-card">
-                <div class="t-card-title">🎯 501 Open</div>
-                <div class="t-card-meta"><span class="date">22. mar 2026</span> · Trenčín · Otvorený</div>
-              </div>
-              <div class="t-card">
-                <div class="t-card-title">🎱 Liga 2026 – Kolo 5</div>
-                <div class="t-card-meta"><span class="date">29. mar 2026</span> · Žilina</div>
-              </div>
+            <div class="empty-state small">
+              <div class="empty-sub">Zatiaľ nie si prihlásený/á na žiadny turnaj.</div>
             </div>
           </div>
 
@@ -1058,17 +847,23 @@ document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
 });
 
 // ── Real Supabase Auth gate ──────────────────────────────────────────
-// Everything below in this page (stats bar, activity feed, followers,
-// rating graph, similar players, upcoming tournaments) is still the
-// original static design mockup — none of that data exists in the
-// backend yet (no followers/posts/ratings tables were built), so it is
-// intentionally left untouched here. Only identity (name/avatar/title)
-// and auth (session gate + logout) are wired to the real csp-staging
-// backend.
+// Identity (name/avatar/title/member-since) and auth (session gate +
+// logout) are wired to the real csp-staging backend. The stats bar,
+// activity feed, rating graph, followers, similar-players, and upcoming
+// tournaments widgets are genuine empty/zero states in the static HTML
+// above (not fetched here) — none of that data has a backing table yet
+// (no followers/posts/ratings tables exist), so a real new user sees
+// honest "nothing yet" states instead of the leftover demo content this
+// page used to show. Upcoming tournaments in particular *could* someday
+// query the real tournaments/tournament_players tables (they exist —
+// see supabase/migrations/0003) but that's real follow-up work, not
+// something to fake here in the meantime.
 //
 // Wrapped in try/catch with a timeout on every awaited call: a
 // network/auth hiccup here now always logs clearly instead of becoming
 // a silent unhandled promise rejection, and can never hang indefinitely.
+const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
+
 (async function initAuthGate(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
@@ -1091,12 +886,32 @@ document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
     document.title = displayName + ' · Connect Sports Pro';
     const nameEl = document.getElementById('profileName');
     if(nameEl) nameEl.textContent = displayName;
-    const avatarEl = document.getElementById('profileAvatarInitials');
-    if(avatarEl) avatarEl.textContent = initials;
-    const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
-    if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
     const topbarNameEl = document.getElementById('topbarUserName');
     if(topbarNameEl) topbarNameEl.textContent = displayName;
+
+    // Real avatar image if the user has one (profiles.avatar_url, wired
+    // up by the storage migration — see supabase/migrations/0007);
+    // otherwise fall back to the initials placeholder already in the
+    // static HTML, never a fake photo.
+    const avatarUrl = profile && profile.avatar_url;
+    const avatarEl = document.getElementById('profileAvatarInitials');
+    const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
+    if(avatarUrl){
+      if(avatarEl) avatarEl.style.backgroundImage = `url("${avatarUrl}")`, avatarEl.style.backgroundSize = 'cover', avatarEl.style.backgroundPosition = 'center', avatarEl.textContent = '';
+      if(topbarAvatarEl) topbarAvatarEl.style.backgroundImage = `url("${avatarUrl}")`, topbarAvatarEl.style.backgroundSize = 'cover', topbarAvatarEl.style.backgroundPosition = 'center', topbarAvatarEl.textContent = '';
+    } else {
+      if(avatarEl) avatarEl.textContent = initials;
+      if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
+    }
+
+    // Real "member since" date from profiles.created_at (not a fake
+    // hardcoded date).
+    const memberSinceEl = document.getElementById('memberSinceMeta');
+    if(memberSinceEl && profile && profile.created_at){
+      const created = new Date(profile.created_at);
+      const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
+      memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
+    }
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }

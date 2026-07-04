@@ -107,7 +107,7 @@
     }
     return client
       .from('profiles')
-      .select('id, full_name, email, role, plan, is_admin, avatar_url')
+      .select('id, full_name, email, role, plan, is_admin, avatar_url, created_at')
       .eq('id', userId)
       .single();
   }
