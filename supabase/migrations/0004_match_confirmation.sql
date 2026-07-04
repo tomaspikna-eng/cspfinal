@@ -7,37 +7,26 @@
 -- match is flagged `disputed` for the tournament owner to resolve manually
 -- via their existing (prompt 3) owner-write path.
 --
--- IMPORTANT — flagged assumption about score semantics (please confirm):
--- The prompt text describes both `player1_reported_score` and
--- `player2_reported_score` as holding "games/points won overall by
--- player1", compared directly for equality to decide auto-confirm vs
--- dispute. Taken completely literally, that can't be correct: if both
--- columns track the *same* target number and must be numerically equal to
--- auto-confirm, then score1 and score2 would always end up equal on every
--- auto-confirmation, which makes winner_id (explicitly required by this
--- same prompt) mathematically undeterminable. That's a direct
--- contradiction, so it cannot be what's intended as written.
+-- CONFIRMED score semantics (2026-07-04): score1/score2 are each a single
+-- integer per player — games/frames/legs won in that match, no sets or
+-- nested structure. In the frontend these are the mmS1/mmS2 number inputs
+-- (min 0), mapped directly to score1/score2.
 --
--- The interpretation implemented here instead (and the only one that is
--- internally consistent with "derive score1 AND score2, infer which
--- reported column maps to which player consistently", the RLS
--- restriction that each side may only ever write their *own* reporting
--- column, and a real winner_id being derivable) is:
+-- Given that, player1_reported_score / player2_reported_score are each
+-- side's own reported tally in that same unit:
 --   player1_reported_score  = player1's own reported tally  -> becomes score1
 --   player2_reported_score  = player2's own reported tally  -> becomes score2
--- i.e. each side self-reports their own side of the result (the same unit
--- score1/score2 already use — games/points/sets, whichever the frontend
--- uses there, unchanged from prompt 3). Under this model "agreement" is
--- reframed from a literal number-for-number match into "both sides have
--- reported and the result is decisive" (score1 <> score2, a real winner
--- exists) -> auto-confirm; "both reported but numerically tied" (no
--- derivable winner, an anomalous/ambiguous outcome for what is presumably
--- a decisive race-to-N format) -> disputed, left for the owner to resolve.
--- If the frontend's real convention for reporting a self-score differs
--- from this (e.g. it actually submits a shared/derived value rather than
--- each side's own tally), this trigger's comparison logic will need a
--- follow-up migration once that's confirmed — nothing else in this file
--- (columns, indexes, RLS shape) would need to change.
+-- (This is also the only reading consistent with "derive score1 AND
+-- score2, infer which reported column maps to which player consistently"
+-- and with the RLS rule that each side may only ever write their own
+-- reporting column — a literal "both columns must be numerically equal to
+-- confirm" reading would force score1 = score2 on every auto-confirmation,
+-- making winner_id undeterminable, which can't be right.)
+-- "Agreement" is therefore: both sides have reported and the result is
+-- decisive (score1 <> score2, a real winner exists) -> auto-confirm.
+-- "Both reported but numerically tied" (no derivable winner, anomalous
+-- for a decisive race-to-N format) -> disputed, left for the owner to
+-- resolve manually.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
