@@ -17,9 +17,13 @@
 -- runs cleanly on a brand new project as well as one that already has an
 -- older copy of this same schema installed. This does NOT touch auth.users
 -- itself or any other schema.
+--
+-- Note: triggers defined ON public.profiles itself are intentionally not
+-- dropped explicitly here — `DROP TRIGGER IF EXISTS x ON public.profiles`
+-- still requires the *table* to exist even with IF EXISTS, which errors out
+-- on a truly fresh project where profiles hasn't been created yet. They are
+-- removed for free below via `drop table if exists public.profiles cascade`.
 drop trigger if exists on_auth_user_created on auth.users;
-drop trigger if exists profiles_set_updated_at on public.profiles;
-drop trigger if exists profiles_protect_admin_columns on public.profiles;
 
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.set_updated_at() cascade;
