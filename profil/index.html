@@ -532,6 +532,8 @@ a{color:inherit;text-decoration:none}
 .share-fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(212,168,67,.5)}
 @media(max-width:880px){.share-fab{bottom:16px;right:16px}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
 
@@ -583,8 +585,8 @@ a{color:inherit;text-decoration:none}
       <div class="topbar-right">
         <button class="icon-btn" title="Notifikácie">🔔<span class="bell-dot"></span></button>
         <button class="user-pill" onclick="toggleUserMenu(event)">
-          <span class="av-mini">JN</span>
-          <span>Ján Novák</span>
+          <span class="av-mini" id="topbarAvatarInitials">JN</span>
+          <span id="topbarUserName">Ján Novák</span>
           <span style="font-size:.7rem;color:var(--muted2)">▾</span>
         </button>
         <div class="user-menu" id="userMenu">
@@ -592,7 +594,7 @@ a{color:inherit;text-decoration:none}
           <a href="#" class="mi">🎨 Téma a vzhľad</a>
           <a href="#" class="mi">⭐ Upgrade plán</a>
           <div class="mi-divider"></div>
-          <a href="#" class="mi mi-danger">↪ Odhlásiť sa</a>
+          <a href="#" class="mi mi-danger" id="logoutLink">↪ Odhlásiť sa</a>
         </div>
       </div>
     </div>
@@ -608,13 +610,13 @@ a{color:inherit;text-decoration:none}
       <!-- HEADER -->
       <div class="profile-header">
         <div class="avatar-wrap">
-          <div class="avatar">JN</div>
+          <div class="avatar" id="profileAvatarInitials">JN</div>
           <button class="avatar-edit" title="Zmeniť fotku">📷</button>
         </div>
 
         <div class="identity">
           <div class="name-row">
-            <h1 class="name">Ján Novák</h1>
+            <h1 class="name" id="profileName">Ján Novák</h1>
             <span class="verified" title="Overený profil">✓</span>
           </div>
           <div class="handle">@jannovak</div>
@@ -1005,6 +1007,42 @@ a{color:inherit;text-decoration:none}
 </button>
 
 <script>
+// ── Real Supabase Auth gate ──────────────────────────────────────────
+// Everything below in this page (stats bar, activity feed, followers,
+// rating graph, similar players, upcoming tournaments) is still the
+// original static design mockup — none of that data exists in the
+// backend yet (no followers/posts/ratings tables were built), so it is
+// intentionally left untouched here. Only identity (name/avatar/title)
+// and auth (session gate + logout) are wired to the real csp-staging
+// backend; see the task summary for details.
+(async function initAuthGate(){
+  const { data: { session } } = await cspAuth.getSession();
+  if(!session){
+    window.location.href = '/login/';
+    return;
+  }
+
+  const { data: profile } = await cspAuth.getCurrentProfile();
+  const displayName = (profile && profile.full_name) || (session.user.email ? session.user.email.split('@')[0] : 'Hráč');
+  const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
+
+  document.title = displayName + ' · Connect Sports Pro';
+  const nameEl = document.getElementById('profileName');
+  if(nameEl) nameEl.textContent = displayName;
+  const avatarEl = document.getElementById('profileAvatarInitials');
+  if(avatarEl) avatarEl.textContent = initials;
+  const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
+  if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
+  const topbarNameEl = document.getElementById('topbarUserName');
+  if(topbarNameEl) topbarNameEl.textContent = displayName;
+})();
+
+document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  await cspAuth.signOut();
+  window.location.href = '/login/';
+});
+
 function setSport(btn){
   if(btn.classList.contains('muted')) return;
   document.querySelectorAll('.sport-tab').forEach(b => b.classList.remove('active'));

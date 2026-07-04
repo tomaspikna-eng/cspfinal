@@ -60,6 +60,7 @@ body{
 .foot a:hover{text-decoration:underline}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -101,30 +102,22 @@ body{
     history.replaceState(null,'',window.location.pathname);
 })();
 
-const SB = window.supabase.createClient(
-  'https://gilzomwhuwcxpkegtlhj.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbHpvbXdodXdjeHBrZWd0bGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzMwMTgsImV4cCI6MjA5MjYwOTAxOH0.-KiLSdiB2mRWqUDB9GWyISfCu2o_ZBM80aGUEW9CcUg'
-);
-
-SB.auth.onAuthStateChange(async (event, session) => {
+cspAuth.client.auth.onAuthStateChange(async (event, session) => {
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
     window.location.href = '/profil/';
   }
 });
 
 (async function init(){
-  const { data: { session } } = await SB.auth.getSession();
+  const { data: { session } } = await cspAuth.getSession();
   if(session) window.location.href = '/profil/';
 })();
 
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
-  const { error } = await SB.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + '/profil/' }
-  });
-  if(error){ showMsg('Chyba: ' + error.message); btn.disabled = false; }
+  const { error } = await cspAuth.signInWithGoogle();
+  if(error){ showMsg('Chyba: ' + cspAuth.friendlyError(error)); btn.disabled = false; }
 });
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
@@ -136,14 +129,11 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const btn = document.getElementById('btnLogin');
   btn.disabled = true; btn.textContent = 'Prihlasujem...';
 
-  const { error } = await SB.auth.signInWithPassword({ email, password });
+  const { error } = await cspAuth.signIn(email, password);
   btn.disabled = false; btn.textContent = 'Prihlásiť sa →';
 
   if(error){
-    let m = error.message;
-    if(error.message.includes('Invalid')) m = 'Nesprávny e-mail alebo heslo.';
-    if(error.message.includes('not confirmed')) m = 'E-mail nie je potvrdený.';
-    showMsg(m);
+    showMsg(cspAuth.friendlyError(error));
   }
 });
 

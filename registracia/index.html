@@ -112,6 +112,7 @@ body{
 .foot a:hover{text-decoration:underline}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -189,30 +190,22 @@ body{
     history.replaceState(null,'',window.location.pathname);
 })();
 
-const SB = window.supabase.createClient(
-  'https://gilzomwhuwcxpkegtlhj.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbHpvbXdodXdjeHBrZWd0bGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzMwMTgsImV4cCI6MjA5MjYwOTAxOH0.-KiLSdiB2mRWqUDB9GWyISfCu2o_ZBM80aGUEW9CcUg'
-);
-
-SB.auth.onAuthStateChange(async (event, session) => {
+cspAuth.client.auth.onAuthStateChange(async (event, session) => {
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
     window.location.href = '/profil/';
   }
 });
 
 (async function init(){
-  const { data: { session } } = await SB.auth.getSession();
+  const { data: { session } } = await cspAuth.getSession();
   if(session) window.location.href = '/profil/';
 })();
 
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
-  const { error } = await SB.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + '/profil/' }
-  });
-  if(error){ showMsg('Chyba: ' + error.message, 'err'); btn.disabled = false; }
+  const { error } = await cspAuth.signInWithGoogle();
+  if(error){ showMsg('Chyba: ' + cspAuth.friendlyError(error), 'err'); btn.disabled = false; }
 });
 
 document.getElementById('btnReg').addEventListener('click', async () => {
@@ -227,15 +220,25 @@ document.getElementById('btnReg').addEventListener('click', async () => {
   const btn = document.getElementById('btnReg');
   btn.disabled = true; btn.textContent = '⏳ Vytváram účet...';
 
-  const { data, error } = await SB.auth.signUp({ email, password: p1 });
+  const { data, error } = await cspAuth.signUp(email, p1);
 
   if(error){
     btn.disabled = false; btn.textContent = '🚀 Vytvoriť účet';
-    let m = error.message;
+    let m = cspAuth.friendlyError(error);
     if(error.message.toLowerCase().includes('already')){
       m = 'Tento e-mail je už registrovaný. <a href="/login/" style="color:var(--gold);text-decoration:underline">Prihlás sa →</a>';
     }
     showMsg(m, 'err');
+    return;
+  }
+
+  // Supabase Auth returns no error for signUp() with an already-registered
+  // email (anti-enumeration behavior) — only an empty identities array
+  // gives it away. Without this check, a re-registration attempt would
+  // wrongly show "account created, check your email".
+  if(cspAuth.isDuplicateSignup(data)){
+    btn.disabled = false; btn.textContent = '🚀 Vytvoriť účet';
+    showMsg('Tento e-mail je už registrovaný. <a href="/login/" style="color:var(--gold);text-decoration:underline">Prihlás sa →</a>', 'err');
     return;
   }
 
