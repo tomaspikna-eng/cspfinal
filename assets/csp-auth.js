@@ -5,9 +5,11 @@
  * migrations under /supabase/migrations — profiles, plan-gating,
  * tournaments, etc). This is a NEW project, separate from the
  * `gilzomwhuwcxpkegtlhj` / `gqtbxjkuemggelepkhrl` Supabase projects that
- * some older pages in this repo (nastavenie-profilu/, upgrade/, the
- * magazine read on the landing page) still point at — those were not
- * touched by this change. See the summary of this task for details.
+ * some older pages in this repo (upgrade/, the magazine read on the
+ * landing page) still point at — those were not touched by this change.
+ * (nastavenie-profilu/ previously also pointed at the old project; that
+ * page has since been removed — profil/ is now the single canonical
+ * profile page.) See the summary of this task for details.
  *
  * No build step, matching the rest of this repo: loads on top of the
  * UMD/CDN build of @supabase/supabase-js, the same pattern already used

@@ -19,8 +19,7 @@ Priečinková štruktúra (`priečinok/index.html`) + `cleanUrls` vo Verceli.
 ```
 /                         landing
 /login /registracia       prihlásenie, registrácia
-/profil                   JEDEN profil (rola podľa plánu)
-/nastavenie-profilu       nastavenia (tu sa volí rola/plán)
+/profil                   JEDEN profil (rola podľa plánu, vrátane nastavení)
 /search /upgrade          vyhľadávanie turnajov, predplatné
 /ochrana-osobnych-udajov /vymazanie-dat   GDPR
 
