@@ -30,10 +30,15 @@ drop table if exists public.clubs cascade;
 -- ----------------------------------------------------------------------------
 -- gen_random_uuid() used elsewhere in this schema is built into Postgres
 -- core since v13 and needs no extension, but gen_random_bytes() (used
--- below for station tokens) is pgcrypto-specific. Supabase projects
--- commonly have this on by default, but this confirms rather than assumes
--- it — a no-op if already enabled, regardless of which schema it's in.
+-- below for station tokens) is pgcrypto-specific. Confirmed live on this
+-- project: pgcrypto is already enabled in the `extensions` schema (the
+-- Supabase default) — this statement is a no-op in that case, but is
+-- kept so a brand new project without it enabled still works.
 create extension if not exists pgcrypto with schema extensions;
+
+-- The `extensions` schema isn't necessarily on every role's search_path,
+-- so gen_random_bytes() is called schema-qualified below rather than
+-- relying on search_path to find it.
 
 -- ----------------------------------------------------------------------------
 -- 2. CLUBS
@@ -89,7 +94,7 @@ create table public.stations (
   club_id uuid not null references public.clubs(id) on delete cascade,
   name text not null,
   sport text not null check (sport in ('billiard', 'darts')),
-  token text not null unique default encode(gen_random_bytes(16), 'hex'),
+  token text not null unique default encode(extensions.gen_random_bytes(16), 'hex'),
   lock_mode boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
