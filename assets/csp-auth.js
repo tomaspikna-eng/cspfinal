@@ -3,13 +3,19 @@
  *
  * Talks to the `csp-staging` Supabase project (the one built by the
  * migrations under /supabase/migrations — profiles, plan-gating,
- * tournaments, etc). This is a NEW project, separate from the
- * `gilzomwhuwcxpkegtlhj` / `gqtbxjkuemggelepkhrl` Supabase projects that
- * some older pages in this repo (upgrade/, the magazine read on the
- * landing page) still point at — those were not touched by this change.
- * (nastavenie-profilu/ previously also pointed at the old project; that
- * page has since been removed — profil/ is now the single canonical
- * profile page.) See the summary of this task for details.
+ * tournaments, etc). This is a NEW project, separate from the old
+ * `gilzomwhuwcxpkegtlhj` Supabase project that `upgrade/index.html`
+ * still points at (its own separate client, not touched here — has a
+ * different schema: subscriptions/organizations/profiles.username, none
+ * of which exist in csp-staging). The landing page's magazine widget and
+ * a dead events-fetching script also used to point at old, unused
+ * Supabase projects (`gilzomwhuwcxpkegtlhj` and `gqtbxjkuemggelepkhrl`
+ * respectively) — the magazine widget now uses this shared client
+ * against the real `articles` table, and the events script (which had
+ * no backing UI at all) was removed outright, since no events backend
+ * exists yet. (nastavenie-profilu/ previously also pointed at an old
+ * project; that page has since been removed — profil/ is now the single
+ * canonical profile page.)
  *
  * No build step, matching the rest of this repo: loads on top of the
  * UMD/CDN build of @supabase/supabase-js, the same pattern already used
