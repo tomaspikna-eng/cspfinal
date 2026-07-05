@@ -1,0 +1,37 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# Connect Sports Pro — záväzné pravidlá projektu
+
+## Brand (nikdy nemeniť)
+- "Connect" = zlatá (#d4a843), "Sports" = biela, "Pro" = zlatá
+- Demo/mockup mená vždy "Ján Novák", nikdy reálne meno zakladateľa
+
+## Ekosystém — presne 4 časti
+- connectsportspro.com (core/marketing)
+- cspmanager.app (Club Manager)
+- csptournament.app (Tournament Manager)
+- cspmagazine.app (Magazine)
+- Generátor stolov NIE JE samostatná appka — je súčasť Tournament Manageru
+
+## Plány
+- free: tréning, čítanie magazínu, prehliadanie/registrácia na turnaje
+- pro: + vytváranie turnajov (cap 10 turnajov lifetime)
+- ultra: + neobmedzene turnajov, Club Manager, Generátor stolov
+- admin: bypass všetkého, exkluzívny prístup do Magazine CMS
+
+## Kartové hry — routing pravidlo
+Keď je disciplína kartová hra (mariáš, žolíky, rummy, bridge, kanasta),
+systém MUSÍ presmerovať do Generátora stolov — NIKDY nie na pavúk (SKO/DKO) ani round robin.
+
+## SKO/DKO seedovanie (zamknuté, nikdy nemeniť)
+Formula: štart [1,2]; pri každom zdvojení (nový max = dĺžka×2), seed s na párnom
+indexe → (s, max+1-s), na nepárnom → (max+1-s, s). Referencia: csp_seedovanie_pavuk.json
+
+## Štýl práce
+- Nikdy nepridávaj funkcie, ktoré neboli explicitne požadované
+- Pri neistote v obsahu/texte sa spýtaj, nevymýšľaj placeholder
+- Preferuj úpravu existujúceho súboru pred prepisom celého súboru
