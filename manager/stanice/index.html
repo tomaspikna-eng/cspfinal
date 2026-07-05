@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-manager.js"></script>
 <style>
 :root{
   --bg:#050505;--panel:#101010;--panel2:#161616;--gold:#d4a843;--green:#18c964;
@@ -50,9 +53,15 @@ h1{font-size:2rem;font-weight:800;margin-top:4px}
 .howto ol{margin-left:18px;color:var(--muted);font-size:.88rem;line-height:1.8}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#031108;font-weight:700;padding:12px 24px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none}
 .toast.show{opacity:1}
+.gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-loading{color:var(--muted);text-align:center;padding:60px 20px}
 </style>
 </head>
 <body>
+<div class="gate-overlay" id="loadingGate">
+  <div class="gate-loading">Načítavam...</div>
+</div>
+
 <div class="app">
   <header>
     <div class="kicker">CONNECT SPORTS PRO · CLUB MANAGER</div>
@@ -97,6 +106,18 @@ h1{font-size:2rem;font-weight:800;margin-top:4px}
 <div class="toast" id="toast">Odkaz skopírovaný</div>
 
 <script>
+/* ════════════════════════════════════════════════
+   REAL AUTH + CLUB GATE
+   This page previously had no login check at all. No club yet ->
+   redirect to the Dashboard (its "create your club" flow), same as
+   rezervacie/.
+════════════════════════════════════════════════ */
+(async function initClubManagerAuth(){
+  const ctx = await cspManager.requireClubManagerAccess();
+  if(!ctx) return; // already redirected
+  document.getElementById('loadingGate').style.display = 'none';
+})();
+
 function buildUrl(base, station, sport){
   const lock = document.getElementById('lockMode').checked ? '&lock=1' : '';
   const params = `?station=${encodeURIComponent(station)}&sport=${sport}${lock}`;

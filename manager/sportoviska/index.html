@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Športoviská — Club Manager</title>
+<meta name="description" content="Sprav svoje kurty, dráhy a miestnosti — pridaj, uprav alebo odstráň športoviská klubu."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-manager.js"></script>
+<style>
+:root{
+  --bg:#08080c;--bg-soft:#0c0c12;--card:#131319;--card-2:#16161d;
+  --line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.05);
+  --fg:#fafafa;--muted:#7e7e8a;--muted-2:#9a9aa6;
+  --gold:#d4a843;--gold-soft:#a8862e;--gold-dim:rgba(212,168,67,.12);--gold-b:rgba(212,168,67,.3);
+  --green:#26d07d;--green-dark:#06230f;--green-dim:rgba(38,208,125,.12);--green-b:rgba(38,208,125,.4);
+  --red:#e35149;--red-dim:rgba(227,81,73,.18);--red-b:rgba(227,81,73,.45);
+  --radius:12px;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+input,select,textarea{font-family:inherit;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:10px 12px;font-size:14px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+.hidden{display:none!important}
+
+/* SHELL (same as Dashboard/rezervacie) */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+@media(max-width:900px){.app{grid-template-columns:1fr}}
+.sidebar{background:var(--bg-soft);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+@media(max-width:900px){.sidebar{position:fixed;inset:0 auto 0 0;width:260px;z-index:200;transform:translateX(-100%);transition:.22s}.sidebar.open{transform:none}}
+.sb-brand{padding:20px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--line)}
+.sb-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.15rem;color:#1a1000}
+.sb-word{font-weight:800;font-size:.92rem}.sb-word .g{color:var(--gold)}.sb-word .w{color:#fff}
+.sb-sub{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.sb-nav{padding:14px 12px;flex:1}
+.sb-section{padding:14px 10px 6px;font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sb-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;font-size:.86rem;font-weight:500;color:var(--muted-2);transition:.12s}
+.sb-item:hover{background:rgba(255,255,255,.03);color:var(--fg)}
+.sb-item.active{background:var(--gold-dim);color:var(--gold);font-weight:600}
+.sb-item .ico{width:20px;text-align:center;font-size:1.05rem}
+.sb-foot{padding:12px;border-top:1px solid var(--line)}
+.sb-signout{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:9px;color:var(--muted-2);font-size:.84rem;border:1px solid var(--line);transition:.12s}
+.sb-signout:hover{border-color:var(--red-b);color:var(--red);background:var(--red-dim)}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(8,8,12,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tb-left{display:flex;align-items:center;gap:14px}
+.tb-toggle{display:none;font-size:1.4rem}@media(max-width:900px){.tb-toggle{display:block}}
+.tb-title{font-size:1.05rem;font-weight:700}.tb-title .club{color:var(--gold)}
+.tb-user{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border-radius:99px;border:1px solid var(--line);font-size:.82rem;font-weight:600}
+.tb-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-soft));display:flex;align-items:center;justify-content:center;color:#1a1000;font-weight:800;font-size:.78rem}
+
+.content{padding:28px 26px 60px;max-width:1280px;width:100%;margin:0 auto}
+@media(max-width:600px){.content{padding:20px 16px 50px}}
+.page-head{margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-head h1{font-size:1.9rem;font-weight:800;color:var(--gold)}
+.page-head p{color:var(--muted-2);margin-top:4px;font-size:.92rem}
+.btn{padding:11px 18px;border-radius:10px;font-weight:700;font-size:.86rem;transition:.13s;border:1px solid var(--line)}
+.btn-primary{background:var(--gold);border-color:var(--gold);color:#1a1000}
+.btn-primary:hover{background:#e6bd5c}
+.btn-cancel:hover{background:rgba(255,255,255,.05)}
+.btn-confirm{background:var(--green);border-color:var(--green);color:var(--green-dark)}
+.btn-confirm:hover{background:#33dd8a}
+.btn-danger{background:transparent;border-color:var(--red-b);color:var(--red)}
+.btn-danger:hover{background:var(--red-dim)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+/* VENUES GRID */
+.venues-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.venue-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:8px}
+.venue-name{font-size:1.05rem;font-weight:700;color:var(--gold)}
+.venue-sport{display:inline-flex;align-self:flex-start;padding:3px 10px;border-radius:7px;background:rgba(255,255,255,.06);color:var(--muted-2);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.venue-desc{color:var(--fg);font-size:.86rem;line-height:1.5}
+.venue-tip{color:var(--muted-2);font-size:.8rem;line-height:1.5;background:rgba(255,255,255,.03);border-radius:8px;padding:8px 10px;border-left:2px solid var(--gold-b)}
+.venue-actions{display:flex;gap:8px;margin-top:auto;padding-top:10px}
+.venue-actions button{flex:1;padding:8px;border-radius:8px;font-size:.78rem;font-weight:700;border:1px solid var(--line)}
+.venue-actions .edit:hover{border-color:var(--gold-b);color:var(--gold)}
+.venue-actions .del:hover{border-color:var(--red-b);color:var(--red);background:var(--red-dim)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted-2);background:var(--card);border:1px dashed var(--line);border-radius:var(--radius)}
+.empty-state .icon{font-size:2.4rem;margin-bottom:12px}
+.empty-state h3{color:var(--fg);font-size:1.1rem;font-weight:700;margin-bottom:6px}
+
+/* ADD FORM */
+.add-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:28px}
+.add-card h2{font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:16px}
+.add-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:680px){.add-grid{grid-template-columns:1fr}}
+.fld label{display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+.fld .hint{font-size:.72rem;color:var(--muted);margin-top:4px}
+
+/* MODAL (edit) */
+.overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;padding:0}
+@media(min-width:560px){.overlay{align-items:center;padding:16px}}
+.modal{width:100%;max-width:460px;background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:24px;box-shadow:0 -10px 40px rgba(0,0,0,.5);max-height:92vh;overflow-y:auto}
+@media(min-width:560px){.modal{border-radius:18px}}
+.modal h2{font-size:1.4rem;font-weight:800;color:var(--gold);margin-bottom:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-dark);font-weight:700;padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:400}
+.toast.show{opacity:1}.toast.err{background:var(--red);color:#fff}
+
+.backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150}
+.backdrop.show{display:block}@media(min-width:901px){.backdrop{display:none!important}}
+
+.gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-loading{color:var(--muted-2);text-align:center;padding:60px 20px}
+</style>
+</head>
+<body>
+<div class="gate-overlay" id="loadingGate">
+  <div class="gate-loading">Načítavam...</div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-mark">C</div>
+      <div><div class="sb-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></div><div class="sb-sub">Club Manager</div></div>
+    </div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="/manager/Dashboard%20obsluhy/"><span class="ico">📊</span> Dashboard</a>
+      <div class="sb-section">Prevádzka</div>
+      <a class="sb-item" href="#"><span class="ico">🎮</span> Manažér</a>
+      <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
+      <a class="sb-item" href="/manager/rezervacie/"><span class="ico">📅</span> Rezervácie</a>
+      <div class="sb-section">Správa</div>
+      <a class="sb-item active" href="#"><span class="ico">🎱</span> Športoviská</a>
+      <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
+      <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
+    </nav>
+    <div class="sb-foot"><button class="sb-signout" id="signOutBtn"><span>↪</span> Odhlásiť sa</button></div>
+  </aside>
+  <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <button class="tb-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="tb-title"><span class="club" id="tbClubName">Klub</span> · Športoviská</div>
+      </div>
+      <div class="tb-user"><span class="tb-av" id="tbUserAv">?</span> <span id="tbUserName">…</span></div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1>Športoviská</h1>
+          <p>Kurty, dráhy a miestnosti, ktoré tvoj klub ponúka — nezávislé od QR staníc scoreboardov.</p>
+        </div>
+      </div>
+
+      <!-- ADD VENUE FORM -->
+      <div class="add-card">
+        <h2>Pridať športovisko</h2>
+        <div class="add-grid">
+          <div class="fld">
+            <label>Názov *</label>
+            <input id="addName" placeholder="napr. Kurt, Dráha A, Squashová miestnosť" maxlength="120"/>
+          </div>
+          <div class="fld">
+            <label>Šport</label>
+            <input id="addSport" placeholder="napr. squash, bowling" maxlength="60"/>
+          </div>
+          <div class="fld">
+            <label>Počet</label>
+            <input id="addCount" type="number" min="1" max="50" value="1"/>
+            <div class="hint">Napr. názov "Kurt" + počet 3 → Kurt 1, Kurt 2, Kurt 3</div>
+          </div>
+        </div>
+        <div class="add-grid" style="grid-template-columns:1fr 1fr">
+          <div class="fld">
+            <label>Popis</label>
+            <textarea id="addDescription" rows="2" maxlength="500" placeholder="Čo tam je / čo to je"></textarea>
+          </div>
+          <div class="fld">
+            <label>Tip pre členov</label>
+            <textarea id="addTip" rows="2" maxlength="500" placeholder="Voliteľné, napr. rada k rezervácii"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="addVenueBtn" style="margin-top:14px">+ Pridať</button>
+      </div>
+
+      <!-- VENUES LIST -->
+      <div id="venuesArea"></div>
+    </div>
+  </main>
+</div>
+
+<div id="modalArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════
+   REAL AUTH + CLUB GATE
+════════════════════════════════════════════════ */
+let ctx = null; // { session, profile, club }
+let venues = [];
+
+(async function initClubManagerAuth(){
+  ctx = await cspManager.requireClubManagerAccess();
+  if(!ctx) return; // already redirected
+
+  document.getElementById('tbClubName').textContent = ctx.club.name;
+  const displayName = (ctx.profile && ctx.profile.full_name) || ctx.session.user.email;
+  const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
+  document.getElementById('tbUserName').textContent = displayName;
+  document.getElementById('tbUserAv').textContent = initials;
+  document.getElementById('loadingGate').style.display = 'none';
+
+  await loadVenues();
+})();
+
+document.getElementById('signOutBtn')?.addEventListener('click', () => cspManager.signOut());
+
+/* ── Data ── */
+async function loadVenues(){
+  const area = document.getElementById('venuesArea');
+  try {
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').select('*').eq('club_id', ctx.club.id).order('created_at', { ascending: true }),
+      8000, 'load venues'
+    );
+    if(error) throw error;
+    venues = data || [];
+    renderVenues();
+  } catch(err){
+    console.error('[sportoviska] Failed to load venues:', err);
+    area.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><h3>Nepodarilo sa načítať športoviská</h3><p>Skús obnoviť stránku.</p></div>';
+  }
+}
+
+function renderVenues(){
+  const area = document.getElementById('venuesArea');
+  if(!venues.length){
+    area.innerHTML = `<div class="empty-state">
+      <div class="icon">🎱</div>
+      <h3>Zatiaľ nemáš žiadne športoviská</h3>
+      <p>Pridaj prvé kurty, dráhy alebo miestnosti pomocou formulára vyššie.</p>
+    </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="venues-grid">${venues.map(v => `
+    <div class="venue-card">
+      <div class="venue-name">${escapeHtml(v.name)}</div>
+      ${v.sport ? `<span class="venue-sport">${escapeHtml(v.sport)}</span>` : ''}
+      ${v.description ? `<div class="venue-desc">${escapeHtml(v.description)}</div>` : ''}
+      ${v.tip ? `<div class="venue-tip">💡 ${escapeHtml(v.tip)}</div>` : ''}
+      <div class="venue-actions">
+        <button class="edit" onclick="openEditModal('${v.id}')">✎ Upraviť</button>
+        <button class="del" onclick="deleteVenue('${v.id}')">🗑 Odstrániť</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : s;
+  return d.innerHTML;
+}
+
+/* ── Add (single or bulk-by-count) ── */
+document.getElementById('addVenueBtn').addEventListener('click', async () => {
+  const baseName = document.getElementById('addName').value.trim();
+  const sport = document.getElementById('addSport').value.trim();
+  const description = document.getElementById('addDescription').value.trim();
+  const tip = document.getElementById('addTip').value.trim();
+  const count = Math.max(1, Math.min(50, +document.getElementById('addCount').value || 1));
+
+  if(!baseName){ toast('Zadaj názov športoviska.', true); return; }
+
+  const btn = document.getElementById('addVenueBtn');
+  btn.disabled = true;
+  btn.textContent = 'Pridávam...';
+
+  try {
+    // Bulk creation by count is a frontend concern (migration 0009) --
+    // just multiple inserts, no backend bulk-insert function.
+    const rows = [];
+    for(let i = 1; i <= count; i++){
+      rows.push({
+        club_id: ctx.club.id,
+        name: count === 1 ? baseName : `${baseName} ${i}`,
+        sport: sport || null,
+        description: description || null,
+        tip: tip || null,
+      });
+    }
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').insert(rows),
+      8000, 'create venue(s)'
+    );
+    if(error) throw error;
+
+    document.getElementById('addName').value = '';
+    document.getElementById('addSport').value = '';
+    document.getElementById('addDescription').value = '';
+    document.getElementById('addTip').value = '';
+    document.getElementById('addCount').value = '1';
+
+    await loadVenues();
+    toast(count === 1 ? 'Športovisko pridané.' : `${count} športovísk pridaných.`);
+  } catch(err){
+    console.error('[sportoviska] Failed to create venue(s):', err);
+    toast('Nepodarilo sa pridať športovisko.', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '+ Pridať';
+  }
+});
+
+/* ── Edit ── */
+function openEditModal(id){
+  const v = venues.find(x => x.id === id);
+  if(!v) return;
+  document.getElementById('modalArea').innerHTML = `
+    <div class="overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h2>Upraviť športovisko</h2>
+        <div class="fld" style="margin-bottom:12px"><label>Názov *</label><input id="editName" value="${escapeHtml(v.name)}" maxlength="120"/></div>
+        <div class="fld" style="margin-bottom:12px"><label>Šport</label><input id="editSport" value="${escapeHtml(v.sport || '')}" maxlength="60"/></div>
+        <div class="fld" style="margin-bottom:12px"><label>Popis</label><textarea id="editDescription" rows="2" maxlength="500">${escapeHtml(v.description || '')}</textarea></div>
+        <div class="fld"><label>Tip pre členov</label><textarea id="editTip" rows="2" maxlength="500">${escapeHtml(v.tip || '')}</textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeModal()">Zrušiť</button>
+          <button class="btn btn-confirm" onclick="saveEdit('${v.id}')">Uložiť</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeModal(e){
+  if(e && e.target && !e.target.classList.contains('overlay')) return;
+  document.getElementById('modalArea').innerHTML = '';
+}
+
+async function saveEdit(id){
+  const name = document.getElementById('editName').value.trim();
+  if(!name){ toast('Zadaj názov športoviska.', true); return; }
+  const sport = document.getElementById('editSport').value.trim();
+  const description = document.getElementById('editDescription').value.trim();
+  const tip = document.getElementById('editTip').value.trim();
+
+  try {
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').update({
+        name: name,
+        sport: sport || null,
+        description: description || null,
+        tip: tip || null,
+      }).eq('id', id),
+      8000, 'update venue'
+    );
+    if(error) throw error;
+    closeModal();
+    await loadVenues();
+    toast('Zmeny uložené.');
+  } catch(err){
+    console.error('[sportoviska] Failed to update venue:', err);
+    toast('Nepodarilo sa uložiť zmeny.', true);
+  }
+}
+
+/* ── Delete ── */
+async function deleteVenue(id){
+  const v = venues.find(x => x.id === id);
+  if(!v) return;
+  if(!confirm(`Naozaj odstrániť "${v.name}"?`)) return;
+
+  try {
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').delete().eq('id', id),
+      8000, 'delete venue'
+    );
+    if(error) throw error;
+    await loadVenues();
+    toast('Športovisko odstránené.');
+  } catch(err){
+    console.error('[sportoviska] Failed to delete venue:', err);
+    toast('Nepodarilo sa odstrániť športovisko.', true);
+  }
+}
+
+/* ── Misc ── */
+function toast(msg, err){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err ? ' err' : '');
+  setTimeout(() => { t.className = 'toast' + (err ? ' err' : ''); }, 2400);
+}
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('backdrop').classList.toggle('show');
+}
+</script>
+</body>
+</html>

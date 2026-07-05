@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-manager.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-soft:#0c0c12;--card:#131319;--card-2:#16161d;
@@ -115,9 +118,16 @@ td{padding:4px}
 
 .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150}
 .backdrop.show{display:block}@media(min-width:901px){.backdrop{display:none!important}}
+
+.gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-loading{color:var(--muted-2);text-align:center;padding:60px 20px}
 </style>
 </head>
 <body>
+<div class="gate-overlay" id="loadingGate">
+  <div class="gate-loading">Načítavam...</div>
+</div>
+
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -132,11 +142,11 @@ td{padding:4px}
       <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
       <a class="sb-item active" href="#"><span class="ico">📅</span> Rezervácie</a>
       <div class="sb-section">Správa</div>
-      <a class="sb-item" href="#"><span class="ico">🎱</span> Športoviská</a>
+      <a class="sb-item" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
       <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
       <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
     </nav>
-    <div class="sb-foot"><button class="sb-signout" onclick="alert('Odhlásenie — napojí sa na auth.')"><span>↪</span> Odhlásiť sa</button></div>
+    <div class="sb-foot"><button class="sb-signout" id="signOutBtn"><span>↪</span> Odhlásiť sa</button></div>
   </aside>
   <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
 
@@ -145,9 +155,9 @@ td{padding:4px}
     <div class="topbar">
       <div class="tb-left">
         <button class="tb-toggle" onclick="toggleSidebar()">☰</button>
-        <div class="tb-title"><span class="club">ŠK Pohoda</span> · Rezervácie</div>
+        <div class="tb-title"><span class="club" id="tbClubName">Klub</span> · Rezervácie</div>
       </div>
-      <div class="tb-user"><span class="tb-av">JN</span> Ján Novák</div>
+      <div class="tb-user"><span class="tb-av" id="tbUserAv">?</span> <span id="tbUserName">…</span></div>
     </div>
 
     <div class="content">
@@ -186,6 +196,28 @@ td{padding:4px}
 <div class="toast" id="toast"></div>
 
 <script>
+/* ════════════════════════════════════════════════
+   REAL AUTH + CLUB GATE
+   Replaces the old fully-open page (no login check, hardcoded "Ján
+   Novák", logout was an alert() stub) with real Supabase auth via
+   cspAuth/cspManager. No club yet -> redirect to the Dashboard, which
+   has the "create your club" flow (kept in one place rather than
+   duplicated across pages).
+════════════════════════════════════════════════ */
+(async function initClubManagerAuth(){
+  const ctx = await cspManager.requireClubManagerAccess();
+  if(!ctx) return; // already redirected (no session / no access / no club)
+
+  document.getElementById('tbClubName').textContent = ctx.club.name;
+  const displayName = (ctx.profile && ctx.profile.full_name) || ctx.session.user.email;
+  const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
+  document.getElementById('tbUserName').textContent = displayName;
+  document.getElementById('tbUserAv').textContent = initials;
+  document.getElementById('loadingGate').style.display = 'none';
+})();
+
+document.getElementById('signOutBtn')?.addEventListener('click', () => cspManager.signOut());
+
 /* ════════════════════════════════════════════════
    Zdieľané sklady (localStorage) — neskôr Supabase
 ════════════════════════════════════════════════ */
