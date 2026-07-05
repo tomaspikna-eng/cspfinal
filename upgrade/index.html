@@ -71,6 +71,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .loading-screen{padding:60px;text-align:center;color:var(--muted2)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
 <div class="page">
@@ -101,63 +102,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <script>
-const SB = window.supabase.createClient(
-  'https://gilzomwhuwcxpkegtlhj.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbHpvbXdodXdjeHBrZWd0bGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzMwMTgsImV4cCI6MjA5MjYwOTAxOH0.-KiLSdiB2mRWqUDB9GWyISfCu2o_ZBM80aGUEW9CcUg'
-);
+// Reads real data from csp-staging (profiles.plan / profiles.role) via
+// the shared cspAuth.client, rather than the old, unused
+// gilzomwhuwcxpkegtlhj project's nonexistent `subscriptions` and
+// `organizations` tables. This page has always been read-only (no writes
+// existed before this change either) -- plan changes stay admin/manual
+// for now, per the existing "beta phase" contact-admin flow below
+// (contactAdmin()), which is intentionally left as-is.
+//
+// The old code's "active context" concept (user vs club vs organization,
+// previously sourced from a `csp_active_context_v1` localStorage key
+// that nothing in this repo ever actually writes, defaulting to 'user'
+// every time, plus a nonexistent `organizations` table) maps directly
+// onto the real profiles.role column (player/club/organization) already
+// built for exactly this purpose -- no new logic invented, just reading
+// the real equivalent of what this page was already trying to express.
+(async function init(){
+  try {
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){
+      window.location.href = '/login/';
+      return;
+    }
 
-const CTX_STORAGE_KEY = 'csp_active_context_v1';
+    const { data: profile, error } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
+    if(error){
+      console.error('[upgrade] Could not load profile, falling back to free/player defaults:', error);
+    }
 
-SB.auth.onAuthStateChange(async (event, session) => {
-  if(!session){ window.location.href = '/login/'; return; }
-  if(event === 'SIGNED_IN' || event === 'INITIAL_SESSION'){
-    await loadAndRender(session.user);
+    const currentPlan = (profile && profile.plan) || 'free';
+    const role = (profile && profile.role) || 'player';
+    const ctxName = (profile && profile.full_name) || session.user.email;
+    const icons = { player: '👤', club: '🏛️', organization: '🏆' };
+
+    document.getElementById('ctxBadge').innerHTML =
+      '<div class="ctx-badge">Aktívny profil: ' + (icons[role] || '👤') + ' ' + ctxName + '</div>';
+
+    if(role === 'club'){
+      renderClubPlans(currentPlan);
+    } else if(role === 'organization'){
+      renderOrgPlans(currentPlan);
+    } else {
+      renderUserPlans(currentPlan);
+    }
+  } catch(err){
+    console.error('[upgrade] Failed to load plan info:', err);
+    document.getElementById('pricingContainer').innerHTML = '<div class="loading-screen">Nepodarilo sa načítať údaje o pláne. Skús obnoviť stránku.</div>';
   }
-});
-
-async function loadAndRender(authUser){
-  // Načítaj aktívny context z localStorage
-  let activeCtx;
-  try{
-    activeCtx = JSON.parse(localStorage.getItem(CTX_STORAGE_KEY)) || { type:'user', id: authUser.id };
-  }catch{
-    activeCtx = { type:'user', id: authUser.id };
-  }
-
-  // Načítaj subscription pre aktívny context
-  const { data: sub } = await SB.from('subscriptions')
-    .select('plan, status')
-    .eq('subject_type', activeCtx.type)
-    .eq('subject_id', activeCtx.id)
-    .maybeSingle();
-  const currentPlan = sub?.plan || 'free';
-
-  // Načítaj data o subjekte (user/organization)
-  let ctxName, ctxIcon, ctxType;
-  if(activeCtx.type === 'user'){
-    const { data: p } = await SB.from('profiles').select('full_name, username').eq('id', authUser.id).maybeSingle();
-    ctxName = p?.full_name || p?.username || authUser.email;
-    ctxIcon = '👤';
-    ctxType = 'user';
-  } else {
-    const { data: o } = await SB.from('organizations').select('name, type').eq('id', activeCtx.id).maybeSingle();
-    ctxName = o?.name || 'Organizácia';
-    ctxIcon = o?.type === 'club' ? '🏛️' : '🏆';
-    ctxType = o?.type || 'organization';
-  }
-
-  document.getElementById('ctxBadge').innerHTML =
-    '<div class="ctx-badge">Aktívny profil: ' + ctxIcon + ' ' + ctxName + '</div>';
-
-  // Render plans based on context type
-  if(ctxType === 'user'){
-    renderUserPlans(currentPlan);
-  } else if(ctxType === 'club'){
-    renderClubPlans(currentPlan);
-  } else {
-    renderOrgPlans(currentPlan);
-  }
-}
+})();
 
 function renderUserPlans(currentPlan){
   document.getElementById('pricingContainer').innerHTML = `
