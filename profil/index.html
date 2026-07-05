@@ -543,6 +543,77 @@ a{color:inherit;text-decoration:none}
 }
 .share-fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(212,168,67,.5)}
 @media(max-width:880px){.share-fab{bottom:16px;right:16px}}
+
+/* ════════════════════════════════════
+   SETTINGS MODAL
+═══════════════════════════════════ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  z-index:500;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal-card{
+  width:100%;max-width:440px;max-height:90vh;overflow-y:auto;
+  background:var(--bg2);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 22px;border-bottom:1px solid var(--line);
+}
+.modal-head h2{font-family:var(--display);font-size:1.3rem;letter-spacing:.03em;color:var(--gold)}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;color:var(--muted2);font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;transition:.12s;
+}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+.modal-foot{
+  padding:16px 22px;border-top:1px solid var(--line);
+  display:flex;justify-content:flex-end;gap:10px;
+}
+
+.settings-avatar-row{display:flex;align-items:center;gap:16px}
+.settings-avatar{width:64px;height:64px;font-size:1.4rem;flex:0 0 64px}
+.settings-hint{font-size:.72rem;color:var(--muted2);margin-top:6px;line-height:1.4}
+
+.settings-field{display:flex;flex-direction:column;gap:6px}
+.settings-field label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2)}
+.settings-field input[type="text"],
+.settings-field select{
+  background:var(--bg3);border:1px solid var(--line);border-radius:9px;
+  color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 13px;outline:none;transition:.12s;
+}
+.settings-field input[type="text"]:focus,
+.settings-field select:focus{border-color:rgba(212,168,67,.35)}
+
+.settings-plan-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.plan-badge{
+  display:inline-flex;padding:5px 14px;border-radius:999px;
+  font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,67,.3);
+}
+.plan-badge.plan-ultra{background:rgba(30,200,106,.12);color:var(--green);border-color:rgba(30,200,106,.3)}
+.settings-upgrade-link{font-size:.82rem;font-weight:700;color:var(--gold)}
+.settings-upgrade-link:hover{text-decoration:underline}
+
+.btn-sm{padding:8px 14px;font-size:.78rem}
+.btn:disabled{opacity:.55;cursor:not-allowed;pointer-events:none}
+
+/* ════════════════════════════════════
+   TOAST (same pattern as manager/stanice
+   and magazin/index.html — reused, not
+   reinvented, plus an .error variant)
+═══════════════════════════════════ */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--green);color:#06230f;font-weight:700;
+  padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;
+  pointer-events:none;z-index:600;max-width:calc(100vw - 40px);text-align:center;
+}
+.toast.show{opacity:1}
+.toast.error{background:var(--red);color:#fff}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
@@ -602,7 +673,7 @@ a{color:inherit;text-decoration:none}
           <span style="font-size:.7rem;color:var(--muted2)">▾</span>
         </button>
         <div class="user-menu" id="userMenu">
-          <a href="#" class="mi">⚙️ Nastavenia profilu</a>
+          <a href="#" class="mi" id="openSettingsBtn">⚙️ Nastavenia profilu</a>
           <a href="#" class="mi">🎨 Téma a vzhľad</a>
           <a href="#" class="mi">⭐ Upgrade plán</a>
           <div class="mi-divider"></div>
@@ -623,7 +694,7 @@ a{color:inherit;text-decoration:none}
       <div class="profile-header">
         <div class="avatar-wrap">
           <div class="avatar" id="profileAvatarInitials">JN</div>
-          <button class="avatar-edit" title="Zmeniť fotku">📷</button>
+          <button class="avatar-edit" id="avatarEditBtn" title="Zmeniť fotku">📷</button>
         </div>
 
         <div class="identity">
@@ -641,7 +712,7 @@ a{color:inherit;text-decoration:none}
         </div>
 
         <div class="profile-actions">
-          <button class="btn btn-primary">✎ Upraviť profil</button>
+          <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
           <button class="btn btn-secondary">📤 Share</button>
         </div>
       </div>
@@ -795,6 +866,59 @@ a{color:inherit;text-decoration:none}
   📤 Share môj profil
 </button>
 
+<!-- ═══════════ SETTINGS MODAL ═══════════ -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Nastavenia profilu</h2>
+      <button class="modal-close" id="closeSettingsBtn" type="button" title="Zavrieť">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="settings-avatar-row">
+        <div class="avatar settings-avatar" id="settingsAvatarPreview">?</div>
+        <div>
+          <button class="btn btn-secondary btn-sm" id="settingsChangePhotoBtn" type="button">📷 Zmeniť fotku</button>
+          <div class="settings-hint">JPG/PNG, uloží sa hneď po výbere súboru.</div>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label>Zobrazované meno</label>
+        <input type="text" id="settingsFullName" placeholder="Tvoje meno" maxlength="80"/>
+      </div>
+
+      <div class="settings-field">
+        <label>Rola</label>
+        <select id="settingsRole">
+          <option value="player">Hráč</option>
+          <option value="club">Klub</option>
+          <option value="organization">Organizácia</option>
+        </select>
+        <div class="settings-hint">Rola mení, čo vidíš v aplikácii — neovplyvňuje tvoj plán ani prístup k funkciám.</div>
+      </div>
+
+      <div class="settings-field">
+        <label>Plán</label>
+        <div class="settings-plan-row">
+          <span class="plan-badge" id="settingsPlanBadge">Free</span>
+          <a href="/upgrade/" class="settings-upgrade-link" id="settingsUpgradeLink">Upgradovať →</a>
+        </div>
+        <div class="settings-hint">Plán je určený administrátorom/predplatným, tu sa nedá meniť priamo.</div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="cancelSettingsBtn" type="button">Zrušiť</button>
+      <button class="btn btn-primary" id="saveSettingsBtn" type="button">Uložiť zmeny</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="avatarFileInput" accept="image/*" style="display:none"/>
+
+<div class="toast" id="toast"></div>
+
 <script>
 // ── Page interactions — defined and wired up FIRST, unconditionally ──
 // These must never depend on the auth/profile-loading work below in any
@@ -846,24 +970,191 @@ document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
   window.location.href = '/login/';
 });
 
+// ── Toast — reuses the exact pattern already used elsewhere in the app
+// (manager/stanice/index.html, magazin/index.html), plus an .error
+// variant for save failures.
+function toast(msg, type){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  setTimeout(() => { t.className = 'toast'; }, 2600);
+}
+
+// ── State shared between the auth gate and the settings modal ────────
+let currentSession = null;
+let currentProfile = null;
+
+// ── Shared identity rendering (used on load AND after a settings save,
+// so the page never needs a reload to reflect a change) ──────────────
+function computeInitials(name){
+  return (name && name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
+}
+function renderIdentity(){
+  if(!currentSession) return;
+  const displayName = (currentProfile && currentProfile.full_name) || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč');
+  const initials = computeInitials(displayName);
+
+  document.title = displayName + ' · Connect Sports Pro';
+  const nameEl = document.getElementById('profileName');
+  if(nameEl) nameEl.textContent = displayName;
+  const topbarNameEl = document.getElementById('topbarUserName');
+  if(topbarNameEl) topbarNameEl.textContent = displayName;
+
+  // Real avatar image if the user has one (profiles.avatar_url, wired up
+  // by the storage migration — see supabase/migrations/0007); otherwise
+  // fall back to the initials placeholder, never a fake photo.
+  const avatarUrl = currentProfile && currentProfile.avatar_url;
+  [document.getElementById('profileAvatarInitials'), document.getElementById('topbarAvatarInitials'), document.getElementById('settingsAvatarPreview')].forEach(el => {
+    if(!el) return;
+    if(avatarUrl){
+      el.style.backgroundImage = `url("${avatarUrl}")`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.textContent = '';
+    } else {
+      el.style.backgroundImage = '';
+      el.textContent = initials;
+    }
+  });
+}
+
+const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
+function renderMemberSince(){
+  const memberSinceEl = document.getElementById('memberSinceMeta');
+  if(memberSinceEl && currentProfile && currentProfile.created_at){
+    const created = new Date(currentProfile.created_at);
+    const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
+    memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
+  }
+}
+
+// ── Settings modal ─────────────────────────────────────────────────
+function openSettings(){
+  if(!currentSession){
+    toast('Načítavam profil, skús o chvíľu znova.', 'error');
+    return;
+  }
+  document.getElementById('settingsFullName').value = (currentProfile && currentProfile.full_name) || '';
+  document.getElementById('settingsRole').value = (currentProfile && currentProfile.role) || 'player';
+
+  const plan = (currentProfile && currentProfile.plan) || 'free';
+  const planBadge = document.getElementById('settingsPlanBadge');
+  planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+  planBadge.classList.toggle('plan-ultra', plan === 'ultra');
+  document.getElementById('settingsUpgradeLink').style.display = plan === 'ultra' ? 'none' : '';
+
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+document.getElementById('editProfileBtn')?.addEventListener('click', openSettings);
+document.getElementById('openSettingsBtn')?.addEventListener('click', (e) => { e.preventDefault(); openSettings(); });
+document.getElementById('avatarEditBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
+document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
+document.getElementById('cancelSettingsBtn')?.addEventListener('click', closeSettings);
+document.getElementById('settingsOverlay')?.addEventListener('click', (e) => {
+  if(e.target.id === 'settingsOverlay') closeSettings();
+});
+document.getElementById('settingsChangePhotoBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
+
+// ── Avatar upload — uploads immediately on file selection (its own
+// save action, independent of the name/role Save button below), to the
+// `avatars` bucket at {user_id}/{filename}, matching the path
+// convention its RLS policy enforces (supabase/migrations/0007).
+document.getElementById('avatarFileInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // allow re-selecting the same file later
+  if(!file || !currentSession) return;
+
+  if(!file.type.startsWith('image/')){
+    toast('Vyber prosím obrázok (JPG, PNG...).', 'error');
+    return;
+  }
+
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+  const path = `${currentSession.user.id}/avatar.${ext}`;
+
+  toast('Nahrávam fotku...');
+  try {
+    const { error: uploadError } = await cspAuth.withTimeout(
+      cspAuth.client.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '3600' }),
+      15000, 'avatar upload'
+    );
+    if(uploadError) throw uploadError;
+
+    const { data: urlData } = cspAuth.client.storage.from('avatars').getPublicUrl(path);
+    // Cache-bust: the path is fixed per user (avatar.<ext>), so without a
+    // changing query param the browser/CDN could keep serving the old
+    // image after a re-upload.
+    const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+
+    const { data: updated, error: updateError } = await cspAuth.withTimeout(
+      cspAuth.client.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentSession.user.id).select().single(),
+      8000, 'avatar_url update'
+    );
+    if(updateError) throw updateError;
+
+    currentProfile = updated;
+    renderIdentity();
+    toast('Fotka bola aktualizovaná.');
+  } catch(err){
+    console.error('[profil] Avatar upload failed:', err);
+    toast('Nepodarilo sa nahrať fotku. Skús to znova.', 'error');
+  }
+});
+
+// ── Save display name + role ──────────────────────────────────────
+// Plan is intentionally never included in this update: it's read-only
+// here by design (protected column, see migration 0001's
+// protect_admin_only_columns trigger — a non-admin update to it would be
+// silently reverted server-side anyway).
+document.getElementById('saveSettingsBtn')?.addEventListener('click', async () => {
+  if(!currentSession) return;
+  const btn = document.getElementById('saveSettingsBtn');
+  const fullName = document.getElementById('settingsFullName').value.trim();
+  const role = document.getElementById('settingsRole').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Ukladám...';
+  try {
+    const { data: updated, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('profiles').update({ full_name: fullName || null, role: role }).eq('id', currentSession.user.id).select().single(),
+      8000, 'profile update'
+    );
+    if(error) throw error;
+
+    currentProfile = updated;
+    renderIdentity();
+    closeSettings();
+    toast('Zmeny boli uložené.');
+  } catch(err){
+    console.error('[profil] Settings save failed:', err);
+    toast('Nepodarilo sa uložiť zmeny. Skús to znova.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Uložiť zmeny';
+  }
+});
+
 // ── Real Supabase Auth gate ──────────────────────────────────────────
-// Identity (name/avatar/title/member-since) and auth (session gate +
-// logout) are wired to the real csp-staging backend. The stats bar,
-// activity feed, rating graph, followers, similar-players, and upcoming
-// tournaments widgets are genuine empty/zero states in the static HTML
-// above (not fetched here) — none of that data has a backing table yet
-// (no followers/posts/ratings tables exist), so a real new user sees
-// honest "nothing yet" states instead of the leftover demo content this
-// page used to show. Upcoming tournaments in particular *could* someday
-// query the real tournaments/tournament_players tables (they exist —
-// see supabase/migrations/0003) but that's real follow-up work, not
+// Identity (name/avatar/title/member-since), the settings modal above,
+// and auth (session gate + logout) are all wired to the real
+// csp-staging backend. The stats bar, activity feed, rating graph,
+// followers, similar-players, and upcoming tournaments widgets are
+// genuine empty/zero states in the static HTML above (not fetched here)
+// — none of that data has a backing table yet (no followers/posts/
+// ratings tables exist), so a real new user sees honest "nothing yet"
+// states instead of the leftover demo content this page used to show.
+// Upcoming tournaments in particular *could* someday query the real
+// tournaments/tournament_players tables (they exist — see
+// supabase/migrations/0003) but that's real follow-up work, not
 // something to fake here in the meantime.
 //
 // Wrapped in try/catch with a timeout on every awaited call: a
 // network/auth hiccup here now always logs clearly instead of becoming
 // a silent unhandled promise rejection, and can never hang indefinitely.
-const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
-
 (async function initAuthGate(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
@@ -871,6 +1162,7 @@ const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','j�
       window.location.href = '/login/';
       return;
     }
+    currentSession = session;
 
     // Pass session.user through so getCurrentProfile() doesn't need to
     // call getSession() again internally — see its definition in
@@ -879,39 +1171,10 @@ const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','j�
     if(profileError){
       console.error('[profil] Could not load profile row, falling back to email-derived name:', profileError);
     }
+    currentProfile = profile;
 
-    const displayName = (profile && profile.full_name) || (session.user.email ? session.user.email.split('@')[0] : 'Hráč');
-    const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
-
-    document.title = displayName + ' · Connect Sports Pro';
-    const nameEl = document.getElementById('profileName');
-    if(nameEl) nameEl.textContent = displayName;
-    const topbarNameEl = document.getElementById('topbarUserName');
-    if(topbarNameEl) topbarNameEl.textContent = displayName;
-
-    // Real avatar image if the user has one (profiles.avatar_url, wired
-    // up by the storage migration — see supabase/migrations/0007);
-    // otherwise fall back to the initials placeholder already in the
-    // static HTML, never a fake photo.
-    const avatarUrl = profile && profile.avatar_url;
-    const avatarEl = document.getElementById('profileAvatarInitials');
-    const topbarAvatarEl = document.getElementById('topbarAvatarInitials');
-    if(avatarUrl){
-      if(avatarEl) avatarEl.style.backgroundImage = `url("${avatarUrl}")`, avatarEl.style.backgroundSize = 'cover', avatarEl.style.backgroundPosition = 'center', avatarEl.textContent = '';
-      if(topbarAvatarEl) topbarAvatarEl.style.backgroundImage = `url("${avatarUrl}")`, topbarAvatarEl.style.backgroundSize = 'cover', topbarAvatarEl.style.backgroundPosition = 'center', topbarAvatarEl.textContent = '';
-    } else {
-      if(avatarEl) avatarEl.textContent = initials;
-      if(topbarAvatarEl) topbarAvatarEl.textContent = initials;
-    }
-
-    // Real "member since" date from profiles.created_at (not a fake
-    // hardcoded date).
-    const memberSinceEl = document.getElementById('memberSinceMeta');
-    if(memberSinceEl && profile && profile.created_at){
-      const created = new Date(profile.created_at);
-      const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
-      memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
-    }
+    renderIdentity();
+    renderMemberSince();
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }
