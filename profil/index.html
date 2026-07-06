@@ -598,6 +598,17 @@ a{color:inherit;text-decoration:none}
 .settings-upgrade-link{font-size:.82rem;font-weight:700;color:var(--gold)}
 .settings-upgrade-link:hover{text-decoration:underline}
 
+.settings-venues-locked{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;
+  background:var(--bg3);border:1px solid var(--line);color:var(--muted2);
+  font-size:.84rem;opacity:.8;
+}
+.settings-venues-unlocked{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border-radius:9px;background:rgba(30,200,106,.07);
+  border:1px solid rgba(30,200,106,.25);font-size:.85rem;color:var(--text);
+}
+
 .btn-sm{padding:8px 14px;font-size:.78rem}
 .btn:disabled{opacity:.55;cursor:not-allowed;pointer-events:none}
 
@@ -631,10 +642,9 @@ a{color:inherit;text-decoration:none}
 
     <a href="#" class="nav-item"><span class="icon">🏠</span>Domov</a>
     <a href="#" class="nav-item active"><span class="icon">👤</span>Profil</a>
-    <a href="#" class="nav-item"><span class="icon">⚖️</span>Nesúhlasy</a>
 
     <div class="nav-cta-green">
-      <button class="nav-cta-green-btn" onclick="location.href='#'">
+      <button class="nav-cta-green-btn" onclick="location.href='/scoreboard/'">
         <span style="font-size:1.05rem">▶</span> Spustiť tréning
       </button>
     </div>
@@ -645,7 +655,7 @@ a{color:inherit;text-decoration:none}
     <a href="#" class="nav-item"><span class="icon">📈</span>Hodnotenie</a>
 
     <div class="nav-section">Súťaž</div>
-    <a href="#" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
+    <a href="/search/" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
     <a href="#" class="nav-item"><span class="icon">🏅</span>Ligy</a>
 
     <div class="nav-section">Klub</div>
@@ -906,6 +916,19 @@ a{color:inherit;text-decoration:none}
         </div>
         <div class="settings-hint">Plán je určený administrátorom/predplatným, tu sa nedá meniť priamo.</div>
       </div>
+
+      <div class="settings-field">
+        <label>Športoviská</label>
+        <div class="settings-venues-locked" id="settingsVenuesLocked">
+          <span>🔒</span>
+          <span>Dostupné od plánu <strong>Ultra</strong></span>
+          <a href="/upgrade/" class="settings-upgrade-link" style="margin-left:auto">Upgradovať →</a>
+        </div>
+        <div class="settings-venues-unlocked" id="settingsVenuesUnlocked" style="display:none">
+          <span id="settingsVenuesCount">Načítavam…</span>
+          <a href="/manager/sportoviska/" class="settings-upgrade-link" id="settingsVenuesManageLink">Spravovať →</a>
+        </div>
+      </div>
     </div>
 
     <div class="modal-foot">
@@ -1044,7 +1067,55 @@ function openSettings(){
   planBadge.classList.toggle('plan-ultra', plan === 'ultra');
   document.getElementById('settingsUpgradeLink').style.display = plan === 'ultra' ? 'none' : '';
 
+  // Športoviská (venues) — locked for free/pro, matching the same
+  // club_manager feature gate (currently ultra-tier, is_admin always
+  // bypasses) already used to protect Club Manager itself. Checked
+  // locally against the already-loaded profile rather than an extra RPC
+  // round trip, same style as the plan badge above.
+  const isAdmin = !!(currentProfile && currentProfile.is_admin);
+  const venuesUnlocked = plan === 'ultra' || isAdmin;
+  document.getElementById('settingsVenuesLocked').style.display = venuesUnlocked ? 'none' : '';
+  document.getElementById('settingsVenuesUnlocked').style.display = venuesUnlocked ? '' : 'none';
+  if(venuesUnlocked) loadVenuesSummary();
+
   document.getElementById('settingsOverlay').classList.add('open');
+}
+
+// Real venue count for the current user's club, or a "create your club
+// first" prompt if they don't have one yet (nothing creates a clubs row
+// automatically — same reality already handled in Club Manager itself
+// via cspManager.requireClubManagerAccess({allowNoClub:true})).
+async function loadVenuesSummary(){
+  const countEl = document.getElementById('settingsVenuesCount');
+  const linkEl = document.getElementById('settingsVenuesManageLink');
+  if(!countEl || !linkEl || !currentSession) return;
+  countEl.textContent = 'Načítavam…';
+  try{
+    const { data: club, error: clubError } = await cspAuth.withTimeout(
+      cspAuth.client.from('clubs').select('id').eq('owner_id', currentSession.user.id).maybeSingle(),
+      8000, 'clubs lookup'
+    );
+    if(clubError) throw clubError;
+    if(!club){
+      countEl.textContent = 'Najprv si vytvor klub.';
+      linkEl.textContent = 'Vytvoriť klub →';
+      linkEl.href = '/manager/Dashboard%20obsluhy/';
+      return;
+    }
+    const { count, error: venuesError } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').select('id', { count: 'exact', head: true }).eq('club_id', club.id),
+      8000, 'venues count'
+    );
+    if(venuesError) throw venuesError;
+    const n = count || 0;
+    const word = n === 1 ? 'športovisko' : (n >= 2 && n <= 4 ? 'športoviská' : 'športovísk');
+    countEl.textContent = n + ' ' + word;
+    linkEl.textContent = 'Spravovať →';
+    linkEl.href = '/manager/sportoviska/';
+  }catch(err){
+    console.error('[profil] Could not load venues summary:', err);
+    countEl.textContent = 'Nepodarilo sa načítať.';
+  }
 }
 function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
