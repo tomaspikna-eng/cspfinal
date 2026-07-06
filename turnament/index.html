@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-2:#0c0c12;--card:#13131a;--card-2:#181820;
@@ -62,6 +64,43 @@ input:focus,select:focus{border-color:var(--gold)}
 .demo-login{margin-top:28px;padding-top:20px;border-top:1px solid var(--line-2)}
 .demo-login button{font-size:.78rem;color:var(--muted);text-decoration:underline}
 .demo-login button:hover{color:var(--gold)}
+
+/* ── TGATE — nový úvodný (nezalogovaný) screen s animovaným pavúkom ── */
+.tgate{min-height:calc(100vh - 62px);padding:56px 22px 40px}
+.tgate-in{max-width:1180px;margin:0 auto}
+.tgate-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+@media(max-width:940px){.tgate-grid{grid-template-columns:1fr}}
+.tgate-eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;color:var(--gold);font-weight:700;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:9px}
+.tgate-eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-dim)}
+.tgate h1{font-size:clamp(2.2rem,4.4vw,3.4rem);font-weight:900;letter-spacing:-.02em;line-height:1.03}
+.tgate h1 .g{color:var(--gold)}
+.tgate .lead{color:var(--muted-2);font-size:1.05rem;margin-top:18px;max-width:480px;line-height:1.6}
+.tgate-features{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}
+.tgate-cta{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.tgate-note{font-size:.78rem;color:var(--muted);margin-top:12px}
+.tgate-demo{margin-top:22px}
+.tgate-demo button{font-size:.78rem;color:var(--muted);text-decoration:underline}
+.tgate-demo button:hover{color:var(--gold)}
+
+.bracket-wrap{position:relative;aspect-ratio:6/5;border-radius:18px;background:radial-gradient(ellipse at 70% 20%,rgba(212,168,67,.07),transparent 60%),var(--card);border:1px solid var(--line);overflow:hidden}
+.bracket-wrap svg{width:100%;height:100%;display:block}
+.br-box{fill:var(--card-2);stroke:var(--line)}
+.br-box.live{stroke:var(--green);stroke-width:1.4}
+.br-name{font-family:var(--mono);font-size:9px;fill:var(--muted-2)}
+.br-name.win{fill:var(--fg);font-weight:700}
+.br-line{stroke:var(--gold);stroke-opacity:.35;stroke-width:1.2;fill:none}
+.br-flow{stroke:var(--gold);stroke-width:1.6;fill:none;stroke-dasharray:5 6;animation:brflow 1.4s linear infinite}
+@keyframes brflow{to{stroke-dashoffset:-22}}
+.br-live-dot{animation:brpulse 1.8s ease-in-out infinite}
+@keyframes brpulse{0%,100%{opacity:.5;r:3.2}50%{opacity:1;r:5}}
+.br-trophy{animation:brglow 2.6s ease-in-out infinite}
+@keyframes brglow{0%,100%{opacity:.75}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.br-flow,.br-live-dot,.br-trophy{animation:none}}
+.bracket-caption{position:absolute;left:16px;bottom:14px;font-family:var(--mono);font-size:.64rem;color:var(--muted);letter-spacing:.03em}
+.bracket-caption b{color:var(--green)}
+
+.tgate-statement{text-align:center;padding:46px 0 6px;font-size:clamp(1.2rem,2.4vw,1.6rem);font-weight:800;color:var(--muted-2);max-width:760px;margin:0 auto}
+.tgate-statement .g{color:var(--gold)}
 
 /* upgrade prompt */
 .upsell{max-width:480px;text-align:center}
@@ -153,6 +192,15 @@ input:focus,select:focus{border-color:var(--gold)}
 .rank-row:last-child{border-bottom:none}
 .rank-pl{font-weight:700}
 .rank-name{font-weight:600}
+.rank-games{color:var(--muted)}
+.rank-pct{color:var(--gold)}
+.rank-row.top{border-radius:9px;margin:2px 0;padding:11px 10px;border-bottom:none}
+.rank-row.top .rank-pl{font-size:1.15rem}
+.rank-row.top .rank-name{font-weight:800;font-size:1rem}
+.rank-row.top1{background:linear-gradient(90deg,rgba(212,168,67,.22),rgba(212,168,67,.04));border:1px solid var(--gold-b)}
+.rank-row.top2{background:linear-gradient(90deg,rgba(190,190,200,.16),transparent);border:1px solid rgba(200,200,210,.22)}
+.rank-row.top3{background:linear-gradient(90deg,rgba(205,127,50,.16),transparent);border:1px solid rgba(205,127,50,.28)}
+.rank-row.top1 .rank-name{color:var(--gold)}
 .t-card .fmt{display:inline-block;font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--gold-dim);color:var(--gold);margin-bottom:12px}
 .t-card h3{font-size:1.15rem;font-weight:800;line-height:1.2}
 .t-card .meta{display:flex;gap:14px;margin-top:12px;font-size:.78rem;color:var(--muted)}
@@ -274,8 +322,8 @@ input:focus,select:focus{border-color:var(--gold)}
       <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-sub">Tournament Manager</span></span>
     </a>
     <div class="tb-right">
-      <span class="ultra-chip">ULTRA</span>
-      <div class="tb-user"><span class="tb-av" id="tbAv">JN</span><span id="tbName">Ján Novák</span></div>
+      <span class="ultra-chip">—</span>
+      <div class="tb-user"><span class="tb-av" id="tbAv">—</span><span id="tbName">—</span></div>
       <button class="link-btn" onclick="logout()">Odhlásiť</button>
     </div>
   </div>
@@ -478,46 +526,37 @@ const USER_KEY="csp_user";          // {name,email,plan,role}
 const TOURN_KEY="csp_tournaments";
 const REGISTER_URL="/registracia/"; // platforma (unified účet)
 const UPGRADE_URL="/upgrade/";
+const TABLEGEN_URL="/generator-stolov/"; // Generátor stolov — kartové hry (routing z wizardu)
+const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný localStorage kľúč s Generátorom stolov
 
-/* ── ADMIN / testovacie účty (frontend-first, kým nie je Supabase auth) ── */
-const ACCOUNTS=[
-  { email:'admin@connectsportpro.com', password:'ultra2026', name:'Admin · CSP', plan:'ultra', role:'admin' },
-  { email:'jan@pohoda.sk',             password:'ultra',     name:'Ján Novák',   plan:'ultra', role:'user'  },
-  { email:'free@pohoda.sk',            password:'free',      name:'Free Hráč',   plan:'free',  role:'user'  },
-];
+/* ── Real auth state (replaces the old localStorage demo system) ── */
+let currentSession = null;
+let currentProfile = null;
 
-function getUser(){ try{return JSON.parse(localStorage.getItem(USER_KEY));}catch(e){return null;} }
-function setUser(u){ localStorage.setItem(USER_KEY, JSON.stringify(u)); }
-function logout(){ localStorage.removeItem(USER_KEY); go('gate'); }
+function getUser(){
+  if(!currentSession || !currentProfile) return null;
+  return {
+    name: currentProfile.full_name || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč'),
+    email: currentSession.user.email,
+    plan: currentProfile.plan || 'free',
+    role: currentProfile.is_admin ? 'admin' : 'user',
+    isAdmin: !!currentProfile.is_admin
+  };
+}
 
-/* CTA Prihlásiť -> zobrazí login formulár */
-function handleLogin(){ go('login'); }
-
-/* Overenie prihlásenia */
-function doLogin(){
-  const email=(document.getElementById('lgEmail').value||'').trim().toLowerCase();
-  const pass=document.getElementById('lgPass').value||'';
-  if(!email||!pass){ toast('Vyplň e-mail aj heslo.',true); return; }
-  const acc=ACCOUNTS.find(a=>a.email===email && a.password===pass);
-  if(!acc){
-    const exists=ACCOUNTS.some(a=>a.email===email);
-    if(!exists){ toast('Účet neexistuje — presmerujeme na registráciu…'); setTimeout(()=>location.href=REGISTER_URL,900); }
-    else toast('Nesprávne heslo.',true);
-    return;
+async function logout(){
+  try{
+    await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()');
+  }catch(err){
+    console.error('[turnaje] signOut failed or timed out, continuing anyway:', err);
   }
-  const {password, ...user}=acc;
-  setUser(user);
-  if(user.plan!=='ultra'){ go('upsell'); return; }
-  toast(`Vitaj, ${user.name}`);
-  setTimeout(()=>go('dashboard'),500);
+  currentSession = null;
+  currentProfile = null;
+  go('gate');
 }
 
-/* ── Rýchle demo prihlásenie ── */
-function demoLogin(plan){
-  const acc=ACCOUNTS.find(a=>a.plan===plan)||ACCOUNTS[0];
-  const {password,...user}=acc; setUser(user);
-  if(user.plan!=='ultra') go('upsell'); else go('dashboard');
-}
+/* CTA Prihlásiť -> reálna prihlasovacia stránka appky (spoločná pre celý CSP ekosystém) */
+function handleLogin(){ location.href = '/login/'; }
 
 /* ════════════════════════════════════════════════════════════
    TURNAJE — store
@@ -525,18 +564,44 @@ function demoLogin(plan){
 function loadTournaments(){ try{return JSON.parse(localStorage.getItem(TOURN_KEY))||[];}catch(e){return [];} }
 function saveTournaments(t){ localStorage.setItem(TOURN_KEY, JSON.stringify(t)); }
 
+/* Real plan/quota check before opening the wizard for a NEW tournament
+   (editing an existing one via editTournament() doesn't need this — only
+   creation is gated). Uses can_create_tournament() from migration 0002,
+   which already accounts for admin bypass and the pro-tier 10-tournament
+   cap server-side — this is not re-derived here, just called. */
+async function startNewTournament(){
+  if(!currentSession){ handleLogin(); return; }
+  try{
+    const { data: allowed, error } = await cspAuth.withTimeout(
+      cspAuth.client.rpc('can_create_tournament', { uid: currentSession.user.id }),
+      8000, 'can_create_tournament()'
+    );
+    if(error){ console.error('[turnaje] can_create_tournament check failed:', error); toast('Nepodarilo sa overiť plán, skús znova.', true); return; }
+    if(!allowed){ go('upsell'); return; }
+  }catch(err){
+    console.error('[turnaje] can_create_tournament check timed out:', err);
+    toast('Nepodarilo sa overiť plán, skús znova.', true);
+    return;
+  }
+  go('wizard');
+}
+
 /* ════════════════════════════════════════════════════════════
    ROUTER / VIEWS
 ════════════════════════════════════════════════════════════ */
 function go(view, data){
   const u=getUser();
-  document.getElementById('topbar').classList.toggle('hidden', !(u && u.plan==='ultra' && view!=='gate' && view!=='upsell'));
+  // Topbar shows for ANY logged-in user now, not just ultra — real
+  // feature_gates rules (migration 0002) let free/pro browse and
+  // self-register into tournaments; only *creating* one needs pro+/quota
+  // (see requireCanCreateTournament()). This is a deliberate correction
+  // from the old all-or-nothing ultra gate.
+  document.getElementById('topbar').classList.toggle('hidden', !(u && view!=='gate'));
   if(u){ document.getElementById('tbName').textContent=u.name; document.getElementById('tbAv').textContent=u.name.split(' ').map(x=>x[0]).join('').slice(0,2);
-    const chip=document.querySelector('.ultra-chip'); if(chip) chip.textContent = u.role==='admin' ? 'ADMIN · ULTRA' : 'ULTRA';
+    const chip=document.querySelector('.ultra-chip'); if(chip) chip.textContent = u.isAdmin ? 'ADMIN' : u.plan.toUpperCase();
   }
   const app=document.getElementById('app');
   if(view==='gate') app.innerHTML=viewGate();
-  else if(view==='login') { app.innerHTML=viewLogin(); setTimeout(()=>{const e=document.getElementById('lgEmail'); if(e) e.focus();},50); }
   else if(view==='upsell') app.innerHTML=viewUpsell();
   else if(view==='dashboard') app.innerHTML=viewDashboard();
   else if(view==='wizard') { app.innerHTML=viewWizard(); initWizard(data); }
@@ -544,67 +609,111 @@ function go(view, data){
   window.scrollTo(0,0);
 }
 
-/* ── LOGIN ── */
-function viewLogin(){
-  return `<div class="gate"><div class="gate-card" style="max-width:400px">
-    <div class="gate-icon">🔐</div>
-    <h1 style="font-size:1.8rem">Prihlásenie</h1>
-    <p class="lead" style="font-size:.92rem">Tournament Manager — plán <span class="mono" style="color:var(--gold)">ULTRA</span>.</p>
-    <div style="text-align:left;margin-top:24px">
-      <div class="field"><label>E-mail</label><input id="lgEmail" type="email" placeholder="admin@connectsportpro.com" autocomplete="username"/></div>
-      <div class="field"><label>Heslo</label><input id="lgPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()">Prihlásiť sa</button>
-    </div>
-    <div class="gate-note" style="margin-top:16px">Nemáš účet? <a href="${REGISTER_URL}" style="color:var(--gold);font-weight:700">Vytvoriť účet</a></div>
-    <div class="note-box" style="text-align:left;margin-top:20px">
-      <b>🔑 Admin / testovacie prístupy:</b><br>
-      <span class="mono" style="font-size:.78rem">admin@connectsportpro.com</span> · heslo <span class="mono">ultra2026</span> (ULTRA admin)<br>
-      <span class="mono" style="font-size:.78rem">free@pohoda.sk</span> · heslo <span class="mono">free</span> (FREE — uvidíš upsell)
-    </div>
-    <div class="demo-login"><button onclick="go('gate')">← Späť</button></div>
-  </div></div>`;
-}
-
 /* ── GATE ── */
 function viewGate(){
-  return `<div class="gate"><div class="gate-card">
-    <div class="gate-icon">🏆</div>
-    <h1>Tournament <span class="g">Manager</span></h1>
-    <p class="lead">Vytváraj a riaď turnaje naprieč športami — Round Robin, Single KO, Double KO aj ich kombinácie. Až do 256 hráčov, so zväzovým seedovaním.</p>
-    <div class="gate-features">
-      <span class="gate-feat">Round Robin</span>
-      <span class="gate-feat">Single KO</span>
-      <span class="gate-feat">Double KO</span>
-      <span class="gate-feat">Skupiny → pavúk</span>
-      <span class="gate-feat">16–256 hráčov</span>
+  return `<div class="tgate"><div class="tgate-in">
+    <div class="tgate-grid">
+      <div>
+        <div class="tgate-eyebrow">Pavúk sa hrá naživo · connect sports pro</div>
+        <h1>Turnaj, ktorý sa <span class="g">rozohráva sám.</span></h1>
+        <p class="lead">Zadáš hráčov, vyberieš formát — Round Robin, Single KO, Double KO, alebo skupiny → pavúk. Nasadenie, postupy aj poradie počíta engine, ty len zapisuješ výsledky.</p>
+        <div class="tgate-features">
+          <span class="gate-feat">Round Robin</span>
+          <span class="gate-feat">Single KO</span>
+          <span class="gate-feat">Double KO</span>
+          <span class="gate-feat">Skupiny → pavúk</span>
+          <span class="gate-feat">Karty · generátor stolov</span>
+          <span class="gate-feat">16–256 hráčov</span>
+        </div>
+        <div class="tgate-cta">
+          <button class="btn btn-primary" onclick="handleLogin()">Prihlásiť sa</button>
+        </div>
+        <div class="tgate-note">Prehliadanie a prihlasovanie do turnajov je súčasťou plánu FREE. Vytváranie vlastných turnajov je od plánu PRO. Bez účtu ťa presmerujeme na prihlásenie.</div>
+      </div>
+      <div class="bracket-wrap">
+        <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
+          <!-- R1 -->
+          <g>
+            <rect class="br-box" x="10" y="10" width="140" height="40" rx="8"/>
+            <text class="br-name win" x="20" y="27">Hráč 1</text>
+            <text class="br-name" x="20" y="42">Hráč 2</text>
+          </g>
+          <g>
+            <rect class="br-box" x="10" y="70" width="140" height="40" rx="8"/>
+            <text class="br-name" x="20" y="87">Hráč 3</text>
+            <text class="br-name win" x="20" y="102">Hráč 4</text>
+          </g>
+          <g>
+            <rect class="br-box live" x="10" y="250" width="140" height="40" rx="8"/>
+            <text class="br-name win" x="20" y="267">Hráč 5</text>
+            <text class="br-name" x="20" y="282">Hráč 6</text>
+            <circle class="br-live-dot" cx="138" cy="270" r="4" fill="var(--green)"/>
+          </g>
+          <g>
+            <rect class="br-box" x="10" y="310" width="140" height="40" rx="8"/>
+            <text class="br-name" x="20" y="327">Hráč 7</text>
+            <text class="br-name" x="20" y="342">Hráč 8</text>
+          </g>
+
+          <!-- elbow connectors R1 → SF -->
+          <path class="br-line" d="M150,30 H185 V60 H220"/>
+          <path class="br-line" d="M150,90 H185 V60 H220"/>
+          <path class="br-line" d="M150,270 H185 V280 H220"/>
+          <path class="br-line" d="M150,330 H185 V280 H220"/>
+
+          <!-- SF -->
+          <g>
+            <rect class="br-box" x="220" y="40" width="140" height="40" rx="8"/>
+            <text class="br-name win" x="230" y="57">Hráč 1</text>
+            <text class="br-name" x="230" y="72">Hráč 4</text>
+          </g>
+          <g>
+            <rect class="br-box" x="220" y="260" width="140" height="40" rx="8"/>
+            <text class="br-name" x="230" y="277">?</text>
+            <text class="br-name" x="230" y="292">?</text>
+          </g>
+
+          <!-- elbow connectors SF → Final -->
+          <path class="br-line" d="M360,60 H400 V170 H440"/>
+          <path class="br-line" d="M360,280 H400 V170 H440"/>
+
+          <!-- Final -->
+          <g>
+            <rect class="br-box" x="440" y="150" width="140" height="40" rx="8"/>
+            <text class="br-name win" x="450" y="167">Hráč 1</text>
+            <text class="br-name" x="450" y="182">?</text>
+          </g>
+
+          <!-- flow → trophy -->
+          <path class="br-flow" d="M580,170 H595"/>
+          <g class="br-trophy" transform="translate(500,240)">
+            <circle r="20" fill="#0a0a0a" stroke="var(--gold)" stroke-width="1.5"/>
+            <text x="0" y="6" text-anchor="middle" font-size="16">🏆</text>
+          </g>
+          <path class="br-line" d="M510,190 V220"/>
+        </svg>
+        <div class="bracket-caption"><b>●</b> Hráč 5 vs Hráč 6 — prebieha</div>
+      </div>
     </div>
-    <div class="gate-cta">
-      <button class="btn btn-primary" onclick="handleLogin()">Prihlásiť · <span class="mono">ULTRA</span></button>
-      <div class="gate-note">Tournament Manager je súčasť plánu ULTRA. Bez účtu ťa presmerujeme na registráciu.</div>
-    </div>
-    <div class="demo-login">
-      <button onclick="demoLogin('ultra')">Demo: prihlásiť ako ULTRA</button>
-      &nbsp;·&nbsp;
-      <button onclick="demoLogin('free')">Demo: prihlásiť ako FREE</button>
-    </div>
+    <div class="tgate-statement">Nie je to tabuľka v exceli. <span class="g">Je to celý pavúk, ktorý sa počíta sám.</span></div>
   </div></div>`;
 }
 
-/* ── UPSELL (má účet, nemá ULTRA) ── */
+/* ── UPSELL (prihlásený, ale nemá dosť na vytvorenie turnaja — nie na prehliadanie) ── */
 function viewUpsell(){
   return `<div class="gate"><div class="gate-card upsell">
-    <span class="badge">Plán ULTRA</span>
-    <h1>Odomkni <span class="g">Tournament Manager</span></h1>
-    <p class="lead">Tvorba a správa turnajov je súčasťou plánu ULTRA. Tvoj aktuálny plán to zatiaľ neobsahuje.</p>
+    <span class="badge">Vytváranie turnajov</span>
+    <h1>Odomkni <span class="g">vytváranie turnajov</span></h1>
+    <p class="lead">Vytváranie a správa vlastných turnajov vyžaduje plán PRO alebo vyšší (Pro má limit 10 turnajov, Ultra neobmedzene). Prehliadanie a prihlasovanie do turnajov ostáva na FREE plán bez obmedzenia.</p>
     <div class="gate-cta" style="margin-top:22px">
-      <a class="btn btn-primary" href="${UPGRADE_URL}">Prejsť na ULTRA</a>
-      <button class="link-btn" onclick="go('gate')" style="margin-top:10px">← Späť</button>
+      <a class="btn btn-primary" href="${UPGRADE_URL}">Prejsť na PRO/ULTRA</a>
+      <button class="link-btn" onclick="go('dashboard')" style="margin-top:10px">← Späť</button>
     </div>
   </div></div>`;
 }
 
 /* ── DASHBOARD ── */
-const FMT_LABEL={rr:'Round Robin',sko:'Single KO',dko:'Double KO',rr_sko:'Skupiny → SKO',rr_dko:'Skupiny → DKO'};
+const FMT_LABEL={rr:'Round Robin',sko:'Single KO',dko:'Double KO',rr_sko:'Skupiny → SKO',rr_dko:'Skupiny → DKO',karty:'Karty'};
 function pcount(t){ return t.playerCount||(Array.isArray(t.players)?t.players.length:t.players)||0; }
 
 function viewDashboard(){
@@ -619,13 +728,24 @@ function viewDashboard(){
   return `<div class="wrap">
     <div class="page-head">
       <div><h1>Moje turnaje</h1><p>Klikni na turnaj pre detail, alebo vytvor nový.</p></div>
-      <button class="btn btn-primary" onclick="go('wizard')">＋ Nový turnaj</button>
+      <button class="btn btn-primary" onclick="startNewTournament()">＋ Nový turnaj</button>
     </div>
-    ${ts.length ? `<div class="t-grid">${cards}<div class="t-new" onclick="go('wizard')"><span class="plus">＋</span>Nový turnaj</div></div>`
-      : `<div class="empty"><div style="font-size:2.6rem;margin-bottom:12px">🏆</div>Zatiaľ nemáš žiadne turnaje.<br><br><button class="btn btn-primary" onclick="go('wizard')">＋ Vytvoriť prvý turnaj</button></div>`}
+    ${ts.length ? `<div class="t-grid">${cards}<div class="t-new" onclick="startNewTournament()"><span class="plus">＋</span>Nový turnaj</div></div>`
+      : `<div class="empty"><div style="font-size:2.6rem;margin-bottom:12px">🏆</div>Zatiaľ nemáš žiadne turnaje.<br><br><button class="btn btn-primary" onclick="startNewTournament()">＋ Vytvoriť prvý turnaj</button></div>`}
   </div>`;
 }
-function openTournament(id){ const t=loadTournaments().find(x=>x.id===id); if(t) go('detail', t); }
+function openTournament(id){
+  const t=loadTournaments().find(x=>x.id===id); if(!t) return;
+  if(t.format==='karty'){ openTableGen(t); return; }
+  go('detail', t);
+}
+function openTableGen(t){
+  localStorage.setItem(KARTY_HANDOFF_PREFIX+t.id, JSON.stringify({
+    tournamentId:t.id, tournamentName:t.name, discipline:t.discipline,
+    players:(t.players||[]).map(p=>p.name)
+  }));
+  location.href = TABLEGEN_URL+'?t='+encodeURIComponent(t.id);
+}
 function deleteTournament(id){
   const t=loadTournaments().find(x=>x.id===id); if(!t) return;
   if(!confirm(`Zmazať turnaj „${t.name}"? Túto akciu nemožno vrátiť.`)) return;
@@ -727,13 +847,13 @@ function renderMatchArea(t){
     const champ=TM.champion(br);
     let html='';
     if(champ) html+=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${champ.name}</b></div>`;
-    const rank=TM.skoRanking(br);
-    if(rank.some(r=>r.gp>0)) html+=renderRankTable(rank);
     br.rounds.forEach((round,ri)=>{
       html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,br.total)}</span><span class="round-code mono">${TM.roundCode(ri,br.total)}</span></div>`;
       round.forEach((m,mi)=>{ html+=matchRow(m,`sko:${ri}:${mi}`); });
       html+=`</div>`;
     });
+    const rank=TM.skoRanking(br);
+    if(rank.some(r=>r.gp>0)) html+=renderRankTable(rank);
     return html;
   }
   else if(t.format==='dko'){
@@ -741,7 +861,6 @@ function renderMatchArea(t){
     const rank=TM.dkoRanking(dko);
     const played=rank.some(r=>r.gp>0);
     let html='';
-    if(played) html+=renderRankTable(rank);
     const sect=(title,cls,rounds,names,prefix)=>{
       let h=`<div class="branch-label ${cls}">${title}</div>`;
       rounds.forEach((round,ri)=>{
@@ -755,6 +874,7 @@ function renderMatchArea(t){
     html+=sect('▼ Loser vetva (B)','lose',dko.L,['B1a · loser 1','B1b · loser 2','B2a · loser 3','B2b · loser 4'],'L');
     html+=sect('◆ Finálová časť (vetvy sa spájajú)','conv',[dko.SF,dko.FIN,dko.P3],['Semifinále — víťazi A2 × víťazi B2b','Finále (1./2.)','O 3. miesto'],'F');
     html+=`<div class="note-box" style="margin-top:14px">Celkové poradie: primárne <b>počet výhier</b>, potom fáza vypadnutia, rozdiel hier a %. Delené miesta (3.–3., 5.–5.…) ako v cuescores. Pripravené na uloženie do štatistík.</div>`;
+    if(played) html+=renderRankTable(rank);
     return html;
   }
   else if(t.format==='rr'){
@@ -801,15 +921,16 @@ function renderMatchArea(t){
 
 /* Pomocná: kompletný rebríček (celkové poradie) */
 function renderRankTable(rank){
-  let html=`<div class="final-standings"><div class="fs-title">Celkové poradie · rozhodujú výhry</div>
+  let html=`<div class="final-standings" style="margin-top:18px"><div class="fs-title">Celkové poradie · rozhodujú výhry</div>
     <div class="rank-head"><span>#</span><span>Hráč</span><span>Zápasy</span><span>Hry</span><span>%</span></div>`;
   rank.forEach(s=>{
     const medal = s.place===1?'🥇':s.place===2?'🥈':s.place===3?'🥉':'';
-    html+=`<div class="rank-row"><span class="rank-pl mono">${medal||s.place+'.'}</span>
+    const top = s.place<=3 ? `top top${s.place}` : '';
+    html+=`<div class="rank-row ${top}"><span class="rank-pl mono">${medal||s.place+'.'}</span>
       <span class="rank-name">${s.name}</span>
       <span class="mono">${s.wins}/${s.losses}</span>
-      <span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span>
-      <span class="mono" style="color:var(--gold)">${s.pct}%</span></div>`;
+      <span class="mono rank-games">${s.gw}:${s.gl}</span>
+      <span class="mono rank-pct">${s.pct}%</span></div>`;
   });
   return html+`</div>`;
 }
@@ -912,7 +1033,7 @@ function clearMatch(){
 /* ════════════════════════════════════════════════════════════
    WIZARD — nastavenie turnaja
 ════════════════════════════════════════════════════════════ */
-const SPORTS=['Biliard','Šípky','Bowling','Tenis','Stolný tenis','Padel','Šach','Bedminton'];
+const SPORTS=['Biliard','Šípky','Bowling','Tenis','Stolný tenis','Padel','Šach','Bedminton','Karty'];
 const DISCIPLINES={
   'Biliard':['8-ball','9-ball','10-ball','Snooker','Karambol','Pyramída','14.1 nekonečná'],
   'Šípky':['501','301','Cricket'],
@@ -922,6 +1043,7 @@ const DISCIPLINES={
   'Padel':['Štvorhra'],
   'Šach':['Klasik','Rapid','Blitz'],
   'Bedminton':['Dvojhra','Štvorhra'],
+  'Karty':['Mariáš','Žolíky','Rummy','Bridge','Kanasta'],
 };
 const FORMATS={
   rr:{ic:'🔄',t:'Round Robin',d:'Každý s každým. Konečné poradie podľa tabuľky.',struct:['Skupina / liga']},
@@ -935,7 +1057,8 @@ const STEPS=[['Info','📋'],['Formát','🏆'],['Hráči','👥'],['Skupiny','�
 let wiz={};
 function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', format:'sko', players:[], groups:2, advance:8, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
-function activeSteps(){ return isCombo()? [0,1,2,3,4] : [0,1,2,4]; }
+function isKarty(){ return wiz.sport==='Karty'; }
+function activeSteps(){ return isKarty()? [0,2,4] : (isCombo()? [0,1,2,3,4] : [0,1,2,4]); }
 
 function viewWizard(){
   return `<div class="wrap"><div class="wiz">
@@ -974,7 +1097,7 @@ function renderWiz(){
       <h2>Základné info</h2><div class="sub">Pomenuj turnaj, vyber šport a disciplínu.</div>
       <div class="field"><label>Názov turnaja</label><input id="wName" value="${wiz.name}" placeholder="napr. Letný pool open 2026"/></div>
       <div class="field"><label>Šport</label>
-        <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];renderWiz()">
+        <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';renderWiz()">
           ${SPORTS.map(s=>`<option ${s===wiz.sport?'selected':''}>${s}</option>`).join('')}
         </select></div>
       <div class="field"><label>Disciplína</label>
@@ -1034,17 +1157,17 @@ function renderWiz(){
   else if(wiz.step===4){
     const f=FORMATS[wiz.format];
     p.innerHTML=`
-      <h2>Súhrn a generovanie</h2><div class="sub">Skontroluj a vytvor turnaj — vygenerujeme prvé kolo.</div>
+      <h2>Súhrn a generovanie</h2><div class="sub">${isKarty()?'Skontroluj a vytvor turnaj — otvoríme Generátor stolov.':'Skontroluj a vytvor turnaj — vygenerujeme prvé kolo.'}</div>
       <div class="sumbox">
         <div class="sumrow"><span class="k">Názov</span><span class="v">${wiz.name||'—'}</span></div>
         <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${wiz.sport} · ${wiz.discipline}</span></div>
-        <div class="sumrow"><span class="k">Formát</span><span class="v">${f.t}</span></div>
+        <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
       <div id="genPreview"></div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj'}</button></div>`;
+      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${wiz.editId?'✓ Uložiť zmeny':(isKarty()?'✓ Vytvoriť turnaj a otvoriť stoly':'✓ Vytvoriť turnaj')}</button></div>`;
     renderPreview();
   }
 }
@@ -1079,7 +1202,10 @@ function renderPreview(){
   const players = wiz.players.length>=2 ? wiz.players.map((p,i)=>({...p,seed:i+1}))
                  : Array.from({length:8},(_,i)=>({name:`Hráč ${i+1}`,seed:i+1}));
   const demoNote = wiz.players.length<2?`<div class="note-box">Pridaj aspoň 2 hráčov — náhľad používa zástupné mená.</div>`:'';
-  if(wiz.format==='sko'||wiz.format==='dko'){
+  if(isKarty()){
+    el.innerHTML=demoNote+`<div class="note-box"><b>Karty — ${wiz.discipline}:</b> ${wiz.players.length} hráčov. Po vytvorení ťa presmerujeme do Generátora stolov, kde sa rozdelia do stolov a hrajú sa kolá — žiadny pavúk ani tabuľka RR sa tu negeneruje.</div>`;
+  }
+  else if(wiz.format==='sko'||wiz.format==='dko'){
     const N=TM.nextPow2(players.length), slots=TM.bracketWithByes(players,N);
     let html=`<div class="preview"><h4>${wiz.format==='dko'?'Double KO':'Single KO'} · pavúk ${N} — prvé kolo (A0)</h4>`;
     for(let i=0;i<N;i+=2){
@@ -1115,23 +1241,41 @@ function createTournament(){
     saveTournaments(ts);
     toast('Zmeny uložené ✓');
     const updated=ts.find(t=>t.id===wiz.editId);
-    setTimeout(()=>go('detail', updated), 700);
+    if(updated.format==='karty'){ setTimeout(()=>openTableGen(updated), 700); }
+    else setTimeout(()=>go('detail', updated), 700);
   } else {
-    ts.unshift({ id:'t'+Date.now(), ...data, created:new Date().toISOString() });
+    const created={ id:'t'+Date.now(), ...data, created:new Date().toISOString() };
+    ts.unshift(created);
     saveTournaments(ts);
     toast('Turnaj vytvorený ✓');
-    setTimeout(()=>go('dashboard'), 700);
+    if(created.format==='karty'){ setTimeout(()=>openTableGen(created), 700); }
+    else setTimeout(()=>go('dashboard'), 700);
   }
 }
 
 function toast(msg,err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast'+(err?' err':''),2200); }
 
-/* ── INIT: rozhodni vstupný pohľad podľa prihlásenia/plánu ── */
-(function(){
-  const u=getUser();
-  if(u && u.plan==='ultra') go('dashboard');
-  else if(u && u.plan!=='ultra') go('upsell');
-  else go('gate');
+/* ── INIT: real session + profile check (replaces old localStorage demo init) ──
+   Any logged-in user (any plan) goes straight to the dashboard now —
+   browsing/self-registering into tournaments is a FREE-tier feature
+   (migration 0002's feature_gates). Only *creating* a tournament is
+   gated, checked separately by startNewTournament() when that button is
+   actually clicked, not here at page load. */
+(async function(){
+  try{
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){ go('gate'); return; }
+    currentSession = session;
+    const { data: profile, error: profileError } = await cspAuth.withTimeout(
+      cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()'
+    );
+    if(profileError) console.error('[turnaje] Could not load profile:', profileError);
+    currentProfile = profile || null;
+    go('dashboard');
+  }catch(err){
+    console.error('[turnaje] Auth/profile check failed or timed out:', err);
+    go('gate');
+  }
 })();
 </script>
 </body>
