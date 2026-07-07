@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-2:#0c0c12;--card:#13131a;--card-2:#181820;
@@ -314,17 +312,15 @@ input:focus,select:focus{border-color:var(--gold)}
 </head>
 <body>
 
-<!-- TOPBAR (len keď prihlásený) -->
-<div class="topbar hidden" id="topbar">
+<!-- TOPBAR -->
+<div class="topbar" id="topbar">
   <div class="topbar-in">
     <a class="brand" href="#" onclick="go('dashboard');return false">
       <span class="brand-mark">C</span>
       <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-sub">Tournament Manager</span></span>
     </a>
     <div class="tb-right">
-      <span class="ultra-chip">—</span>
-      <div class="tb-user"><span class="tb-av" id="tbAv">—</span><span id="tbName">—</span></div>
-      <button class="link-btn" onclick="logout()">Odhlásiť</button>
+      <a class="link-btn" href="/profil/">← Profil</a>
     </div>
   </div>
 </div>
@@ -529,60 +525,19 @@ const UPGRADE_URL="/upgrade/";
 const TABLEGEN_URL="/generator-stolov/"; // Generátor stolov — kartové hry (routing z wizardu)
 const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný localStorage kľúč s Generátorom stolov
 
-/* ── Real auth state (replaces the old localStorage demo system) ── */
-let currentSession = null;
-let currentProfile = null;
-
-function getUser(){
-  if(!currentSession || !currentProfile) return null;
-  return {
-    name: currentProfile.full_name || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč'),
-    email: currentSession.user.email,
-    plan: currentProfile.plan || 'free',
-    role: currentProfile.is_admin ? 'admin' : 'user',
-    isAdmin: !!currentProfile.is_admin
-  };
-}
-
-async function logout(){
-  try{
-    await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()');
-  }catch(err){
-    console.error('[turnaje] signOut failed or timed out, continuing anyway:', err);
-  }
-  currentSession = null;
-  currentProfile = null;
-  go('gate');
-}
-
-/* CTA Prihlásiť -> reálna prihlasovacia stránka appky (spoločná pre celý CSP ekosystém) */
-function handleLogin(){ location.href = '/login/'; }
-
 /* ════════════════════════════════════════════════════════════
    TURNAJE — store
 ════════════════════════════════════════════════════════════ */
 function loadTournaments(){ try{return JSON.parse(localStorage.getItem(TOURN_KEY))||[];}catch(e){return [];} }
 function saveTournaments(t){ localStorage.setItem(TOURN_KEY, JSON.stringify(t)); }
 
-/* Real plan/quota check before opening the wizard for a NEW tournament
-   (editing an existing one via editTournament() doesn't need this — only
-   creation is gated). Uses can_create_tournament() from migration 0002,
-   which already accounts for admin bypass and the pro-tier 10-tournament
-   cap server-side — this is not re-derived here, just called. */
-async function startNewTournament(){
-  if(!currentSession){ handleLogin(); return; }
-  try{
-    const { data: allowed, error } = await cspAuth.withTimeout(
-      cspAuth.client.rpc('can_create_tournament', { uid: currentSession.user.id }),
-      8000, 'can_create_tournament()'
-    );
-    if(error){ console.error('[turnaje] can_create_tournament check failed:', error); toast('Nepodarilo sa overiť plán, skús znova.', true); return; }
-    if(!allowed){ go('upsell'); return; }
-  }catch(err){
-    console.error('[turnaje] can_create_tournament check timed out:', err);
-    toast('Nepodarilo sa overiť plán, skús znova.', true);
-    return;
-  }
+/* Simplified deliberately — this page no longer checks login/plan/quota
+   itself. Access control (is the user logged in, do they have PRO+/quota
+   to create a tournament) happens at the CTA that links here (e.g. the
+   "Nový turnaj" button elsewhere), which is expected to only send
+   eligible users to this page in the first place. This page's job is
+   just the tournament setup itself. */
+function startNewTournament(){
   go('wizard');
 }
 
@@ -590,126 +545,11 @@ async function startNewTournament(){
    ROUTER / VIEWS
 ════════════════════════════════════════════════════════════ */
 function go(view, data){
-  const u=getUser();
-  // Topbar shows for ANY logged-in user now, not just ultra — real
-  // feature_gates rules (migration 0002) let free/pro browse and
-  // self-register into tournaments; only *creating* one needs pro+/quota
-  // (see requireCanCreateTournament()). This is a deliberate correction
-  // from the old all-or-nothing ultra gate.
-  document.getElementById('topbar').classList.toggle('hidden', !(u && view!=='gate'));
-  if(u){ document.getElementById('tbName').textContent=u.name; document.getElementById('tbAv').textContent=u.name.split(' ').map(x=>x[0]).join('').slice(0,2);
-    const chip=document.querySelector('.ultra-chip'); if(chip) chip.textContent = u.isAdmin ? 'ADMIN' : u.plan.toUpperCase();
-  }
   const app=document.getElementById('app');
-  if(view==='gate') app.innerHTML=viewGate();
-  else if(view==='upsell') app.innerHTML=viewUpsell();
-  else if(view==='dashboard') app.innerHTML=viewDashboard();
+  if(view==='dashboard') app.innerHTML=viewDashboard();
   else if(view==='wizard') { app.innerHTML=viewWizard(); initWizard(data); }
   else if(view==='detail') app.innerHTML=viewDetail(data);
   window.scrollTo(0,0);
-}
-
-/* ── GATE ── */
-function viewGate(){
-  return `<div class="tgate"><div class="tgate-in">
-    <div class="tgate-grid">
-      <div>
-        <div class="tgate-eyebrow">Pavúk sa hrá naživo · connect sports pro</div>
-        <h1>Turnaj, ktorý sa <span class="g">rozohráva sám.</span></h1>
-        <p class="lead">Zadáš hráčov, vyberieš formát — Round Robin, Single KO, Double KO, alebo skupiny → pavúk. Nasadenie, postupy aj poradie počíta engine, ty len zapisuješ výsledky.</p>
-        <div class="tgate-features">
-          <span class="gate-feat">Round Robin</span>
-          <span class="gate-feat">Single KO</span>
-          <span class="gate-feat">Double KO</span>
-          <span class="gate-feat">Skupiny → pavúk</span>
-          <span class="gate-feat">Karty · generátor stolov</span>
-          <span class="gate-feat">16–256 hráčov</span>
-        </div>
-        <div class="tgate-cta">
-          <button class="btn btn-primary" onclick="handleLogin()">Prihlásiť sa</button>
-        </div>
-        <div class="tgate-note">Prehliadanie a prihlasovanie do turnajov je súčasťou plánu FREE. Vytváranie vlastných turnajov je od plánu PRO. Bez účtu ťa presmerujeme na prihlásenie.</div>
-      </div>
-      <div class="bracket-wrap">
-        <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
-          <!-- R1 -->
-          <g>
-            <rect class="br-box" x="10" y="10" width="140" height="40" rx="8"/>
-            <text class="br-name win" x="20" y="27">Hráč 1</text>
-            <text class="br-name" x="20" y="42">Hráč 2</text>
-          </g>
-          <g>
-            <rect class="br-box" x="10" y="70" width="140" height="40" rx="8"/>
-            <text class="br-name" x="20" y="87">Hráč 3</text>
-            <text class="br-name win" x="20" y="102">Hráč 4</text>
-          </g>
-          <g>
-            <rect class="br-box live" x="10" y="250" width="140" height="40" rx="8"/>
-            <text class="br-name win" x="20" y="267">Hráč 5</text>
-            <text class="br-name" x="20" y="282">Hráč 6</text>
-            <circle class="br-live-dot" cx="138" cy="270" r="4" fill="var(--green)"/>
-          </g>
-          <g>
-            <rect class="br-box" x="10" y="310" width="140" height="40" rx="8"/>
-            <text class="br-name" x="20" y="327">Hráč 7</text>
-            <text class="br-name" x="20" y="342">Hráč 8</text>
-          </g>
-
-          <!-- elbow connectors R1 → SF -->
-          <path class="br-line" d="M150,30 H185 V60 H220"/>
-          <path class="br-line" d="M150,90 H185 V60 H220"/>
-          <path class="br-line" d="M150,270 H185 V280 H220"/>
-          <path class="br-line" d="M150,330 H185 V280 H220"/>
-
-          <!-- SF -->
-          <g>
-            <rect class="br-box" x="220" y="40" width="140" height="40" rx="8"/>
-            <text class="br-name win" x="230" y="57">Hráč 1</text>
-            <text class="br-name" x="230" y="72">Hráč 4</text>
-          </g>
-          <g>
-            <rect class="br-box" x="220" y="260" width="140" height="40" rx="8"/>
-            <text class="br-name" x="230" y="277">?</text>
-            <text class="br-name" x="230" y="292">?</text>
-          </g>
-
-          <!-- elbow connectors SF → Final -->
-          <path class="br-line" d="M360,60 H400 V170 H440"/>
-          <path class="br-line" d="M360,280 H400 V170 H440"/>
-
-          <!-- Final -->
-          <g>
-            <rect class="br-box" x="440" y="150" width="140" height="40" rx="8"/>
-            <text class="br-name win" x="450" y="167">Hráč 1</text>
-            <text class="br-name" x="450" y="182">?</text>
-          </g>
-
-          <!-- flow → trophy -->
-          <path class="br-flow" d="M580,170 H595"/>
-          <g class="br-trophy" transform="translate(500,240)">
-            <circle r="20" fill="#0a0a0a" stroke="var(--gold)" stroke-width="1.5"/>
-            <text x="0" y="6" text-anchor="middle" font-size="16">🏆</text>
-          </g>
-          <path class="br-line" d="M510,190 V220"/>
-        </svg>
-        <div class="bracket-caption"><b>●</b> Hráč 5 vs Hráč 6 — prebieha</div>
-      </div>
-    </div>
-    <div class="tgate-statement">Nie je to tabuľka v exceli. <span class="g">Je to celý pavúk, ktorý sa počíta sám.</span></div>
-  </div></div>`;
-}
-
-/* ── UPSELL (prihlásený, ale nemá dosť na vytvorenie turnaja — nie na prehliadanie) ── */
-function viewUpsell(){
-  return `<div class="gate"><div class="gate-card upsell">
-    <span class="badge">Vytváranie turnajov</span>
-    <h1>Odomkni <span class="g">vytváranie turnajov</span></h1>
-    <p class="lead">Vytváranie a správa vlastných turnajov vyžaduje plán PRO alebo vyšší (Pro má limit 10 turnajov, Ultra neobmedzene). Prehliadanie a prihlasovanie do turnajov ostáva na FREE plán bez obmedzenia.</p>
-    <div class="gate-cta" style="margin-top:22px">
-      <a class="btn btn-primary" href="${UPGRADE_URL}">Prejsť na PRO/ULTRA</a>
-      <button class="link-btn" onclick="go('dashboard')" style="margin-top:10px">← Späť</button>
-    </div>
-  </div></div>`;
 }
 
 /* ── DASHBOARD ── */
@@ -1255,28 +1095,10 @@ function createTournament(){
 
 function toast(msg,err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast'+(err?' err':''),2200); }
 
-/* ── INIT: real session + profile check (replaces old localStorage demo init) ──
-   Any logged-in user (any plan) goes straight to the dashboard now —
-   browsing/self-registering into tournaments is a FREE-tier feature
-   (migration 0002's feature_gates). Only *creating* a tournament is
-   gated, checked separately by startNewTournament() when that button is
-   actually clicked, not here at page load. */
-(async function(){
-  try{
-    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(!session){ go('gate'); return; }
-    currentSession = session;
-    const { data: profile, error: profileError } = await cspAuth.withTimeout(
-      cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()'
-    );
-    if(profileError) console.error('[turnaje] Could not load profile:', profileError);
-    currentProfile = profile || null;
-    go('dashboard');
-  }catch(err){
-    console.error('[turnaje] Auth/profile check failed or timed out:', err);
-    go('gate');
-  }
-})();
+/* ── INIT: no login/plan check here — this page assumes whoever links
+   here (the "Nový turnaj" CTA elsewhere) already handled eligibility.
+   Goes straight to the dashboard. ── */
+go('dashboard');
 </script>
 </body>
 </html>
