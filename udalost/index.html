@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Nová udalosť · Connect Sports Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{
+  --bg:#060608; --bg2:#0d0d11; --bg3:#14141a; --bg4:#1a1a22;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.04);
+  --text:#f4f4f8; --text-soft:#a8a8b8; --muted:#6a6a7a; --muted2:#80809a;
+  --gold:#d4a843; --gold-bright:#e8b94f; --gold-dim:rgba(212,168,67,.10); --gold-b:rgba(212,168,67,.25);
+  --green:#1ec86a; --green-dim:rgba(30,200,106,.10);
+  --red:#d94f4f;
+  --font:'Syne',sans-serif; --display:'Bebas Neue',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font-family:inherit;font-size:.92rem;color:var(--text);background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:11px 13px;width:100%}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold-b)}
+textarea{resize:vertical;min-height:90px}
+label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;margin-bottom:6px}
+
+.topbar{position:sticky;top:0;z-index:20;background:rgba(6,6,8,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:720px;margin:0 auto;padding:0 20px;min-height:60px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--gold);color:#1a1000;font-family:var(--display);font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+.brand-word{font-family:var(--display);font-size:1.15rem;letter-spacing:.02em}
+.brand-word .g{color:var(--gold)} .brand-word .w{color:var(--text)}
+.tb-right{display:flex;align-items:center;gap:14px}
+.tb-user{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-soft)}
+.tb-av{width:26px;height:26px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--gold)}
+.link-btn{font-size:.82rem;color:var(--gold);font-weight:600}
+.link-btn:hover{text-decoration:underline}
+
+.wrap{max-width:640px;margin:0 auto;padding:40px 20px 80px}
+.page-head{margin-bottom:28px}
+.page-head h1{font-family:var(--display);font-size:2.2rem;letter-spacing:.01em;line-height:1.05}
+.page-head p{color:var(--text-soft);font-size:.92rem;margin-top:8px;max-width:460px}
+
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px}
+@media(max-width:520px){.type-grid{grid-template-columns:1fr 1fr}}
+.type-card{border:1px solid var(--line);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:.14s;background:var(--bg2)}
+.type-card:hover{border-color:var(--gold-b)}
+.type-card.active{border-color:var(--gold);background:var(--gold-dim)}
+.type-card .ico{font-size:1.3rem;display:block;margin-bottom:6px}
+.type-card .lbl{font-size:.74rem;font-weight:700;color:var(--text-soft)}
+.type-card.active .lbl{color:var(--gold)}
+
+.field{margin-bottom:18px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.field-row{grid-template-columns:1fr}}
+.hint{font-size:.72rem;color:var(--muted);margin-top:5px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:.9rem;padding:13px 20px;border-radius:10px;border:1px solid var(--line);transition:.14s;width:100%}
+.btn-primary{background:var(--gold);color:#1a1000;border-color:var(--gold)}
+.btn-primary:hover{background:var(--gold-bright)}
+.btn-primary:disabled{opacity:.55;cursor:not-allowed}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#06230f;font-weight:700;font-size:.85rem;padding:11px 20px;border-radius:99px;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1}
+.toast.err{background:var(--red);color:#fff}
+
+.loading-gate{max-width:640px;margin:0 auto;padding:60px 20px;color:var(--muted2);font-size:.9rem}
+
+/* Local-storage-only notice, removed once this form writes to the real
+   `events` table (migration 0013). Deliberately visible, not hidden —
+   so it's obvious this isn't saving for real yet, matching project
+   convention of never quietly pretending unfinished features are done. */
+.wip-note{background:var(--gold-dim);border:1px solid var(--gold-b);border-radius:10px;padding:12px 14px;font-size:.8rem;color:var(--text-soft);margin-bottom:24px}
+.wip-note b{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="/profil/">
+      <span class="brand-mark">C</span>
+      <span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span>
+    </a>
+    <div class="tb-right">
+      <div class="tb-user"><span class="tb-av" id="tbAv">—</span><span id="tbName">—</span></div>
+      <a class="link-btn" href="/profil/">← Profil</a>
+    </div>
+  </div>
+</div>
+
+<div class="loading-gate" id="loadingGate">Načítavam…</div>
+
+<div class="wrap" id="formWrap" style="display:none">
+  <div class="page-head">
+    <h1>Nová udalosť</h1>
+    <p>Stretnutie klubu, exhibícia, nábor alebo čokoľvek iné, čo nie je súťažný turnaj — s vlastným priebehom, bez pavúka a zápasov.</p>
+  </div>
+
+  <div class="wip-note"><b>Zatiaľ len náhľad:</b> formulár teraz ukladá lokálne do tohto prehliadača. Napojenie na reálnu databázu (tabuľka <code>events</code>) je ďalší krok.</div>
+
+  <form id="eventForm" onsubmit="return false">
+    <div class="field">
+      <label>Typ udalosti</label>
+      <div class="type-grid" id="typeGrid">
+        <div class="type-card active" data-type="meetup" onclick="selectType(this)"><span class="ico">🤝</span><span class="lbl">Stretnutie klubu</span></div>
+        <div class="type-card" data-type="exhibition" onclick="selectType(this)"><span class="ico">🎤</span><span class="lbl">Exhibícia</span></div>
+        <div class="type-card" data-type="recruitment" onclick="selectType(this)"><span class="ico">📣</span><span class="lbl">Nábor</span></div>
+        <div class="type-card" data-type="other" onclick="selectType(this)"><span class="ico">✨</span><span class="lbl">Iné</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="evTitle">Názov udalosti</label>
+      <input id="evTitle" type="text" placeholder="napr. Jarné stretnutie klubu ŠK Pohoda" required/>
+    </div>
+
+    <div class="field">
+      <label for="evDescription">Popis</label>
+      <textarea id="evDescription" placeholder="Čo sa bude diať, pre koho je to určené, čo si priniesť..."></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="evSport">Šport (nepovinné)</label>
+        <input id="evSport" type="text" placeholder="napr. Biliard"/>
+      </div>
+      <div class="field">
+        <label for="evLocation">Miesto</label>
+        <input id="evLocation" type="text" placeholder="napr. Klub Pohoda, Žilina"/>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="evStart">Začiatok</label>
+        <input id="evStart" type="datetime-local" required/>
+      </div>
+      <div class="field">
+        <label for="evEnd">Koniec (nepovinné)</label>
+        <input id="evEnd" type="datetime-local"/>
+        <div class="hint">Nechaj prázdne, ak udalosť nemá presný koniec.</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="saveBtn" onclick="saveEvent()">Vytvoriť udalosť</button>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentSession = null;
+let selectedType = 'meetup';
+
+(async function initPage(){
+  try{
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){ location.href = '/login/'; return; }
+    currentSession = session;
+    const { data: profile } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
+    const displayName = (profile && profile.full_name) || session.user.email;
+    document.getElementById('tbName').textContent = displayName;
+    document.getElementById('tbAv').textContent = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
+  }catch(err){
+    console.error('[udalost] Auth check failed or timed out:', err);
+    location.href = '/login/';
+    return;
+  }
+  document.getElementById('loadingGate').style.display = 'none';
+  document.getElementById('formWrap').style.display = '';
+})();
+
+function selectType(el){
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  selectedType = el.dataset.type;
+}
+
+function toast(msg, err){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast' + (err ? ' err' : ''); }, 2400);
+}
+
+/* Saves locally for now — swap this for a real insert into the `events`
+   table (migration 0013) once it exists. Kept as one clearly-marked
+   function so that reconnection later is a one-place change. */
+function saveEvent(){
+  const title = document.getElementById('evTitle').value.trim();
+  const startsAt = document.getElementById('evStart').value;
+  if(!title){ toast('Zadaj názov udalosti.', true); return; }
+  if(!startsAt){ toast('Zadaj začiatok udalosti.', true); return; }
+
+  const event = {
+    id: 'ev'+Date.now(),
+    owner_email: currentSession.user.email,
+    event_type: selectedType,
+    title: title,
+    description: document.getElementById('evDescription').value.trim(),
+    sport: document.getElementById('evSport').value.trim() || null,
+    location_text: document.getElementById('evLocation').value.trim() || null,
+    starts_at: startsAt,
+    ends_at: document.getElementById('evEnd').value || null,
+    created_at: new Date().toISOString(),
+  };
+
+  try{
+    const key = 'csp_local_events_v1';
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    existing.unshift(event);
+    localStorage.setItem(key, JSON.stringify(existing));
+  }catch(err){
+    console.error('[udalost] Could not save locally:', err);
+    toast('Nepodarilo sa uložiť.', true);
+    return;
+  }
+
+  toast('Udalosť uložená (zatiaľ lokálne) ✓');
+  setTimeout(()=>location.href='/profil/', 900);
+}
+</script>
+</body>
+</html>
