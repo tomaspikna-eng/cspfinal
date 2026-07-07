@@ -659,40 +659,6 @@ button,input,select{font:inherit}
 .hero h1 .gold-accent{color:var(--gold)}
 .hero p{font-size:1.05rem;line-height:1.55;max-width:560px}
 
-/* ═══ Hero module quick-access pills ═══ */
-.hero-modules{margin-top:22px}
-.hero-modules-label{
-  display:block;
-  font-family:'JetBrains Mono',monospace;
-  font-size:.66rem;
-  font-weight:600;
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  color:var(--muted2);
-  margin-bottom:10px;
-}
-.hero-modules-row{display:flex;gap:10px;flex-wrap:wrap}
-.module-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:9px 16px;
-  border-radius:99px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.02);
-  font-size:.84rem;
-  font-weight:600;
-  color:var(--text-soft);
-  transition:.15s;
-}
-.module-pill:hover{
-  border-color:rgba(212,168,67,.35);
-  background:rgba(212,168,67,.06);
-  color:var(--gold);
-  transform:translateY(-1px);
-}
-.module-pill .mp-ico{font-size:1rem}
-
 /* ═══ Profile preview (animated screenshot in hero) ═══ */
 .profile-preview-wrap{
   position:relative;
@@ -821,6 +787,16 @@ button,input,select{font:inherit}
 .manifesto-statement .em-divider{display:block;width:60px;height:3px;background:var(--gold);margin:24px auto;border-radius:99px}
 .manifesto-statement p{font-size:1.05rem;color:var(--muted2);max-width:640px;margin:18px auto 0;line-height:1.6}
 
+/* ═══ Sport ktorý nikto nepokrýva ═══ */
+.sports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+@media(max-width:760px){.sports-grid{grid-template-columns:1fr 1fr}}
+.sport-tile{padding:28px 20px;border-radius:18px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);text-align:center;transition:.2s}
+.sport-tile:hover{background:rgba(212,168,67,.06);border-color:rgba(212,168,67,.25);transform:translateY(-2px)}
+.sport-tile .ico{font-size:2.6rem;display:block;margin-bottom:12px}
+.sport-tile .label{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--text);letter-spacing:.04em}
+.sport-tile .stat{font-size:.72rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-top:8px}
+.multi-tagline{font-size:1.05rem;color:var(--text);text-align:center;margin-top:24px;font-style:italic}
+.multi-tagline .gold-accent{color:var(--gold);font-style:normal;font-weight:700}
 
 /* ═══ Tvoj sportový profil ═══ */
 .profile-spotlight{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;margin-top:16px}
@@ -876,7 +852,6 @@ document.addEventListener('click', function(e){
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
 <div class="page">
@@ -927,20 +902,10 @@ document.addEventListener('click', function(e){
   <div class="hero-copy">
     <div class="hero-kicker">Domov pre šport.</div>
     <h1>Športuj.<br><span class="gold-accent">Buď videný.</span><br>Patri ku komunite.</h1>
+    <p>Disciplíny, kluby a hráči — prvý raz na jednom mieste.</p>
     <div class="hero-actions">
       <a href="./login/" class="btn btn-green" style="display:inline-flex;align-items:center;">Pridaj sa</a>
       <a href="./login/" class="btn btn-dark" style="display:inline-flex;align-items:center;">Prihlásiť</a>
-    </div>
-    <div class="hero-modules">
-      <span class="hero-modules-label">Rýchly prístup</span>
-      <div class="hero-modules-row">
-        <a href="/search/" class="module-pill">
-          <span class="mp-ico">🏆</span> Turnaje
-        </a>
-        <a href="/manager/Dashboard%20obsluhy/" class="module-pill">
-          <span class="mp-ico">🏛</span> Club Manager
-        </a>
-      </div>
     </div>
   </div>
 
@@ -972,132 +937,47 @@ document.addEventListener('click', function(e){
 <!-- ═══════ MANIFESTO STATEMENT ═══════ -->
 <section class="panel">
   <div class="manifesto-statement">
-    <p style="color:var(--green);font-weight:600;display:flex;flex-wrap:wrap;gap:0.5em;align-items:baseline;">
-      <span>Biliard – pool 8-ball, 9-ball, 10-ball, straight pool 14.1</span>
-      <span aria-hidden="true">·</span>
-      <span>Snooker</span>
-      <span aria-hidden="true">·</span>
-      <span>Karambol – trojband, jednoband, voľná hra</span>
-      <span aria-hidden="true">·</span>
-      <span>Pyramída</span>
-      <span aria-hidden="true">·</span>
-      <span>Blackball</span>
-      <span aria-hidden="true">·</span>
-      <span>English billiards</span>
-      <span aria-hidden="true">·</span>
-      <span>Artistic billiards</span>
-      <span aria-hidden="true">·</span>
-      <span>Bank pool</span>
-      <span aria-hidden="true">·</span>
-      <span>One-pocket</span>
-      <span aria-hidden="true">·</span>
-      <span>Speed pool</span>
-      <span aria-hidden="true">·</span>
-      <span>Šípky – steel, soft, elektronické</span>
-      <span aria-hidden="true">·</span>
-      <span>Stolný futbal – foosball</span>
-      <span aria-hidden="true">·</span>
-      <span>Shuffleboard</span>
-      <span aria-hidden="true">·</span>
-      <span>Stolný shuffleboard</span>
-      <span aria-hidden="true">·</span>
-      <span>Novuss</span>
-      <span aria-hidden="true">·</span>
-      <span>Cornhole</span>
-      <span aria-hidden="true">·</span>
-      <span>Horseshoes</span>
-      <span aria-hidden="true">·</span>
-      <span>Quoits</span>
-      <span aria-hidden="true">·</span>
-      <span>Teqball</span>
-      <span aria-hidden="true">·</span>
-      <span>Subbuteo</span>
-      <span aria-hidden="true">·</span>
-      <span>Pitch-and-putt</span>
-      <span aria-hidden="true">·</span>
-      <span>Minigolf</span>
-      <span aria-hidden="true">·</span>
-      <span>Footgolf</span>
-      <span aria-hidden="true">·</span>
-      <span>Discgolf</span>
-      <span aria-hidden="true">·</span>
-      <span>Ten-pin bowling</span>
-      <span aria-hidden="true">·</span>
-      <span>Nine-pin bowling</span>
-      <span aria-hidden="true">·</span>
-      <span>Klasické kolky</span>
-      <span aria-hidden="true">·</span>
-      <span>Candlepin bowling</span>
-      <span aria-hidden="true">·</span>
-      <span>Duckpin bowling</span>
-      <span aria-hidden="true">·</span>
-      <span>Five-pin bowling</span>
-      <span aria-hidden="true">·</span>
-      <span>Lawn bowls</span>
-      <span aria-hidden="true">·</span>
-      <span>Indoor bowls</span>
-      <span aria-hidden="true">·</span>
-      <span>Boccia</span>
-      <span aria-hidden="true">·</span>
-      <span>Bocce</span>
-      <span aria-hidden="true">·</span>
-      <span>Pétanque</span>
-      <span aria-hidden="true">·</span>
-      <span>Raffa</span>
-      <span aria-hidden="true">·</span>
-      <span>Boule lyonnaise</span>
-      <span aria-hidden="true">·</span>
-      <span>Jeu provençal</span>
-      <span aria-hidden="true">·</span>
-      <span>Mölkky</span>
-      <span aria-hidden="true">·</span>
-      <span>Kubb</span>
-      <span aria-hidden="true">·</span>
-      <span>Skittles</span>
-      <span aria-hidden="true">·</span>
-      <span>Squash</span>
-      <span aria-hidden="true">·</span>
-      <span>Racquetball</span>
-      <span aria-hidden="true">·</span>
-      <span>Padel</span>
-      <span aria-hidden="true">·</span>
-      <span>Pickleball</span>
-      <span aria-hidden="true">·</span>
-      <span>Platform tennis</span>
-      <span aria-hidden="true">·</span>
-      <span>Soft tennis</span>
-      <span aria-hidden="true">·</span>
-      <span>Real tennis</span>
-      <span aria-hidden="true">·</span>
-      <span>Rackets</span>
-      <span aria-hidden="true">·</span>
-      <span>Crossminton</span>
-      <span aria-hidden="true">·</span>
-      <span>Speed badminton</span>
-      <span aria-hidden="true">·</span>
-      <span>Pelota</span>
-      <span aria-hidden="true">·</span>
-      <span>Jai alai</span>
-      <span aria-hidden="true">·</span>
-      <span>Frontenis</span>
-      <span aria-hidden="true">·</span>
-      <span>Frescobol</span>
-      <span aria-hidden="true">·</span>
-      <span>Beach tennis</span>
-      <span aria-hidden="true">·</span>
-      <span>Paddleball</span>
-      <span aria-hidden="true">·</span>
-      <span>Touchtennis</span>
-      <span aria-hidden="true">·</span>
-      <span>Tamburello</span>
-      <span aria-hidden="true">·</span>
-      <span>Ball badminton</span>
-      <span aria-hidden="true">·</span>
-      <span>a mnoho ďalšieho…</span>
-    </p>
+    <p style="color:var(--green);font-weight:600">Connect Sports Pro je prvá platforma postavená pre komunitu cue sports, šípok, bowlingu a kartových hier. Nie ďalší bracket generator. Sociálna sieť pre disciplíny ktoré si ju zaslúžia.</p>
   </div>
 </section>
 
+
+<!-- ═══════ MULTI-SPORT POSITIONING ═══════ -->
+<section class="panel section">
+  <div class="section-head">
+    <div>
+      <h2 class="section-title">Šport ktorý nikto nepokrýval</h2>
+      <p>Štyri disciplíny pod jednou strechou. Tvoji ľudia v biliarde vidia tvoju formu v šípkach. Multi-sport DNA od prvého dňa.</p>
+    </div>
+  </div>
+
+  <div class="sports-grid">
+    <div class="sport-tile">
+      <span class="ico">🎱</span>
+      <div class="label">Biliard</div>
+      <div class="stat">Pool · Snooker · Karambol</div>
+    </div>
+    <div class="sport-tile">
+      <span class="ico">🎯</span>
+      <div class="label">Šípky</div>
+      <div class="stat">501 · Cricket · Steel · Soft</div>
+    </div>
+    <div class="sport-tile">
+      <span class="ico">🎳</span>
+      <div class="label">Bowling</div>
+      <div class="stat">Ligy · Turnaje · Štatistiky</div>
+    </div>
+    <div class="sport-tile">
+      <span class="ico">🃏</span>
+      <div class="label">Karty</div>
+      <div class="stat">Klubové aj turnajové hry</div>
+    </div>
+  </div>
+
+  <div class="multi-tagline">
+    Jedna sieť. <span class="gold-accent">Všetky disciplíny.</span>
+  </div>
+</section>
 
 
 <!-- ═══════ TVOJ ŠPORTOVÝ PROFIL ═══════ -->
@@ -1289,6 +1169,12 @@ document.addEventListener('click', function(e){
       <h2 class="section-title">Z magazínu</h2>
       <p>Najnovšie články zo sveta kulečníku, šípok a bowlingu</p>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="magTabsBar">
+      <button class="mag-tab active" data-sport="all" onclick="magSetSport('all',this)">Všetky</button>
+      <button class="mag-tab" data-sport="billiard" onclick="magSetSport('billiard',this)">🎱 Biliard</button>
+      <button class="mag-tab" data-sport="darts" onclick="magSetSport('darts',this)">🎯 Šípky</button>
+      <button class="mag-tab" data-sport="bowling" onclick="magSetSport('bowling',this)">🎳 Bowling</button>
+    </div>
   </div>
   <div id="magGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
   <div style="text-align:center;margin-top:18px">
@@ -1300,6 +1186,12 @@ document.addEventListener('click', function(e){
 </section>
 
 <style>
+.mag-tab{
+  padding:5px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.1);
+  background:transparent;color:#888;font-size:.78rem;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:.15s;
+}
+.mag-tab.active{background:rgba(216,176,75,.1);border-color:rgba(216,176,75,.3);color:#d4a843}
 .mag-card{
   border:1px solid rgba(255,255,255,.07);border-radius:18px;
   background:rgba(255,255,255,.02);overflow:hidden;
@@ -1308,66 +1200,83 @@ document.addEventListener('click', function(e){
 .mag-card:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
 .mag-card-img{width:100%;height:160px;object-fit:cover;display:block;background:#111}
 .mag-card-body{padding:14px}
+.mag-card-tag{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#d4a843;margin-bottom:6px}
 .mag-card-title{font-size:.95rem;font-weight:700;color:#eee;line-height:1.3;margin-bottom:6px}
 .mag-card-perex{font-size:.8rem;color:#888;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mag-card-sport{font-size:.68rem;color:#666;margin-top:8px}
 .mag-empty{grid-column:1/-1;text-align:center;padding:32px;color:#555;font-size:.88rem}
 </style>
 
 <script>
-// Real data from the csp-staging `articles` table (migration 0006),
-// reusing the shared cspAuth client from assets/csp-auth.js rather than
-// creating a second Supabase client — replaces a widget that used to
-// call a different, unused Supabase project with a schema
-// (id/title/perex/image_url/sport/category) that doesn't match this
-// table at all (title/slug/excerpt/cover_image_url/published_at).
-// RLS already allows public read of published articles, so this works
-// for anonymous/logged-out visitors too. `sport`/`category` filtering
-// was removed along with it since the real schema has no such columns
-// yet — nothing to honestly filter by.
-(async function(){
-  const grid = document.getElementById("magGrid");
-  if(!window.cspAuth){
-    grid.innerHTML = '<div class="mag-empty">Magazín nie je dostupný offline.</div>';
-    return;
+(function(){
+  const SB_URL  = "https://gqtbxjkuemggelepkhrl.supabase.co";
+  const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxdGJ4amt1ZW1nZ2VsZXBraHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDUzNDMsImV4cCI6MjA5MzcyMTM0M30.sKzCRn_Z1jOUF2y6i1O3MgER5UC6TLGzvVvEXJ9ac0Y";
+  const sb = window.supabase?.createClient(SB_URL, SB_ANON);
+
+  const SPORT_LABELS = {billiard:"🎱 Biliard", darts:"🎯 Šípky", bowling:"🎳 Bowling"};
+  const SPORT_LINKS  = {billiard:"/magazin/", darts:"/magazin/", bowling:"/magazin/"};
+  const CAT_LABELS   = {technika:"Technika",pravidla:"Pravidlá",rebricek:"Rebríček",rozhovor:"Rozhovor",vybavenie:"Vybavenie",reportaz:"Reportáž",novinky:"Novinky"};
+
+  let allArticles = [];
+  let currentSport = "all";
+
+  async function loadMagArticles(){
+    const grid = document.getElementById("magGrid");
+    if(!sb){ grid.innerHTML = '<div class="mag-empty">Magazín nie je dostupný offline.</div>'; return; }
+
+    const { data, error } = await sb
+      .from("articles")
+      .select("id,title,perex,image_url,sport,category,published_at")
+      .eq("status","published")
+      .order("published_at",{ascending:false})
+      .limit(12);
+
+    if(error||!data){ grid.innerHTML = '<div class="mag-empty">Nepodarilo sa načítať články.</div>'; return; }
+    allArticles = data;
+    renderMagGrid();
   }
 
-  try {
-    const { data, error } = await cspAuth.client
-      .from("articles")
-      .select("title,slug,excerpt,cover_image_url,published_at")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .limit(6);
+  function renderMagGrid(){
+    const grid = document.getElementById("magGrid");
+    const link = document.getElementById("magMoreLink");
+    const filtered = currentSport === "all" ? allArticles : allArticles.filter(a=>a.sport===currentSport);
 
-    if(error) throw error;
+    // Aktualizuj "Všetky články" link
+    if(currentSport !== "all") link.href = SPORT_LINKS[currentSport]||"/magazin/";
+    else link.href = "/magazin/";
 
-    if(!data || !data.length){
-      // Genuine empty state -- nothing has been published yet. No
-      // fabricated placeholder articles.
-      grid.innerHTML = '<div class="mag-empty">Čoskoro pribudnú prvé články.</div>';
+    if(!filtered.length){
+      grid.innerHTML = '<div class="mag-empty">Zatiaľ žiadne články.</div>';
       return;
     }
 
-    // No per-article detail page exists in this repo yet (magazin/
-    // itself links to a /magazin/clanok/ page that doesn't actually
-    // exist either) -- linking each card to the real, existing
-    // /magazin/ listing page rather than a path that would 404.
-    grid.innerHTML = data.map(a => {
-      const imgSrc = a.cover_image_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=70";
+    grid.innerHTML = filtered.slice(0,6).map(a => {
+      const sportLabel = SPORT_LABELS[a.sport]||a.sport;
+      const catLabel   = CAT_LABELS[a.category]||a.category||"";
+      const imgSrc     = a.image_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=70";
+      const href       = SPORT_LINKS[a.sport] || "/magazin/";
       return `
-      <a href="/magazin/" class="mag-card">
+      <a href="${href}" class="mag-card">
         <img class="mag-card-img" src="${imgSrc}" alt="" loading="lazy"
              onerror="this.style.background='#1a1a1a';this.style.height='160px'"/>
         <div class="mag-card-body">
-          <div class="mag-card-title">${a.title || ""}</div>
-          <div class="mag-card-perex">${a.excerpt || ""}</div>
+          <div class="mag-card-tag">${catLabel}</div>
+          <div class="mag-card-title">${a.title||""}</div>
+          <div class="mag-card-perex">${a.perex||""}</div>
+          <div class="mag-card-sport">${sportLabel}</div>
         </div>
       </a>`;
     }).join("");
-  } catch(err){
-    console.error('[index] Failed to load magazine articles:', err);
-    grid.innerHTML = '<div class="mag-empty">Nepodarilo sa načítať články.</div>';
   }
+
+  window.magSetSport = function(sport, btn){
+    currentSport = sport;
+    document.querySelectorAll(".mag-tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    renderMagGrid();
+  };
+
+  loadMagArticles();
 })();
 </script>
 
@@ -1441,6 +1350,44 @@ tabButtons.forEach(btn => {
 searchBtn.addEventListener("click", runSearch);
 searchInput.addEventListener("input", runSearch);
 cityFilter.addEventListener("change", runSearch);
+</script>
+
+<script>
+(async function(){
+  if(!window.supabase) return;
+  const db = window.supabase.createClient("https://gilzomwhuwcxpkegtlhj.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbHpvbXdodXdjeHBrZWd0bGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzMwMTgsImV4cCI6MjA5MjYwOTAxOH0.-KiLSdiB2mRWqUDB9GWyISfCu2o_ZBM80aGUEW9CcUg");
+  const { data: events } = await db
+    .from('events')
+    .select('*')
+    .eq('status', 'open')
+    .order('datum', {ascending: true})
+    .limit(6);
+  
+  if(!events || !events.length) return;
+  
+  // Nájdi kontajner pre udalosti
+  const container = document.getElementById('events-list') || 
+                    document.querySelector('.events-grid') ||
+                    document.querySelector('.upcoming-events');
+  if(!container) return;
+  
+  const sports = {billiard:'🎱',darts:'🎯',bowling:'🎳',tennis:'🎾',tabletennis:'🏓',foosball:'⚽',chess:'♟️',petanque:'🎳',badminton:'🏸'};
+  
+  container.innerHTML = events.map(e => `
+    <a href="/udalost/?slug=${e.slug}" style="display:flex;align-items:center;gap:12px;
+      padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.02);text-decoration:none;transition:.15s"
+      onmouseover="this.style.borderColor='rgba(216,176,75,.3)'"
+      onmouseout="this.style.borderColor='rgba(255,255,255,.08)'">
+      <div style="font-size:1.4rem">${sports[e.sport]||'🏆'}</div>
+      <div style="flex:1">
+        <div style="font-size:.9rem;font-weight:700;color:#eeeef2">${e.nazov}</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${e.datum||''} · ${e.klub||''}</div>
+      </div>
+      <div style="font-size:.72rem;color:#22d36b;font-weight:700">Otvoriť →</div>
+    </a>
+  `).join('');
+})();
 </script>
 
 <script>
