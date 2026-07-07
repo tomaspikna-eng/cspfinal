@@ -8,9 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/assets/csp-auth.js"></script>
-<script src="/assets/csp-manager.js"></script>
 <style>
 :root{
   /* Surface — converted from app oklch dark theme */
@@ -172,39 +169,9 @@ td.muted{color:var(--muted-2)}
 .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150}
 .backdrop.show{display:block}
 @media(min-width:901px){.backdrop{display:none!important}}
-
-/* ════════════════════ AUTH / CREATE-CLUB OVERLAY ════════════════════ */
-.gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
-.gate-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:32px}
-.gate-card h2{font-size:1.4rem;font-weight:800;color:var(--gold);margin-bottom:8px}
-.gate-card p{color:var(--muted-2);font-size:.88rem;line-height:1.5;margin-bottom:20px}
-.gate-card label{display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
-.gate-card input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:11px 13px;font-size:.92rem;outline:none;font-family:inherit;margin-bottom:16px}
-.gate-card input:focus{border-color:var(--gold)}
-.gate-card button{width:100%;padding:12px;border-radius:9px;background:var(--green);color:var(--green-dark);font-weight:700;font-size:.9rem}
-.gate-card button:hover{background:#33dd8a}
-.gate-card button:disabled{opacity:.55;cursor:not-allowed}
-.gate-err{color:var(--red);font-size:.82rem;margin-top:-8px;margin-bottom:14px;display:none}
-.gate-loading{color:var(--muted-2);text-align:center;padding:60px 20px}
 </style>
 </head>
 <body>
-
-<!-- ═══════════ AUTH / CREATE-CLUB GATES ═══════════ -->
-<div class="gate-overlay" id="loadingGate">
-  <div class="gate-loading">Načítavam...</div>
-</div>
-
-<div class="gate-overlay" id="createClubGate" style="display:none">
-  <div class="gate-card">
-    <h2>Vytvor svoj klub</h2>
-    <p>Ešte nemáš vytvorený klub. Zadaj jeho názov a začni spravovať prevádzku.</p>
-    <label>Názov klubu</label>
-    <input id="newClubName" placeholder="napr. ŠK Pohoda" maxlength="120"/>
-    <div class="gate-err" id="createClubErr"></div>
-    <button id="createClubBtn">Vytvoriť klub</button>
-  </div>
-</div>
 
 <div class="app">
 
@@ -231,13 +198,13 @@ td.muted{color:var(--muted-2)}
       <a class="sb-item" href="/manager/rezervacie/"><span class="ico">📅</span> Rezervácie</a>
 
       <div class="sb-section">Správa</div>
-      <a class="sb-item" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
+      <a class="sb-item" href="#"><span class="ico">🎱</span> Športoviská</a>
       <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
       <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
     </nav>
 
     <div class="sb-foot">
-      <button class="sb-signout" id="signOutBtn"><span>↪</span> Odhlásiť sa</button>
+      <button class="sb-signout" onclick="alert('Odhlásenie — napojí sa na auth.')"><span>↪</span> Odhlásiť sa</button>
     </div>
   </aside>
   <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
@@ -247,11 +214,11 @@ td.muted{color:var(--muted-2)}
     <div class="topbar">
       <div class="tb-left">
         <button class="tb-toggle" onclick="toggleSidebar()">☰</button>
-        <div class="tb-title"><span class="club" id="tbClubName">Klub</span> · Obsluha</div>
+        <div class="tb-title"><span class="club">ŠK Pohoda</span> · Obsluha</div>
       </div>
       <div class="tb-right">
         <span class="tb-clock" id="clock">00:00:00</span>
-        <div class="tb-user"><span class="tb-av" id="tbUserAv">?</span> <span id="tbUserName">…</span></div>
+        <div class="tb-user"><span class="tb-av">JN</span> Ján Novák</div>
       </div>
     </div>
 
@@ -296,70 +263,6 @@ td.muted{color:var(--muted-2)}
 </div>
 
 <script>
-/* ════════════════════════════════════════════════
-   REAL AUTH + CLUB GATE
-   Replaces the old fully-open page (no login check at all, hardcoded
-   "Ján Novák", logout was just an alert() stub) with real Supabase
-   auth via cspAuth/cspManager: session check, the real club_manager
-   feature gate (has_feature_access(), ultra-tier), and a real lookup
-   of the caller's own club — creating one here if none exists yet,
-   since nothing else in the app creates one automatically.
-
-   Everything BELOW this block (stations/sessions/calls/reservations)
-   is still the original mock data/live-occupancy demo, intentionally
-   untouched — this task only wires auth + the venues management CTA,
-   not the stations/scoreboard system.
-════════════════════════════════════════════════ */
-(async function initClubManagerAuth(){
-  const ctx = await cspManager.requireClubManagerAccess({ allowNoClub: true });
-  if(!ctx) return; // requireClubManagerAccess already redirected
-
-  if(!ctx.club){
-    document.getElementById('loadingGate').style.display = 'none';
-    document.getElementById('createClubGate').style.display = 'flex';
-
-    document.getElementById('createClubBtn').addEventListener('click', async () => {
-      const name = document.getElementById('newClubName').value.trim();
-      const errEl = document.getElementById('createClubErr');
-      errEl.style.display = 'none';
-      if(!name){
-        errEl.textContent = 'Zadaj názov klubu.';
-        errEl.style.display = 'block';
-        return;
-      }
-      const btn = document.getElementById('createClubBtn');
-      btn.disabled = true;
-      btn.textContent = 'Vytváram...';
-      try {
-        const { error } = await cspAuth.withTimeout(
-          cspAuth.client.from('clubs').insert({ owner_id: ctx.session.user.id, name: name }),
-          8000, 'create club'
-        );
-        if(error) throw error;
-        window.location.reload();
-      } catch(err){
-        console.error('[manager] Failed to create club:', err);
-        errEl.textContent = 'Nepodarilo sa vytvoriť klub. Skús to znova.';
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Vytvoriť klub';
-      }
-    });
-    return;
-  }
-
-  // Real club + user identity, replacing the hardcoded "ŠK Pohoda" / "Ján Novák".
-  document.getElementById('tbClubName').textContent = ctx.club.name;
-  const displayName = (ctx.profile && ctx.profile.full_name) || ctx.session.user.email;
-  const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
-  document.getElementById('tbUserName').textContent = displayName;
-  document.getElementById('tbUserAv').textContent = initials;
-
-  document.getElementById('loadingGate').style.display = 'none';
-})();
-
-document.getElementById('signOutBtn')?.addEventListener('click', () => cspManager.signOut());
-
 /* ════════════════════════════════════════════════
    MOCK DÁTA — neskôr nahradí Supabase fetch
    tabuľky: stations, sessions, staff_calls, reservations
