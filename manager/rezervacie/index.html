@@ -173,11 +173,7 @@ td{padding:4px}
         </div>
         <div class="filter-field">
           <label>Šport</label>
-          <div class="sport-tabs" id="sportTabs">
-            <button class="sport-tab active" data-sport="billiard" onclick="setSport('billiard',this)">🎱 Biliard</button>
-            <button class="sport-tab" data-sport="darts" onclick="setSport('darts',this)">🎯 Šípky</button>
-            <button class="sport-tab" data-sport="bowling" onclick="setSport('bowling',this)">🎳 Bowling</button>
-          </div>
+          <div class="sport-tabs" id="sportTabs"><!-- generated dynamically from real venues' sport values --></div>
         </div>
       </div>
 
@@ -213,29 +209,74 @@ td{padding:4px}
   const initials = (displayName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
   document.getElementById('tbUserName').textContent = displayName;
   document.getElementById('tbUserAv').textContent = initials;
+
+  await loadVenues(ctx.club.id);
   document.getElementById('loadingGate').style.display = 'none';
 })();
+
+/* Real venues, replacing the old hardcoded `stations` seed. select('*')
+   so this keeps working whether or not migration 0012 (hourly_rate/
+   status) has landed yet — missing columns just come back undefined. */
+async function loadVenues(clubId){
+  try{
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('venues').select('*').eq('club_id', clubId).order('name'),
+      8000, 'venues lookup'
+    );
+    if(error){ console.error('[rezervacie] Could not load venues:', error); toast('Nepodarilo sa načítať športoviská.', true); return; }
+    stations = (data||[]).map(v => ({
+      id: v.id,
+      name: v.name,
+      sport_type: v.sport || 'iné',
+      status: v.status || 'available',
+      hourly_rate: v.hourly_rate != null ? v.hourly_rate : 0,
+    }));
+  }catch(err){
+    console.error('[rezervacie] loadVenues timed out:', err);
+    toast('Nepodarilo sa načítať športoviská.', true);
+    stations = [];
+  }
+  buildSportTabs();
+}
+
+/* Sport tabs are generated from whatever sports the club's real venues
+   actually have — not a fixed billiard/darts/bowling set, since venues
+   (migration 0009) allow any free-text sport. */
+function buildSportTabs(){
+  const wrap=document.getElementById('sportTabs');
+  const sports=[...new Set(stations.map(s=>s.sport_type))];
+  if(sports.length===0){
+    wrap.innerHTML='';
+    currentSport=null;
+    document.getElementById('gridArea').innerHTML='<div class="empty">Zatiaľ nemáš pridané žiadne športoviská. <a href="/manager/sportoviska/" style="color:var(--gold)">Pridať prvé →</a></div>';
+    return;
+  }
+  currentSport = sports[0];
+  wrap.innerHTML = sports.map((sp,i)=>{
+    const icon = SPORT_ICON[sp] || SPORT_ICON_FALLBACK;
+    return `<button class="sport-tab${i===0?' active':''}" data-sport="${sp}" onclick="setSport('${sp}',this)">${icon} ${sp}</button>`;
+  }).join('');
+  renderGrid();
+}
 
 document.getElementById('signOutBtn')?.addEventListener('click', () => cspManager.signOut());
 
 /* ════════════════════════════════════════════════
    Zdieľané sklady (localStorage) — neskôr Supabase
 ════════════════════════════════════════════════ */
-const K_STATIONS="clubm_stations", K_CUSTOMERS="clubm_customers", K_RESERVATIONS="clubm_reservations";
-const SPORT_ICON={billiard:'🎱',darts:'🎯',bowling:'🎳'}, SPORT_LABEL={billiard:'Biliard',darts:'Šípky',bowling:'Bowling'};
+const K_CUSTOMERS="clubm_customers", K_RESERVATIONS="clubm_reservations";
+const SPORT_ICON={billiard:'🎱',darts:'🎯',bowling:'🎳'}, SPORT_ICON_FALLBACK='🏆';
 const HOURS=Array.from({length:14},(_,i)=>10+i); // 10:00–23:00
 
 function load(k,seed){try{const r=localStorage.getItem(k);if(r)return JSON.parse(r);}catch(e){}localStorage.setItem(k,JSON.stringify(seed));return seed;}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
-let stations=load(K_STATIONS,[
-  {id:'s1',name:'Biliard 1',sport_type:'billiard',status:'available',hourly_rate:8},
-  {id:'s2',name:'Biliard 2',sport_type:'billiard',status:'available',hourly_rate:8},
-  {id:'s3',name:'Biliard 3',sport_type:'billiard',status:'maintenance',hourly_rate:8},
-  {id:'s4',name:'Šípky 1',sport_type:'darts',status:'available',hourly_rate:6},
-  {id:'s5',name:'Šípky 2',sport_type:'darts',status:'available',hourly_rate:6},
-  {id:'s6',name:'Bowling 1',sport_type:'bowling',status:'available',hourly_rate:14},
-]);
+/* Real venues (replaces the old hardcoded `stations` seed array) — loaded
+   async in initClubManagerAuth() once the current club is known.
+   customers/reservations stay on localStorage for now (no real booking
+   table exists yet — flagged as a follow-up, not invented here). */
+let stations=[];
+let currentSport=null; // set once real venues load, from the first sport found
 let customers=load(K_CUSTOMERS,[
   {id:'c1',name:'Peter Horváth',phone:'0905 123 456',email:'peter@example.sk'},
   {id:'c2',name:'Mária Kováčová',phone:'0911 222 333',email:''},
@@ -246,7 +287,6 @@ let reservations=load(K_RESERVATIONS,[
   {id:'r2',station_id:'s4',start_at:`${_ymd}T19:00:00`,end_at:`${_ymd}T20:00:00`,status:'confirmed',customer_name:'Mária Kováčová',customer_phone:'0911 222 333',party_size:4},
 ]);
 
-let currentSport='billiard';
 let pick=null; // {station, hour}
 
 /* ── Pomocné ── */
@@ -279,7 +319,7 @@ function renderGrid(){
   html+='</tr></thead><tbody>';
 
   list.forEach(st=>{
-    html+=`<tr><th>${SPORT_ICON[st.sport_type]} ${st.name}</th>`;
+    html+=`<tr><th>${SPORT_ICON[st.sport_type]||SPORT_ICON_FALLBACK} ${st.name}</th>`;
     HOURS.forEach(h=>{
       const res=findReservation(st.id,date,h);
       const isMaint=st.status==='maintenance';
@@ -386,7 +426,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 /* INIT */
 document.getElementById('dateInput').value=_ymd;
 document.getElementById('dateInput').min=_ymd;
-renderGrid();
+/* renderGrid() now runs from buildSportTabs() once real venues have loaded — not here, before they exist. */
 </script>
 </body>
 </html>
