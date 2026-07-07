@@ -44,15 +44,6 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
 .page-head h1{font-family:var(--display);font-size:2.2rem;letter-spacing:.01em;line-height:1.05}
 .page-head p{color:var(--text-soft);font-size:.92rem;margin-top:8px;max-width:460px}
 
-.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px}
-@media(max-width:520px){.type-grid{grid-template-columns:1fr 1fr}}
-.type-card{border:1px solid var(--line);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:.14s;background:var(--bg2)}
-.type-card:hover{border-color:var(--gold-b)}
-.type-card.active{border-color:var(--gold);background:var(--gold-dim)}
-.type-card .ico{font-size:1.3rem;display:block;margin-bottom:6px}
-.type-card .lbl{font-size:.74rem;font-weight:700;color:var(--text-soft)}
-.type-card.active .lbl{color:var(--gold)}
-
 .field{margin-bottom:18px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.field-row{grid-template-columns:1fr}}
@@ -112,22 +103,11 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
 <div class="wrap" id="formWrap" style="display:none">
   <div class="page-head">
     <h1>Nová udalosť</h1>
-    <p>Stretnutie klubu, exhibícia, nábor alebo čokoľvek iné, čo nie je súťažný turnaj — s vlastným priebehom, bez pavúka a zápasov.</p>
   </div>
 
-  <div class="wip-note"><b>Zatiaľ len náhľad:</b> formulár teraz ukladá lokálne do tohto prehliadača. Napojenie na reálnu databázu (tabuľka <code>events</code>) je ďalší krok.</div>
 
   <form id="eventForm" onsubmit="return false">
     <div class="section-label">Čo</div>
-    <div class="field">
-      <label>Typ udalosti</label>
-      <div class="type-grid" id="typeGrid">
-        <div class="type-card active" data-type="meetup" onclick="selectType(this)"><span class="ico">🤝</span><span class="lbl">Stretnutie klubu</span></div>
-        <div class="type-card" data-type="exhibition" onclick="selectType(this)"><span class="ico">🎤</span><span class="lbl">Exhibícia</span></div>
-        <div class="type-card" data-type="recruitment" onclick="selectType(this)"><span class="ico">📣</span><span class="lbl">Nábor</span></div>
-        <div class="type-card" data-type="other" onclick="selectType(this)"><span class="ico">✨</span><span class="lbl">Iné</span></div>
-      </div>
-    </div>
     <div class="field">
       <label for="evTitle">Názov udalosti</label>
       <input id="evTitle" type="text" placeholder="napr. Jarné stretnutie klubu ŠK Pohoda" required/>
@@ -192,7 +172,6 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
 
 <script>
 let currentSession = null;
-let selectedType = 'meetup';
 
 /* Same sport/discipline catalogue as Tournament Manager, reused as-is for
    consistency across the app — not a separate list for events. */
@@ -254,12 +233,6 @@ function onSportChange(){
   populateSportSelect();
 })();
 
-function selectType(el){
-  document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
-  selectedType = el.dataset.type;
-}
-
 function toast(msg, err){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -279,7 +252,7 @@ function saveEvent(){
   const event = {
     id: 'ev'+Date.now(),
     owner_email: currentSession.user.email,
-    event_type: selectedType,
+    event_type: 'other', // no type-selector in the UI anymore; kept in the data shape for forward-compatibility with migration 0013's required column
     title: title,
     description: document.getElementById('evDescription').value.trim(),
     sport: document.getElementById('evSport').value || null,
