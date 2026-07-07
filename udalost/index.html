@@ -75,6 +75,21 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
    convention of never quietly pretending unfinished features are done. */
 .wip-note{background:var(--gold-dim);border:1px solid var(--gold-b);border-radius:10px;padding:12px 14px;font-size:.8rem;color:var(--text-soft);margin-bottom:24px}
 .wip-note b{color:var(--gold)}
+
+.section-label{
+  font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--gold);margin:26px 0 12px;
+}
+.section-label:first-child{margin-top:0}
+
+.share-box{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+.share-row{display:flex;flex-wrap:wrap;gap:8px}
+.share-btn{padding:10px 16px;border-radius:9px;border:1px solid var(--line);font-size:.82rem;font-weight:700;background:var(--bg2);color:var(--text-soft);transition:.14s}
+.share-btn:hover{border-color:var(--gold-b);color:var(--gold)}
+.share-btn.fb:hover{border-color:#4267B2;color:#4267B2}
+.share-btn.wa:hover{border-color:#25D366;color:#25D366}
+.share-btn.x:hover{border-color:#fff;color:#fff}
+.share-btn.ig:hover{border-color:#E1306C;color:#E1306C}
 </style>
 </head>
 <body>
@@ -103,6 +118,7 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
   <div class="wip-note"><b>Zatiaľ len náhľad:</b> formulár teraz ukladá lokálne do tohto prehliadača. Napojenie na reálnu databázu (tabuľka <code>events</code>) je ďalší krok.</div>
 
   <form id="eventForm" onsubmit="return false">
+    <div class="section-label">Čo</div>
     <div class="field">
       <label>Typ udalosti</label>
       <div class="type-grid" id="typeGrid">
@@ -112,28 +128,32 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
         <div class="type-card" data-type="other" onclick="selectType(this)"><span class="ico">✨</span><span class="lbl">Iné</span></div>
       </div>
     </div>
-
     <div class="field">
       <label for="evTitle">Názov udalosti</label>
       <input id="evTitle" type="text" placeholder="napr. Jarné stretnutie klubu ŠK Pohoda" required/>
     </div>
-
-    <div class="field">
-      <label for="evDescription">Popis</label>
-      <textarea id="evDescription" placeholder="Čo sa bude diať, pre koho je to určené, čo si priniesť..."></textarea>
-    </div>
-
     <div class="field-row">
       <div class="field">
         <label for="evSport">Šport (nepovinné)</label>
-        <input id="evSport" type="text" placeholder="napr. Biliard"/>
+        <select id="evSport" onchange="onSportChange()">
+          <option value="">— nešpecifikované —</option>
+        </select>
       </div>
       <div class="field">
-        <label for="evLocation">Miesto</label>
-        <input id="evLocation" type="text" placeholder="napr. Klub Pohoda, Žilina"/>
+        <label for="evDiscipline">Disciplína</label>
+        <select id="evDiscipline" disabled>
+          <option value="">— vyber najprv šport —</option>
+        </select>
       </div>
     </div>
 
+    <div class="section-label">Kde</div>
+    <div class="field">
+      <label for="evLocation">Miesto</label>
+      <input id="evLocation" type="text" placeholder="napr. Klub Pohoda, Žilina"/>
+    </div>
+
+    <div class="section-label">Kedy</div>
     <div class="field-row">
       <div class="field">
         <label for="evStart">Začiatok</label>
@@ -146,8 +166,26 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
       </div>
     </div>
 
+    <div class="section-label">Poznámka</div>
+    <div class="field">
+      <label for="evDescription">Poznámka pre účastníkov</label>
+      <textarea id="evDescription" placeholder="Pre koho je to určené, čo si priniesť, ďalšie detaily..."></textarea>
+    </div>
+
     <button class="btn btn-primary" id="saveBtn" onclick="saveEvent()">Vytvoriť udalosť</button>
   </form>
+
+  <div class="share-box" id="shareBox" style="display:none">
+    <div class="section-label">Zdieľať</div>
+    <p class="hint" style="margin-bottom:12px">Udalosť je uložená. Zdieľaj ju ďalej:</p>
+    <div class="share-row">
+      <button class="share-btn fb" onclick="shareTo('facebook')">Facebook</button>
+      <button class="share-btn wa" onclick="shareTo('whatsapp')">WhatsApp</button>
+      <button class="share-btn x" onclick="shareTo('x')">X</button>
+      <button class="share-btn ig" onclick="shareTo('instagram')">Instagram</button>
+      <button class="share-btn copy" onclick="shareTo('copy')">Kopírovať odkaz</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -155,6 +193,47 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
 <script>
 let currentSession = null;
 let selectedType = 'meetup';
+
+/* Same sport/discipline catalogue as Tournament Manager, reused as-is for
+   consistency across the app — not a separate list for events. */
+const SPORTS=['Biliard','Šípky','Bowling','Tenis','Stolný tenis','Padel','Šach','Bedminton','Karty'];
+const DISCIPLINES={
+  'Biliard':['8-ball','9-ball','10-ball','Snooker','Karambol','Pyramída','14.1 nekonečná'],
+  'Šípky':['501','301','Cricket'],
+  'Bowling':['Klasik'],
+  'Tenis':['Dvojhra','Štvorhra'],
+  'Stolný tenis':['Dvojhra','Štvorhra'],
+  'Padel':['Štvorhra'],
+  'Šach':['Klasik','Rapid','Blitz'],
+  'Bedminton':['Dvojhra','Štvorhra'],
+  'Karty':['Mariáš','Žolíky','Rummy','Bridge','Kanasta'],
+};
+
+function populateSportSelect(){
+  const sel=document.getElementById('evSport');
+  SPORTS.forEach(sp=>{
+    const opt=document.createElement('option');
+    opt.value=sp; opt.textContent=sp;
+    sel.appendChild(opt);
+  });
+}
+
+function onSportChange(){
+  const sport=document.getElementById('evSport').value;
+  const discSel=document.getElementById('evDiscipline');
+  discSel.innerHTML='';
+  if(!sport){
+    discSel.disabled=true;
+    discSel.innerHTML='<option value="">— vyber najprv šport —</option>';
+    return;
+  }
+  discSel.disabled=false;
+  (DISCIPLINES[sport]||[]).forEach(d=>{
+    const opt=document.createElement('option');
+    opt.value=d; opt.textContent=d;
+    discSel.appendChild(opt);
+  });
+}
 
 (async function initPage(){
   try{
@@ -172,6 +251,7 @@ let selectedType = 'meetup';
   }
   document.getElementById('loadingGate').style.display = 'none';
   document.getElementById('formWrap').style.display = '';
+  populateSportSelect();
 })();
 
 function selectType(el){
@@ -202,7 +282,8 @@ function saveEvent(){
     event_type: selectedType,
     title: title,
     description: document.getElementById('evDescription').value.trim(),
-    sport: document.getElementById('evSport').value.trim() || null,
+    sport: document.getElementById('evSport').value || null,
+    discipline: document.getElementById('evDiscipline').value || null,
     location_text: document.getElementById('evLocation').value.trim() || null,
     starts_at: startsAt,
     ends_at: document.getElementById('evEnd').value || null,
@@ -221,7 +302,45 @@ function saveEvent(){
   }
 
   toast('Udalosť uložená (zatiaľ lokálne) ✓');
-  setTimeout(()=>location.href='/profil/', 900);
+  lastSavedEvent = event;
+  document.getElementById('shareBox').style.display = '';
+  document.getElementById('shareBox').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* Share text built from the event itself — no real public event page
+   exists yet (local-only storage), so this shares the event's details as
+   text rather than a link that wouldn't resolve for anyone else. Once
+   events live in the real `events` table with a public page, swap the
+   shared `url` for that real page's link. */
+let lastSavedEvent = null;
+
+function buildShareText(){
+  if(!lastSavedEvent) return '';
+  const when = new Date(lastSavedEvent.starts_at).toLocaleString('sk-SK', {dateStyle:'medium', timeStyle:'short'});
+  const whereLine = lastSavedEvent.location_text ? ` · ${lastSavedEvent.location_text}` : '';
+  return `${lastSavedEvent.title} — ${when}${whereLine} · Connect Sports Pro`;
+}
+
+function shareTo(network){
+  const text = buildShareText();
+  const url = location.origin; // placeholder until events have a real public page
+  let target = null;
+  if(network==='facebook'){
+    target = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+  } else if(network==='whatsapp'){
+    target = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+  } else if(network==='x'){
+    target = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  }
+  if(target){ window.open(target, '_blank', 'noopener'); return; }
+
+  // Instagram has no web share-intent URL, and "copy link" has nothing
+  // meaningful to link to yet — both fall back to copying the text.
+  navigator.clipboard?.writeText(text + ' ' + url).then(()=>{
+    toast(network==='instagram' ? 'Text skopírovaný — vlož ho do Instagram príbehu/príspevku.' : 'Odkaz skopírovaný ✓');
+  }).catch(()=>{
+    toast('Nepodarilo sa skopírovať.', true);
+  });
 }
 </script>
 </body>
