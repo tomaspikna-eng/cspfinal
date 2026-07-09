@@ -33,11 +33,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .hero-sub{font-size:1.05rem;color:var(--muted2);max-width:540px;margin:0 auto;line-height:1.6}
 .ctx-badge{display:inline-block;margin-top:14px;padding:8px 18px;border-radius:999px;background:var(--gold-dim);border:1px solid var(--gold-b);color:var(--gold);font-weight:700;font-size:.85rem;letter-spacing:.03em}
 
-.pricing{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:40px;max-width:680px;margin-left:auto;margin-right:auto}
-@media(max-width:680px){.pricing{grid-template-columns:1fr;max-width:420px}}
+.pricing{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;max-width:1180px;margin-left:auto;margin-right:auto}
+@media(max-width:1080px){.pricing{grid-template-columns:1fr 1fr;max-width:680px}}
+@media(max-width:520px){.pricing{grid-template-columns:1fr;max-width:420px}}
 .plan{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:32px 28px;display:flex;flex-direction:column;position:relative;transition:.2s}
 .plan:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18)}
 .plan.featured{border-color:var(--gold-b);background:linear-gradient(160deg,var(--bg2),rgba(212,168,67,.05));box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 60px rgba(212,168,67,.08)}
+.plan.ultra-tier{border-color:var(--green-b);background:linear-gradient(160deg,#0e2318,#0a1712);box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 60px rgba(30,200,106,.08)}
 .plan.current{border-color:var(--green-b);background:linear-gradient(160deg,var(--bg2),rgba(30,200,106,.04))}
 .featured-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1000;padding:5px 14px;border-radius:999px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .current-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:#06230f;padding:5px 14px;border-radius:999px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
@@ -91,14 +93,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="loading-screen">Načítavam...</div>
   </div>
 
-  <div class="info-box">
-    <div class="icon">ℹ️</div>
-    <div class="info-box-text">
-      <strong>Testovacia beta fáza</strong><br>
-      Platby ešte nie sú aktívne. Ak chceš upgrade počas bety, kontaktuj <strong>kontakt@connectsportspro.com</strong> — admin ti odomkne plán manuálne.
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -107,8 +101,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // gilzomwhuwcxpkegtlhj project's nonexistent `subscriptions` and
 // `organizations` tables. This page has always been read-only (no writes
 // existed before this change either) -- plan changes stay admin/manual
-// for now, per the existing "beta phase" contact-admin flow below
-// (contactAdmin()), which is intentionally left as-is.
+// for now, per the checkout stub below
+// (goToCheckout()), which is intentionally a dead stub for now.
 //
 // The old code's "active context" concept (user vs club vs organization,
 // previously sourced from a `csp_active_context_v1` localStorage key
@@ -127,7 +121,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     const { data: profile, error } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
     if(error){
-      console.error('[upgrade] Could not load profile, falling back to free/player defaults:', error);
+      console.error('[upgrade] Could not load profile, falling back to free defaults:', error);
     }
 
     const currentPlan = (profile && profile.plan) || 'free';
@@ -138,166 +132,109 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     document.getElementById('ctxBadge').innerHTML =
       '<div class="ctx-badge">Aktívny profil: ' + (icons[role] || '👤') + ' ' + ctxName + '</div>';
 
-    if(role === 'club'){
-      renderClubPlans(currentPlan);
-    } else if(role === 'organization'){
-      renderOrgPlans(currentPlan);
-    } else {
-      renderUserPlans(currentPlan);
-    }
+    // One unified pricing ladder for everyone now (free/pro/ultra/elite) —
+    // replaces the old role-based split (separate plans per player/club/
+    // organization), which is no longer the intended pricing model.
+    renderPlans(currentPlan);
   } catch(err){
     console.error('[upgrade] Failed to load plan info:', err);
     document.getElementById('pricingContainer').innerHTML = '<div class="loading-screen">Nepodarilo sa načítať údaje o pláne. Skús obnoviť stránku.</div>';
   }
 })();
 
-function renderUserPlans(currentPlan){
+function renderPlans(currentPlan){
   document.getElementById('pricingContainer').innerHTML = `
     <div class="pricing">
+
       <div class="plan ${currentPlan === 'free' ? 'current' : ''}">
         ${currentPlan === 'free' ? '<div class="current-badge">Aktívny</div>' : ''}
-        <div class="plan-icon">👤</div>
         <div class="plan-name">Free</div>
-        <div class="plan-target">Pre fanúšikov a hráčov ktorí chcú sledovať dianie.</div>
+        <div class="plan-target">Pre hráča ktorý chce sledovať dianie a používať len základné funkcie.</div>
         <div class="plan-price free">
           <span class="amount">0</span><span class="currency">€</span>
           <span class="period">/ navždy</span>
         </div>
         <ul class="plan-features">
-          <li><span class="check yes">✓</span><span>Verejný profil</span></li>
-          <li><span class="check yes">✓</span><span>Prehliadanie turnajov</span></li>
+          <li><span class="check yes">✓</span><span>Profil hráča</span></li>
+          <li><span class="check yes">✓</span><span>Prehľad turnajov a klubov</span></li>
           <li><span class="check yes">✓</span><span>Registrácia na turnaje</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Tréning</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Vytváranie turnajov</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Vlastné udalosti</span></li>
+          <li><span class="check yes">✓</span><span>Sledovanie obľúbených klubov</span></li>
         </ul>
         ${currentPlan === 'free' ? '<button class="btn btn-disabled" disabled>Aktuálny plán</button>' : '<button class="btn btn-disabled" disabled>Free</button>'}
       </div>
 
-      <div class="plan featured">
-        <div class="featured-badge">Pre hráčov</div>
-        <div class="plan-icon">🎱</div>
+      <div class="plan ${currentPlan === 'pro' ? 'current' : ''}">
+        ${currentPlan === 'pro' ? '<div class="current-badge">Aktívny</div>' : ''}
         <div class="plan-name">Pro</div>
-        <div class="plan-target">Pre aktívnych hráčov ktorí trénujú a organizujú vlastné turnaje.</div>
+        <div class="plan-target">Pre aktívneho hráča ktorý chce tréning, štatistiky a vlastné turnaje.</div>
         <div class="plan-price">
-          <span class="amount">7,90</span><span class="currency">€</span>
+          <span class="amount">9,90</span><span class="currency">€</span>
           <span class="period">/ mesiac</span>
         </div>
         <ul class="plan-features">
           <li><span class="check yes">✓</span><span>Všetko z Free</span></li>
-          <li><span class="check star">★</span><span><strong>Spustenie tréningu</strong></span></li>
-          <li><span class="check star">★</span><span><strong>Vlastné turnaje</strong></span></li>
-          <li><span class="check star">★</span><span><strong>Tvorba udalostí</strong></span></li>
+          <li><span class="check star">★</span><span><strong>Tréningové režimy a scoreboardy</strong></span></li>
+          <li><span class="check star">★</span><span><strong>Vlastné turnaje a udalosti</strong></span></li>
+          <li><span class="check yes">✓</span><span>Rozšírený profil + história zápasov</span></li>
           <li><span class="check yes">✓</span><span>Pokročilé štatistiky</span></li>
-          <li><span class="check yes">✓</span><span>História zápasov</span></li>
         </ul>
         ${currentPlan === 'pro'
           ? '<button class="btn btn-green" disabled>✓ Aktívny plán</button>'
-          : '<button class="btn btn-gold" onclick="contactAdmin(\'Pro 7,90€ pre osobný profil\')">Upgradnúť na Pro →</button>'}
-      </div>
-    </div>
-  `;
-}
-
-function renderClubPlans(currentPlan){
-  document.getElementById('pricingContainer').innerHTML = `
-    <div class="pricing">
-      <div class="plan ${currentPlan === 'free' ? 'current' : ''}">
-        ${currentPlan === 'free' ? '<div class="current-badge">Aktívny</div>' : ''}
-        <div class="plan-icon">🏛️</div>
-        <div class="plan-name">Free</div>
-        <div class="plan-target">Verejný profil klubu a základné vlastnosti.</div>
-        <div class="plan-price free">
-          <span class="amount">0</span><span class="currency">€</span>
-          <span class="period">/ navždy</span>
-        </div>
-        <ul class="plan-features">
-          <li><span class="check yes">✓</span><span>Verejný profil klubu</span></li>
-          <li><span class="check yes">✓</span><span>Zoznam členov</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Tréning</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Vytváranie turnajov</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Udalosti</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Rezervácie</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Správa športovísk</span></li>
-        </ul>
-        <button class="btn btn-disabled" disabled>${currentPlan === 'free' ? 'Aktuálny plán' : 'Free'}</button>
+          : '<button class="btn btn-gold" onclick="goToCheckout(\'pro\')">Vybrať Pro →</button>'}
       </div>
 
-      <div class="plan featured">
-        <div class="featured-badge">Pre kluby</div>
-        <div class="plan-icon">⭐</div>
+      <div class="plan ultra-tier ${currentPlan === 'ultra' ? 'current' : ''}">
+        ${currentPlan === 'ultra' ? '<div class="current-badge">Aktívny</div>' : ''}
         <div class="plan-name">Ultra</div>
-        <div class="plan-target">Plnohodnotný klubový systém s rezerváciami a správou športovísk.</div>
+        <div class="plan-target">Pre klub alebo organizátora ktorý chce plný rozsah nástrojov a viditeľnosť.</div>
         <div class="plan-price">
-          <span class="amount">14,90</span><span class="currency">€</span>
+          <span class="amount">24,90</span><span class="currency">€</span>
           <span class="period">/ mesiac</span>
         </div>
         <ul class="plan-features">
-          <li><span class="check yes">✓</span><span>Všetko z Free</span></li>
-          <li><span class="check star">★</span><span><strong>Tréning</strong> pre členov klubu</span></li>
-          <li><span class="check star">★</span><span><strong>Klubové turnaje</strong> + bracket</span></li>
-          <li><span class="check star">★</span><span><strong>Rebríčky</strong> hráčov</span></li>
-          <li><span class="check star">★</span><span><strong>Udalosti</strong> v kalendári</span></li>
-          <li><span class="check star">★</span><span><strong>Rezervácie</strong> (plugin)</span></li>
-          <li><span class="check star">★</span><span><strong>Správa športovísk</strong> (plugin)</span></li>
+          <li><span class="check yes">✓</span><span>Všetko z Pro</span></li>
+          <li><span class="check star">★</span><span><strong>Klubový manažment</strong> + správa členov</span></li>
+          <li><span class="check star">★</span><span><strong>Plnohodnotný rezervačný systém</strong></span></li>
+          <li><span class="check star">★</span><span><strong>Správa líg</strong> a klubových rebríčkov</span></li>
+          <li><span class="check yes">✓</span><span>Prednostná viditeľnosť v kalendári</span></li>
+          <li><span class="check yes">✓</span><span>Vlastná stránka klubu</span></li>
         </ul>
         ${currentPlan === 'ultra'
           ? '<button class="btn btn-green" disabled>✓ Aktívny plán</button>'
-          : '<button class="btn btn-gold" onclick="contactAdmin(\'Ultra 14,90€ pre klub\')">Upgradnúť na Ultra →</button>'}
-      </div>
-    </div>
-  `;
-}
-
-function renderOrgPlans(currentPlan){
-  document.getElementById('pricingContainer').innerHTML = `
-    <div class="pricing">
-      <div class="plan ${currentPlan === 'free' ? 'current' : ''}">
-        ${currentPlan === 'free' ? '<div class="current-badge">Aktívny</div>' : ''}
-        <div class="plan-icon">🏆</div>
-        <div class="plan-name">Free</div>
-        <div class="plan-target">Verejný profil organizácie a základné vlastnosti.</div>
-        <div class="plan-price free">
-          <span class="amount">0</span><span class="currency">€</span>
-          <span class="period">/ navždy</span>
-        </div>
-        <ul class="plan-features">
-          <li><span class="check yes">✓</span><span>Verejný profil zväzu</span></li>
-          <li><span class="check yes">✓</span><span>Zoznam pridružených klubov</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Multi-klubové turnaje</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Rebríčky a ligy</span></li>
-          <li class="disabled"><span class="check no">✕</span><span>Tvorba udalostí</span></li>
-        </ul>
-        <button class="btn btn-disabled" disabled>${currentPlan === 'free' ? 'Aktuálny plán' : 'Free'}</button>
+          : '<button class="btn btn-gold" onclick="goToCheckout(\'ultra\')">Vybrať Ultra →</button>'}
       </div>
 
-      <div class="plan featured">
-        <div class="featured-badge">Pre organizácie</div>
-        <div class="plan-icon">⭐</div>
-        <div class="plan-name">Ultra</div>
-        <div class="plan-target">Multi-klubová správa, ligy, rebríčky a aktuality.</div>
+      <div class="plan ${currentPlan === 'elite' ? 'current' : ''}">
+        ${currentPlan === 'elite' ? '<div class="current-badge">Aktívny</div>' : ''}
+        <div class="plan-name">Elite</div>
+        <div class="plan-target">Pre organizáciu, zväz alebo multi-klubovú entitu ktorá riadi celé súťaže.</div>
         <div class="plan-price">
-          <span class="amount">14,90</span><span class="currency">€</span>
+          <span class="amount">99</span><span class="currency">€</span>
           <span class="period">/ mesiac</span>
         </div>
         <ul class="plan-features">
-          <li><span class="check yes">✓</span><span>Všetko z Free</span></li>
-          <li><span class="check star">★</span><span><strong>Multi-klubové turnaje</strong></span></li>
-          <li><span class="check star">★</span><span><strong>Národné/regionálne rebríčky</strong></span></li>
-          <li><span class="check star">★</span><span><strong>Ligy</strong> a sezónne výsledky</span></li>
-          <li><span class="check star">★</span><span><strong>Udalosti</strong> + aktuality</span></li>
-          <li><span class="check yes">✓</span><span>Pokročilá analytika</span></li>
+          <li><span class="check yes">✓</span><span>Všetko z Ultra</span></li>
+          <li><span class="check star">★</span><span><strong>Národné a regionálne rebríčky</strong></span></li>
+          <li><span class="check star">★</span><span><strong>Multi-klubové súťaže a ligy</strong></span></li>
+          <li><span class="check yes">✓</span><span>Custom branding a vlastná doména</span></li>
+          <li><span class="check yes">✓</span><span>API prístup a integrácie</span></li>
+          <li><span class="check yes">✓</span><span>Dedicated support</span></li>
         </ul>
-        ${currentPlan === 'ultra'
+        ${currentPlan === 'elite'
           ? '<button class="btn btn-green" disabled>✓ Aktívny plán</button>'
-          : '<button class="btn btn-gold" onclick="contactAdmin(\'Ultra 14,90€ pre organizáciu\')">Upgradnúť na Ultra →</button>'}
+          : '<button class="btn btn-disabled" onclick="goToCheckout(\'elite\')" style="cursor:pointer;background:rgba(255,255,255,.06);color:var(--text)">Kontaktujte nás</button>'}
       </div>
+
     </div>
   `;
 }
 
-function contactAdmin(label){
-  alert('Platobná brána bude spustená čoskoro.\n\nV beta fáze napíš na kontakt@connectsportspro.com s touto požiadavkou:\n\n' + label + '\n\nAdmin ti plán odomkne ručne.');
+/* Deliberately inert for now — no payment gateway exists yet. Every
+   plan button already routes through this single function, so wiring
+   a real checkout redirect later (e.g. Stripe) is a one-place change:
+   swap the body for `window.location.href = checkoutUrlFor(plan)`. */
+function goToCheckout(plan){
+  // no-op on purpose
 }
 </script>
 </body>
