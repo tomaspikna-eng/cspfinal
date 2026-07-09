@@ -43,6 +43,12 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 .cover{width:100%;border-radius:var(--radius);border:1px solid var(--line);margin-bottom:30px;display:block}
 .content{font-size:1rem;color:var(--fg);line-height:1.8;white-space:pre-wrap}
 .content p{margin-bottom:1.2em}
+.content-img{margin:1.6em 0}
+.content-img img{width:100%;border-radius:12px;display:block}
+.content-img figcaption{font-size:.82rem;color:var(--muted);margin-top:8px;text-align:center}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:1.6em 0}
+.gallery-item img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
+.gallery-item figcaption{font-size:.72rem;color:var(--muted);margin-top:5px;text-align:center}
 
 .article-foot{margin-top:50px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
 .article-foot a{font-size:.88rem;font-weight:600;color:var(--gold)}
@@ -105,9 +111,27 @@ function renderArticle(article){
   const excerptHtml = article.excerpt
     ? `<p class="excerpt">${article.excerpt}</p>`
     : '';
+
+  // Chunks made entirely of ![caption](url) lines (written by the CMS
+  // editor's image/gallery blocks) render as real images/a gallery grid
+  // instead of literal markdown text — one image per chunk = a single
+  // wide image, multiple = a gallery grid.
+  const imgLineRe = /^!\[([^\]]*)\]\(([^)]+)\)$/;
   const contentHtml = (article.content || '')
     .split(/\n{2,}/)
-    .map(p => `<p>${p}</p>`)
+    .map(chunk => {
+      const lines = chunk.split('\n').map(l => l.trim()).filter(Boolean);
+      const matches = lines.map(l => l.match(imgLineRe));
+      if (matches.length && matches.every(Boolean)) {
+        if (matches.length === 1) {
+          const [, caption, url] = matches[0];
+          return `<figure class="content-img"><img src="${url}" alt="${caption}"/>${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
+        }
+        const items = matches.map(m => `<div class="gallery-item"><img src="${m[2]}" alt="${m[1]}"/>${m[1] ? `<figcaption>${m[1]}</figcaption>` : ''}</div>`).join('');
+        return `<div class="gallery-grid">${items}</div>`;
+      }
+      return `<p>${chunk}</p>`;
+    })
     .join('');
 
   document.getElementById('wrap').innerHTML = `
