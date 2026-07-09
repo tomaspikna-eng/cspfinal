@@ -381,7 +381,7 @@ const TM = {
   matchSig(m){ const s=p=>p?(p.bye?'b':(p.seed??'?')):'_'; return `${s(m.p1)}|${s(m.p2)}`; },
   // Postav Single KO pavúk (zoznam kôl so zápasmi)
   buildSKO(players){
-    const seeded=players.map((p,i)=>({name:p.name, seed:i+1}));
+    const seeded=players.map((p,i)=>({name:p.name, seed:i+1, id:p.id}));
     const N=this.nextPow2(Math.max(2,seeded.length));
     const slots=this.bracketWithByes(seeded,N);
     const total=Math.log2(N);
@@ -425,7 +425,7 @@ const TM = {
   // ── DOUBLE KO (16, "skrátené od 4") — vetvy konvergujú v semifinále ──
   mkMatch(key,p1,p2){ return {key, p1:p1||null, p2:p2||null, s1:null,s2:null,winner:null,resultSig:null}; },
   buildDKO(players){
-    const seeded=players.map((p,i)=>({name:p.name,seed:i+1}));
+    const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
     const N=16;
     const slots=this.bracketWithByes(seeded,N);
     const W=[
@@ -708,7 +708,7 @@ function ensureBracket(t){
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
-      const seeded=players.map((p,i)=>({name:p.name,seed:i+1}));
+      const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
       const rounds=TM.roundRobin(seeded);
       t.rr={ matches:[] };
       rounds.forEach((round,ri)=>round.forEach((g,gi)=>{
@@ -718,7 +718,7 @@ function ensureBracket(t){
   } else if(t.format==='rr_sko' || t.format==='rr_dko'){
     if(!t.grp || !t.grp.groups || !t.grp.groups.length){
       const G=Math.max(1, t.groups||2);
-      const seeded=players.map((p,i)=>({name:p.name,seed:i+1}));
+      const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
       const groups=Array.from({length:G},(_,gi)=>({name:String.fromCharCode(65+gi), players:[], matches:[]}));
       seeded.forEach((p,i)=>groups[i%G].players.push(p)); // rozdelenie: seedy krížom do skupín
       groups.forEach(g=>{
@@ -742,7 +742,7 @@ function persistT(){
 }
 
 async function viewDetail(id){
-  let t;
+  let t, matchRows=[];
   try {
     const { data: tournament, error: tErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
@@ -754,17 +754,43 @@ async function viewDetail(id){
       8000, 'load tournament players'
     );
     if(pErr) throw pErr;
+    // id carried through so the bracket engine's player objects can
+    // reference their real tournament_players row when a match is saved.
     t = { ...tournament, groups: tournament.groups_count, advance: tournament.advance_count,
-          players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) };
+          players: (players||[]).map(p=>({ id: p.id, name: p.name, seed: p.seed })) };
+
+    const { data: matches, error: mErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('matches').select('*').eq('tournament_id', id),
+      8000, 'load matches'
+    );
+    if(mErr) throw mErr;
+    matchRows = matches || [];
   } catch(err){
     console.error('[turnament] Failed to load tournament detail:', err);
     return `<div class="wrap"><div class="empty">Nepodarilo sa načítať turnaj.</div></div>`;
   }
 
   // Merge in the locally-stored match/bracket progress (see persistT()
-  // above) on top of the fresh real tournament/player data.
-  curT = { ...t, ...loadBracketState(t.id) };
+  // above) on top of the fresh real tournament/player data. If this
+  // browser has no local bracket state yet (fresh device, or first load
+  // after this feature shipped) but real `matches` rows already exist,
+  // rebuild the bracket from the real players and replay those rows onto
+  // it by round_key -- this is what lets scores entered on one device
+  // show up correctly on another. If local state already exists, it's
+  // trusted as-is (it's already the union of every local + synced save),
+  // matching the app's existing local-first behavior.
+  const localState = loadBracketState(t.id);
+  const hadLocalBracket = Object.keys(localState).length > 0;
+  curT = { ...t, ...localState };
   ensureBracket(curT);
+  if(!hadLocalBracket && matchRows.length){
+    applyRealMatches(matchRows);
+    if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
+    else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
+    // rr / rr_sko / rr_dko: no separate advancement step, same as
+    // recomputeFor()'s existing behavior for those formats.
+    finalizeAppliedMatches(matchRows);
+  }
   persistT();
   const players=Array.isArray(curT.players)?curT.players:[];
   const isCmb = curT.format==='rr_sko'||curT.format==='rr_dko';
@@ -968,6 +994,100 @@ function recomputeFor(loc){
   else if(k==='W'||k==='L'||k==='F') TM.recomputeDKO(curT.dko);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
+
+/* ── Real matches table persistence ──────────────────────────────────
+   Player self-confirmation columns/RLS from migration 0004 exist in the
+   schema, but there is no player-self-registration/login flow built yet
+   for players to actually use them -- NOT built here. This is strictly
+   "organizer enters the score via the existing modal, it saves for
+   real" using the owner-only write path migration 0003 already grants. */
+
+// Defensive fallback: bracket objects built before this feature shipped
+// (already-saved localStorage state) may have player objects without an
+// `id` yet, since ensureBracket() only rebuilds the bracket from scratch
+// when no local state exists. Falls back to matching by name against
+// curT.players (always fresh from the DB) -- the same "name is the
+// unique key" assumption every ranking/standings function in this file
+// already relies on (rankFrom, rrTable, etc.).
+function resolvePlayerId(p){
+  if(!p) return null;
+  if(p.id) return p.id;
+  const found=(curT.players||[]).find(x=>x.name===p.name);
+  return found ? found.id : null;
+}
+
+// Replays already-saved real match rows onto a freshly-rebuilt bracket
+// (used in viewDetail() when this browser has no local bracket state
+// yet). Reuses getMatchByLoc() -- the same canonical loc resolver the
+// rest of the engine already uses -- rather than re-deriving loc/round_key
+// construction a second time.
+//
+// Winner is derived from the ROW's OWN saved player1_id/player2_id/
+// winner_id, NOT from the match object's current in-memory p1/p2. For
+// later rounds (e.g. the final), p1/p2 are still null at this point --
+// they only get filled in once recomputeSKO()/recomputeDKO() cascades
+// advancement from earlier rounds' winners, which the caller (viewDetail)
+// runs right after this.
+//
+// Deliberately NOT setting resultSig here: recomputeSKO/DKO's own
+// "participants changed since this result was recorded -> invalidate"
+// check (`if(m.resultSig && m.resultSig!==matchSig(m))`) compares against
+// the CURRENT p1/p2 -- which for later rounds is still null at this exact
+// moment. Stamping resultSig now would make that very same recompute call
+// see a mismatch the instant it propagates the real p1/p2 in, and wipe
+// the winner right back out. Leaving resultSig unset (falsy) makes that
+// check a no-op here; finalizeAppliedMatches() below stamps it correctly
+// afterward, once every match's p1/p2 reflects real advancement.
+function applyRealMatches(matchRows){
+  matchRows.forEach(row=>{
+    if(row.status!=='completed' || row.score1==null || row.score2==null) return;
+    const m=getMatchByLoc(row.round_key);
+    if(!m) return; // stale row from a shape that no longer exists (e.g. after an edit)
+    m.s1=row.score1; m.s2=row.score2;
+    m.winner = row.winner_id===row.player1_id ? 1 : (row.winner_id===row.player2_id ? 2 : null);
+  });
+}
+// Second pass, called by the caller after its recomputeSKO()/recomputeDKO()
+// -- see applyRealMatches() above for why this has to be separate.
+function finalizeAppliedMatches(matchRows){
+  matchRows.forEach(row=>{
+    if(row.status!=='completed' || row.score1==null || row.score2==null) return;
+    const m=getMatchByLoc(row.round_key);
+    if(m && m.winner) m.resultSig=TM.matchSig(m);
+  });
+}
+
+// upsert on (tournament_id, round_key) -- migration 0003's unique
+// constraint. round_key is the same opaque `loc` string already used to
+// address this match in-memory (see the investigation notes in the task
+// summary for why this differs from migration 0003's own example
+// convention, and why reusing it directly is still correct: SQL never
+// parses round_key, it's opaque by design).
+async function saveMatchToDB(loc, m){
+  const p1Id=resolvePlayerId(m.p1), p2Id=resolvePlayerId(m.p2);
+  const { error } = await cspAuth.client.from('matches').upsert({
+    tournament_id: curT.id,
+    round_key: loc,
+    player1_id: p1Id,
+    player2_id: p2Id,
+    score1: m.s1,
+    score2: m.s2,
+    winner_id: m.winner===1 ? p1Id : p2Id,
+    status: 'completed',
+  }, { onConflict: 'tournament_id,round_key' });
+  if(error) throw error;
+}
+// Resets the row rather than deleting it -- migration 0003 deliberately
+// granted no DELETE on matches ("corrected via UPDATE, not removed,
+// until a later prompt decides deletion is actually needed"), confirmed
+// by its own grant statement (select/insert/update only). A no-op if the
+// row was never saved in the first place.
+async function clearMatchInDB(loc){
+  const { error } = await cspAuth.client.from('matches')
+    .update({ score1: null, score2: null, winner_id: null, status: 'pending' })
+    .eq('tournament_id', curT.id).eq('round_key', loc);
+  if(error) throw error;
+}
 function openMatch(loc){
   const m=getMatchByLoc(loc);
   if(!m || !m.p1 || !m.p2 || m.p1.bye || m.p2.bye) return;
@@ -999,21 +1119,41 @@ function quickWin(side){
   if(side===1){ a.value=Math.max(1,+a.value||1); b.value=Math.min(+a.value-1,+b.value||0);} 
   else { b.value=Math.max(1,+b.value||1); a.value=Math.min(+b.value-1,+a.value||0);} 
 }
-function saveMatch(){
+async function saveMatch(){
   const m=getMatchByLoc(editLoc);
   const s1=+document.getElementById('mmS1').value, s2=+document.getElementById('mmS2').value;
   if(isNaN(s1)||isNaN(s2)){ toast('Zadaj skóre oboch hráčov.',true); return; }
   if(s1===s2){ toast('Skóre nemôže byť nerozhodné — určí víťaza.',true); return; }
+  // Bracket-advancement logic (recomputeFor) is completely unchanged --
+  // it runs exactly as before, on the same local m/curT state. Only the
+  // real DB write below is new.
   m.s1=s1; m.s2=s2; m.winner=s1>s2?1:2; m.resultSig=TM.matchSig(m);
-  recomputeFor(editLoc); persistT(); closeMatch();
+  recomputeFor(editLoc); persistT();
+  const savedLoc=editLoc, savedM=m;
+  closeMatch();
   document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
   toast('Výsledok uložený ✓');
+
+  try {
+    await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
+  } catch(err){
+    console.error('[turnament] Failed to save match to the real matches table:', err);
+    toast('Výsledok sa neuložil do databázy (zostal len lokálne).', true);
+  }
 }
-function clearMatch(){
+async function clearMatch(){
   const m=getMatchByLoc(editLoc); m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
-  recomputeFor(editLoc); persistT(); closeMatch();
+  recomputeFor(editLoc); persistT();
+  const savedLoc=editLoc;
+  closeMatch();
   document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
   toast('Výsledok vymazaný');
+
+  try {
+    await cspAuth.withTimeout(clearMatchInDB(savedLoc), 8000, 'clear match');
+  } catch(err){
+    console.error('[turnament] Failed to clear match in the real matches table:', err);
+  }
 }
 
 
