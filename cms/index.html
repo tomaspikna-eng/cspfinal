@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-soft:#0c0c12;--card:#131319;--card-2:#16161d;
@@ -93,7 +95,7 @@ input:focus,select:focus{border-color:var(--gold)}
 
 /* Article rows */
 .articles{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card)}
-.art-row{display:grid;grid-template-columns:54px 1fr 110px 110px 120px 140px;gap:14px;align-items:center;padding:14px 16px;border-top:1px solid var(--line);transition:.1s}
+.art-row{display:grid;grid-template-columns:54px 1fr 110px 120px 140px;gap:14px;align-items:center;padding:14px 16px;border-top:1px solid var(--line);transition:.1s}
 .art-row:first-child{border-top:none}
 .art-row:hover{background:rgba(255,255,255,.02)}
 .art-row.header{background:rgba(255,255,255,.03);font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -127,7 +129,7 @@ input:focus,select:focus{border-color:var(--gold)}
 </head>
 <body>
 
-<!-- ════════ LOGIN GATE ════════ -->
+<!-- ════════ AUTH GATE ════════ -->
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <div class="login-brand">
@@ -137,18 +139,8 @@ input:focus,select:focus{border-color:var(--gold)}
         <div class="login-sub">CMS Magazín</div>
       </div>
     </div>
-    <h1>Prihlásenie redakcie</h1>
-    <p>Interný systém pre správu článkov magazínu.</p>
-    <div class="login-field">
-      <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="admin@connectsportspro.com" value="admin@connectsportspro.com"/>
-    </div>
-    <div class="login-field">
-      <label>Heslo</label>
-      <input type="password" id="loginPass" placeholder="••••••••"/>
-    </div>
-    <button class="login-btn" onclick="doLogin()">Prihlásiť sa</button>
-    <p class="login-note">Mock prihlásenie (frontend-first). Skutočná autentifikácia sa napojí cez Supabase. Klikni Prihlásiť pre vstup.</p>
+    <h1>Overujem prístup…</h1>
+    <p id="gateMsg">Kontrolujem prihlásenie a admin prístup.</p>
   </div>
 </div>
 
@@ -200,18 +192,10 @@ input:focus,select:focus{border-color:var(--gold)}
 
       <div class="toolbar">
         <div class="search">🔍 <input type="text" id="searchInput" placeholder="Hľadať článok..." oninput="renderArticles()"/></div>
-        <select id="filterCat" onchange="renderArticles()">
-          <option value="all">Všetky rubriky</option>
-          <option value="biliard">Biliard</option>
-          <option value="sipky">Šípky</option>
-          <option value="bowling">Bowling</option>
-          <option value="general">Novinky</option>
-        </select>
         <select id="filterStatus" onchange="renderArticles()">
           <option value="all">Všetky stavy</option>
           <option value="published">Publikované</option>
           <option value="draft">Koncepty</option>
-          <option value="archived">Archív</option>
         </select>
       </div>
 
@@ -221,32 +205,59 @@ input:focus,select:focus{border-color:var(--gold)}
 </div>
 
 <script>
-/* ════════════════════════════════════════════════
-   ČLÁNKOVÝ SKLAD — zdieľaný (localStorage)
-   kľúč: csp_magazine_articles
-   Dashboard, editor aj verejný magazín čítajú odtiaľto.
-   Neskôr: nahradí Supabase `articles` tabuľka.
-════════════════════════════════════════════════ */
-const STORE_KEY="csp_magazine_articles";
-const CAT_LABEL={biliard:"Biliard",sipky:"Šípky",bowling:"Bowling",general:"Novinky"};
+let currentSession = null;
+let articles = [];
 
-function loadArticles(){
-  try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){}
-  return null;
+/* ── Real auth + admin gate (replaces mock login) ── */
+(async function initAuth(){
+  try{
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){ location.href = '/login/'; return; }
+    currentSession = session;
+    const { data: allowed, error } = await cspAuth.withTimeout(
+      cspAuth.client.rpc('can_access_magazine_cms', { uid: session.user.id }),
+      8000, 'can_access_magazine_cms()'
+    );
+    if(error){ console.error('[cms] CMS access check failed:', error); document.getElementById('gateMsg').textContent = 'Nepodarilo sa overiť prístup.'; return; }
+    if(!allowed){ location.href = '/profil/'; return; }
+  }catch(err){
+    console.error('[cms] Auth check failed or timed out:', err);
+    location.href = '/login/';
+    return;
+  }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  const displayName = currentSession.user.email;
+  document.querySelector('.tb-user').innerHTML = `<span class="tb-av">${(displayName[0]||'?').toUpperCase()}</span> ${displayName}`;
+  await loadArticles();
+})();
+
+/* ── Real articles from Supabase (replaces localStorage) ──
+   No `category` column in the real schema — the old rubrika concept was
+   dropped entirely rather than kept as dead UI. `status` only supports
+   draft/published (no archived) per migration 0006's check constraint. */
+async function loadArticles(){
+  try{
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('articles')
+        .select('id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at')
+        .order('created_at', { ascending: false }),
+      8000, 'articles lookup'
+    );
+    if(error){ console.error('[cms] Could not load articles:', error); toast('Nepodarilo sa načítať články.', true); return; }
+    articles = data || [];
+  }catch(err){
+    console.error('[cms] loadArticles timed out:', err);
+    toast('Nepodarilo sa načítať články.', true);
+  }
+  renderArticles();
 }
-function saveArticles(arr){localStorage.setItem(STORE_KEY,JSON.stringify(arr));}
 
-// Seed pri prvom spustení
-const SEED=[]; // žiadne hardcoded — reálne články píšeš tu
-let articles = loadArticles() || [];
-
-/* ── SVG obálky (rovnaké ako verejný magazín) ── */
-function coverSVG(cat){
-  const G='#d4a843',W='#ece9e2',F='#2a5a3c',FD='#16301f';
-  if(cat==='biliard')return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="${FD}"/><g transform="translate(40,30)"><circle cx="0" cy="-9" r="5" fill="${G}"/><circle cx="-6" cy="0" r="5" fill="${W}"/><circle cx="6" cy="0" r="5" fill="${W}"/><circle cx="0" cy="9" r="5" fill="#1a1a22"/></g></svg>`;
-  if(cat==='sipky')return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="#0e0e13"/><g transform="translate(40,30)"><circle r="22" fill="none" stroke="${G}" stroke-width="1.5" opacity=".5"/><circle r="11" fill="none" stroke="${W}" stroke-width="1" opacity=".3"/><circle r="3" fill="${G}"/></g></svg>`;
-  if(cat==='bowling')return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="#0d0d12"/><g transform="translate(40,26)"><ellipse cx="-8" cy="-8" rx="3" ry="9" fill="${W}"/><ellipse cx="0" cy="-8" rx="3" ry="9" fill="${G}"/><ellipse cx="8" cy="-8" rx="3" ry="9" fill="${W}"/><circle cx="0" cy="18" r="9" fill="${G}"/></g></svg>`;
-  return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="#0e0e13"/><g transform="translate(40,30)" stroke="${G}" stroke-width="2" fill="none"><line x1="-16" y1="12" x2="10" y2="-13"/><line x1="16" y1="12" x2="-10" y2="-13"/></g></svg>`;
+/* ── Cover thumbnail (SVG fallback when no cover_image_url) ── */
+function coverThumb(a){
+  if(a.cover_image_url) return `<img src="${a.cover_image_url}" alt="" style="width:100%;height:100%;object-fit:cover"/>`;
+  const G='#d4a843',FD='#16301f';
+  return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="${FD}"/><g transform="translate(40,30)" stroke="${G}" stroke-width="2" fill="none"><line x1="-16" y1="12" x2="10" y2="-13"/><line x1="16" y1="12" x2="-10" y2="-13"/></g></svg>`;
 }
 
 /* ── Render ── */
@@ -255,37 +266,35 @@ function renderStats(){
   document.getElementById('stTotal').textContent=articles.length;
   document.getElementById('stPub').textContent=articles.filter(a=>a.status==='published').length;
   document.getElementById('stDraft').textContent=articles.filter(a=>a.status==='draft').length;
-  document.getElementById('stMonth').textContent=articles.filter(a=>(a.date||'').startsWith(ym)).length;
+  document.getElementById('stMonth').textContent=articles.filter(a=>(a.published_at||'').startsWith(ym)).length;
 }
 
 function renderArticles(){
   renderStats();
   const q=document.getElementById('searchInput').value.toLowerCase();
-  const fc=document.getElementById('filterCat').value;
   const fs=document.getElementById('filterStatus').value;
   let list=articles.filter(a=>{
-    if(fc!=='all'&&a.category!==fc)return false;
     if(fs!=='all'&&a.status!==fs)return false;
     if(q&&!(a.title.toLowerCase().includes(q)||(a.excerpt||'').toLowerCase().includes(q)))return false;
     return true;
-  }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  });
 
   const wrap=document.getElementById('articlesWrap');
   if(list.length===0){wrap.innerHTML='<div class="empty"><div class="big">📭</div>Žiadne články. Vytvor prvý cez „Nový článok".</div>';return;}
 
   wrap.innerHTML=`<div class="art-row header">
-    <span></span><span>Článok</span><span class="col-cat">Rubrika</span><span>Stav</span><span class="col-date">Dátum</span><span style="text-align:right">Akcie</span>
+    <span></span><span>Článok</span><span>Stav</span><span class="col-date">Dátum</span><span style="text-align:right">Akcie</span>
   </div>`+list.map(a=>{
-    const statusLabel={published:'Publikované',draft:'Koncept',archived:'Archív'}[a.status]||a.status;
+    const statusLabel={published:'Publikované',draft:'Koncept'}[a.status]||a.status;
+    const dateLabel = a.published_at || a.created_at ? new Date(a.published_at||a.created_at).toLocaleDateString('sk-SK') : '—';
     return `<div class="art-row">
-      <div class="art-cover">${coverSVG(a.category)}</div>
+      <div class="art-cover">${coverThumb(a)}</div>
       <div>
         <div class="art-title">${a.title}</div>
         <div class="art-excerpt">${a.excerpt||''}</div>
       </div>
-      <div class="col-cat"><span class="cat-tag">${CAT_LABEL[a.category]||a.category}</span></div>
       <div><span class="status-badge ${a.status}">${statusLabel}</span></div>
-      <div class="col-date art-date">${a.date||'—'}</div>
+      <div class="col-date art-date">${dateLabel}</div>
       <div class="art-actions">
         <button class="act-btn" title="Upraviť" onclick="editArticle('${a.id}')">✎</button>
         <button class="act-btn" title="${a.status==='published'?'Stiahnuť':'Publikovať'}" onclick="togglePublish('${a.id}')">${a.status==='published'?'⏸':'▲'}</button>
@@ -296,37 +305,47 @@ function renderArticles(){
 }
 
 function editArticle(id){ location.href='/cms/editor/?id='+id; }
-function togglePublish(id){
+
+async function togglePublish(id){
   const a=articles.find(x=>x.id===id);if(!a)return;
-  a.status = a.status==='published' ? 'draft' : 'published';
-  if(a.status==='published'&&!a.date) a.date=new Date().toISOString().slice(0,10);
-  saveArticles(articles);renderArticles();
-}
-function deleteArticle(id){
-  const a=articles.find(x=>x.id===id);if(!a)return;
-  if(!confirm(`Naozaj zmazať článok „${a.title}"?`))return;
-  articles=articles.filter(x=>x.id!==id);saveArticles(articles);renderArticles();
+  const newStatus = a.status==='published' ? 'draft' : 'published';
+  try{
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.from('articles').update({ status: newStatus }).eq('id', id),
+      8000, 'toggle publish'
+    );
+    if(error){ console.error('[cms] Could not update status:', error); toast('Nepodarilo sa zmeniť stav.', true); return; }
+  }catch(err){ console.error('[cms] togglePublish timed out:', err); toast('Nepodarilo sa zmeniť stav.', true); return; }
+  await loadArticles();
 }
 
-/* ── Login (mock) ── */
-function doLogin(){
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  sessionStorage.setItem('csp_cms_auth','1');
-  renderArticles();
+async function deleteArticle(id){
+  const a=articles.find(x=>x.id===id);if(!a)return;
+  if(!confirm(`Naozaj zmazať článok „${a.title}"?`))return;
+  try{
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.from('articles').delete().eq('id', id),
+      8000, 'delete article'
+    );
+    if(error){ console.error('[cms] Could not delete article:', error); toast('Nepodarilo sa zmazať článok.', true); return; }
+  }catch(err){ console.error('[cms] deleteArticle timed out:', err); toast('Nepodarilo sa zmazať článok.', true); return; }
+  await loadArticles();
 }
-function doLogout(){
-  sessionStorage.removeItem('csp_cms_auth');
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
-}
+
+function doLogout(){ cspAuth.signOut().then(()=>location.href='/login/'); }
+
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('backdrop').classList.toggle('show');
 }
 
-// auto-login ak už prihlásený v tejto session
-if(sessionStorage.getItem('csp_cms_auth')==='1'){ doLogin(); }
+function toast(msg,err){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-dark);font-weight:700;padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:100'; document.body.appendChild(t); }
+  t.textContent=msg; t.className='show'+(err?' err':'');
+  if(err){ t.style.background='var(--red)'; t.style.color='#fff'; } else { t.style.background='var(--green)'; t.style.color='var(--green-dark)'; }
+  setTimeout(()=>{ t.style.opacity='0'; },2200);
+}
 </script>
 </body>
 </html>
