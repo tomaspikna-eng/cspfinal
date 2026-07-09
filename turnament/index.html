@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-2:#0c0c12;--card:#13131a;--card-2:#181820;
@@ -320,6 +322,8 @@ input:focus,select:focus{border-color:var(--gold)}
       <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-sub">Tournament Manager</span></span>
     </a>
     <div class="tb-right">
+      <div class="tb-user" id="tbUser" style="display:none"><span class="tb-av" id="tbUserAv">?</span><span id="tbUserNameText">…</span></div>
+      <button class="link-btn" id="signOutBtn" style="display:none">Odhlásiť</button>
       <a class="link-btn" href="/profil/">← Profil</a>
     </div>
   </div>
@@ -514,41 +518,103 @@ const TM = {
 };
 
 /* ════════════════════════════════════════════════════════════
-   AUTH (mock, frontend-first) — neskôr Supabase SSO
-   Prístup len pre plán ULTRA. CTA Prihlásiť -> ak nie je účet,
-   presmeruje na vytvorenie účtu (registrácia platformy).
+   REAL AUTH + REAL TOURNAMENT/PLAYER DATA
+   Replaces the previously fully-open page (no login check at all,
+   comments explicitly said access control happened elsewhere) with
+   real Supabase auth via cspAuth, and replaces the localStorage
+   "csp_tournaments" store with real writes to tournaments /
+   tournament_players / tournament_groups (migrations 0003, 0011).
+
+   Scope boundary (unchanged from the task): match/bracket PROGRESS
+   (scores, winners, which rounds are done) is NOT written to the real
+   `matches` table yet -- that's separate round_key-based match-engine
+   work for a follow-up. It still lives in localStorage, but now scoped
+   per real tournament id via bracketStorageKey() below, instead of as
+   part of one big array of full tournament objects. The Karty →
+   Generátor stolov handoff (openTableGen) is completely untouched.
 ════════════════════════════════════════════════════════════ */
-const USER_KEY="csp_user";          // {name,email,plan,role}
-const TOURN_KEY="csp_tournaments";
-const REGISTER_URL="/registracia/"; // platforma (unified účet)
 const UPGRADE_URL="/upgrade/";
 const TABLEGEN_URL="/generator-stolov/"; // Generátor stolov — kartové hry (routing z wizardu)
 const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný localStorage kľúč s Generátorom stolov
 
-/* ════════════════════════════════════════════════════════════
-   TURNAJE — store
-════════════════════════════════════════════════════════════ */
-function loadTournaments(){ try{return JSON.parse(localStorage.getItem(TOURN_KEY))||[];}catch(e){return [];} }
-function saveTournaments(t){ localStorage.setItem(TOURN_KEY, JSON.stringify(t)); }
+let currentSession = null;
+let currentProfile = null;
 
-/* Simplified deliberately — this page no longer checks login/plan/quota
-   itself. Access control (is the user logged in, do they have PRO+/quota
-   to create a tournament) happens at the CTA that links here (e.g. the
-   "Nový turnaj" button elsewhere), which is expected to only send
-   eligible users to this page in the first place. This page's job is
-   just the tournament setup itself. */
-function startNewTournament(){
-  go('wizard');
+function bracketStorageKey(id){ return 'csp_tournament_bracket_'+id; }
+function loadBracketState(id){
+  try { return JSON.parse(localStorage.getItem(bracketStorageKey(id))) || {}; } catch(e){ return {}; }
+}
+function saveBracketState(id, state){
+  try { localStorage.setItem(bracketStorageKey(id), JSON.stringify(state)); } catch(e){}
+}
+
+(async function initAuth(){
+  try {
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){ window.location.href = '/login/'; return; }
+    currentSession = session;
+
+    const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
+    if(profileError){ console.error('[turnament] Could not load profile, falling back to email-derived name:', profileError); }
+    currentProfile = profile;
+
+    // Browsing/creating-the-page itself is a free-tier action (feature_gates
+    // .tournament_browse) -- shown to any logged-in user regardless of
+    // plan. Only *creating* a new tournament is gated, in startNewTournament().
+    const displayName = (profile && profile.full_name) || session.user.email;
+    const initials = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
+    document.getElementById('tbUserAv').textContent = initials;
+    document.getElementById('tbUserNameText').textContent = displayName;
+    document.getElementById('tbUser').style.display = 'flex';
+    document.getElementById('signOutBtn').style.display = 'inline-flex';
+
+    go('dashboard');
+  } catch(err) {
+    console.error('[turnament] Auth check failed or timed out:', err);
+    window.location.href = '/login/';
+  }
+})();
+
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  try { await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()'); }
+  catch(err){ console.error('[turnament] signOut failed or timed out, redirecting to /login/ anyway:', err); }
+  window.location.href = '/login/';
+});
+
+/* Gated on the real quota/plan check (can_create_tournament(), migration
+   0002 -- already accounts for admin bypass and the pro-tier 10-tournament
+   cap server-side, reused as-is) before opening the wizard for a NEW
+   tournament. Editing an existing one (editTournament()) does not go
+   through this gate. */
+async function startNewTournament(){
+  try {
+    const { data: canCreate, error } = await cspAuth.withTimeout(
+      cspAuth.client.rpc('can_create_tournament', { uid: currentSession.user.id }),
+      8000, 'can_create_tournament()'
+    );
+    if(error){ console.error('[turnament] can_create_tournament check failed:', error); }
+    if(!canCreate){ window.location.href = UPGRADE_URL; return; }
+    go('wizard');
+  } catch(err){
+    console.error('[turnament] Quota check failed or timed out:', err);
+    toast('Nepodarilo sa overiť limit turnajov. Skús to znova.', true);
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
    ROUTER / VIEWS
 ════════════════════════════════════════════════════════════ */
-function go(view, data){
+async function go(view, data){
   const app=document.getElementById('app');
-  if(view==='dashboard') app.innerHTML=viewDashboard();
+  if(view==='dashboard'){
+    app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
+    app.innerHTML=await viewDashboard();
+  }
   else if(view==='wizard') { app.innerHTML=viewWizard(); initWizard(data); }
-  else if(view==='detail') app.innerHTML=viewDetail(data);
+  else if(view==='detail') {
+    app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
+    app.innerHTML=await viewDetail(data);
+  }
   window.scrollTo(0,0);
 }
 
@@ -556,15 +622,31 @@ function go(view, data){
 const FMT_LABEL={rr:'Round Robin',sko:'Single KO',dko:'Double KO',rr_sko:'Skupiny → SKO',rr_dko:'Skupiny → DKO',karty:'Karty'};
 function pcount(t){ return t.playerCount||(Array.isArray(t.players)?t.players.length:t.players)||0; }
 
-function viewDashboard(){
-  const ts=loadTournaments();
-  const cards = ts.map(t=>`
+async function viewDashboard(){
+  let ts=[];
+  try {
+    // Embedded count via PostgREST's to-many relationship syntax, avoids
+    // an N+1 query per card just to show a player count.
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournaments').select('*, tournament_players(count)').eq('owner_id', currentSession.user.id).order('created_at', { ascending: false }),
+      8000, 'load tournaments'
+    );
+    if(error) throw error;
+    ts = data || [];
+  } catch(err){
+    console.error('[turnament] Failed to load tournaments:', err);
+    return `<div class="wrap"><div class="empty">Nepodarilo sa načítať turnaje. Skús obnoviť stránku.</div></div>`;
+  }
+  const cards = ts.map(t=>{
+    const count = (t.tournament_players && t.tournament_players[0] && t.tournament_players[0].count) || 0;
+    return `
     <div class="t-card" onclick="openTournament('${t.id}')">
       <button class="t-del" title="Zmazať turnaj" onclick="event.stopPropagation();deleteTournament('${t.id}')">🗑</button>
       <span class="fmt">${FMT_LABEL[t.format]||t.format}</span>
       <h3>${t.name}</h3>
-      <div class="meta"><span><b>${pcount(t)}</b> hráčov</span><span>${t.sport}${t.discipline?' · '+t.discipline:''}</span>${t.date?`<span>${t.date}</span>`:''}</div>
-    </div>`).join('');
+      <div class="meta"><span><b>${count}</b> hráčov</span><span>${t.sport}${t.discipline?' · '+t.discipline:''}</span>${t.date?`<span>${t.date}</span>`:''}</div>
+    </div>`;
+  }).join('');
   return `<div class="wrap">
     <div class="page-head">
       <div><h1>Moje turnaje</h1><p>Klikni na turnaj pre detail, alebo vytvor nový.</p></div>
@@ -574,10 +656,23 @@ function viewDashboard(){
       : `<div class="empty"><div style="font-size:2.6rem;margin-bottom:12px">🏆</div>Zatiaľ nemáš žiadne turnaje.<br><br><button class="btn btn-primary" onclick="startNewTournament()">＋ Vytvoriť prvý turnaj</button></div>`}
   </div>`;
 }
-function openTournament(id){
-  const t=loadTournaments().find(x=>x.id===id); if(!t) return;
-  if(t.format==='karty'){ openTableGen(t); return; }
-  go('detail', t);
+async function openTournament(id){
+  try {
+    const { data: t, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
+      8000, 'load tournament'
+    );
+    if(error) throw error;
+    if(t.format==='karty'){
+      const { data: players } = await cspAuth.client.from('tournament_players').select('name').eq('tournament_id', id).order('seed');
+      openTableGen({ ...t, players: players || [] });
+      return;
+    }
+    go('detail', id);
+  } catch(err){
+    console.error('[turnament] Failed to open tournament:', err);
+    toast('Nepodarilo sa otvoriť turnaj.', true);
+  }
 }
 function openTableGen(t){
   localStorage.setItem(KARTY_HANDOFF_PREFIX+t.id, JSON.stringify({
@@ -586,12 +681,18 @@ function openTableGen(t){
   }));
   location.href = TABLEGEN_URL+'?t='+encodeURIComponent(t.id);
 }
-function deleteTournament(id){
-  const t=loadTournaments().find(x=>x.id===id); if(!t) return;
-  if(!confirm(`Zmazať turnaj „${t.name}"? Túto akciu nemožno vrátiť.`)) return;
-  saveTournaments(loadTournaments().filter(x=>x.id!==id));
-  toast('Turnaj zmazaný');
-  go('dashboard');
+async function deleteTournament(id){
+  if(!confirm(`Zmazať tento turnaj? Túto akciu nemožno vrátiť.`)) return;
+  try {
+    const { error } = await cspAuth.client.from('tournaments').delete().eq('id', id);
+    if(error) throw error;
+    localStorage.removeItem(bracketStorageKey(id));
+    toast('Turnaj zmazaný');
+    go('dashboard');
+  } catch(err){
+    console.error('[turnament] Failed to delete tournament:', err);
+    toast('Nepodarilo sa zmazať turnaj.', true);
+  }
 }
 
 /* ── DETAIL TURNAJA ── */
@@ -630,11 +731,39 @@ function ensureBracket(t){
     }
   }
 }
-function persistT(){ const ts=loadTournaments().map(x=>x.id===curT.id?curT:x); saveTournaments(ts); }
+/* Match/bracket PROGRESS only (scores, winners) -- still localStorage,
+   per the task's scope boundary, but now scoped to this one real
+   tournament id rather than as part of one big array of full tournament
+   objects. Core tournament/player/group data is the real DB rows,
+   loaded fresh in viewDetail() below, never written here. */
+function persistT(){
+  if(!curT) return;
+  saveBracketState(curT.id, { bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp });
+}
 
-function viewDetail(t){
-  if(!t) return viewDashboard();
-  curT=loadTournaments().find(x=>x.id===t.id) || t;
+async function viewDetail(id){
+  let t;
+  try {
+    const { data: tournament, error: tErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
+      8000, 'load tournament'
+    );
+    if(tErr) throw tErr;
+    const { data: players, error: pErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
+      8000, 'load tournament players'
+    );
+    if(pErr) throw pErr;
+    t = { ...tournament, groups: tournament.groups_count, advance: tournament.advance_count,
+          players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) };
+  } catch(err){
+    console.error('[turnament] Failed to load tournament detail:', err);
+    return `<div class="wrap"><div class="empty">Nepodarilo sa načítať turnaj.</div></div>`;
+  }
+
+  // Merge in the locally-stored match/bracket progress (see persistT()
+  // above) on top of the fresh real tournament/player data.
+  curT = { ...t, ...loadBracketState(t.id) };
   ensureBracket(curT);
   persistT();
   const players=Array.isArray(curT.players)?curT.players:[];
@@ -678,7 +807,25 @@ function viewDetail(t){
   </div>
   <div id="matchModalArea"></div>`;
 }
-function editTournament(id){ const t=loadTournaments().find(x=>x.id===id); if(t) go('wizard', t); }
+async function editTournament(id){
+  try {
+    const { data: t, error: tErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
+      8000, 'load tournament'
+    );
+    if(tErr) throw tErr;
+    const { data: players, error: pErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
+      8000, 'load tournament players'
+    );
+    if(pErr) throw pErr;
+    go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
+                   players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
+  } catch(err){
+    console.error('[turnament] Failed to load tournament for editing:', err);
+    toast('Nepodarilo sa načítať turnaj na úpravu.', true);
+  }
+}
 
 /* ── Render zoznamu zápasov ── */
 function renderMatchArea(t){
@@ -1070,35 +1217,90 @@ function renderPreview(){
   }
 }
 
-function createTournament(){
+async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
-  let ts=loadTournaments();
-  const data={ name:wiz.name, sport:wiz.sport, discipline:wiz.discipline,
-    date:wiz.date, venue:wiz.venue, format:wiz.format,
-    players:wiz.players, playerCount:wiz.players.length, groups:wiz.groups, advance:wiz.advance };
-  if(wiz.editId){
-    ts=ts.map(t=> t.id===wiz.editId ? {...t, ...data, updated:new Date().toISOString()} : t);
-    saveTournaments(ts);
-    toast('Zmeny uložené ✓');
-    const updated=ts.find(t=>t.id===wiz.editId);
-    if(updated.format==='karty'){ setTimeout(()=>openTableGen(updated), 700); }
-    else setTimeout(()=>go('detail', updated), 700);
-  } else {
-    const created={ id:'t'+Date.now(), ...data, created:new Date().toISOString() };
-    ts.unshift(created);
-    saveTournaments(ts);
-    toast('Turnaj vytvorený ✓');
-    if(created.format==='karty'){ setTimeout(()=>openTableGen(created), 700); }
-    else setTimeout(()=>go('dashboard'), 700);
+  const btn = document.querySelector('#wizPanel .btn-green');
+  if(btn){ btn.disabled = true; btn.textContent = 'Ukladám...'; }
+
+  try {
+    const payload = {
+      name: wiz.name,
+      sport: wiz.sport,
+      discipline: wiz.discipline,
+      format: wiz.format,
+      date: wiz.date || null,
+      venue: wiz.venue || null,
+      groups_count: isCombo() ? wiz.groups : null,
+      advance_count: isCombo() ? wiz.advance : null,
+    };
+
+    let tournamentId, tournamentRow;
+    if(wiz.editId){
+      const { data: updated, error: uErr } = await cspAuth.client
+        .from('tournaments').update(payload).eq('id', wiz.editId).select().single();
+      if(uErr) throw uErr;
+      tournamentId = wiz.editId; tournamentRow = updated;
+
+      // Reconcile players: delete-and-reinsert. Acceptable and simple --
+      // no match data references these player rows yet at the edit stage
+      // this task covers (matches/round_key work is a separate follow-up).
+      const { error: delPErr } = await cspAuth.client.from('tournament_players').delete().eq('tournament_id', tournamentId);
+      if(delPErr) throw delPErr;
+      if(isCombo()){
+        const { error: delGErr } = await cspAuth.client.from('tournament_groups').delete().eq('tournament_id', tournamentId);
+        if(delGErr) throw delGErr;
+      }
+    } else {
+      const { data: created, error: cErr } = await cspAuth.client
+        .from('tournaments')
+        .insert({ ...payload, owner_id: currentSession.user.id, status: 'active' })
+        .select().single();
+      if(cErr) throw cErr;
+      tournamentId = created.id; tournamentRow = created;
+    }
+
+    const playerRows = wiz.players.map((p, i) => ({ tournament_id: tournamentId, name: p.name, seed: i + 1 }));
+    const { data: insertedPlayers, error: plErr } = await cspAuth.client
+      .from('tournament_players').insert(playerRows).select();
+    if(plErr) throw plErr;
+
+    if(isCombo()){
+      const G = Math.max(1, wiz.groups);
+      // Same "seeds distributed round-robin across groups" rule already
+      // used client-side in ensureBracket(), just using each player's
+      // real seed (not array position) to be robust to any insert
+      // ordering, and the real player id just returned above.
+      const groupRows = insertedPlayers.map(p => ({ tournament_id: tournamentId, group_index: ((p.seed - 1) % G) + 1, player_id: p.id }));
+      const { error: grErr } = await cspAuth.client.from('tournament_groups').insert(groupRows);
+      if(grErr) throw grErr;
+    }
+
+    // Any previous local bracket/match progress no longer matches the
+    // reconciled player set after an edit -- drop it rather than risk
+    // stale results referencing players that no longer exist.
+    if(wiz.editId) localStorage.removeItem(bracketStorageKey(tournamentId));
+
+    const finalTournament = { ...tournamentRow, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
+
+    toast(wiz.editId ? 'Zmeny uložené ✓' : 'Turnaj vytvorený ✓');
+    if(finalTournament.format === 'karty'){
+      setTimeout(() => openTableGen(finalTournament), 700);
+    } else if(wiz.editId){
+      setTimeout(() => go('detail', tournamentId), 700);
+    } else {
+      setTimeout(() => go('dashboard'), 700);
+    }
+  } catch(err){
+    console.error('[turnament] Failed to save tournament:', err);
+    toast('Nepodarilo sa uložiť turnaj. Skús to znova.', true);
+    if(btn){ btn.disabled = false; btn.textContent = wiz.editId ? '✓ Uložiť zmeny' : (isKarty() ? '✓ Vytvoriť turnaj a otvoriť stoly' : '✓ Vytvoriť turnaj'); }
   }
 }
 
 function toast(msg,err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast'+(err?' err':''),2200); }
 
-/* ── INIT: no login/plan check here — this page assumes whoever links
-   here (the "Nový turnaj" CTA elsewhere) already handled eligibility.
-   Goes straight to the dashboard. ── */
-go('dashboard');
+/* INIT happens inside initAuth() above once a real session is confirmed
+   -- see the auth gate at the top of this script. */
 </script>
 </body>
 </html>
