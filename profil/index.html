@@ -311,6 +311,13 @@ a{color:inherit;text-decoration:none}
 .content-tab:hover{color:var(--text)}
 .content-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
 
+/* Tab panels — one per content-tab, only the active one shown. Same
+   display:none/inline-style-toggle convention already used elsewhere in
+   this file (e.g. #settingsVenuesLocked/#settingsVenuesUnlocked) rather
+   than introducing a new utility class. */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
 /* ════════════════════════════════════
    FEED POSTS
 ═══════════════════════════════════ */
@@ -362,6 +369,7 @@ a{color:inherit;text-decoration:none}
   font-family:var(--display);font-size:2.2rem;letter-spacing:.02em;color:var(--text);line-height:1;
 }
 .mp-score.winner{color:var(--gold)}
+.mp-name.winner{color:var(--gold)}
 .match-vs{
   font-family:var(--mono);font-size:.74rem;font-weight:700;color:var(--muted);
   padding:6px 0;text-align:center;
@@ -370,6 +378,11 @@ a{color:inherit;text-decoration:none}
   margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
   font-family:var(--mono);font-size:.74rem;color:var(--muted2);
 }
+/* Fallback player list for training sessions with 3 players — .match-card's
+   grid (1fr auto 1fr) is built for exactly two sides, so 3-player sessions
+   use this simpler row instead rather than forcing a mismatched layout. */
+.zp-players-simple{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:.86rem;color:var(--text-soft)}
+.zp-players-simple .zp-winner{color:var(--gold);font-weight:700}
 .rating-change{
   padding:4px 10px;border-radius:6px;font-weight:700;letter-spacing:.04em;
 }
@@ -793,23 +806,68 @@ a{color:inherit;text-decoration:none}
         <div class="content-main">
 
           <div class="content-tabs">
-            <button class="content-tab active" onclick="setContentTab(this)">Aktivity</button>
-            <button class="content-tab" onclick="setContentTab(this)">Štatistiky</button>
-            <button class="content-tab" onclick="setContentTab(this)">Turnaje</button>
-            <button class="content-tab" onclick="setContentTab(this)">Zápasy</button>
+            <button class="content-tab active" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
+            <button class="content-tab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
+            <button class="content-tab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
+            <button class="content-tab" onclick="setContentTab(this, 'zapasy')">Zápasy</button>
           </div>
 
-          <!-- Genuine empty state: there is no posts/activity-feed table
-               yet, so a real new user sees an honest "nothing here yet"
-               message instead of fabricated match wins/records/tournament
-               results. This replaces what was previously 5 hardcoded fake
-               posts for a fictional "Ján Novák". -->
-          <div class="feed">
-            <div class="empty-state">
-              <div class="empty-icon">🎯</div>
-              <div class="empty-title">Zatiaľ žiadna aktivita</div>
-              <div class="empty-sub">Tvoje zápasy, turnaje a míľniky sa tu zobrazia, hneď ako začneš hrať na CSP.</div>
+          <!-- AKTIVITY — genuine empty state: there is no posts/activity-feed
+               table yet, so a real new user sees an honest "nothing here
+               yet" message instead of fabricated match wins/records/
+               tournament results. This replaces what was previously 5
+               hardcoded fake posts for a fictional "Ján Novák". Unchanged
+               by this task other than being moved into its own panel. -->
+          <div class="tab-panel active" id="tabPanel-aktivity">
+            <div class="feed">
+              <div class="empty-state">
+                <div class="empty-icon">🎯</div>
+                <div class="empty-title">Zatiaľ žiadna aktivita</div>
+                <div class="empty-sub">Tvoje zápasy, turnaje a míľniky sa tu zobrazia, hneď ako začneš hrať na CSP.</div>
+              </div>
             </div>
+          </div>
+
+          <!-- ŠTATISTIKY — genuine "not built yet" empty state. Real
+               aggregate stats (win rate, totals, charts) from
+               training_sessions are separate future work, not this task's
+               scope — deliberately not wired up here to avoid duplicating/
+               caching numbers that belong to a dedicated stats task. -->
+          <div class="tab-panel" id="tabPanel-statistiky">
+            <div class="empty-state">
+              <div class="empty-icon">📊</div>
+              <div class="empty-title">Štatistiky sa pripravujú</div>
+              <div class="empty-sub">Súhrnné čísla (úspešnosť, počty zápasov...) tu pribudnú v samostatnej funkcii.</div>
+            </div>
+          </div>
+
+          <!-- TURNAJE — genuine "not built yet" empty state. Tournaments do
+               exist in the backend (supabase/migrations/0003), but wiring
+               this tab to the real tournaments/tournament_players tables is
+               separate follow-up work, same reasoning as the "Nadchádzajúce
+               turnaje" sidebar widget below. -->
+          <div class="tab-panel" id="tabPanel-turnaje">
+            <div class="empty-state">
+              <div class="empty-icon">🏆</div>
+              <div class="empty-title">Turnaje sa pripravujú</div>
+              <div class="empty-sub">Prehľad tvojich turnajov tu pribudne v samostatnej funkcii.</div>
+            </div>
+          </div>
+
+          <!-- ZÁPASY — real content: the user's own training_sessions rows
+               (migrations 0016/0017), written by the scoreboard. Loaded on
+               first switch to this tab (see loadZapasyTab() below), reusing
+               the session already established by the auth gate. -->
+          <div class="tab-panel" id="tabPanel-zapasy">
+            <div class="empty-state" id="zapasyLoading">
+              <div class="empty-sub">Načítavam tréningy…</div>
+            </div>
+            <div class="empty-state" id="zapasyEmpty" style="display:none">
+              <div class="empty-icon">🏓</div>
+              <div class="empty-title">Zatiaľ žiadne odohraté tréningy</div>
+              <div class="empty-sub">Spusti tréning zo <a href="/scoreboard/">scoreboardu</a> a objaví sa tu.</div>
+            </div>
+            <div class="feed" id="zapasyList" style="display:none"></div>
           </div>
         </div>
 
@@ -962,9 +1020,12 @@ function setSport(btn){
   document.querySelectorAll('.sport-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
-function setContentTab(btn){
+function setContentTab(btn, tabKey){
   document.querySelectorAll('.content-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tabPanel-' + tabKey)?.classList.add('active');
+  if(tabKey === 'zapasy') loadZapasyTab();
 }
 function toggleUserMenu(e){
   e.stopPropagation();
@@ -1053,6 +1114,134 @@ function renderMemberSince(){
     const created = new Date(currentProfile.created_at);
     const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
     memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
+  }
+}
+
+// ── ZÁPASY tab — real training_sessions history (migrations 0016/0017) ──
+// Loaded once, on first switch to this tab (see setContentTab() above),
+// reusing the session/profile already established by the auth gate
+// (authGateReady, defined further below) rather than re-fetching it.
+let zapasyLoaded = false;
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// final_score is free-form jsonb with a different shape per sport (see
+// scoreboard/index.html's saveTrainingSession() call sites) — biliard's
+// frame mode uses `score`, points mode (Snooker/Pyramída/Karambol) uses
+// `frames`, darts uses `legs`, universal uses `sets`. Checked in that
+// priority order; anything else present but not one of these known keys
+// still renders via the numeric-fallback below rather than being dropped,
+// per the task's "render whatever keys are actually present reasonably"
+// instruction.
+const ZP_SCORE_KEYS = ['score', 'frames', 'legs', 'sets'];
+function zpPlayerStat(finalScore, name){
+  const entry = finalScore && Array.isArray(finalScore.players) ? finalScore.players.find(p => p && p.name === name) : null;
+  if(!entry) return null;
+  for(const key of ZP_SCORE_KEYS){ if(entry[key] !== undefined) return entry[key]; }
+  const anyNumeric = Object.entries(entry).find(([k, v]) => k !== 'name' && typeof v === 'number');
+  return anyNumeric ? anyNumeric[1] : null;
+}
+function zpFormatDuration(totalSeconds){
+  if(totalSeconds == null) return '';
+  const h = Math.floor(totalSeconds / 3600), m = Math.floor((totalSeconds % 3600) / 60), s = totalSeconds % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+const SK_MONTHS_SHORT = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
+function zpRelativeDate(iso){
+  const d = new Date(iso);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+  if(diffMin < 1) return 'práve teraz';
+  if(diffMin < 60) return `pred ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if(diffH < 24) return `pred ${diffH} h`;
+  const diffD = Math.floor(diffH / 24);
+  if(diffD < 7) return `pred ${diffD} d`;
+  return `${d.getDate()}. ${SK_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function renderZapasyCard(s){
+  const names = Array.isArray(s.player_names) ? s.player_names : [];
+  const winner = s.winner_name;
+  const scoreSummary = names.map(n => { const v = zpPlayerStat(s.final_score, n); return v == null ? '?' : v; }).join(' : ');
+  const durationText = zpFormatDuration(s.duration_seconds);
+
+  let playersHtml;
+  if(names.length === 2){
+    const [n1, n2] = names;
+    const s1 = zpPlayerStat(s.final_score, n1), s2 = zpPlayerStat(s.final_score, n2);
+    const w1 = n1 === winner, w2 = n2 === winner;
+    playersHtml = `
+      <div class="match-card">
+        <div class="match-player">
+          <div class="mp-av">${escapeHtml(computeInitials(n1))}</div>
+          <div class="mp-info"><div class="mp-name ${w1 ? 'winner' : ''}">${escapeHtml(n1)}${w1 ? ' 🏆' : ''}</div></div>
+          <div class="mp-score ${w1 ? 'winner' : ''}">${s1 == null ? '–' : escapeHtml(s1)}</div>
+        </div>
+        <div class="match-vs">:</div>
+        <div class="match-player right">
+          <div class="mp-av opp">${escapeHtml(computeInitials(n2))}</div>
+          <div class="mp-info"><div class="mp-name ${w2 ? 'winner' : ''}">${escapeHtml(n2)}${w2 ? ' 🏆' : ''}</div></div>
+          <div class="mp-score ${w2 ? 'winner' : ''}">${s2 == null ? '–' : escapeHtml(s2)}</div>
+        </div>
+      </div>`;
+  } else {
+    // 3 players (or an unexpected count) — .match-card's grid is built for
+    // exactly two sides, so this simpler row avoids forcing a mismatched
+    // layout while still visually distinguishing the winner.
+    playersHtml = `<div class="zp-players-simple">${names.map(n => {
+      const v = zpPlayerStat(s.final_score, n);
+      const isWinner = n === winner;
+      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''}${v != null ? ' · ' + escapeHtml(v) : ''}</span>`;
+    }).join('')}</div>`;
+  }
+
+  return `
+    <div class="post">
+      <div class="post-head">
+        <div class="post-avatar">🏓</div>
+        <div class="post-meta">
+          <div class="post-name">${escapeHtml(s.sport)} · ${escapeHtml(s.discipline)}</div>
+          <div class="post-time">${zpRelativeDate(s.played_at)}</div>
+        </div>
+      </div>
+      <div class="post-body">
+        ${playersHtml}
+        <div class="match-info">
+          <span>Skóre: ${escapeHtml(scoreSummary)}</span>
+          ${durationText ? `<span>⏱ ${durationText}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadZapasyTab(){
+  if(zapasyLoaded) return;
+  await authGateReady; // reuse the session the auth gate already established, never re-fetch it here
+  if(!currentSession) return; // no real session -- the auth gate already redirects to /login/ in that case, nothing further to do here
+  zapasyLoaded = true;
+
+  try {
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('training_sessions').select('*').eq('owner_id', currentSession.user.id).order('played_at', { ascending: false }),
+      8000, 'load training_sessions'
+    );
+    if(error) throw error;
+
+    document.getElementById('zapasyLoading').style.display = 'none';
+    if(!data || !data.length){
+      document.getElementById('zapasyEmpty').style.display = '';
+      return;
+    }
+    const listEl = document.getElementById('zapasyList');
+    listEl.innerHTML = data.map(renderZapasyCard).join('');
+    listEl.style.display = '';
+  } catch(err){
+    console.error('[profil] Failed to load training_sessions:', err);
+    zapasyLoaded = false; // allow a retry on the next tab switch
+    document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Nepodarilo sa načítať tréningy. Skús to znova.</div>';
   }
 }
 
@@ -1230,7 +1419,12 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
 // Wrapped in try/catch with a timeout on every awaited call: a
 // network/auth hiccup here now always logs clearly instead of becoming
 // a silent unhandled promise rejection, and can never hang indefinitely.
-(async function initAuthGate(){
+// Exposed as an awaitable promise (rather than a bare IIFE) so other code
+// that needs the session — e.g. loadZapasyTab() below — can wait for this
+// exact in-flight/completed check instead of calling getSession() again
+// itself, per the same "avoid a redundant second call" reasoning already
+// documented for getCurrentProfile() above.
+const authGateReady = (async function initAuthGate(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
     if(!session){
