@@ -142,6 +142,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
     <div class="side-card">
       <h3>Nastavenia</h3>
       <div class="side-field">
+        <label>Kategória</label>
+        <select id="categorySelect">
+          <option value="novinky">Novinky</option>
+          <option value="recenzie">Recenzie</option>
+          <option value="historia">História</option>
+          <option value="pravidla">Pravidlá hry</option>
+        </select>
+      </div>
+      <div class="side-field">
         <label>URL slug</label>
         <input id="slugInput" placeholder="auto-generuje sa"/>
         <div class="help">Adresa článku na webe</div>
@@ -324,6 +333,7 @@ async function init(){
       document.getElementById('titleInput').value=current.title||'';
       document.getElementById('excerptInput').value=current.excerpt||'';
       document.getElementById('slugInput').value=current.slug||'';
+      document.getElementById('categorySelect').value=current.category||'novinky';
       document.getElementById('coverUrl').value=current.cover_image_url||'';
       slugEdited=true;
       blocks=textToBlocks(current.content);
@@ -349,6 +359,7 @@ async function save(status){
   const data={
     title,
     slug: document.getElementById('slugInput').value.trim()||slugify(title),
+    category: document.getElementById('categorySelect').value,
     excerpt: document.getElementById('excerptInput').value.trim(),
     content: blocksToText(),
     cover_image_url: document.getElementById('coverUrl').value.trim() || null,
