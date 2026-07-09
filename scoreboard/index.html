@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#050505;--panel:#101010;--panel2:#161616;--gold:#d4a843;--green:#18c964;
@@ -237,6 +239,26 @@ const STATION_NAME=URL_PARAMS.get("station")||"";
 const STATION_SLUG=STATION_NAME?"_"+STATION_NAME.replace(/\W+/g,"_"):"";
 const STORAGE_KEY="csp_scoreboard_v1"+STATION_SLUG;
 
+/* ════════════════════ AUTH (optional, silent — never gates anything) ════════
+   This page is used two ways: a logged-in individual doing personal
+   training, and an anonymous tablet at a physical club station (no
+   login, via ?station=...). Anonymous use must keep working exactly as
+   before — no redirect, no blocking, no UI change. We only quietly note
+   whether a real session exists, so a logged-in user's finished matches
+   can also be saved to training_sessions (migration 0016) — see
+   saveTrainingSession() below. If there's no session (or the check fails
+   for any reason, e.g. no network on a club tablet), currentUserId just
+   stays null and the page behaves identically to anonymous use. */
+let currentUserId=null;
+(async function checkSessionSilently(){
+  try {
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    currentUserId = session ? session.user.id : null;
+  } catch(err){
+    console.error('[scoreboard] Silent session check failed or timed out (page continues working anonymously):', err);
+  }
+})();
+
 /* ════════════════════ STAV ════════════════════ */
 const defaultState={
   sport:"billiard",discipline:"8-ball",customLabel:"Univerzál",
@@ -299,6 +321,37 @@ function resetScoresForMode(){
   state.players.forEach(p=>{ p.remaining=startScore(); });
 }
 
+/* Rule already used by the discipline pill in render() below — pulled
+   out into one shared function so saveTrainingSession() reuses the exact
+   same label instead of a second, possibly-drifting copy of the rule. */
+function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : state.discipline; }
+
+/* ════════════════════ TRAINING HISTORY (migration 0016) ════════════════════
+   Fire-and-forget: called from each mode's match-win point below. Only
+   inserts when a real session exists (see checkSessionSilently() above) —
+   for anonymous/club-station use, currentUserId is null and this is a
+   no-op, exactly as if it were never called. A failed save is only
+   logged, never surfaced — it must never interrupt or break the live
+   scoreboard itself. No loading state, no toast (a "História" viewing
+   page is a separate future task — this stays invisible for now). */
+async function saveTrainingSession(finalScore, winnerName){
+  if(!currentUserId) return;
+  try {
+    const { error } = await cspAuth.client.from('training_sessions').insert({
+      owner_id: currentUserId,
+      sport: state.sport,
+      discipline: currentDisciplineLabel(),
+      player_names: activePlayers().map(p=>p.name),
+      final_score: finalScore,
+      winner_name: winnerName,
+      race_to: state.raceTo,
+    });
+    if(error) throw error;
+  } catch(err){
+    console.error('[scoreboard] Failed to save training session (live scoreboard unaffected):', err);
+  }
+}
+
 /* ════════════════════ CHECKOUT (šípky) ════════════════════ */
 const NOT_CHECKOUT=new Set([169,168,166,165,163,162,159]);
 function canCheckout(r){return state.doubleOut?(r<=170&&r>1&&!NOT_CHECKOUT.has(r)):(r<=180&&r>0);}
@@ -307,7 +360,7 @@ function canCheckout(r){return state.doubleOut?(r<=170&&r>1&&!NOT_CHECKOUT.has(r
 function render(){
   const m=mode();
   // pills + labels
-  $("disciplinePill").textContent = state.sport==="other" ? state.customLabel : state.discipline;
+  $("disciplinePill").textContent = currentDisciplineLabel();
   $("currentPlayer").textContent=activePlayers()[state.currentIndex].name;
 
   let periodWord="Frame", fmt=`Race to ${state.raceTo}`, newBtn="Nový frame";
@@ -415,7 +468,14 @@ function renderFrameActions(m){
 }
 
 /* ════════════════════ FRAME engine (biliard guľové) ════════════════════ */
-function frameAdd(i){const p=activePlayers()[i];p.score++;addLog(`${p.name} +1 frame (${p.score})`);if(p.score>=state.raceTo)addLog(`🏆 ${p.name} vyhral zápas!`);render();}
+function frameAdd(i){
+  const p=activePlayers()[i];p.score++;addLog(`${p.name} +1 frame (${p.score})`);
+  if(p.score>=state.raceTo){
+    addLog(`🏆 ${p.name} vyhral zápas!`);
+    saveTrainingSession({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name);
+  }
+  render();
+}
 function frameSub(i){const p=activePlayers()[i];if(p.score>0)p.score--;render();}
 
 /* ════════════════════ POINTS engine (snooker/pyramída/karambol) ════════════════════ */
@@ -430,9 +490,15 @@ function submitRunPoints(){
 }
 function awardFrame(i){
   const w=activePlayers()[i];w.frames++;
+  // Snapshotted before framePoints resets to 0 below, so a match-ending
+  // frame's points are still there to save to history further down.
+  const finalFramePoints=activePlayers().map(p=>p.framePoints);
   addLog(`🏆 ${w.name} vyhral frame ${state.period} (${w.framePoints} b.)`);
   state.period++;state.runInput="";activePlayers().forEach(p=>p.framePoints=0);state.currentIndex=breakerIndex();
-  if(w.frames>=state.raceTo)addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
+  if(w.frames>=state.raceTo){
+    addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
+    saveTrainingSession({mode:'points',players:activePlayers().map((p,idx)=>({name:p.name,frames:p.frames,framePoints:finalFramePoints[idx]}))},w.name);
+  }
   render();
 }
 
@@ -452,7 +518,10 @@ function submitRunDarts(){
 function dartsNext(){state.currentIndex=(state.currentIndex+1)%state.playerCount;render();}
 function dartsWinLeg(i){
   const w=activePlayers()[i];w.legs++;addLog(`🎯 ${w.name} vyhral leg ${state.period}!`);
-  if(w.legs>=state.raceTo)addLog(`🏆 ${w.name} vyhral zápas!`);
+  if(w.legs>=state.raceTo){
+    addLog(`🏆 ${w.name} vyhral zápas!`);
+    saveTrainingSession({mode:'darts',players:activePlayers().map(p=>({name:p.name,legs:p.legs}))},w.name);
+  }
   state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;state.runInput="";
   activePlayers().forEach(p=>p.remaining=startScore());render();
 }
@@ -466,9 +535,15 @@ function uniAdd(i){
 function uniSub(i){const p=activePlayers()[i];if(p.points>0)p.points--;render();}
 function uniWinSet(i){
   const w=activePlayers()[i];w.sets++;
+  // Snapshotted before points resets to 0 below, so a match-ending set's
+  // score is still there to save to history further down.
+  const finalPoints=activePlayers().map(p=>p.points);
   addLog(`🏆 ${w.name} vyhral set ${state.period} (${w.points}:${activePlayers().filter((_,j)=>j!==i).map(p=>p.points).join("/")})`);
   state.period++;activePlayers().forEach(p=>p.points=0);state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
-  if(w.sets>=state.raceTo)addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
+  if(w.sets>=state.raceTo){
+    addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
+    saveTrainingSession({mode:'universal',players:activePlayers().map((p,idx)=>({name:p.name,sets:p.sets,points:finalPoints[idx]}))},w.name);
+  }
   render();
 }
 
