@@ -60,7 +60,7 @@ summary b{color:var(--gold)}
 .switch input:checked + .slider{background:var(--green)}
 .switch input:checked + .slider::before{transform:translateX(20px)}
 
-.top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
 .status{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px 18px;text-align:center}
 .label2{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
 .current,.period{font-size:1.4rem;font-weight:800;color:var(--gold);margin-top:4px}
@@ -188,6 +188,7 @@ summary b{color:var(--gold)}
   <div class="top">
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
     <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
+    <div class="status"><div class="label2">Čas zápasu</div><div class="period" id="matchTimer">00:00</div></div>
   </div>
 
   <div class="players" id="players"></div>
@@ -326,6 +327,27 @@ function resetScoresForMode(){
    same label instead of a second, possibly-drifting copy of the rule. */
 function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : state.discipline; }
 
+/* ════════════════════ STOPWATCH (match duration) ════════════════════════
+   A simple, non-persisted running clock: matchStartTime is a plain
+   Date.now() timestamp, set once on script load (first render) and reset
+   only in resetAll() below -- a genuinely new match. newPeriod() and the
+   mode-specific per-frame/leg/set resets (resetScoresForMode(), the
+   framePoints/points zeroing inside awardFrame()/uniWinSet()/
+   dartsWinLeg(), applySettings()) deliberately do NOT touch this, since
+   those all happen *within* the same match, per the task's explicit
+   distinction. Doesn't survive a hard reload -- per the task, restarting
+   on reload is acceptable, not a bug to fix here. */
+let matchStartTime=Date.now();
+function elapsedSeconds(){ return Math.max(0,Math.floor((Date.now()-matchStartTime)/1000)); }
+function formatDuration(totalSeconds){
+  const h=Math.floor(totalSeconds/3600), m=Math.floor((totalSeconds%3600)/60), s=totalSeconds%60;
+  const pad=n=>String(n).padStart(2,"0");
+  return h>0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSeconds()); }
+tickMatchTimer();
+setInterval(tickMatchTimer,1000);
+
 /* ════════════════════ TRAINING HISTORY (migration 0016) ════════════════════
    Fire-and-forget: called from each mode's match-win point below. Only
    inserts when a real session exists (see checkSessionSilently() above) —
@@ -334,7 +356,7 @@ function currentDisciplineLabel(){ return state.sport==="other" ? state.customLa
    logged, never surfaced — it must never interrupt or break the live
    scoreboard itself. No loading state, no toast (a "História" viewing
    page is a separate future task — this stays invisible for now). */
-async function saveTrainingSession(finalScore, winnerName){
+async function saveTrainingSession(finalScore, winnerName, durationSeconds){
   if(!currentUserId) return;
   try {
     const { error } = await cspAuth.client.from('training_sessions').insert({
@@ -345,6 +367,7 @@ async function saveTrainingSession(finalScore, winnerName){
       final_score: finalScore,
       winner_name: winnerName,
       race_to: state.raceTo,
+      duration_seconds: durationSeconds,
     });
     if(error) throw error;
   } catch(err){
@@ -472,7 +495,7 @@ function frameAdd(i){
   const p=activePlayers()[i];p.score++;addLog(`${p.name} +1 frame (${p.score})`);
   if(p.score>=state.raceTo){
     addLog(`🏆 ${p.name} vyhral zápas!`);
-    saveTrainingSession({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name);
+    saveTrainingSession({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name,elapsedSeconds());
   }
   render();
 }
@@ -497,7 +520,7 @@ function awardFrame(i){
   state.period++;state.runInput="";activePlayers().forEach(p=>p.framePoints=0);state.currentIndex=breakerIndex();
   if(w.frames>=state.raceTo){
     addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
-    saveTrainingSession({mode:'points',players:activePlayers().map((p,idx)=>({name:p.name,frames:p.frames,framePoints:finalFramePoints[idx]}))},w.name);
+    saveTrainingSession({mode:'points',players:activePlayers().map((p,idx)=>({name:p.name,frames:p.frames,framePoints:finalFramePoints[idx]}))},w.name,elapsedSeconds());
   }
   render();
 }
@@ -520,7 +543,7 @@ function dartsWinLeg(i){
   const w=activePlayers()[i];w.legs++;addLog(`🎯 ${w.name} vyhral leg ${state.period}!`);
   if(w.legs>=state.raceTo){
     addLog(`🏆 ${w.name} vyhral zápas!`);
-    saveTrainingSession({mode:'darts',players:activePlayers().map(p=>({name:p.name,legs:p.legs}))},w.name);
+    saveTrainingSession({mode:'darts',players:activePlayers().map(p=>({name:p.name,legs:p.legs}))},w.name,elapsedSeconds());
   }
   state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;state.runInput="";
   activePlayers().forEach(p=>p.remaining=startScore());render();
@@ -542,7 +565,7 @@ function uniWinSet(i){
   state.period++;activePlayers().forEach(p=>p.points=0);state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
   if(w.sets>=state.raceTo){
     addLog(`🎉 ${w.name} vyhral zápas (Race to ${state.raceTo})`);
-    saveTrainingSession({mode:'universal',players:activePlayers().map((p,idx)=>({name:p.name,sets:p.sets,points:finalPoints[idx]}))},w.name);
+    saveTrainingSession({mode:'universal',players:activePlayers().map((p,idx)=>({name:p.name,sets:p.sets,points:finalPoints[idx]}))},w.name,elapsedSeconds());
   }
   render();
 }
@@ -580,6 +603,8 @@ function resetAll(){
   Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
+  matchStartTime=Date.now(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this
+  tickMatchTimer();
   addLog("Zápas resetovaný, nastavenia zostali");
   syncSettingsUI();render();
 }
