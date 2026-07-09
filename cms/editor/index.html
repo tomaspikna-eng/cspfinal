@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-soft:#0c0c12;--card:#131319;--card-2:#16161d;
@@ -140,19 +142,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
     <div class="side-card">
       <h3>Nastavenia</h3>
       <div class="side-field">
-        <label>Rubrika</label>
-        <select id="catSelect" onchange="updateCover()">
-          <option value="biliard">Biliard</option>
-          <option value="sipky">Šípky</option>
-          <option value="bowling">Bowling</option>
-          <option value="general">Novinky</option>
-        </select>
-      </div>
-      <div class="side-field">
-        <label>Autor</label>
-        <input id="authorInput" value="Redakcia CSP"/>
-      </div>
-      <div class="side-field">
         <label>URL slug</label>
         <input id="slugInput" placeholder="auto-generuje sa"/>
         <div class="help">Adresa článku na webe</div>
@@ -181,25 +170,37 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 <div class="toast" id="toast"></div>
 
 <script>
-const STORE_KEY="csp_magazine_articles";
-const CAT_LABEL={biliard:"Biliard",sipky:"Šípky",bowling:"Bowling",general:"Novinky"};
+let currentSession = null;
 
-function loadArticles(){try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){}return[];}
-function saveArticles(a){localStorage.setItem(STORE_KEY,JSON.stringify(a));}
+/* ── Real auth + admin gate ── */
+(async function initAuth(){
+  try{
+    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    if(!session){ location.href = '/login/'; return; }
+    currentSession = session;
+    const { data: allowed, error } = await cspAuth.withTimeout(
+      cspAuth.client.rpc('can_access_magazine_cms', { uid: session.user.id }),
+      8000, 'can_access_magazine_cms()'
+    );
+    if(error || !allowed){ location.href = '/profil/'; return; }
+  }catch(err){
+    console.error('[cms-editor] Auth check failed or timed out:', err);
+    location.href = '/login/';
+    return;
+  }
+  init();
+})();
 
-/* ── SVG obálky ── */
-function coverSVG(cat){
-  const G='#d4a843',W='#ece9e2',F='#2a5a3c',FD='#16301f';
-  if(cat==='biliard')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="${FD}"/><g transform="translate(200,128)"><circle cx="0" cy="-34" r="15" fill="${G}"/><circle cx="-17" cy="-5" r="15" fill="${W}"/><circle cx="17" cy="-5" r="15" fill="${W}"/><circle cx="0" cy="24" r="15" fill="#1a1a22"/><circle cx="0" cy="24" r="6" fill="${W}"/></g></svg>`;
-  if(cat==='sipky')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0e0e13"/><g transform="translate(200,125)"><circle r="78" fill="none" stroke="${G}" stroke-width="2" opacity=".5"/><circle r="40" fill="none" stroke="${G}" stroke-width="2" opacity=".5"/><circle r="8" fill="${G}"/><line x1="120" y1="-90" x2="6" y2="-5" stroke="${W}" stroke-width="3"/></g></svg>`;
-  if(cat==='bowling')return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0d0d12"/><g transform="translate(200,120)"><ellipse cx="-24" cy="-30" rx="7" ry="20" fill="${W}"/><ellipse cx="0" cy="-30" rx="7" ry="20" fill="${G}"/><ellipse cx="24" cy="-30" rx="7" ry="20" fill="${W}"/><circle cx="0" cy="58" r="26" fill="${G}"/></g></svg>`;
-  return `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0e0e13"/><g transform="translate(200,125)" stroke="${G}" stroke-width="3" fill="none"><line x1="-70" y1="50" x2="40" y2="-55"/><line x1="70" y1="50" x2="-40" y2="-55"/></g></svg>`;
-}
+/* ── Cover preview (no category-based fallback anymore — no real
+   category column exists; shows the real image or a generic mark) ── */
 function updateCover(){
   const url=document.getElementById('coverUrl').value.trim();
-  const cat=document.getElementById('catSelect').value;
   const el=document.getElementById('coverPreview');
-  el.innerHTML = url ? `<img src="${url}" alt="" onerror="this.parentNode.innerHTML='${'covererr'}'"/>` : coverSVG(cat);
+  if(url){
+    el.innerHTML = `<img src="${url}" alt=""/>`;
+  } else {
+    el.innerHTML = `<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="250" fill="#0e0e13"/><g transform="translate(200,125)" stroke="#d4a843" stroke-width="3" fill="none"><line x1="-70" y1="50" x2="40" y2="-55"/><line x1="70" y1="50" x2="-40" y2="-55"/></g></svg>`;
+  }
 }
 
 /* ── Slug ── */
@@ -217,7 +218,13 @@ function genSlug(){
 /* ── Auto-grow ── */
 function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
 
-/* ════════ BLOKY ════════ */
+/* ════════ BLOKY ════════
+   Kept as the editing UI (paragraphs/headings/quotes/lists/images) — but
+   the real `articles.content` column (migration 0006) is plain text, not
+   structured blocks. Blocks are serialized to plain text on save
+   (blocksToText) and, when editing an existing article, the saved text
+   loads back as a single block per line rather than perfectly restoring
+   original block types — a real, permanent simplification, not a bug. */
 let blocks=[];
 const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'}};
 
@@ -225,7 +232,6 @@ function addBlock(type){
   blocks.push(type==='image'?{type,url:'',caption:''}:{type,text:''});
   document.getElementById('addMenu').classList.remove('open');
   renderBlocks();
-  // focus posledný
   const els=document.querySelectorAll('.b-text, .img-row input');
   if(els.length)els[els.length-1].focus();
 }
@@ -274,25 +280,53 @@ function uploadImg(i,input){
   r.readAsDataURL(f);
 }
 
+/* Blocks -> plain text, matching the real `content` column's shape.
+   Headings/quotes/lists keep a simple plain-text marker so the article
+   detail page's paragraph-split rendering still reads reasonably. */
+function blocksToText(){
+  return blocks.map(b=>{
+    if(b.type==='image') return b.url ? `[Obrázok: ${b.url}]${b.caption?' — '+b.caption:''}` : '';
+    if(b.type==='heading') return '## '+(b.text||'');
+    if(b.type==='quote') return '> '+(b.text||'');
+    return (b.text||'');
+  }).filter(t=>t.trim()).join('\n\n');
+}
+
+/* Plain text -> one paragraph block per line, when loading an existing
+   article back into the editor. Original block types are not recoverable
+   from plain text — this is a real, disclosed limitation, not a bug. */
+function textToBlocks(text){
+  const parts=(text||'').split(/\n{2,}/).map(t=>t.trim()).filter(Boolean);
+  if(parts.length===0) return [{type:'paragraph',text:''}];
+  return parts.map(t=>({type:'paragraph', text:t}));
+}
+
 /* ════════ NAČÍTANIE existujúceho ════════ */
 const params=new URLSearchParams(location.search);
 const editId=params.get('id');
 let current=null;
 
-function init(){
+async function init(){
   if(editId){
-    const all=loadArticles();
-    current=all.find(a=>a.id===editId);
+    try{
+      const { data, error } = await cspAuth.withTimeout(
+        cspAuth.client.from('articles').select('*').eq('id', editId).maybeSingle(),
+        8000, 'load article'
+      );
+      if(error){ console.error('[cms-editor] Could not load article:', error); toast('Nepodarilo sa načítať článok.', true); }
+      current = data || null;
+    }catch(err){
+      console.error('[cms-editor] load article timed out:', err);
+      toast('Nepodarilo sa načítať článok.', true);
+    }
     if(current){
       document.getElementById('tbTitle').textContent='Úprava článku';
       document.getElementById('titleInput').value=current.title||'';
       document.getElementById('excerptInput').value=current.excerpt||'';
-      document.getElementById('catSelect').value=current.category||'biliard';
-      document.getElementById('authorInput').value=current.author||'Redakcia CSP';
       document.getElementById('slugInput').value=current.slug||'';
-      document.getElementById('coverUrl').value=current.cover||'';
+      document.getElementById('coverUrl').value=current.cover_image_url||'';
       slugEdited=true;
-      blocks=Array.isArray(current.body)?structuredClone(current.body):[];
+      blocks=textToBlocks(current.content);
       setStatus(current.status||'draft');
     }
   }
@@ -307,46 +341,59 @@ function setStatus(s){
   pill.textContent=s==='published'?'Publikované':'Koncept';
 }
 
-/* ════════ ULOŽENIE ════════ */
-function save(status){
+/* ════════ ULOŽENIE (reálny Supabase insert/update) ════════ */
+async function save(status){
   const title=document.getElementById('titleInput').value.trim();
   if(!title){toast('Doplň titulok článku.',true);return;}
-  const all=loadArticles();
+
   const data={
     title,
-    slug:document.getElementById('slugInput').value.trim()||slugify(title),
-    excerpt:document.getElementById('excerptInput').value.trim(),
-    category:document.getElementById('catSelect').value,
-    author:document.getElementById('authorInput').value.trim()||'Redakcia CSP',
-    cover:document.getElementById('coverUrl').value.trim(),
-    body:blocks.filter(b=>b.type==='image'?b.url:(b.text||'').trim()),
+    slug: document.getElementById('slugInput').value.trim()||slugify(title),
+    excerpt: document.getElementById('excerptInput').value.trim(),
+    content: blocksToText(),
+    cover_image_url: document.getElementById('coverUrl').value.trim() || null,
     status,
+    author_id: currentSession.user.id, // real relational author, not free-text
   };
-  if(current){
-    Object.assign(current,data);
-    if(status==='published'&&!current.date)current.date=new Date().toISOString().slice(0,10);
-    current.updated=new Date().toISOString().slice(0,10);
-  }else{
-    data.id='a'+Date.now();
-    data.date=status==='published'?new Date().toISOString().slice(0,10):'';
-    all.push(data);
-    current=data;
+
+  try{
+    let result;
+    if(current){
+      result = await cspAuth.withTimeout(
+        cspAuth.client.from('articles').update(data).eq('id', current.id).select().single(),
+        8000, 'update article'
+      );
+    } else {
+      result = await cspAuth.withTimeout(
+        cspAuth.client.from('articles').insert(data).select().single(),
+        8000, 'create article'
+      );
+    }
+    if(result.error){
+      console.error('[cms-editor] Save failed:', result.error);
+      toast(result.error.message && result.error.message.includes('duplicate')
+        ? 'Tento slug už existuje — uprav ho.'
+        : 'Nepodarilo sa uložiť článok.', true);
+      return;
+    }
+    current = result.data;
+  }catch(err){
+    console.error('[cms-editor] save timed out:', err);
+    toast('Nepodarilo sa uložiť článok.', true);
+    return;
   }
-  saveArticles(all);
+
   setStatus(status);
   document.getElementById('tbTitle').textContent='Úprava článku';
   toast(status==='published'?'Článok publikovaný ✓':'Koncept uložený ✓');
-  // po publikovaní krátko počkaj a vráť na dashboard
   if(status==='published') setTimeout(()=>location.href='/cms/',900);
 }
 
 function toast(msg,err){
-  const t=document.getElementById('toast');
+  const t = document.getElementById('toast');
   t.textContent=msg;t.className='toast show'+(err?' err':'');
   setTimeout(()=>t.className='toast'+(err?' err':''),2200);
 }
-
-init();
 </script>
 </body>
 </html>
