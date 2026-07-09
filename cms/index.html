@@ -95,7 +95,7 @@ input:focus,select:focus{border-color:var(--gold)}
 
 /* Article rows */
 .articles{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card)}
-.art-row{display:grid;grid-template-columns:54px 1fr 110px 120px 140px;gap:14px;align-items:center;padding:14px 16px;border-top:1px solid var(--line);transition:.1s}
+.art-row{display:grid;grid-template-columns:54px 1fr 110px 110px 120px 140px;gap:14px;align-items:center;padding:14px 16px;border-top:1px solid var(--line);transition:.1s}
 .art-row:first-child{border-top:none}
 .art-row:hover{background:rgba(255,255,255,.02)}
 .art-row.header{background:rgba(255,255,255,.03);font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -192,6 +192,13 @@ input:focus,select:focus{border-color:var(--gold)}
 
       <div class="toolbar">
         <div class="search">🔍 <input type="text" id="searchInput" placeholder="Hľadať článok..." oninput="renderArticles()"/></div>
+        <select id="filterCat" onchange="renderArticles()">
+          <option value="all">Všetky kategórie</option>
+          <option value="novinky">Novinky</option>
+          <option value="recenzie">Recenzie</option>
+          <option value="historia">História</option>
+          <option value="pravidla">Pravidlá hry</option>
+        </select>
         <select id="filterStatus" onchange="renderArticles()">
           <option value="all">Všetky stavy</option>
           <option value="published">Publikované</option>
@@ -269,11 +276,15 @@ function renderStats(){
   document.getElementById('stMonth').textContent=articles.filter(a=>(a.published_at||'').startsWith(ym)).length;
 }
 
+const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry'};
+
 function renderArticles(){
   renderStats();
   const q=document.getElementById('searchInput').value.toLowerCase();
+  const fc=document.getElementById('filterCat').value;
   const fs=document.getElementById('filterStatus').value;
   let list=articles.filter(a=>{
+    if(fc!=='all'&&a.category!==fc)return false;
     if(fs!=='all'&&a.status!==fs)return false;
     if(q&&!(a.title.toLowerCase().includes(q)||(a.excerpt||'').toLowerCase().includes(q)))return false;
     return true;
@@ -283,7 +294,7 @@ function renderArticles(){
   if(list.length===0){wrap.innerHTML='<div class="empty"><div class="big">📭</div>Žiadne články. Vytvor prvý cez „Nový článok".</div>';return;}
 
   wrap.innerHTML=`<div class="art-row header">
-    <span></span><span>Článok</span><span>Stav</span><span class="col-date">Dátum</span><span style="text-align:right">Akcie</span>
+    <span></span><span>Článok</span><span class="col-cat">Kategória</span><span>Stav</span><span class="col-date">Dátum</span><span style="text-align:right">Akcie</span>
   </div>`+list.map(a=>{
     const statusLabel={published:'Publikované',draft:'Koncept'}[a.status]||a.status;
     const dateLabel = a.published_at || a.created_at ? new Date(a.published_at||a.created_at).toLocaleDateString('sk-SK') : '—';
@@ -293,6 +304,7 @@ function renderArticles(){
         <div class="art-title">${a.title}</div>
         <div class="art-excerpt">${a.excerpt||''}</div>
       </div>
+      <div class="col-cat"><span class="cat-tag">${CAT_LABEL[a.category]||a.category||'—'}</span></div>
       <div><span class="status-badge ${a.status}">${statusLabel}</span></div>
       <div class="col-date art-date">${dateLabel}</div>
       <div class="art-actions">
