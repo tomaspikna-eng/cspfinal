@@ -133,6 +133,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
         <button class="add-opt" onclick="addBlock('quote')">❝ Citát</button>
         <button class="add-opt" onclick="addBlock('list')">• Zoznam</button>
         <button class="add-opt" onclick="addBlock('image')">🖼 Obrázok</button>
+        <button class="add-opt" onclick="addBlock('gallery')">🖼🖼 Galéria</button>
       </div>
     </div>
   </div>
@@ -168,9 +169,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
       <h3>Obálka</h3>
       <div class="cover-preview" id="coverPreview"></div>
       <div class="side-field">
-        <label>Vlastný obrázok obálky (URL)</label>
-        <input id="coverUrl" placeholder="https://… (nepovinné)" oninput="updateCover()"/>
-        <div class="help">Prázdne = automatická grafika podľa rubriky</div>
+        <label>Vlastný obrázok obálky (URL alebo nahraj z PC)</label>
+        <div style="display:flex;gap:8px">
+          <input id="coverUrl" placeholder="https://… (nepovinné)" oninput="updateCover()" style="flex:1"/>
+          <button type="button" class="img-upload-btn" onclick="document.getElementById('coverFile').click()">Nahrať</button>
+          <input type="file" id="coverFile" accept="image/*" class="hidden" onchange="uploadCoverFile(this)"/>
+        </div>
+        <div class="help">Prázdne = automatická grafika podľa kategórie</div>
       </div>
     </div>
   </aside>
@@ -202,6 +207,38 @@ let currentSession = null;
 
 /* ── Cover preview (no category-based fallback anymore — no real
    category column exists; shows the real image or a generic mark) ── */
+/* Real upload to the `article-covers` storage bucket (migration 0007) —
+   admin-only write, public read, no ownership restriction on the path
+   itself (all admins share equal CMS access). Used for both the cover
+   image and content image/gallery blocks below, rather than the old
+   base64-inline approach which bloated the `content` text column. */
+async function uploadToStorage(file){
+  if(file.size > 5*1024*1024){ toast('Obrázok je príliš veľký (max 5MB).', true); return null; }
+  const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+  const path = `editor/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+  try{
+    const { error } = await cspAuth.withTimeout(
+      cspAuth.client.storage.from('article-covers').upload(path, file, { upsert:false }),
+      15000, 'upload image'
+    );
+    if(error){ console.error('[cms-editor] Upload failed:', error); toast('Nahrávanie zlyhalo.', true); return null; }
+    const { data } = cspAuth.client.storage.from('article-covers').getPublicUrl(path);
+    return data.publicUrl;
+  }catch(err){
+    console.error('[cms-editor] Upload timed out:', err);
+    toast('Nahrávanie zlyhalo (časový limit).', true);
+    return null;
+  }
+}
+
+async function uploadCoverFile(input){
+  const f=input.files[0]; if(!f) return;
+  toast('Nahrávam obálku…');
+  const url = await uploadToStorage(f);
+  if(url){ document.getElementById('coverUrl').value = url; updateCover(); toast('Obálka nahraná ✓'); }
+  input.value = '';
+}
+
 function updateCover(){
   const url=document.getElementById('coverUrl').value.trim();
   const el=document.getElementById('coverPreview');
@@ -235,10 +272,12 @@ function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px
    loads back as a single block per line rather than perfectly restoring
    original block types — a real, permanent simplification, not a bug. */
 let blocks=[];
-const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'}};
+const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'},gallery:{label:'Galéria'}};
 
 function addBlock(type){
-  blocks.push(type==='image'?{type,url:'',caption:''}:{type,text:''});
+  if(type==='image') blocks.push({type,url:'',caption:''});
+  else if(type==='gallery') blocks.push({type,images:[]});
+  else blocks.push({type,text:''});
   document.getElementById('addMenu').classList.remove('open');
   renderBlocks();
   const els=document.querySelectorAll('.b-text, .img-row input');
@@ -273,6 +312,24 @@ function renderBlocks(){
         </div>
       </div>`;
     }
+    if(b.type==='gallery'){
+      const items=(b.images||[]).map((img,gi)=>`
+        <div class="img-block" style="border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px">
+          ${img.url?`<div class="img-preview"><img src="${img.url}" alt=""/></div>`:''}
+          <div class="img-row">
+            <input placeholder="URL fotky alebo nahraj →" value="${(img.url||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].images[${gi}].url=this.value" onchange="renderBlocks()"/>
+            <button class="img-upload-btn" onclick="document.getElementById('gfile${i}_${gi}').click()">Nahrať</button>
+            <input type="file" id="gfile${i}_${gi}" accept="image/*" class="hidden" onchange="uploadGalleryImg(${i},${gi},this)"/>
+            <button class="img-upload-btn" onclick="blocks[${i}].images.splice(${gi},1);renderBlocks()">✕</button>
+          </div>
+        </div>`).join('');
+      return `<div class="block">${ctrls}${typeLbl}
+        <div class="img-block">
+          ${items}
+          <button type="button" class="add-toggle" onclick="blocks[${i}].images.push({url:'',caption:''});renderBlocks()">＋ Pridať fotku do galérie</button>
+        </div>
+      </div>`;
+    }
     const cls={paragraph:'b-text',heading:'b-text b-heading',quote:'b-text b-quote',list:'b-text b-list'}[b.type];
     return `<div class="block">${ctrls}${typeLbl}
       <textarea class="${cls}" rows="1" placeholder="${BLOCK_META[b.type].ph}" oninput="blocks[${i}].text=this.value;autoGrow(this)">${b.text||''}</textarea>
@@ -281,33 +338,56 @@ function renderBlocks(){
   wrap.querySelectorAll('textarea').forEach(autoGrow);
 }
 
-function uploadImg(i,input){
+async function uploadImg(i,input){
   const f=input.files[0];if(!f)return;
-  if(f.size>900*1024){toast('Obrázok je veľký (>900KB). Pre web použi menší alebo URL.',true);return;}
-  const r=new FileReader();
-  r.onload=()=>{blocks[i].url=r.result;renderBlocks();};
-  r.readAsDataURL(f);
+  toast('Nahrávam obrázok…');
+  const url = await uploadToStorage(f);
+  if(url){ blocks[i].url=url; renderBlocks(); toast('Obrázok nahraný ✓'); }
+  input.value='';
+}
+
+async function uploadGalleryImg(i,gi,input){
+  const f=input.files[0];if(!f)return;
+  toast('Nahrávam fotku…');
+  const url = await uploadToStorage(f);
+  if(url){ blocks[i].images[gi].url=url; renderBlocks(); toast('Fotka nahraná ✓'); }
+  input.value='';
 }
 
 /* Blocks -> plain text, matching the real `content` column's shape.
-   Headings/quotes/lists keep a simple plain-text marker so the article
-   detail page's paragraph-split rendering still reads reasonably. */
+   Images use ![caption](url) markdown-image syntax rather than a custom
+   bracket format, so the article detail page can reliably detect and
+   render them as real <img> tags/galleries instead of literal text.
+   A gallery's photos are joined with single newlines (not blank lines)
+   so they land in the same paragraph chunk and render as one grid. */
 function blocksToText(){
   return blocks.map(b=>{
-    if(b.type==='image') return b.url ? `[Obrázok: ${b.url}]${b.caption?' — '+b.caption:''}` : '';
+    if(b.type==='image') return b.url ? `![${b.caption||''}](${b.url})` : '';
+    if(b.type==='gallery') return (b.images||[]).filter(g=>g.url).map(g=>`![${g.caption||''}](${g.url})`).join('\n');
     if(b.type==='heading') return '## '+(b.text||'');
     if(b.type==='quote') return '> '+(b.text||'');
     return (b.text||'');
   }).filter(t=>t.trim()).join('\n\n');
 }
 
-/* Plain text -> one paragraph block per line, when loading an existing
-   article back into the editor. Original block types are not recoverable
-   from plain text — this is a real, disclosed limitation, not a bug. */
+/* Plain text -> blocks, when loading an existing article back into the
+   editor. A chunk made entirely of ![](url) lines becomes one image
+   block (single line) or one gallery block (multiple lines) — everything
+   else becomes a plain paragraph. Heading/quote markers are not
+   recovered (disclosed limitation, same as before). */
 function textToBlocks(text){
   const parts=(text||'').split(/\n{2,}/).map(t=>t.trim()).filter(Boolean);
   if(parts.length===0) return [{type:'paragraph',text:''}];
-  return parts.map(t=>({type:'paragraph', text:t}));
+  const imgLineRe=/^!\[([^\]]*)\]\(([^)]+)\)$/;
+  return parts.map(chunk=>{
+    const lines=chunk.split('\n').map(l=>l.trim()).filter(Boolean);
+    const imgMatches=lines.map(l=>l.match(imgLineRe));
+    if(imgMatches.length && imgMatches.every(Boolean)){
+      if(imgMatches.length===1) return {type:'image', caption:imgMatches[0][1], url:imgMatches[0][2]};
+      return {type:'gallery', images: imgMatches.map(m=>({caption:m[1], url:m[2]}))};
+    }
+    return {type:'paragraph', text:chunk};
+  });
 }
 
 /* ════════ NAČÍTANIE existujúceho ════════ */
