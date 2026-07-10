@@ -160,6 +160,34 @@ button,input,select{font:inherit}
   font-size:inherit;
 }
 .dropdown-trigger:hover{background:rgba(255,255,255,.05)}
+.dropdown-trigger .caret{font-size:.7rem;opacity:.6}
+.dropdown-menu{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  min-width:180px;
+  background:#0e0e13;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:6px;
+  display:none;
+  z-index:50;
+  box-shadow:0 12px 36px rgba(0,0,0,.5);
+}
+.dropdown.open .dropdown-menu{display:block}
+.dropdown-menu a{
+  display:block;
+  padding:9px 12px;
+  border-radius:8px;
+  color:var(--text);
+  text-decoration:none;
+  font-weight:700;
+  font-size:.88rem;
+  border:none;
+  background:none;
+  min-height:auto;
+}
+.dropdown-menu a:hover{background:rgba(216,176,75,.08);color:var(--gold)}
 
 
 .lang-select-wrap{
@@ -801,6 +829,15 @@ button,input,select{font:inherit}
   var r = sessionStorage.getItem('csp_redirect');
   if(r){ sessionStorage.removeItem('csp_redirect'); window.history.replaceState(null,null,r); }
 })();
+function toggleNovinky(e){
+  e.stopPropagation();
+  document.getElementById('novinkyDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#novinkyDropdown')){
+    document.getElementById('novinkyDropdown')?.classList.remove('open');
+  }
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
@@ -819,7 +856,17 @@ button,input,select{font:inherit}
       <a href="./" class="icon-btn" title="Domov">🏠</a>
       <a href="./search/" class="icon-btn search-btn" title="Hľadať">🔍</a>
 
-      <a href="#" class="dropdown-trigger" style="display:inline-flex;align-items:center">NOVINKY</a>
+      <div class="dropdown" id="novinkyDropdown">
+        <button class="dropdown-trigger" type="button" onclick="toggleNovinky(event)">
+          NOVINKY <span class="caret">▾</span>
+        </button>
+        <div class="dropdown-menu">
+          <a href="/magazin/?cat=novinky">📰 Novinky</a>
+          <a href="/magazin/?cat=recenzie">⭐ Recenzie</a>
+          <a href="/magazin/?cat=historia">🏛 História</a>
+          <a href="/magazin/?cat=pravidla">📖 Pravidlá hry</a>
+        </div>
+      </div>
 
       <a href="./login/">Prihlásiť</a>
       <a href="./login/" class="primary">Pridaj sa</a>
