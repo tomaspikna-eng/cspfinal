@@ -140,7 +140,7 @@ button,input,select{font:inherit}
   font-size:1.1rem;
 }
 
-/* ŠPORTY dropdown */
+/* NOVINKY nav item */
 .dropdown{
   position:relative;
 }
@@ -160,34 +160,6 @@ button,input,select{font:inherit}
   font-size:inherit;
 }
 .dropdown-trigger:hover{background:rgba(255,255,255,.05)}
-.dropdown-trigger .caret{font-size:.7rem;opacity:.6}
-.dropdown-menu{
-  position:absolute;
-  top:calc(100% + 6px);
-  left:0;
-  min-width:180px;
-  background:#0e0e13;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:6px;
-  display:none;
-  z-index:50;
-  box-shadow:0 12px 36px rgba(0,0,0,.5);
-}
-.dropdown.open .dropdown-menu{display:block}
-.dropdown-menu a{
-  display:block;
-  padding:9px 12px;
-  border-radius:8px;
-  color:var(--text);
-  text-decoration:none;
-  font-weight:700;
-  font-size:.88rem;
-  border:none;
-  background:none;
-  min-height:auto;
-}
-.dropdown-menu a:hover{background:rgba(216,176,75,.08);color:var(--gold)}
 
 
 .lang-select-wrap{
@@ -823,17 +795,6 @@ button,input,select{font:inherit}
 .final-cta p{font-size:1.1rem;color:var(--muted2);max-width:600px;margin:0 auto 28px;line-height:1.55}
 .final-cta .cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 </style>
-<script>
-function toggleSporty(e){
-  e.stopPropagation();
-  document.getElementById('sportyDropdown').classList.toggle('open');
-}
-document.addEventListener('click', function(e){
-  if(!e.target.closest('#sportyDropdown')){
-    document.getElementById('sportyDropdown')?.classList.remove('open');
-  }
-});
-</script>
 
 <script>
 (function(){
@@ -858,17 +819,7 @@ document.addEventListener('click', function(e){
       <a href="./" class="icon-btn" title="Domov">🏠</a>
       <a href="./search/" class="icon-btn search-btn" title="Hľadať">🔍</a>
 
-      <div class="dropdown" id="sportyDropdown">
-        <button class="dropdown-trigger" type="button" onclick="toggleSporty(event)">
-          ŠPORTY <span class="caret">▾</span>
-        </button>
-        <div class="dropdown-menu">
-          <a href="/magazin/">🎱 Biliard</a>
-          <a href="/magazin/">🎯 Šípky</a>
-          <a href="/magazin/">🎳 Bowling</a>
-          <a href="#">🃏 Karty</a>
-        </div>
-      </div>
+      <a href="#" class="dropdown-trigger" style="display:inline-flex;align-items:center">NOVINKY</a>
 
       <a href="./login/">Prihlásiť</a>
       <a href="./login/" class="primary">Pridaj sa</a>
