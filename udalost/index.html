@@ -60,12 +60,6 @@ label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;marg
 
 .loading-gate{max-width:640px;margin:0 auto;padding:60px 20px;color:var(--muted2);font-size:.9rem}
 
-/* Local-storage-only notice, removed once this form writes to the real
-   `events` table (migration 0013). Deliberately visible, not hidden —
-   so it's obvious this isn't saving for real yet, matching project
-   convention of never quietly pretending unfinished features are done. */
-.wip-note{background:var(--gold-dim);border:1px solid var(--gold-b);border-radius:10px;padding:12px 14px;font-size:.8rem;color:var(--text-soft);margin-bottom:24px}
-.wip-note b{color:var(--gold)}
 
 .section-label{
   font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.14em;
@@ -240,51 +234,58 @@ function toast(msg, err){
   setTimeout(()=>{ t.className = 'toast' + (err ? ' err' : ''); }, 2400);
 }
 
-/* Saves locally for now — swap this for a real insert into the `events`
-   table (migration 0013) once it exists. Kept as one clearly-marked
-   function so that reconnection later is a one-place change. */
-function saveEvent(){
+/* Inserts into the real `events` table (migration 0018). Published
+   immediately — same as how tournaments and clubs work in this repo,
+   no draft/review step. */
+async function saveEvent(){
   const title = document.getElementById('evTitle').value.trim();
   const startsAt = document.getElementById('evStart').value;
   if(!title){ toast('Zadaj názov udalosti.', true); return; }
   if(!startsAt){ toast('Zadaj začiatok udalosti.', true); return; }
 
-  const event = {
-    id: 'ev'+Date.now(),
-    owner_email: currentSession.user.email,
-    event_type: 'other', // no type-selector in the UI anymore; kept in the data shape for forward-compatibility with migration 0013's required column
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Ukladám…';
+
+  const payload = {
+    owner_id: currentSession.user.id,
     title: title,
-    description: document.getElementById('evDescription').value.trim(),
+    description: document.getElementById('evDescription').value.trim() || null,
     sport: document.getElementById('evSport').value || null,
     discipline: document.getElementById('evDiscipline').value || null,
     location_text: document.getElementById('evLocation').value.trim() || null,
-    starts_at: startsAt,
-    ends_at: document.getElementById('evEnd').value || null,
-    created_at: new Date().toISOString(),
+    starts_at: new Date(startsAt).toISOString(),
+    ends_at: document.getElementById('evEnd').value ? new Date(document.getElementById('evEnd').value).toISOString() : null,
+    status: 'published',
   };
 
   try{
-    const key = 'csp_local_events_v1';
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    existing.unshift(event);
-    localStorage.setItem(key, JSON.stringify(existing));
-  }catch(err){
-    console.error('[udalost] Could not save locally:', err);
-    toast('Nepodarilo sa uložiť.', true);
-    return;
-  }
+    const { data: inserted, error } = await cspAuth.withTimeout(
+      cspAuth.client.from('events').insert(payload).select().single(),
+      8000, 'insert event'
+    );
+    if(error) throw error;
 
-  toast('Udalosť uložená (zatiaľ lokálne) ✓');
-  lastSavedEvent = event;
-  document.getElementById('shareBox').style.display = '';
-  document.getElementById('shareBox').scrollIntoView({behavior:'smooth', block:'start'});
+    lastSavedEvent = inserted;
+    toast('Udalosť vytvorená ✓');
+    document.getElementById('shareBox').style.display = '';
+    document.getElementById('shareBox').scrollIntoView({behavior:'smooth', block:'start'});
+  }catch(err){
+    console.error('[udalost] Failed to save event:', err);
+    toast('Nepodarilo sa uložiť udalosť. Skús to znova.', true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Vytvoriť udalosť';
+  }
 }
 
-/* Share text built from the event itself — no real public event page
-   exists yet (local-only storage), so this shares the event's details as
-   text rather than a link that wouldn't resolve for anyone else. Once
-   events live in the real `events` table with a public page, swap the
-   shared `url` for that real page's link. */
+/* Share text uses the real events row returned from the DB insert.
+   The shared URL points to /udalosti/ (the public events listing page).
+   A per-event deep-link anchor (e.g. /udalosti/#ev-{id}) would require
+   either server-side routing or a JS hash-router on the listing page.
+   Since /udalosti/ is a client-rendered static page without either,
+   using the listing URL directly is the practical choice — the user can
+   find their event at the top of the "Nadchádzajúce" section. */
 let lastSavedEvent = null;
 
 function buildShareText(){
@@ -296,7 +297,7 @@ function buildShareText(){
 
 function shareTo(network){
   const text = buildShareText();
-  const url = location.origin; // placeholder until events have a real public page
+  const url = location.origin + '/udalosti/';
   let target = null;
   if(network==='facebook'){
     target = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;

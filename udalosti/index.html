@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Udalosti · Connect Sports Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{
+  --bg:#060608; --bg2:#0d0d11; --bg3:#14141a; --bg4:#1a1a22;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.04);
+  --text:#f4f4f8; --text-soft:#a8a8b8; --muted:#6a6a7a; --muted2:#80809a;
+  --gold:#d4a843; --gold-bright:#e8b94f; --gold-dim:rgba(212,168,67,.10); --gold-b:rgba(212,168,67,.25);
+  --green:#1ec86a; --green-dim:rgba(30,200,106,.12);
+  --font:'Syne',sans-serif; --display:'Bebas Neue',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+input{font-family:inherit;font-size:.92rem;color:var(--text);background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:11px 13px;width:100%}
+input:focus{outline:none;border-color:var(--gold-b)}
+
+.topbar{position:sticky;top:0;z-index:20;background:rgba(6,6,8,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:900px;margin:0 auto;padding:0 20px;min-height:60px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--gold);color:#1a1000;font-family:var(--display);font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+.brand-word{font-family:var(--display);font-size:1.15rem;letter-spacing:.02em}
+.brand-word .g{color:var(--gold)} .brand-word .w{color:var(--text)}
+.tb-right{display:flex;align-items:center;gap:16px}
+.link-btn{font-size:.82rem;color:var(--gold);font-weight:600}
+.link-btn:hover{text-decoration:underline}
+
+.wrap{max-width:900px;margin:0 auto;padding:34px 20px 90px}
+
+.page-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.page-head h1{font-family:var(--display);font-size:2.4rem;letter-spacing:.01em}
+.page-head .count{font-family:var(--mono);font-size:.76rem;color:var(--muted2)}
+
+/* ── search + sport filter ── */
+.search-row{display:flex;gap:10px;margin-bottom:16px}
+.search-row input{flex:1}
+.sport-tabs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:34px}
+.tab-btn{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.03em;padding:7px 13px;border-radius:99px;border:1px solid var(--line);color:var(--text-soft);background:var(--bg2);transition:.14s}
+.tab-btn:hover{border-color:var(--gold-b)}
+.tab-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+
+/* ── section labels ── */
+.sec-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.sec-head h2{font-family:var(--display);font-size:1.3rem;letter-spacing:.01em}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-dim);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
+
+/* ── UPCOMING events — energetic, left gold accent ── */
+.live-list{display:flex;flex-direction:column;gap:8px;margin-bottom:40px}
+.live-row{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--green);cursor:pointer;transition:.14s}
+.live-row:hover{border-color:var(--gold-b);background:var(--bg3)}
+.live-row .dot{flex-shrink:0;margin-top:5px}
+.live-row .lr-main{flex:1;min-width:0}
+.live-row .lr-title{font-weight:700;font-size:.95rem}
+.live-row .lr-meta{font-size:.78rem;color:var(--muted2);margin-top:2px}
+.live-row .lr-sport{font-family:var(--mono);font-size:.68rem;font-weight:700;color:var(--gold);background:var(--gold-dim);padding:4px 9px;border-radius:6px;flex-shrink:0;white-space:nowrap}
+
+/* ── PAST events — quiet, dense, archival list ── */
+.done-list{border-top:1px solid var(--line)}
+.done-row{display:flex;align-items:center;gap:14px;padding:11px 4px;border-bottom:1px solid var(--line2);cursor:pointer;transition:.14s}
+.done-row:hover .dr-title{color:var(--gold)}
+.done-row .dr-date{font-family:var(--mono);font-size:.72rem;color:var(--muted);width:88px;flex-shrink:0}
+.done-row .dr-title{flex:1;min-width:0;font-size:.87rem;color:var(--text-soft);transition:.14s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.done-row .dr-sport{font-family:var(--mono);font-size:.68rem;color:var(--muted2);flex-shrink:0}
+
+.empty-state{padding:40px 20px;text-align:center;color:var(--muted);font-size:.86rem;border:1px dashed var(--line);border-radius:12px}
+
+/* ── detail modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-backdrop.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:26px;max-width:480px;width:100%}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.modal-head h2{font-family:var(--display);font-size:1.5rem;line-height:1.1;padding-right:14px}
+.modal-kicker{font-family:var(--mono);font-size:.68rem;color:var(--gold);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.close-btn{font-size:1.2rem;color:var(--muted);flex-shrink:0}
+.close-btn:hover{color:var(--text)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-box small{display:block;font-family:var(--mono);font-size:.66rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px}
+.detail-box strong{font-size:.88rem;font-weight:600;line-height:1.4}
+.detail-box.full{grid-column:1/-1}
+.create-link{display:inline-flex;align-items:center;gap:7px;margin-top:20px;font-size:.82rem;font-weight:600;color:var(--gold)}
+.create-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="/profil/">
+      <span class="brand-mark">C</span>
+      <span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span>
+    </a>
+    <div class="tb-right">
+      <a class="link-btn" href="/udalost/">＋ Nová udalosť</a>
+      <a class="link-btn" href="/profil/">← Profil</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>Udalosti</h1>
+    <span class="count" id="resultCount">— výsledkov</span>
+  </div>
+
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Hľadať udalosť, miesto, disciplínu…"/>
+  </div>
+  <div class="sport-tabs" id="sportTabs">
+    <button class="tab-btn active" data-sport="all" type="button">Všetko</button>
+  </div>
+
+  <div id="upcomingSectionWrap">
+    <div class="sec-head"><span class="live-dot"></span><h2>Nadchádzajúce</h2></div>
+    <div class="live-list" id="upcomingList"></div>
+  </div>
+
+  <div id="pastSectionWrap">
+    <div class="sec-head"><h2>Uplynulé</h2></div>
+    <div class="done-list" id="pastList"></div>
+  </div>
+
+  <div class="empty-state" id="emptyState" style="display:none">
+    Žiadne verejné udalosti sa nenašli.<br><br>
+    <a class="create-link" href="/udalost/">＋ Vytvoriť udalosť</a>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="detailModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-kicker" id="detailKicker">Detail udalosti</div>
+        <h2 id="detailTitle"></h2>
+      </div>
+      <button class="close-btn" id="closeDetailModal" type="button">✕</button>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-box"><small>Šport</small><strong id="detailSport"></strong></div>
+      <div class="detail-box"><small>Disciplína</small><strong id="detailDiscipline"></strong></div>
+      <div class="detail-box"><small>Miesto</small><strong id="detailLocation"></strong></div>
+      <div class="detail-box"><small>Dátum a čas</small><strong id="detailDate"></strong></div>
+      <div class="detail-box" id="detailOrgWrap"><small>Organizátor</small><strong id="detailOrganizer"></strong></div>
+      <div class="detail-box full" id="detailDescWrap"><small>Popis</small><strong id="detailDescription"></strong></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let events = [];
+let activeSport = "all";
+const now = new Date();
+
+const searchInput = document.getElementById("searchInput");
+const sportTabsWrap = document.getElementById("sportTabs");
+const upcomingList = document.getElementById("upcomingList");
+const pastList = document.getElementById("pastList");
+const upcomingSectionWrap = document.getElementById("upcomingSectionWrap");
+const pastSectionWrap = document.getElementById("pastSectionWrap");
+const resultCount = document.getElementById("resultCount");
+const emptyState = document.getElementById("emptyState");
+
+const detailModal = document.getElementById("detailModal");
+const detailKicker = document.getElementById("detailKicker");
+const detailTitle = document.getElementById("detailTitle");
+const detailSport = document.getElementById("detailSport");
+const detailDiscipline = document.getElementById("detailDiscipline");
+const detailLocation = document.getElementById("detailLocation");
+const detailDate = document.getElementById("detailDate");
+const detailOrganizer = document.getElementById("detailOrganizer");
+const detailOrgWrap = document.getElementById("detailOrgWrap");
+const detailDescription = document.getElementById("detailDescription");
+const detailDescWrap = document.getElementById("detailDescWrap");
+
+function normalizeText(v){ return (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+
+function fmtDateTime(iso, isoEnd){
+  if(!iso) return "—";
+  try{
+    const opts = { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" };
+    const start = new Date(iso).toLocaleString("sk-SK", opts);
+    if(!isoEnd) return start;
+    const end = new Date(isoEnd);
+    const startD = new Date(iso);
+    // If same date, show only the time for the end
+    const sameDay = startD.toDateString() === end.toDateString();
+    const endStr = sameDay
+      ? end.toLocaleTimeString("sk-SK", { hour:"2-digit", minute:"2-digit" })
+      : end.toLocaleString("sk-SK", opts);
+    return `${start} – ${endStr}`;
+  }catch(e){ return iso; }
+}
+
+function fmtShortDate(iso){
+  if(!iso) return "—";
+  try{ return new Date(iso).toLocaleDateString("sk-SK",{day:"2-digit",month:"2-digit"}); }
+  catch(e){ return iso; }
+}
+
+function fmtShortDateTime(iso){
+  if(!iso) return "—";
+  try{
+    return new Date(iso).toLocaleString("sk-SK",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  }catch(e){ return iso; }
+}
+
+async function loadEvents(){
+  try{
+    // Public read (anon+authenticated) for status='published' — migration
+    // 0018's events_select_published RLS policy allows this without a
+    // session. Ordered by starts_at ascending (soonest first). club_id
+    // join uses PostgREST's to-many shorthand; clubs.name is the only
+    // column needed (no profiles join — same anon-RLS reasoning as the
+    // tournaments listing in search/index.html).
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client.from("events")
+        .select("id, title, sport, discipline, location_text, starts_at, ends_at, description, club_id, clubs(name)")
+        .eq("status", "published")
+        .order("starts_at", { ascending: true }),
+      8000, "events lookup"
+    );
+    if(error){
+      console.error("[udalosti] Could not load events:", error);
+      emptyState.textContent = "Nepodarilo sa načítať udalosti.";
+      emptyState.style.display = "block";
+      upcomingSectionWrap.style.display = "none";
+      pastSectionWrap.style.display = "none";
+      return;
+    }
+    events = (data||[]).map(e=>({
+      id: e.id,
+      title: e.title,
+      sport: e.sport || "",
+      sportKey: normalizeText(e.sport),
+      discipline: e.discipline || "",
+      location: e.location_text || "",
+      starts_at: e.starts_at,
+      ends_at: e.ends_at || null,
+      description: e.description || "",
+      clubName: (e.clubs && e.clubs.name) ? e.clubs.name : null,
+      isUpcoming: new Date(e.starts_at) >= now,
+      dateShort: fmtShortDateTime(e.starts_at),
+      dateLabel: fmtDateTime(e.starts_at, e.ends_at),
+      search: [e.title, e.sport, e.discipline, e.location_text, e.description].filter(Boolean).join(" "),
+    }));
+  }catch(err){
+    console.error("[udalosti] loadEvents timed out:", err);
+    emptyState.textContent = "Nepodarilo sa načítať udalosti.";
+    emptyState.style.display = "block";
+    upcomingSectionWrap.style.display = "none";
+    pastSectionWrap.style.display = "none";
+    return;
+  }
+  buildSportTabs();
+  runSearch();
+}
+
+function buildSportTabs(){
+  const sports = [...new Set(events.map(e => e.sport).filter(Boolean))];
+  sportTabsWrap.innerHTML = '<button class="tab-btn active" data-sport="all" type="button">Všetko</button>' +
+    sports.map(sp => `<button class="tab-btn" data-sport="${normalizeText(sp)}" type="button">${sp}</button>`).join("");
+  sportTabsWrap.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      sportTabsWrap.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      activeSport = btn.dataset.sport;
+      runSearch();
+    });
+  });
+}
+
+function renderUpcoming(items){
+  upcomingList.innerHTML = items.map(e => {
+    const meta = [
+      e.location ? `📍 ${e.location}` : null,
+      e.clubName ? `🏟 ${e.clubName}` : null,
+      e.dateShort,
+    ].filter(Boolean).join("  ·  ");
+    return `
+      <div class="live-row" data-id="${e.id}">
+        <span class="live-dot dot"></span>
+        <div class="lr-main">
+          <div class="lr-title">${escH(e.title)}</div>
+          <div class="lr-meta">${escH(meta)}</div>
+        </div>
+        ${e.sport ? `<span class="lr-sport">${escH(e.sport)}</span>` : ""}
+      </div>`;
+  }).join("");
+  upcomingList.querySelectorAll(".live-row").forEach(row =>
+    row.addEventListener("click", () => openDetail(row.dataset.id))
+  );
+}
+
+function renderPast(items){
+  // Past list is sorted soonest-first from the DB; we want most-recent-first
+  // for the archival view (same as the tournament done-list pattern).
+  const reversed = [...items].reverse();
+  pastList.innerHTML = reversed.map(e => `
+    <div class="done-row" data-id="${e.id}">
+      <span class="dr-date">${escH(e.dateShort)}</span>
+      <span class="dr-title">${escH(e.title)}</span>
+      <span class="dr-sport">${escH(e.sport || "")}</span>
+    </div>
+  `).join("");
+  pastList.querySelectorAll(".done-row").forEach(row =>
+    row.addEventListener("click", () => openDetail(row.dataset.id))
+  );
+}
+
+function runSearch(){
+  const query = normalizeText(searchInput.value);
+  const filtered = events.filter(e => {
+    const sportOk = activeSport === "all" || e.sportKey === activeSport;
+    const queryOk = !query || normalizeText(e.search).includes(query);
+    return sportOk && queryOk;
+  });
+  const upcoming = filtered.filter(e => e.isUpcoming);
+  const past = filtered.filter(e => !e.isUpcoming);
+
+  renderUpcoming(upcoming);
+  renderPast(past);
+  upcomingSectionWrap.style.display = upcoming.length ? "" : "none";
+  pastSectionWrap.style.display = past.length ? "" : "none";
+  resultCount.textContent = filtered.length + " výsledkov";
+  emptyState.style.display = filtered.length === 0 ? "block" : "none";
+  if(filtered.length === 0){
+    emptyState.innerHTML = query || activeSport !== "all"
+      ? "Žiadne udalosti nezodpovedajú filtru."
+      : "Žiadne verejné udalosti sa nenašli.<br><br><a class=\"create-link\" href=\"/udalost/\">＋ Vytvoriť udalosť</a>";
+  }
+}
+
+function openDetail(id){
+  const e = events.find(x => x.id === id);
+  if(!e) return;
+  detailKicker.textContent = [e.sport, e.discipline].filter(Boolean).join(" · ") || "Udalosť";
+  detailTitle.textContent = e.title;
+  detailSport.textContent = e.sport || "—";
+  detailDiscipline.textContent = e.discipline || "—";
+  detailLocation.textContent = e.location || "—";
+  detailDate.textContent = e.dateLabel;
+  if(e.clubName){
+    detailOrganizer.textContent = e.clubName;
+    detailOrgWrap.style.display = "";
+  } else {
+    detailOrgWrap.style.display = "none";
+  }
+  if(e.description){
+    detailDescription.textContent = e.description;
+    detailDescWrap.style.display = "";
+  } else {
+    detailDescWrap.style.display = "none";
+  }
+  detailModal.classList.add("show");
+}
+
+function escH(s){ return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+document.getElementById("closeDetailModal").addEventListener("click", () => detailModal.classList.remove("show"));
+detailModal.addEventListener("click", e => { if(e.target === detailModal) detailModal.classList.remove("show"); });
+searchInput.addEventListener("input", runSearch);
+
+loadEvents();
+</script>
+</body>
+</html>
