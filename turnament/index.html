@@ -448,33 +448,97 @@ const TM = {
   },
   recomputeDKO(dko){
     const {W,L,SF,FIN,P3}=dko;
+    // Persisted bracket state lives in localStorage. Older/corrupted
+    // client state could contain additional B2b objects; renderMatchArea()
+    // renders L[3] verbatim, so those stale entries appeared as duplicate
+    // B2b matches even though buildDKO() has always defined exactly two.
+    // The locked design is two B2b winners feeding the cross-bracket SF,
+    // therefore normalize only the persisted array shape here -- never the
+    // routing/seeding itself -- before assigning its two canonical slots.
+    const normalizeB2b=()=>{
+      if(!Array.isArray(L[3])) L[3]=[];
+      for(let i=0;i<2;i++) if(!L[3][i]) L[3][i]=this.mkMatch(`B2b/${i+1}`);
+      L[3].length=2;
+      L[3].forEach((m,i)=>{ m.key=`B2b/${i+1}`; });
+    };
+    normalizeB2b();
+
     const inval=m=>{ if(m.resultSig && m.resultSig!==this.matchSig(m)){ m.winner=null;m.s1=null;m.s2=null;m.resultSig=null; } };
-    const autob=m=>{ if(m.p1&&m.p1.bye&&m.p2&&!m.p2.bye) m.winner=2; else if(m.p2&&m.p2.bye&&m.p1&&!m.p1.bye) m.winner=1; };
-    const wOf=m=> m.winner? (m.winner===1?m.p1:m.p2) : null;
-    const lOf=m=> m.winner? (m.winner===1?m.p2:m.p1) : null;
+    const wOf=m=>{
+      const winner=m.winner? (m.winner===1?m.p1:m.p2) : null;
+      return winner&&!winner.bye ? winner : null;
+    };
+    // A bye has no real loser. Returning the bye object here was the
+    // first part of the B-branch propagation bug: B1a/B1b received a
+    // synthetic "loser" instead of the correct no-player/null source.
+    const lOf=m=>{
+      const loser=m.winner? (m.winner===1?m.p2:m.p1) : null;
+      return loser&&!loser.bye ? loser : null;
+    };
+    const isResolved=m=>!!(m.winner||m._resolvedEmpty);
+    // Generalized version of A0's old autob() helper. It runs only when
+    // EVERY upstream source for a match is known resolved. This is the
+    // critical distinction between a real player waiting for an unfinished
+    // opponent (do not advance) and a real player whose counterpart chain
+    // permanently ended in a bye/no-real-loser (walkover, advance).
+    //
+    // Store resultSig on an automatic walkover too. If a later recompute
+    // ever changes participants, inval() clears the automatic outcome just
+    // like a manually entered score, then recalculates safely.
+    const resolveMatch=(m, inputsResolved)=>{
+      inval(m);
+      m._resolvedEmpty=false;
+      if(!inputsResolved) return;
+      const real1=!!(m.p1&&!m.p1.bye), real2=!!(m.p2&&!m.p2.bye);
+      if(real1&&!real2&&!m.winner){ m.winner=1; m.resultSig=this.matchSig(m); }
+      else if(real2&&!real1&&!m.winner){ m.winner=2; m.resultSig=this.matchSig(m); }
+      else if(!real1&&!real2){ m.winner=null; m.resultSig=null; m._resolvedEmpty=true; }
+    };
     // WINNER vetva
-    W[0].forEach(m=>{ inval(m); autob(m); });
-    W[1].forEach((m,i)=>{ m.p1=wOf(W[0][2*i]); m.p2=wOf(W[0][2*i+1]); }); W[1].forEach(inval);
-    W[2].forEach((m,i)=>{ m.p1=wOf(W[1][2*i]); m.p2=wOf(W[1][2*i+1]); }); W[2].forEach(inval);
+    W[0].forEach(m=>resolveMatch(m,true));
+    W[1].forEach((m,i)=>{
+      const a=W[0][2*i], b=W[0][2*i+1];
+      m.p1=wOf(a); m.p2=wOf(b);
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
+    W[2].forEach((m,i)=>{
+      const a=W[1][2*i], b=W[1][2*i+1];
+      m.p1=wOf(a); m.p2=wOf(b);
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
     // LOSER vetva
-    L[0].forEach((m,i)=>{ m.p1=lOf(W[0][2*i]); m.p2=lOf(W[0][2*i+1]); }); L[0].forEach(m=>{ inval(m); autob(m); });
+    L[0].forEach((m,i)=>{
+      const a=W[0][2*i], b=W[0][2*i+1];
+      m.p1=lOf(a); m.p2=lOf(b);
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
     const A1toB1b={0:2,1:3,2:0,3:1}; // A1/1→B,/2→A,/3→D,/4→C ; B1b poradie D,C,B,A
     L[1].forEach((m,i)=>{ m.p1=wOf(L[0][i]); m.p2=null; });
     W[1].forEach((m,i)=>{ L[1][A1toB1b[i]].p2=lOf(m); });
-    L[1].forEach(m=>{ inval(m); autob(m); });
-    L[2].forEach((m,i)=>{ m.p1=wOf(L[1][2*i]); m.p2=wOf(L[1][2*i+1]); }); L[2].forEach(inval);
+    L[1].forEach((m,i)=>{
+      const a=L[0][i], b=W[1][Object.keys(A1toB1b).find(k=>A1toB1b[k]===i)];
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
+    L[2].forEach((m,i)=>{
+      const a=L[1][2*i], b=L[1][2*i+1];
+      m.p1=wOf(a); m.p2=wOf(b);
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
     const A2toB2b={0:0,1:1}; // A2/1→F, A2/2→E
     L[3].forEach((m,i)=>{ m.p1=wOf(L[2][i]); m.p2=null; });
     W[2].forEach((m,i)=>{ L[3][A2toB2b[i]].p2=lOf(m); });
-    L[3].forEach(inval);
+    L[3].forEach((m,i)=>{
+      const a=L[2][i], b=W[2][Object.keys(A2toB2b).find(k=>A2toB2b[k]===i)];
+      resolveMatch(m,isResolved(a)&&isResolved(b));
+    });
     // SEMIFINÁLE — víťaz A2 × víťaz B2b (krížom, aby sa nestretli tí istí)
     SF[0].p1=wOf(W[2][0]); SF[0].p2=wOf(L[3][1]); // A2/1 víťaz vs B2b/2 víťaz
     SF[1].p1=wOf(W[2][1]); SF[1].p2=wOf(L[3][0]); // A2/2 víťaz vs B2b/1 víťaz
-    SF.forEach(inval);
+    SF.forEach((m,i)=>resolveMatch(m,isResolved(W[2][i])&&isResolved(L[3][1-i])));
     // FINÁLE (1./2.)
-    FIN[0].p1=wOf(SF[0]); FIN[0].p2=wOf(SF[1]); inval(FIN[0]);
+    FIN[0].p1=wOf(SF[0]); FIN[0].p2=wOf(SF[1]); resolveMatch(FIN[0],isResolved(SF[0])&&isResolved(SF[1]));
     // O 3. MIESTO (porazení zo SF)
-    P3[0].p1=lOf(SF[0]); P3[0].p2=lOf(SF[1]); inval(P3[0]);
+    P3[0].p1=lOf(SF[0]); P3[0].p2=lOf(SF[1]); resolveMatch(P3[0],isResolved(SF[0])&&isResolved(SF[1]));
   },
   dkoStandings(dko){
     const wOf=m=> m.winner? (m.winner===1?m.p1:m.p2) : null;
