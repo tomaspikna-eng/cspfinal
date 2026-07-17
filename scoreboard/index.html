@@ -124,6 +124,15 @@ summary b{color:var(--gold)}
 .quick.miss{color:var(--muted)}
 .keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:420px}
 .keypad-grid .key{min-height:60px;font-size:24px;font-weight:700;background:var(--panel2);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+
+.timer-controls button{
+  min-width:40px;min-height:34px;border-radius:8px;background:var(--panel2);
+  color:var(--muted);font-weight:700;cursor:pointer;transition:.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.timer-controls button:hover:not(:disabled){background:var(--panel3,#2a2a2a);color:var(--fg,#fff)}
+.timer-controls button:disabled{opacity:.35;cursor:default}
+.timer-controls button.active{background:var(--accent,#2ecc71);color:#06230f}
 .keypad-grid .key:hover{border-color:var(--gold);color:var(--gold)}
 .keypad-grid .key:active{transform:scale(.96)}
 .keypad-grid .key-fn{color:var(--muted);font-size:20px}
@@ -213,7 +222,15 @@ summary b{color:var(--gold)}
   <div class="top">
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
     <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
-    <div class="status"><div class="label2">Čas zápasu</div><div class="period" id="matchTimer">00:00</div></div>
+    <div class="status">
+      <div class="label2">Čas zápasu</div>
+      <div class="period" id="matchTimer">00:00</div>
+      <div class="timer-controls" style="display:flex;gap:6px;margin-top:8px;justify-content:center">
+        <button id="timerStartBtn" title="Štart">▶</button>
+        <button id="timerPauseBtn" title="Pauza">⏸</button>
+        <button id="timerStopBtn" title="Stop (vynuluje čas)">⏹</button>
+      </div>
+    </div>
   </div>
 
   <div class="stage-row" id="stageRow">
@@ -257,8 +274,8 @@ const SPORTS={
   darts:{label:"Šípky",icon:"🎯",disciplines:["501","301"]},
   other:{label:"Ostatné",icon:"🏓",disciplines:["Univerzál"]},
 };
-const POINT_DISCIPLINES=["Snooker","Pyramída","Karambol"];
-const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100};
+const POINT_DISCIPLINES=["Snooker","Pyramída","Karambol","14.1 continuous"];
+const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100,"14.1 continuous":100};
 const START_SCORE={"501":501,"301":301};
 
 /* ════════════════════ URL (Club Manager) ════════════════════ */
@@ -355,17 +372,43 @@ function resetScoresForMode(){
 function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : state.discipline; }
 
 /* ════════════════════ STOPWATCH (match duration) ════════════════════════
-   A simple, non-persisted running clock: matchStartTime is a plain
-   Date.now() timestamp, set once on script load (first render) and reset
-   only in resetAll() below -- a genuinely new match. newPeriod() and the
-   mode-specific per-frame/leg/set resets (resetScoresForMode(), the
-   framePoints/points zeroing inside awardFrame()/uniWinSet()/
-   dartsWinLeg(), applySettings()) deliberately do NOT touch this, since
-   those all happen *within* the same match, per the task's explicit
-   distinction. Doesn't survive a hard reload -- per the task, restarting
-   on reload is acceptable, not a bug to fix here. */
-let matchStartTime=Date.now();
-function elapsedSeconds(){ return Math.max(0,Math.floor((Date.now()-matchStartTime)/1000)); }
+   Manually controlled (Štart/Pauza/Stop) — does NOT auto-run. Model:
+   accumulatedSeconds = time banked from previous running segments,
+   runningSince = timestamp the current segment started (null = paused/
+   stopped). elapsedSeconds() = accumulated + whatever's ticked since
+   runningSince, so pausing/resuming never loses or double-counts time.
+   resetAll() is still the only place that fully resets this to zero
+   (genuinely new match) -- newPeriod()/applySettings()/per-frame resets
+   deliberately don't touch it, same as before. Doesn't survive a hard
+   reload -- acceptable, not a bug. */
+let accumulatedSeconds=0;
+let runningSince=null;
+function elapsedSeconds(){
+  return accumulatedSeconds + (runningSince ? Math.max(0,Math.floor((Date.now()-runningSince)/1000)) : 0);
+}
+function startTimer(){
+  if(runningSince) return; // already running
+  runningSince=Date.now();
+  syncTimerButtons();
+}
+function pauseTimer(){
+  if(!runningSince) return; // already paused
+  accumulatedSeconds=elapsedSeconds();
+  runningSince=null;
+  syncTimerButtons();
+}
+function stopTimer(){
+  accumulatedSeconds=0;
+  runningSince=null;
+  tickMatchTimer();
+  syncTimerButtons();
+}
+function syncTimerButtons(){
+  const running=!!runningSince;
+  $("timerStartBtn").disabled=running;
+  $("timerPauseBtn").disabled=!running;
+  $("timerStartBtn").classList.toggle("active",running);
+}
 function formatDuration(totalSeconds){
   const h=Math.floor(totalSeconds/3600), m=Math.floor((totalSeconds%3600)/60), s=totalSeconds%60;
   const pad=n=>String(n).padStart(2,"0");
@@ -373,7 +416,11 @@ function formatDuration(totalSeconds){
 }
 function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSeconds()); }
 tickMatchTimer();
+syncTimerButtons();
 setInterval(tickMatchTimer,1000);
+$("timerStartBtn").onclick=startTimer;
+$("timerPauseBtn").onclick=pauseTimer;
+$("timerStopBtn").onclick=stopTimer;
 
 /* ════════════════════ TRAINING HISTORY (migration 0016) ════════════════════
    Fire-and-forget: called from each mode's match-win point below. Only
@@ -634,8 +681,7 @@ function resetAll(){
   Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
-  matchStartTime=Date.now(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this
-  tickMatchTimer();
+  stopTimer(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this. Manual timer -- stays stopped until Štart is pressed.
   addLog("Zápas resetovaný, nastavenia zostali");
   syncSettingsUI();render();
 }
