@@ -68,6 +68,31 @@ summary b{color:var(--gold)}
 .players{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
 .players.three{grid-template-columns:repeat(3,1fr)}
 @media(max-width:680px){.players,.players.three{grid-template-columns:1fr}}
+
+/* Centered-keypad layout — biliard "body" mode only (Snooker/Karambol/
+   Pyramída), landscape tablets/monitors. Darts and universal mode are
+   completely unaffected (default .stage-row is a plain block, same as
+   the old markup's normal top-to-bottom stacking). Uses display:contents
+   on #players so its two player cards become direct grid items of
+   #stageRow -- safe against #players being fully rebuilt on every
+   render(), since nothing is physically moved into/out of #keypadPanel.
+   Score displays stay dominant: players get 1fr each, keypad gets a
+   fixed ~25%-of-row share via minmax. Falls back to normal stacking
+   below 900px so it never fights the existing <680px single-column
+   fallback on narrow/portrait devices. */
+.stage-row{margin-bottom:16px}
+@media(min-width:901px){
+  .stage-row.split-keypad{
+    display:grid;
+    grid-template-columns:1fr minmax(280px,25%) 1fr;
+    gap:14px;align-items:start;margin-bottom:0;
+  }
+  .stage-row.split-keypad .players{display:contents;margin-bottom:0}
+  .stage-row.split-keypad .players .player:nth-of-type(1){order:1}
+  .stage-row.split-keypad .players .player:nth-of-type(2){order:3}
+  .stage-row.split-keypad .keypad-panel{order:2;margin-bottom:0;max-width:none}
+  .stage-row.split-keypad .keypad-grid{max-width:none}
+}
 .player{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;transition:.15s}
 .player.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 12px 40px rgba(212,168,67,.12)}
 .player .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -191,6 +216,7 @@ summary b{color:var(--gold)}
     <div class="status"><div class="label2">Čas zápasu</div><div class="period" id="matchTimer">00:00</div></div>
   </div>
 
+  <div class="stage-row" id="stageRow">
   <div class="players" id="players"></div>
 
   <!-- KEYPAD (body/šípky) -->
@@ -218,6 +244,7 @@ summary b{color:var(--gold)}
       <button class="key key-fn" id="clearRunBtn">C</button><button class="key" data-d="0">0</button><button class="key key-fn" id="backRunBtn">⌫</button>
     </div>
     <div class="frame-actions" id="frameActions"></div>
+  </div>
   </div>
 
   <div class="log"><h2>Priebeh</h2><div class="log-list" id="logList"></div></div>
@@ -399,6 +426,10 @@ function render(){
   const keypad = (m==="points"||m==="darts");
   $("keypadPanel").classList.toggle("hidden",!keypad);
   $("quickScores").classList.toggle("hidden",m!=="darts");
+  // Centered-keypad layout only for biliard "points" mode (landscape
+  // tablets/monitors) — darts (portrait, stacked) and universal mode
+  // (no keypad at all) are untouched.
+  $("stageRow").classList.toggle("split-keypad", m==="points");
   if(keypad){
     $("keypadLabel").innerHTML = (m==="darts"?"Hod (súčet 3 šípok)":"Aktuálny run")+' — <span id="keypadPlayer">'+activePlayers()[state.currentIndex].name+'</span>';
     $("runDisplay").textContent=state.runInput;
