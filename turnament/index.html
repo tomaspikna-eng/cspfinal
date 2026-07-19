@@ -795,6 +795,122 @@ function ensureBracket(t){
     }
   }
 }
+
+/* ── GROUPS → KNOCKOUT TRANSITION ──────────────────────────────────────
+   The original combo UI already calculated allDone and promised
+   "A1 vs B3…" but never did anything with it. The functions below are
+   the one transition implementation for both rr_sko and rr_dko: they
+   reuse rrTable() (the exact standings logic already rendered on screen)
+   and feed its qualifiers into the existing KO engines, rather than
+   introducing a parallel bracket generator.
+
+   The cross-seed order is a conventional snake by finishing position:
+   A1,B1,… then the next position in reverse group order, then forward
+   again. With two groups this is A1,B1,B2,A2,A3,B3…; it is the existing
+   UI's promised A1-vs-B3-style cross-group principle (same-group
+   qualifiers are distributed through opposite halves where possible).
+*/
+function comboAllGroupsDone(t){
+  return !!(t.grp && t.grp.groups && t.grp.groups.every(g=>g.matches.every(m=>m.winner!=null)));
+}
+function comboStandings(t){
+  const rows=[];
+  t.grp.groups.forEach((g,gi)=>{
+    const table=rrTable(g.players,g.matches);
+    table.slice(0,Math.min(t.grp.advance,g.players.length)).forEach((stat,rank)=>{
+      const player=g.players.find(p=>p.name===stat.name);
+      if(player) rows.push({player,groupIndex:gi,group:g.name,rank:rank+1,stat});
+    });
+  });
+  return rows;
+}
+function comboCrossSeed(rows,groupCount,advance){
+  const byGroup=Array.from({length:groupCount},()=>[]);
+  rows.forEach(r=>byGroup[r.groupIndex].push(r));
+  const ordered=[];
+  for(let rank=0;rank<advance;rank++){
+    const indexes=Array.from({length:groupCount},(_,i)=>i);
+    if(rank%2===1) indexes.reverse();
+    indexes.forEach(i=>{ if(byGroup[i][rank]) ordered.push(byGroup[i][rank]); });
+  }
+  return ordered;
+}
+function comboOverallTop(rows,k){
+  return [...rows].sort((a,b)=>
+    b.stat.p-a.stat.p || b.stat.w-a.stat.w ||
+    (b.stat.gw-b.stat.gl)-(a.stat.gw-a.stat.gl) ||
+    b.stat.pct-a.stat.pct || a.player.seed-b.player.seed
+  ).slice(0,k);
+}
+function protectedStageSize(k){
+  // Smallest clean KO stage that can contain the protected seeds plus at
+  // least one preliminary survivor. K=2 therefore intentionally means a
+  // 4-player semifinal stage, exactly as the owner-confirmed examples.
+  return TM.nextPow2(Math.max(2,k+1));
+}
+function createProtectedPhase2(crossSeeded,k){
+  const protectedRows=comboOverallTop(crossSeeded,k);
+  const protectedIds=new Set(protectedRows.map(r=>r.player.id||r.player.name));
+  const prelimPlayers=crossSeeded.filter(r=>!protectedIds.has(r.player.id||r.player.name)).map(r=>r.player);
+  const stageSize=protectedStageSize(k);
+  const survivorCount=stageSize-k;
+  const prelim=TM.buildSKO(prelimPlayers);
+  // Stop at the first round whose output has exactly survivorCount player
+  // slots. A next round with one match has two slots — comparing just its
+  // match count would incorrectly stop the confirmed 6→2 case one round
+  // too early.
+  // For 4→2 this is preliminary round 0; for the confirmed 6→2 case
+  // (from 8 total advancers, K=2) it is round 1, using the engine's
+  // ordinary non-power-of-two byes rather than special-case math.
+  let cutoff=prelim.rounds.length-2;
+  for(let r=0;r<prelim.rounds.length-1;r++){
+    if(prelim.rounds[r+1].length*2===survivorCount){ cutoff=r; break; }
+  }
+  return {
+    kind:'protected-sko',
+    protected:protectedRows.map(r=>r.player),
+    prelim,
+    prelimCutoff:cutoff,
+    survivorCount,
+    main:null
+  };
+}
+function protectedPrelimComplete(phase){
+  return phase.prelim.rounds.slice(0,phase.prelimCutoff+1).every(round=>round.every(m=>m.winner!=null));
+}
+function maybeGenerateComboPhase(t){
+  if(!comboAllGroupsDone(t)) return false;
+  if(!t.phase2){
+    const standings=comboStandings(t);
+    const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance);
+    // Protected seeds are explicitly SKO-only. rr_dko always follows the
+    // standard transition, regardless of any stale/local setting value.
+    const k=t.format==='rr_sko'?Math.min(Math.max(0,+t.protectedSeeds||0),Math.max(0,crossSeeded.length-1)):0;
+    if(k>0){
+      t.phase2=createProtectedPhase2(crossSeeded,k);
+    }else if(t.format==='rr_sko'){
+      t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
+    }else{
+      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player))};
+    }
+  }
+  if(t.phase2.kind==='protected-sko'){
+    TM.recomputeSKO(t.phase2.prelim);
+    if(!t.phase2.main && protectedPrelimComplete(t.phase2)){
+      const survivors=t.phase2.prelim.rounds[t.phase2.prelimCutoff+1]
+        .flatMap(m=>[m.p1,m.p2]).filter(p=>p&&!p.bye);
+      // The preliminary cutoff is chosen so exactly survivorCount slots
+      // exist; filter defensively in case a malformed legacy local state
+      // contained an extra bye placeholder.
+      t.phase2.main=TM.buildSKO([...t.phase2.protected,...survivors.slice(0,t.phase2.survivorCount)]);
+    }
+  }else if(t.phase2.kind==='standard-sko'){
+    TM.recomputeSKO(t.phase2.bracket);
+  }else if(t.phase2.kind==='standard-dko'){
+    TM.recomputeDKO(t.phase2.dko);
+  }
+  return true;
+}
 /* Match/bracket PROGRESS only (scores, winners) -- still localStorage,
    per the task's scope boundary, but now scoped to this one real
    tournament id rather than as part of one big array of full tournament
@@ -802,7 +918,10 @@ function ensureBracket(t){
    loaded fresh in viewDetail() below, never written here. */
 function persistT(){
   if(!curT) return;
-  saveBracketState(curT.id, { bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp });
+  saveBracketState(curT.id, {
+    bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp,
+    phase2:curT.phase2, protectedSeeds:curT.protectedSeeds
+  });
 }
 
 async function viewDetail(id){
@@ -847,12 +966,25 @@ async function viewDetail(id){
   const hadLocalBracket = Object.keys(localState).length > 0;
   curT = { ...t, ...localState };
   ensureBracket(curT);
+  // A completed group phase may have been loaded from another browser or
+  // from an older local state. Generate/recompute phase 2 here as well as
+  // immediately after score entry, so the transition is deterministic on
+  // reload and not tied to a particular click.
+  maybeGenerateComboPhase(curT);
   if(!hadLocalBracket && matchRows.length){
     applyRealMatches(matchRows);
     if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
     else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
-    // rr / rr_sko / rr_dko: no separate advancement step, same as
-    // recomputeFor()'s existing behavior for those formats.
+    else if(curT.format==='rr_sko'||curT.format==='rr_dko'){
+      // Group rows are replayed first. That may complete the group phase
+      // and create phase2; replay once more afterward so any saved phase-2
+      // match rows (p2s/p2p/p2m/p2W/p2L/p2F) also find their real target.
+      maybeGenerateComboPhase(curT);
+      applyRealMatches(matchRows);
+      maybeGenerateComboPhase(curT);
+    }
+    // rr: no separate advancement step, same as recomputeFor()'s existing
+    // behavior for that format.
     finalizeAppliedMatches(matchRows);
   }
   persistT();
@@ -909,7 +1041,9 @@ async function editTournament(id){
       8000, 'load tournament players'
     );
     if(pErr) throw pErr;
+    const bracketState=loadBracketState(id);
     go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
+                   protectedSeeds: bracketState.protectedSeeds || 0,
                    players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
   } catch(err){
     console.error('[turnament] Failed to load tournament for editing:', err);
@@ -991,9 +1125,57 @@ function renderMatchArea(t){
       g.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="rr-round-label mono">Kolo ${m.round}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`); });
     });
     const allDone=grp.groups.every(g=>g.matches.every(m=>m.winner!=null));
-    html+=`<div class="note-box" style="margin-top:16px">${allDone?'✓ Skupiny dohrané — ':''}Po dohraní skupín sa postupujúci nasadia krížom do ${koType} pavúka (A1 vs B3…). Generovanie pavúka finalizujeme ako ďalší krok.</div>`;
+    if(!allDone){
+      html+=`<div class="note-box" style="margin-top:16px">Po dohraní skupín sa postupujúci nasadia krížom do ${koType} pavúka (A1 vs B3…).</div>`;
+    }else if(!t.phase2){
+      // Defensive loading state only: maybeGenerateComboPhase() normally
+      // creates phase2 before this render call.
+      html+=`<div class="note-box" style="margin-top:16px">✓ Skupiny dohrané — generujem pavúk…</div>`;
+    }else{
+      html+=renderComboPhase2(t.phase2);
+    }
     return html;
   }
+}
+
+function renderPhaseSKO(bracket,prefix,title,maxRound){
+  const champ=TM.champion(bracket);
+  let html=`<div class="branch-label win" style="margin-top:22px">${title}</div>`;
+  if(champ&&maxRound===undefined) html+=`<div class="champ-banner">🏆 Víťaz fázy: <b>${champ.name}</b></div>`;
+  bracket.rounds.slice(0,maxRound===undefined?undefined:maxRound+1).forEach((round,ri)=>{
+    html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,bracket.total)}</span><span class="round-code mono">${TM.roundCode(ri,bracket.total)}</span></div>`;
+    round.forEach((m,mi)=>{ html+=matchRow(m,`${prefix}:${ri}:${mi}`); });
+    html+=`</div>`;
+  });
+  return html;
+}
+function renderPhaseDKO(dko){
+  const sect=(title,cls,rounds,names,prefix)=>{
+    let h=`<div class="branch-label ${cls}" style="margin-top:22px">${title}</div>`;
+    rounds.forEach((round,ri)=>{
+      h+=`<div class="round-block"><div class="round-head"><span class="round-name">${names[ri]}</span></div>`;
+      round.forEach((m,mi)=>{ h+=matchRow(m,`${prefix}:${ri}:${mi}`); });
+      h+=`</div>`;
+    });
+    return h;
+  };
+  return sect('▲ Phase 2 · Winner vetva (A)','win',dko.W,['A0 · 1. kolo','A1 · osemfinále','A2 · štvrťfinále'],'p2W')+
+    sect('▼ Phase 2 · Loser vetva (B)','lose',dko.L,['B1a · loser 1','B1b · loser 2','B2a · loser 3','B2b · loser 4'],'p2L')+
+    sect('◆ Phase 2 · Finálová časť','conv',[dko.SF,dko.FIN,dko.P3],['Semifinále','Finále','O 3. miesto'],'p2F');
+}
+function renderComboPhase2(phase){
+  if(phase.kind==='standard-sko') return renderPhaseSKO(phase.bracket,'p2s','✓ Phase 2 · Single KO');
+  if(phase.kind==='standard-dko') return renderPhaseDKO(phase.dko);
+  let html=`<div class="note-box" style="margin-top:18px"><b>Chránené nasadenie:</b> ${phase.protected.map(p=>p.name).join(', ')} čaká priamo na hlavný pavúk.</div>`;
+  if(!phase.main){
+    // Do not render the unused final of the temporary preliminary
+    // bracket: after cutoff winners are collected into the protected
+    // seeds' main bracket, rather than playing a preliminary champion.
+    html+=renderPhaseSKO(phase.prelim,'p2p','✓ Phase 2 · Predkolo',phase.prelimCutoff);
+    return html;
+  }
+  html+=renderPhaseSKO(phase.main,'p2m','✓ Phase 2 · Hlavný pavúk');
+  return html;
 }
 
 /* Pomocná: kompletný rebríček (celkové poradie) */
@@ -1050,12 +1232,22 @@ function getMatchByLoc(loc){
   if(k==='L') return curT.dko.L[+a][+b];
   if(k==='F'){ const arr=[curT.dko.SF,curT.dko.FIN,curT.dko.P3][+a]; return arr[+b]; }
   if(k==='grp') return curT.grp.groups[+a].matches[+b];
+  if(k==='p2s') return curT.phase2.bracket.rounds[+a][+b];
+  if(k==='p2p') return curT.phase2.prelim.rounds[+a][+b];
+  if(k==='p2m') return curT.phase2.main.rounds[+a][+b];
+  if(k==='p2W') return curT.phase2.dko.W[+a][+b];
+  if(k==='p2L') return curT.phase2.dko.L[+a][+b];
+  if(k==='p2F'){ const arr=[curT.phase2.dko.SF,curT.phase2.dko.FIN,curT.phase2.dko.P3][+a]; return arr[+b]; }
   return null;
 }
 function recomputeFor(loc){
   const k=loc.split(':')[0];
   if(k==='sko') TM.recomputeSKO(curT.bracket);
   else if(k==='W'||k==='L'||k==='F') TM.recomputeDKO(curT.dko);
+  else if(k==='p2s') TM.recomputeSKO(curT.phase2.bracket);
+  else if(k==='p2p') TM.recomputeSKO(curT.phase2.prelim);
+  else if(k==='p2m') TM.recomputeSKO(curT.phase2.main);
+  else if(k==='p2W'||k==='p2L'||k==='p2F') TM.recomputeDKO(curT.phase2.dko);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
 
@@ -1192,7 +1384,12 @@ async function saveMatch(){
   // it runs exactly as before, on the same local m/curT state. Only the
   // real DB write below is new.
   m.s1=s1; m.s2=s2; m.winner=s1>s2?1:2; m.resultSig=TM.matchSig(m);
-  recomputeFor(editLoc); persistT();
+  recomputeFor(editLoc);
+  // Group result may have completed the final pending group match, or a
+  // protected preliminary round may have produced its required survivors.
+  // This is deliberately automatic: no separate \"generate\" click.
+  maybeGenerateComboPhase(curT);
+  persistT();
   const savedLoc=editLoc, savedM=m;
   closeMatch();
   document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
@@ -1207,7 +1404,15 @@ async function saveMatch(){
 }
 async function clearMatch(){
   const m=getMatchByLoc(editLoc); m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
-  recomputeFor(editLoc); persistT();
+  const clearedLoc=editLoc;
+  recomputeFor(clearedLoc);
+  // A group result no longer being final invalidates every generated phase
+  // 2 slot. Likewise, clearing a protected preliminary result invalidates
+  // its already-built main bracket. They will regenerate automatically
+  // once the necessary results are complete again.
+  if(clearedLoc.split(':')[0]==='grp') delete curT.phase2;
+  else if(clearedLoc.split(':')[0]==='p2p' && curT.phase2 && curT.phase2.kind==='protected-sko') curT.phase2.main=null;
+  persistT();
   const savedLoc=editLoc;
   closeMatch();
   document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
@@ -1246,7 +1451,7 @@ const FORMATS={
 const STEPS=[['Info','📋'],['Formát','🏆'],['Hráči','👥'],['Skupiny','🔢'],['Súhrn','✓']];
 
 let wiz={};
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', format:'sko', players:[], groups:2, advance:8, showBulk:false, editId:null}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', format:'sko', players:[], groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return isKarty()? [0,2,4] : (isCombo()? [0,1,2,3,4] : [0,1,2,4]); }
@@ -1341,6 +1546,7 @@ function renderWiz(){
           <div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
         <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div>
       </div>
+      ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/><div class="hint">0 = štandardný krížový pavúk. Pri K &gt; 0 top K postupujúcich čaká priamo na hlavný pavúk; ochrana platí len pre Skupiny → Single KO.</div></div>`:''}
       <div class="note-box" id="groupNote"></div>
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
     refreshGroupNote();
@@ -1355,6 +1561,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
+        ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
       <div id="genPreview"></div>
@@ -1385,7 +1592,8 @@ function refreshGroupNote(){
   const el=document.getElementById('groupNote'); if(!el) return;
   const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total));
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} bye)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (A1 vs B3…) finalizujeme v engine.`;
+  const protectedNote=wiz.format==='rr_sko'&&wiz.protectedSeeds?`<br><b>K = ${wiz.protectedSeeds}:</b> top ${wiz.protectedSeeds} celkovo chránených hráčov čaká na hlavný pavúk; ostatní odohrajú predkolo.`:'';
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} bye)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (A1 vs B3…) finalizujeme v engine.${protectedNote}`;
 }
 
 function renderPreview(){
@@ -1483,6 +1691,11 @@ async function createTournament(){
     // reconciled player set after an edit -- drop it rather than risk
     // stale results referencing players that no longer exist.
     if(wiz.editId) localStorage.removeItem(bracketStorageKey(tournamentId));
+    // protectedSeeds is frontend bracket configuration, like bracket
+    // progress itself. The existing tournaments schema has no such column,
+    // so persist it in the same tournament-scoped local state; DKO combo
+    // deliberately receives 0 because protected seeds are SKO-only.
+    if(isCombo()) saveBracketState(tournamentId,{protectedSeeds:wiz.format==='rr_sko'?wiz.protectedSeeds:0});
 
     const finalTournament = { ...tournamentRow, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
 
