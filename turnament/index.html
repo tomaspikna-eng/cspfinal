@@ -422,129 +422,132 @@ const TM = {
   },
   champion(bracket){ const last=bracket.rounds[bracket.rounds.length-1][0]; return last && last.winner ? (last.winner===1?last.p1:last.p2) : null; },
 
-  // ── DOUBLE KO (16, "skrátené od 4") — vetvy konvergujú v semifinále ──
-  mkMatch(key,p1,p2){ return {key, p1:p1||null, p2:p2||null, s1:null,s2:null,winner:null,resultSig:null}; },
+  // ── STANDARD DOUBLE ELIMINATION ────────────────────────────────
+  // Každý hráč vypadáva až po druhej prehre. Generické pre 4/8/16/32.
+  // Winner vetva má log2(N) kôl, Loser vetva 2*(log2(N)-1) kôl.
+  // Grand Final podporuje reset: ak víťaz Loser vetvy vyhrá GF1,
+  // odohrá sa GF2, pretože obaja finalisti majú vtedy po jednej prehre.
+  mkMatch(key,p1,p2){ return {key, p1:p1||null, p2:p2||null, s1:null,s2:null,winner:null,resultSig:null,_resolvedEmpty:false}; },
   buildDKO(players){
     const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
-    const N=16;
+    const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.bracketWithByes(seeded,N);
-    const W=[
-      Array.from({length:8},(_,i)=>this.mkMatch(`A0/${i+1}`,slots[2*i],slots[2*i+1])), // 16->8
-      Array.from({length:4},(_,i)=>this.mkMatch(`A1/${i+1}`)),                          // 8->4
-      Array.from({length:2},(_,i)=>this.mkMatch(`A2/${i+1}`)),                          // 4->2 (postup do SF)
-    ];
-    const L=[
-      Array.from({length:4},(_,i)=>this.mkMatch(`B1a/${i+1}`)), // A0 porazení
-      Array.from({length:4},(_,i)=>this.mkMatch(`B1b/${i+1}`)), // B1a víťazi + A1 porazení
-      Array.from({length:2},(_,i)=>this.mkMatch(`B2a/${i+1}`)), // B1b víťazi
-      Array.from({length:2},(_,i)=>this.mkMatch(`B2b/${i+1}`)), // B2a víťazi + A2 porazení (postup do SF)
-    ];
-    const SF=[this.mkMatch('SF/1'), this.mkMatch('SF/2')]; // A2 víťaz × B2b víťaz (krížom)
-    const FIN=[this.mkMatch('FIN/1')];                     // 1./2.
-    const P3=[this.mkMatch('P3/1')];                       // o 3. miesto
-    const dko={type:'dko',N,W,L,SF,FIN,P3};
+    const total=Math.log2(N);
+    const W=[];
+    for(let r=0;r<total;r++){
+      const count=N/Math.pow(2,r+1);
+      W.push(Array.from({length:count},(_,i)=>this.mkMatch(`A${r}/${i+1}`,r===0?slots[2*i]:null,r===0?slots[2*i+1]:null)));
+    }
+    const L=[];
+    for(let r=0;r<2*(total-1);r++){
+      const count=N/Math.pow(2,Math.floor(r/2)+2);
+      L.push(Array.from({length:count},(_,i)=>this.mkMatch(`B${r}/${i+1}`)));
+    }
+    const GF=[this.mkMatch('GF1/1'),this.mkMatch('GF2/1')];
+    const dko={type:'dko',schemaVersion:2,N,total,W,L,GF};
     this.recomputeDKO(dko);
     return dko;
   },
   recomputeDKO(dko){
-    const {W,L,SF,FIN,P3}=dko;
-    // Persisted bracket state lives in localStorage. Older/corrupted
-    // client state could contain additional B2b objects; renderMatchArea()
-    // renders L[3] verbatim, so those stale entries appeared as duplicate
-    // B2b matches even though buildDKO() has always defined exactly two.
-    // The locked design is two B2b winners feeding the cross-bracket SF,
-    // therefore normalize only the persisted array shape here -- never the
-    // routing/seeding itself -- before assigning its two canonical slots.
-    const normalizeB2b=()=>{
-      if(!Array.isArray(L[3])) L[3]=[];
-      for(let i=0;i<2;i++) if(!L[3][i]) L[3][i]=this.mkMatch(`B2b/${i+1}`);
-      L[3].length=2;
-      L[3].forEach((m,i)=>{ m.key=`B2b/${i+1}`; });
-    };
-    normalizeB2b();
-
-    const inval=m=>{ if(m.resultSig && m.resultSig!==this.matchSig(m)){ m.winner=null;m.s1=null;m.s2=null;m.resultSig=null; } };
-    const wOf=m=>{
-      const winner=m.winner? (m.winner===1?m.p1:m.p2) : null;
-      return winner&&!winner.bye ? winner : null;
-    };
-    // A bye has no real loser. Returning the bye object here was the
-    // first part of the B-branch propagation bug: B1a/B1b received a
-    // synthetic "loser" instead of the correct no-player/null source.
-    const lOf=m=>{
-      const loser=m.winner? (m.winner===1?m.p2:m.p1) : null;
-      return loser&&!loser.bye ? loser : null;
-    };
-    const isResolved=m=>!!(m.winner||m._resolvedEmpty);
-    // Generalized version of A0's old autob() helper. It runs only when
-    // EVERY upstream source for a match is known resolved. This is the
-    // critical distinction between a real player waiting for an unfinished
-    // opponent (do not advance) and a real player whose counterpart chain
-    // permanently ended in a bye/no-real-loser (walkover, advance).
-    //
-    // Store resultSig on an automatic walkover too. If a later recompute
-    // ever changes participants, inval() clears the automatic outcome just
-    // like a manually entered score, then recalculates safely.
-    const resolveMatch=(m, inputsResolved)=>{
-      inval(m);
+    const {W,L,GF}=dko;
+    const inval=m=>{
+      if(m.resultSig && m.resultSig!==this.matchSig(m)){
+        m.winner=null;m.s1=null;m.s2=null;m.resultSig=null;
+      }
       m._resolvedEmpty=false;
-      if(!inputsResolved) return;
-      const real1=!!(m.p1&&!m.p1.bye), real2=!!(m.p2&&!m.p2.bye);
-      if(real1&&!real2&&!m.winner){ m.winner=1; m.resultSig=this.matchSig(m); }
-      else if(real2&&!real1&&!m.winner){ m.winner=2; m.resultSig=this.matchSig(m); }
-      else if(!real1&&!real2){ m.winner=null; m.resultSig=null; m._resolvedEmpty=true; }
     };
-    // WINNER vetva
-    W[0].forEach(m=>resolveMatch(m,true));
-    W[1].forEach((m,i)=>{
-      const a=W[0][2*i], b=W[0][2*i+1];
-      m.p1=wOf(a); m.p2=wOf(b);
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    W[2].forEach((m,i)=>{
-      const a=W[1][2*i], b=W[1][2*i+1];
-      m.p1=wOf(a); m.p2=wOf(b);
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    // LOSER vetva
-    L[0].forEach((m,i)=>{
-      const a=W[0][2*i], b=W[0][2*i+1];
-      m.p1=lOf(a); m.p2=lOf(b);
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    const A1toB1b={0:2,1:3,2:0,3:1}; // A1/1→B,/2→A,/3→D,/4→C ; B1b poradie D,C,B,A
-    L[1].forEach((m,i)=>{ m.p1=wOf(L[0][i]); m.p2=null; });
-    W[1].forEach((m,i)=>{ L[1][A1toB1b[i]].p2=lOf(m); });
-    L[1].forEach((m,i)=>{
-      const a=L[0][i], b=W[1][Object.keys(A1toB1b).find(k=>A1toB1b[k]===i)];
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    L[2].forEach((m,i)=>{
-      const a=L[1][2*i], b=L[1][2*i+1];
-      m.p1=wOf(a); m.p2=wOf(b);
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    const A2toB2b={0:0,1:1}; // A2/1→F, A2/2→E
-    L[3].forEach((m,i)=>{ m.p1=wOf(L[2][i]); m.p2=null; });
-    W[2].forEach((m,i)=>{ L[3][A2toB2b[i]].p2=lOf(m); });
-    L[3].forEach((m,i)=>{
-      const a=L[2][i], b=W[2][Object.keys(A2toB2b).find(k=>A2toB2b[k]===i)];
-      resolveMatch(m,isResolved(a)&&isResolved(b));
-    });
-    // SEMIFINÁLE — víťaz A2 × víťaz B2b (krížom, aby sa nestretli tí istí)
-    SF[0].p1=wOf(W[2][0]); SF[0].p2=wOf(L[3][1]); // A2/1 víťaz vs B2b/2 víťaz
-    SF[1].p1=wOf(W[2][1]); SF[1].p2=wOf(L[3][0]); // A2/2 víťaz vs B2b/1 víťaz
-    SF.forEach((m,i)=>resolveMatch(m,isResolved(W[2][i])&&isResolved(L[3][1-i])));
-    // FINÁLE (1./2.)
-    FIN[0].p1=wOf(SF[0]); FIN[0].p2=wOf(SF[1]); resolveMatch(FIN[0],isResolved(SF[0])&&isResolved(SF[1]));
-    // O 3. MIESTO (porazení zo SF)
-    P3[0].p1=lOf(SF[0]); P3[0].p2=lOf(SF[1]); resolveMatch(P3[0],isResolved(SF[0])&&isResolved(SF[1]));
+    const wOf=m=>{
+      const p=m&&m.winner?(m.winner===1?m.p1:m.p2):null;
+      return p&&!p.bye?p:null;
+    };
+    const lOf=m=>{
+      const p=m&&m.winner?(m.winner===1?m.p2:m.p1):null;
+      return p&&!p.bye?p:null;
+    };
+    const resolved=m=>!!(m&&(m.winner||m._resolvedEmpty));
+    const resolve=(m,inputsResolved)=>{
+      inval(m);
+      if(!inputsResolved) return;
+      const a=!!(m.p1&&!m.p1.bye), b=!!(m.p2&&!m.p2.bye);
+      if(a&&!b&&!m.winner){m.winner=1;m.resultSig=this.matchSig(m);}
+      else if(b&&!a&&!m.winner){m.winner=2;m.resultSig=this.matchSig(m);}
+      else if(!a&&!b){m._resolvedEmpty=true;m.resultSig=null;}
+    };
+
+    // Winner bracket.
+    W[0].forEach(m=>resolve(m,true));
+    for(let r=1;r<W.length;r++){
+      W[r].forEach((m,i)=>{
+        const a=W[r-1][2*i], b=W[r-1][2*i+1];
+        m.p1=wOf(a);m.p2=wOf(b);
+        resolve(m,resolved(a)&&resolved(b));
+      });
+    }
+
+    // Loser round 0 receives paired losers from Winner round 0.
+    if(L.length){
+      L[0].forEach((m,i)=>{
+        const a=W[0][2*i], b=W[0][2*i+1];
+        m.p1=lOf(a);m.p2=lOf(b);
+        resolve(m,resolved(a)&&resolved(b));
+      });
+    }
+
+    // Odd loser rounds receive one survivor from the previous L round
+    // and one loser from the corresponding Winner round. Reverse mapping
+    // prevents an immediate rematch with the opponent from the W branch.
+    // Even loser rounds pair survivors inside the L branch.
+    for(let r=1;r<L.length;r++){
+      const current=L[r], prev=L[r-1];
+      if(r%2===1){
+        const wRound=(r+1)/2;
+        current.forEach((m,i)=>{
+          const incoming=W[wRound][current.length-1-i];
+          m.p1=wOf(prev[i]);m.p2=lOf(incoming);
+          resolve(m,resolved(prev[i])&&resolved(incoming));
+        });
+      }else{
+        current.forEach((m,i)=>{
+          const a=prev[2*i], b=prev[2*i+1];
+          m.p1=wOf(a);m.p2=wOf(b);
+          resolve(m,resolved(a)&&resolved(b));
+        });
+      }
+    }
+
+    const wFinal=W[W.length-1][0];
+    const lFinal=L[L.length-1][0];
+    GF[0].p1=wOf(wFinal);GF[0].p2=wOf(lFinal);
+    resolve(GF[0],resolved(wFinal)&&resolved(lFinal));
+
+    // Reset final is enabled only when the Loser-bracket champion wins GF1.
+    inval(GF[1]);
+    const resetNeeded=GF[0].winner===2;
+    if(resetNeeded){
+      GF[1].p1=GF[0].p1;GF[1].p2=GF[0].p2;
+      resolve(GF[1],true);
+    }else{
+      GF[1].p1=null;GF[1].p2=null;GF[1].winner=null;GF[1].s1=null;GF[1].s2=null;GF[1].resultSig=null;
+      GF[1]._resolvedEmpty=!!GF[0].winner;
+    }
+  },
+  dkoChampion(dko){
+    const gf2=dko.GF[1], gf1=dko.GF[0];
+    const m=gf2&&gf2.winner?gf2:gf1;
+    return m&&m.winner?(m.winner===1?m.p1:m.p2):null;
   },
   dkoStandings(dko){
-    const wOf=m=> m.winner? (m.winner===1?m.p1:m.p2) : null;
-    const lOf=m=> m.winner? (m.winner===1?m.p2:m.p1) : null;
-    const fin=dko.FIN[0], p3=dko.P3[0];
-    return { first:wOf(fin), second:lOf(fin), third:wOf(p3), fourth:lOf(p3) };
+    const wOf=m=>m&&m.winner?(m.winner===1?m.p1:m.p2):null;
+    const lOf=m=>m&&m.winner?(m.winner===1?m.p2:m.p1):null;
+    const gf=dko.GF[1].winner?dko.GF[1]:dko.GF[0];
+    const loserFinal=dko.L[dko.L.length-1][0];
+    return {first:wOf(gf),second:lOf(gf),third:lOf(loserFinal)};
+  },
+  dkoRoundName(branch,ri,total){
+    if(branch==='W') return this.roundName(ri,total).replace('Finále','Winner Final');
+    const last=2*(total-1)-1;
+    if(ri===last) return 'Losers Final';
+    return `Loser kolo ${ri+1}`;
   },
   // Zdieľaný rebríček: primárne výhry, potom fáza, rozdiel hier, %
   rankFrom(list){ // list: [{m, phase}]
@@ -569,9 +572,10 @@ const TM = {
     return arr;
   },
   dkoRanking(dko){
-    const EXIT={A0:1,B1a:1,A1:2,B1b:2,A2:3,B2a:3,B2b:4,SF:5,P3:6,FIN:7};
-    const roundOf=k=>k.split('/')[0];
-    const list=[...dko.W.flat(), ...dko.L.flat(), ...dko.SF, ...dko.FIN, ...dko.P3].map(m=>({m, phase:EXIT[roundOf(m.key)]||0}));
+    const list=[];
+    dko.W.forEach((round,ri)=>round.forEach(m=>list.push({m,phase:ri+1})));
+    dko.L.forEach((round,ri)=>round.forEach(m=>list.push({m,phase:dko.W.length+ri+1})));
+    dko.GF.forEach((m,ri)=>list.push({m,phase:dko.W.length+dko.L.length+ri+1}));
     return this.rankFrom(list);
   },
   skoRanking(br){
@@ -778,7 +782,7 @@ function ensureBracket(t){
     if(!t.bracket || t.bracket.type!=='sko' || !t.bracket.rounds) t.bracket=TM.buildSKO(players);
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
-    if(!t.dko || t.dko.type!=='dko' || !t.dko.W) t.dko=TM.buildDKO(players);
+    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==2 || !t.dko.W || !t.dko.GF) t.dko=TM.buildDKO(players);
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
@@ -921,6 +925,70 @@ function maybeGenerateComboPhase(t){
   }
   return true;
 }
+
+function comboQualifierPayload(t){
+  const standings=comboStandings(t);
+  const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance);
+  return ordered.map((row,index)=>({
+    tournament_player_id: row.player.id,
+    source_group: row.groupIndex + 1,
+    source_position: row.rank,
+    seed: index + 1
+  }));
+}
+
+let comboTransitionPromise=null;
+async function syncComboPhaseTransition(t){
+  if(!t || !(t.format==='rr_sko'||t.format==='rr_dko') || !comboAllGroupsDone(t)) return null;
+  if(t.knockoutPhaseId) return t.knockoutPhaseId;
+  if(comboTransitionPromise) return comboTransitionPromise;
+
+  comboTransitionPromise=(async()=>{
+    try{
+      let groupPhaseId=t.groupPhaseId;
+      if(!groupPhaseId){
+        const {data:phases,error:phaseLoadErr}=await cspAuth.client
+          .from('tournament_phases')
+          .select('*')
+          .eq('tournament_id',t.id)
+          .order('phase_number',{ascending:true});
+        if(phaseLoadErr) throw phaseLoadErr;
+        const groupPhase=(phases||[]).find(p=>p.phase_type==='rr');
+        const koPhase=(phases||[]).find(p=>p.phase_type===(t.format==='rr_dko'?'dko':'sko'));
+        if(groupPhase){ groupPhaseId=groupPhase.id; t.groupPhaseId=groupPhase.id; }
+        if(koPhase){
+          t.knockoutPhaseId=koPhase.id;
+          t.current_phase_id=koPhase.id;
+          return koPhase.id;
+        }
+      }
+      if(!groupPhaseId) throw new Error('Chýba databázová skupinová fáza.');
+
+      const payload=comboQualifierPayload(t);
+      if(!payload.length) throw new Error('Neboli vypočítaní žiadni postupujúci.');
+      const nextType=t.format==='rr_dko'?'dko':'sko';
+      const {data:nextPhase,error}=await cspAuth.client.rpc('complete_round_robin_phase',{
+        p_phase_id:groupPhaseId,
+        p_qualifiers:payload,
+        p_next_phase_type:nextType
+      });
+      if(error) throw error;
+      t.knockoutPhaseId=nextPhase.id;
+      t.current_phase_id=nextPhase.id;
+      maybeGenerateComboPhase(t);
+      persistT();
+      toast(`Skupinová fáza ukončená — ${nextType==='dko'?'Double KO':'Single KO'} pavúk je pripravený ✓`);
+      return nextPhase.id;
+    }catch(err){
+      console.error('[turnament] Phase transition failed:',err);
+      toast('Skupiny sú dohrané, ale prechod do ďalšej fázy sa nepodaril: '+cspAuth.formatError(err),true);
+      throw err;
+    }finally{
+      comboTransitionPromise=null;
+    }
+  })();
+  return comboTransitionPromise;
+}
 /* Match/bracket PROGRESS only (scores, winners) -- still localStorage,
    per the task's scope boundary, but now scoped to this one real
    tournament id rather than as part of one big array of full tournament
@@ -930,7 +998,8 @@ function persistT(){
   if(!curT) return;
   saveBracketState(curT.id, {
     bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp,
-    phase2:curT.phase2, protectedSeeds:curT.protectedSeeds
+    phase2:curT.phase2, protectedSeeds:curT.protectedSeeds,
+    groupPhaseId:curT.groupPhaseId, knockoutPhaseId:curT.knockoutPhaseId
   });
 }
 
@@ -958,6 +1027,18 @@ async function viewDetail(id){
     );
     if(mErr) throw mErr;
     matchRows = matches || [];
+
+    const { data: phases, error: phaseErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournament_phases').select('*').eq('tournament_id', id).order('phase_number', { ascending: true }),
+      8000, 'load tournament phases'
+    );
+    if(phaseErr) throw phaseErr;
+    t.phases=phases||[];
+    const groupPhase=t.phases.find(p=>p.phase_type==='rr');
+    const targetType=t.format==='rr_dko'?'dko':'sko';
+    const knockoutPhase=t.phases.find(p=>p.phase_type===targetType && p.phase_number>1);
+    t.groupPhaseId=groupPhase?.id||null;
+    t.knockoutPhaseId=knockoutPhase?.id||null;
   } catch(err){
     console.error('[turnament] Failed to load tournament detail:', err);
     return `<div class="wrap"><div class="empty">Nepodarilo sa načítať turnaj.</div></div>`;
@@ -981,6 +1062,12 @@ async function viewDetail(id){
   // immediately after score entry, so the transition is deterministic on
   // reload and not tied to a particular click.
   maybeGenerateComboPhase(curT);
+  if((curT.format==='rr_sko'||curT.format==='rr_dko') && comboAllGroupsDone(curT) && !curT.knockoutPhaseId){
+    syncComboPhaseTransition(curT).then(()=>{
+      const area=document.getElementById('matchArea');
+      if(area) area.innerHTML=renderMatchArea(curT);
+    }).catch(()=>{});
+  }
   if(!hadLocalBracket && matchRows.length){
     applyRealMatches(matchRows);
     if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
@@ -1093,10 +1180,11 @@ function renderMatchArea(t){
       });
       return h;
     };
-    html+=sect('▲ Winner vetva (A)','win',dko.W,['A0 · 1. kolo','A1 · osemfinále','A2 · štvrťfinále'],'W');
-    html+=sect('▼ Loser vetva (B)','lose',dko.L,['B1a · loser 1','B1b · loser 2','B2a · loser 3','B2b · loser 4'],'L');
-    html+=sect('◆ Finálová časť (vetvy sa spájajú)','conv',[dko.SF,dko.FIN,dko.P3],['Semifinále — víťazi A2 × víťazi B2b','Finále (1./2.)','O 3. miesto'],'F');
-    html+=`<div class="note-box" style="margin-top:14px">Celkové poradie: primárne <b>počet výhier</b>, potom fáza vypadnutia, rozdiel hier a %. Delené miesta (3.–3., 5.–5.…) ako v cuescores. Pripravené na uloženie do štatistík.</div>`;
+    html+=sect('▲ Winner vetva (A)','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'W');
+    html+=sect('▼ Loser vetva (B)','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'L');
+    html+=sect('◆ Grand Final','conv',[dko.GF],['Grand Final · GF1 + prípadný reset GF2'],'F');
+    const champ=TM.dkoChampion(dko);if(champ) html=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${champ.name}</b></div>`+html;
+    html+=`<div class="note-box" style="margin-top:14px"><b>Štandardný Double Elimination:</b> hráč vypadáva až po druhej prehre. Ak víťaz Loser vetvy vyhrá GF1, automaticky sa otvorí reset GF2.</div>`;
     if(played) html+=renderRankTable(rank);
     return html;
   }
@@ -1171,9 +1259,9 @@ function renderPhaseDKO(dko){
     });
     return h;
   };
-  return sect('▲ Phase 2 · Winner vetva (A)','win',dko.W,['A0 · 1. kolo','A1 · osemfinále','A2 · štvrťfinále'],'p2W')+
-    sect('▼ Phase 2 · Loser vetva (B)','lose',dko.L,['B1a · loser 1','B1b · loser 2','B2a · loser 3','B2b · loser 4'],'p2L')+
-    sect('◆ Phase 2 · Finálová časť','conv',[dko.SF,dko.FIN,dko.P3],['Semifinále','Finále','O 3. miesto'],'p2F');
+  return sect('▲ Phase 2 · Winner vetva (A)','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'p2W')+
+    sect('▼ Phase 2 · Loser vetva (B)','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'p2L')+
+    sect('◆ Phase 2 · Grand Final','conv',[dko.GF],['GF1 + prípadný reset GF2'],'p2F');
 }
 function renderComboPhase2(phase){
   if(phase.kind==='standard-sko') return renderPhaseSKO(phase.bracket,'p2s','✓ Phase 2 · Single KO');
@@ -1242,14 +1330,14 @@ function getMatchByLoc(loc){
   if(k==='sko') return curT.bracket.rounds[+a][+b];
   if(k==='W') return curT.dko.W[+a][+b];
   if(k==='L') return curT.dko.L[+a][+b];
-  if(k==='F'){ const arr=[curT.dko.SF,curT.dko.FIN,curT.dko.P3][+a]; return arr[+b]; }
+  if(k==='F') return curT.dko.GF[+b];
   if(k==='grp') return curT.grp.groups[+a].matches[+b];
   if(k==='p2s') return curT.phase2.bracket.rounds[+a][+b];
   if(k==='p2p') return curT.phase2.prelim.rounds[+a][+b];
   if(k==='p2m') return curT.phase2.main.rounds[+a][+b];
   if(k==='p2W') return curT.phase2.dko.W[+a][+b];
   if(k==='p2L') return curT.phase2.dko.L[+a][+b];
-  if(k==='p2F'){ const arr=[curT.phase2.dko.SF,curT.phase2.dko.FIN,curT.phase2.dko.P3][+a]; return arr[+b]; }
+  if(k==='p2F') return curT.phase2.dko.GF[+b];
   return null;
 }
 function recomputeFor(loc){
@@ -1333,9 +1421,20 @@ function finalizeAppliedMatches(matchRows){
 // parses round_key, it's opaque by design).
 async function saveMatchToDB(loc, m){
   const p1Id=resolvePlayerId(m.p1), p2Id=resolvePlayerId(m.p2);
+  const prefix=loc.split(':')[0];
+  const isGroup=prefix==='grp';
+  const phaseId=isGroup ? curT.groupPhaseId : ((prefix.startsWith('p2')) ? curT.knockoutPhaseId : curT.current_phase_id);
+  const phaseSide=prefix==='p2W'?'W':prefix==='p2L'?'L':prefix==='p2F'?'GF':prefix==='W'?'W':prefix==='L'?'L':prefix==='F'?'GF':null;
+  const parts=loc.split(':');
+  const roundNumber=(prefix==='grp'||prefix==='rr') ? (m.round||null) : ((parts.length>1 && Number.isFinite(+parts[1])) ? +parts[1]+1 : null);
+  const matchNumber=(parts.length>2 && Number.isFinite(+parts[2])) ? +parts[2]+1 : ((parts.length>1 && Number.isFinite(+parts[1])) ? +parts[1]+1 : null);
   const { error } = await cspAuth.client.from('matches').upsert({
     tournament_id: curT.id,
+    phase_id: phaseId||null,
     round_key: loc,
+    round_number: roundNumber,
+    match_number: matchNumber,
+    bracket_side: phaseSide,
     player1_id: p1Id,
     player2_id: p2Id,
     score1: m.s1,
@@ -1409,9 +1508,17 @@ async function saveMatch(){
 
   try {
     await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
+    if(savedLoc.split(':')[0]==='grp' && comboAllGroupsDone(curT)){
+      await cspAuth.withTimeout(syncComboPhaseTransition(curT), 10000, 'complete group phase');
+      document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
+      setTimeout(()=>{
+        const phaseBanner=document.querySelector('#matchArea .branch-label.win');
+        if(phaseBanner) phaseBanner.scrollIntoView({behavior:'smooth',block:'start'});
+      },80);
+    }
   } catch(err){
-    console.error('[turnament] Failed to save match to the real matches table:', err);
-    toast('Výsledok sa neuložil do databázy (zostal len lokálne).', true);
+    console.error('[turnament] Failed to save match/transition:', err);
+    toast('Výsledok alebo prechod fázy sa neuložil do databázy.', true);
   }
 }
 async function clearMatch(){
@@ -1625,7 +1732,7 @@ function renderPreview(){
       else html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${a.name}</span><span class="mt-vs">vs</span><span class="mt-p" style="text-align:right">${b.name}</span></div>`;
     }
     html+=`</div>`;
-    if(wiz.format==='dko') html+=`<div class="note-box"><b>Double KO:</b> seedovanie A0 hotové. Routing porazených (B-vetva) doťahujeme.</div>`;
+    if(wiz.format==='dko') html+=`<div class="note-box"><b>Double KO:</b> štandardná Winner a Loser vetva, hráč vypadáva po druhej prehre, Grand Final podporuje reset.</div>`;
     el.innerHTML=demoNote+html;
   }
   else if(wiz.format==='rr'){
