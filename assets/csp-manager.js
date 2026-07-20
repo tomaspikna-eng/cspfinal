@@ -39,7 +39,7 @@
     try {
       const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
       if (!session) {
-        global.location.href = '/login/';
+        global.location.href = '/login/?returnTo=' + encodeURIComponent(global.location.pathname + global.location.search);
         return null;
       }
 
@@ -82,7 +82,7 @@
       return { session: session, profile: profile || null, club: club || null };
     } catch (err) {
       console.error('[csp-manager] Auth/access check failed or timed out:', err);
-      global.location.href = '/login/';
+      global.location.href = '/login/?returnTo=' + encodeURIComponent(global.location.pathname + global.location.search);
       return null;
     }
   }
@@ -94,7 +94,7 @@
     } catch (err) {
       console.error('[csp-manager] signOut failed or timed out, redirecting to /login/ anyway:', err);
     }
-    global.location.href = '/login/';
+    global.location.href = '/login/?returnTo=' + encodeURIComponent(global.location.pathname + global.location.search);
   }
 
   global.cspManager = {

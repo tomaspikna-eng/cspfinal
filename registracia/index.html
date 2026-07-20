@@ -177,7 +177,7 @@ body{
       <div class="tos">Vytvorením účtu súhlasíš s <a href="/obchodne-podmienky/">podmienkami</a> a <a href="/ochrana-osobnych-udajov/">ochranou súkromia</a>.</div>
 
       <div class="foot">
-        Máš už účet? <a href="/login/">Prihlás sa</a>
+        Máš už účet? <a id="loginLink" href="/login/">Prihlás sa</a>
       </div>
     </div>
 
@@ -190,16 +190,30 @@ body{
     history.replaceState(null,'',window.location.pathname);
 })();
 
+
+function safeReturnTo(){
+  const raw=new URLSearchParams(window.location.search).get('returnTo');
+  if(!raw)return '/profil/';
+  try{
+    const decoded=decodeURIComponent(raw);
+    if(decoded.startsWith('/')&&!decoded.startsWith('//'))return decoded;
+  }catch(_e){}
+  return '/profil/';
+}
+const RETURN_TO=safeReturnTo();
+const loginLink=document.getElementById('loginLink');
+if(loginLink&&RETURN_TO!='/profil/') loginLink.href='/login/?returnTo='+encodeURIComponent(RETURN_TO);
+
 cspAuth.client.auth.onAuthStateChange(async (event, session) => {
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
-    window.location.href = '/profil/';
+    window.location.href = RETURN_TO;
   }
 });
 
 (async function init(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(session) window.location.href = '/profil/';
+    if(session) window.location.href = RETURN_TO;
   } catch(err){
     // Not fatal here: worst case the user just sees the signup form even
     // though they may already have a session. Logged so it isn't a
@@ -250,7 +264,7 @@ document.getElementById('btnReg').addEventListener('click', async () => {
   }
 
   if(data.session){
-    setTimeout(() => window.location.href = '/profil/', 800);
+    setTimeout(() => window.location.href = RETURN_TO, 800);
   } else {
     btn.disabled = false; btn.textContent = '🚀 Vytvoriť účet';
     showMsg('<strong>✓ Účet vytvorený!</strong><br>Skontroluj e-mail a klikni na potvrdzovací odkaz.', 'ok');

@@ -91,7 +91,7 @@ body{
   </div>
 
   <div class="foot">
-    Nemáš účet? <a href="/registracia/">Vytvor si ho zadarmo</a>
+    Nemáš účet? <a id="registrationLink" href="/registracia/">Vytvor si ho zadarmo</a>
   </div>
 
 </div>
@@ -102,16 +102,30 @@ body{
     history.replaceState(null,'',window.location.pathname);
 })();
 
+
+function safeReturnTo(){
+  const raw=new URLSearchParams(window.location.search).get('returnTo');
+  if(!raw)return '/profil/';
+  try{
+    const decoded=decodeURIComponent(raw);
+    if(decoded.startsWith('/')&&!decoded.startsWith('//'))return decoded;
+  }catch(_e){}
+  return '/profil/';
+}
+const RETURN_TO=safeReturnTo();
+const registrationLink=document.getElementById('registrationLink');
+if(registrationLink&&RETURN_TO!='/profil/') registrationLink.href='/registracia/?returnTo='+encodeURIComponent(RETURN_TO);
+
 cspAuth.client.auth.onAuthStateChange(async (event, session) => {
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
-    window.location.href = '/profil/';
+    window.location.href = RETURN_TO;
   }
 });
 
 (async function init(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(session) window.location.href = '/profil/';
+    if(session) window.location.href = RETURN_TO;
   } catch(err){
     // Not fatal here: worst case the user just sees the login form even
     // though they may already have a session, which they can dismiss by
@@ -123,7 +137,7 @@ cspAuth.client.auth.onAuthStateChange(async (event, session) => {
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
-  const { error } = await cspAuth.signInWithGoogle();
+  const { error } = await cspAuth.signInWithGoogle(window.location.origin + RETURN_TO);
   if(error){ showMsg('Chyba: ' + cspAuth.friendlyError(error)); btn.disabled = false; }
 });
 

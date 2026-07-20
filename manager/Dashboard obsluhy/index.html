@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-manager.js"></script>
 <style>
 :root{
   /* Surface — converted from app oklch dark theme */
@@ -443,7 +446,11 @@ function toggleSidebar(){
   document.getElementById('backdrop').classList.toggle('show');
 }
 
-renderAll();
+(async function initManagerDashboard(){
+  const ctx=await cspManager.requireClubManagerAccess({allowNoClub:true});
+  if(!ctx)return;
+  renderAll();
+})();
 </script>
 </body>
 </html>

@@ -973,12 +973,14 @@ async function syncComboPhaseTransition(t){
         p_next_phase_type:nextType
       });
       if(error) throw error;
-      t.knockoutPhaseId=nextPhase.id;
-      t.current_phase_id=nextPhase.id;
+      const nextPhaseId = typeof nextPhase === 'string' ? nextPhase : nextPhase?.id;
+      if(!nextPhaseId) throw new Error('Supabase nevrátil ID novej fázy.');
+      t.knockoutPhaseId=nextPhaseId;
+      t.current_phase_id=nextPhaseId;
       maybeGenerateComboPhase(t);
       persistT();
       toast(`Skupinová fáza ukončená — ${nextType==='dko'?'Double KO':'Single KO'} pavúk je pripravený ✓`);
-      return nextPhase.id;
+      return nextPhaseId;
     }catch(err){
       console.error('[turnament] Phase transition failed:',err);
       toast('Skupiny sú dohrané, ale prechod do ďalšej fázy sa nepodaril: '+cspAuth.formatError(err),true);
@@ -1753,6 +1755,7 @@ async function createTournament(){
   const btn = document.querySelector('#wizPanel .btn-green');
   if(btn){ btn.disabled = true; btn.textContent = 'Ukladám...'; }
 
+  let createdTournamentId = null;
   try {
     const payload = {
       name: wiz.name,
@@ -1788,6 +1791,7 @@ async function createTournament(){
         .select().single();
       if(cErr) throw cErr;
       tournamentId = created.id; tournamentRow = created;
+      createdTournamentId = created.id;
       const phaseType = wiz.format==='rr_sko'||wiz.format==='rr_dko' ? 'rr' : wiz.format;
       const { data: phase, error: phaseErr } = await cspAuth.client.from('tournament_phases').insert({tournament_id:tournamentId,phase_number:1,phase_type:phaseType,status:'active',started_at:new Date().toISOString(),config:{target_format:wiz.format}}).select().single();
       if(phaseErr) throw phaseErr;
@@ -1832,7 +1836,11 @@ async function createTournament(){
     }
   } catch(err){
     console.error('[turnament] Failed to save tournament:', err);
-    toast('Nepodarilo sa uložiť turnaj. Skús to znova.', true);
+    if(createdTournamentId && !wiz.editId){
+      const {error:rollbackErr}=await cspAuth.client.from('tournaments').delete().eq('id',createdTournamentId);
+      if(rollbackErr) console.error('[turnament] Failed to rollback incomplete tournament:',rollbackErr);
+    }
+    toast('Nepodarilo sa uložiť turnaj: '+cspAuth.formatError(err), true);
     if(btn){ btn.disabled = false; btn.textContent = wiz.editId ? '✓ Uložiť zmeny' : (isKarty() ? '✓ Vytvoriť turnaj a otvoriť stoly' : '✓ Vytvoriť turnaj'); }
   }
 }

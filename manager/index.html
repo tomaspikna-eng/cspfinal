@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CSP Manager – Riadenie živej prevádzky</title>
+<meta name="description" content="CSP Manager je smart systém pre riadenie živej prevádzky športovísk, klubov a komunít."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#07080a;--card:#101218;--line:rgba(255,255,255,.09);--text:#f5f6f8;--muted:#999da8;--gold:#d4a843;--green:#26d07d;--green2:#1fb66d;--red:#e35149;--shadow:0 24px 80px rgba(0,0,0,.42)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 70% -10%,rgba(212,168,67,.16),transparent 60%),radial-gradient(700px 450px at 10% 35%,rgba(38,208,125,.08),transparent 60%),var(--bg)}a{text-decoration:none;color:inherit}.wrap{width:min(1240px,calc(100% - 32px));margin:auto}.top{height:82px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:900;background:linear-gradient(135deg,var(--gold),#9b7624);color:#170f00}.brand-name{font-weight:900;letter-spacing:-.03em}.brand-name span{color:var(--gold)}.brand-sub{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px}.nav{display:flex;align-items:center;gap:10px}.btn{min-height:44px;padding:0 17px;border-radius:11px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:800;transition:.16s}.btn:hover{transform:translateY(-1px)}.btn-green{background:var(--green);color:#052414;border-color:transparent}.btn-green:hover{background:#31dd88}.btn-dark{background:rgba(255,255,255,.03)}.hero{min-height:650px;display:grid;grid-template-columns:1.02fr .98fr;align-items:center;gap:54px;padding:54px 0 74px}.kicker{display:inline-flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid rgba(38,208,125,.26);background:rgba(38,208,125,.08);border-radius:999px;color:var(--green);font:700 .72rem 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em}.pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 6px rgba(38,208,125,.12)}h1{font-size:clamp(3.1rem,6.3vw,5.7rem);line-height:.96;letter-spacing:-.065em;margin:24px 0 22px}.gold{color:var(--gold)}.lead{max-width:650px;font-size:1.14rem;line-height:1.7;color:var(--muted)}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.plan-note{margin-top:18px;color:var(--muted);font-size:.82rem}.plan-note strong{color:var(--gold)}.preview{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));padding:18px;box-shadow:var(--shadow);transform:rotate(1deg)}.window{border:1px solid var(--line);border-radius:18px;background:#0a0b0f;overflow:hidden}.window-top{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 16px}.dot{width:8px;height:8px;border-radius:50%;background:#363943}.dash{padding:16px;display:grid;gap:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat,.row{border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:13px}.stat b{display:block;font-size:1.3rem}.stat small,.row small{color:var(--muted)}.stations{display:grid;gap:8px}.row{display:flex;justify-content:space-between;align-items:center}.status{font-size:.7rem;font-weight:800;padding:5px 8px;border-radius:999px}.free{background:rgba(38,208,125,.12);color:var(--green)}.busy{background:rgba(227,81,73,.12);color:#ff7770}.section{padding:84px 0;border-top:1px solid rgba(255,255,255,.06)}.section-head{max-width:760px;margin-bottom:34px}.section h2{font-size:clamp(2.1rem,4vw,3.5rem);letter-spacing:-.045em;margin:0 0 14px}.section p{color:var(--muted);line-height:1.7}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.025);padding:22px}.ico{font-size:1.4rem;margin-bottom:15px}.card h3{margin:0 0 9px}.card p{font-size:.92rem;margin:0}.audience{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.audience .card{min-height:150px}.final{margin:80px 0 36px;border:1px solid rgba(212,168,67,.26);border-radius:24px;background:radial-gradient(600px 240px at 50% 0,rgba(212,168,67,.13),transparent 70%),rgba(255,255,255,.02);text-align:center;padding:62px 24px}.final h2{margin:0 0 12px}.footer{padding:24px 0 36px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:.8rem}.access-state{display:none;margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;color:var(--muted)}
+@media(max-width:900px){.hero{grid-template-columns:1fr;min-height:auto;padding-top:40px}.preview{transform:none}.grid{grid-template-columns:1fr 1fr}.audience{grid-template-columns:1fr 1fr}.nav .desktop{display:none}}
+@media(max-width:600px){.wrap{width:min(100% - 22px,1240px)}.top{height:70px}.brand-sub{display:none}h1{font-size:3rem}.grid,.audience,.stats{grid-template-columns:1fr}.hero-actions .btn{width:100%}.preview{padding:10px}.footer{flex-direction:column}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/manager/">
+    <div class="mark">C</div><div><div class="brand-name"><span>CSP</span> Manager</div><div class="brand-sub">Live Operations System</div></div>
+  </a>
+  <nav class="nav">
+    <a class="btn btn-dark desktop" href="https://connectsportspro.com/">Connect Sports Pro</a>
+    <a class="btn btn-dark" href="/login/?returnTo=%2Fmanager%2FDashboard%2520obsluhy%2F">Prihlásiť sa</a>
+    <a class="btn btn-green" href="/registracia/?returnTo=%2Fmanager%2FDashboard%2520obsluhy%2F">Registrovať sa</a>
+  </nav>
+</header>
+<main>
+<section class="wrap hero">
+  <div>
+    <div class="kicker"><span class="pulse"></span>Riadenie živej prevádzky</div>
+    <h1>Maj prevádzku<br><span class="gold">pod kontrolou.</span><br>V reálnom čase.</h1>
+    <p class="lead">CSP Manager spája športoviská, stoly, terče, dráhy, rezervácie, časovače, platby a obsluhu do jedného operačného systému. Nie je určený iba pre kluby — funguje všade, kde sa riadi živá športová alebo komunitná prevádzka.</p>
+    <div class="hero-actions">
+      <a id="primaryCta" class="btn btn-green" href="/login/?returnTo=%2Fmanager%2FDashboard%2520obsluhy%2F">Prihlásiť sa do Managera</a>
+      <a class="btn btn-dark" href="#funkcie">Pozrieť funkcie</a>
+    </div>
+    <div class="plan-note">Prístup je súčasťou plánu <strong>Ultra a vyššieho</strong>.</div>
+    <div class="access-state" id="accessState"></div>
+  </div>
+  <div class="preview" aria-label="Náhľad CSP Manager dashboardu">
+    <div class="window"><div class="window-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="dash">
+      <div class="stats"><div class="stat"><b>8 / 12</b><small>Obsadené stanice</small></div><div class="stat"><b>6</b><small>Aktívne hry</small></div><div class="stat"><b>2</b><small>Volania obsluhy</small></div></div>
+      <div class="stations"><div class="row"><div><b>Biliardový stôl 01</b><br><small>01:24:18 · člen</small></div><span class="status busy">Obsadený</span></div><div class="row"><div><b>Šípkový terč 03</b><br><small>Pripravený na hru</small></div><span class="status free">Voľný</span></div><div class="row"><div><b>Squash kurt 02</b><br><small>Rezervácia 18:30</small></div><span class="status free">Voľný</span></div></div>
+    </div></div>
+  </div>
+</section>
+<section class="section" id="funkcie"><div class="wrap"><div class="section-head"><h2>Jeden panel pre celú prevádzku.</h2><p>Obsluha vidí aktuálny stav, manažér ekonomiku a majiteľ vyťaženosť. CSP Manager odstraňuje oddelené časovače, papierové poznámky a neprepojené systémy.</p></div><div class="grid">
+  <article class="card"><div class="ico">⏱</div><h3>Časovače a stanice</h3><p>Spustenie, pauza a ukončenie hry na konkrétnom stole, terči, dráhe alebo kurte.</p></article>
+  <article class="card"><div class="ico">📅</div><h3>Rezervácie</h3><p>Prehľad rezervácií a dostupnosti športovísk bez kolízií.</p></article>
+  <article class="card"><div class="ico">💶</div><h3>Ceny a platby</h3><p>Rôzne sadzby pre návštevníkov, členov a VIP s výpočtom výslednej sumy.</p></article>
+  <article class="card"><div class="ico">🔔</div><h3>Obsluha v reálnom čase</h3><p>Privolanie obsluhy, otvorené požiadavky a ich okamžité vybavenie.</p></article>
+  <article class="card"><div class="ico">📊</div><h3>Vyťaženosť</h3><p>Aktuálne aj historické využitie prevádzky, špičky a voľná kapacita.</p></article>
+  <article class="card"><div class="ico">🧩</div><h3>Prepojenie s CSP</h3><p>Hráči, turnaje, tréningy, udalosti a klubová prevádzka v jednom ekosystéme.</p></article>
+</div></div></section>
+<section class="section"><div class="wrap"><div class="section-head"><h2>Nie iba pre športový klub.</h2><p>Modul je navrhnutý ako univerzálny systém živej prevádzky.</p></div><div class="audience"><article class="card"><h3>Biliardové a šípkové kluby</h3><p>Stoly, terče, turnaje, tréningy a obsluha.</p></article><article class="card"><h3>Bowling a squash</h3><p>Dráhy, kurty, rezervácie a časové bloky.</p></article><article class="card"><h3>Hotely a rezorty</h3><p>Športové zóny, hostia a doplnkové služby.</p></article><article class="card"><h3>Komunitné centrá</h3><p>Priestory, aktivity, udalosti a živá kapacita.</p></article></div></div></section>
+<section class="wrap final"><h2>Spusti riadenie prevádzky cez <span class="gold">CSP Manager</span>.</h2><p>Prihlásenie je dostupné používateľom s plánom Ultra alebo vyšším.</p><div class="hero-actions" style="justify-content:center"><a class="btn btn-green" href="/login/?returnTo=%2Fmanager%2FDashboard%2520obsluhy%2F">Prihlásiť sa</a><a class="btn btn-dark" href="/registracia/?returnTo=%2Fmanager%2FDashboard%2520obsluhy%2F">Vytvoriť účet</a></div></section>
+</main>
+<footer class="wrap footer"><div>© 2026 Connect Sports Pro</div><div>CSP Manager · smart systém živej prevádzky</div></footer>
+<script>
+(async function(){
+  const state=document.getElementById('accessState');
+  const cta=document.getElementById('primaryCta');
+  try{
+    const result=await cspAuth.withTimeout(cspAuth.getSession(),7000,'manager landing session');
+    const session=result.data&&result.data.session;
+    if(!session)return;
+    const access=await cspAuth.withTimeout(cspAuth.client.rpc('has_feature_access',{uid:session.user.id,key:'club_manager'}),7000,'club_manager access');
+    state.style.display='block';
+    if(access.data){state.textContent='Tvoj účet má aktívny prístup k CSP Manageru.';state.style.color='var(--green)';cta.textContent='Otvoriť Manager';cta.href='/manager/Dashboard%20obsluhy/';}
+    else{state.innerHTML='Si prihlásený, ale CSP Manager vyžaduje plán <strong>Ultra alebo vyšší</strong>.';cta.textContent='Zobraziť plány';cta.href='/upgrade/';}
+  }catch(err){console.error('[manager landing]',err)}
+})();
+</script>
+</body></html>
