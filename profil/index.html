@@ -834,11 +834,9 @@ a{color:inherit;text-decoration:none}
                scope — deliberately not wired up here to avoid duplicating/
                caching numbers that belong to a dedicated stats task. -->
           <div class="tab-panel" id="tabPanel-statistiky">
-            <div class="empty-state">
-              <div class="empty-icon">📊</div>
-              <div class="empty-title">Štatistiky sa pripravujú</div>
-              <div class="empty-sub">Súhrnné čísla (úspešnosť, počty zápasov...) tu pribudnú v samostatnej funkcii.</div>
-            </div>
+            <div class="empty-state" id="statistikyLoading"><div class="empty-sub">Načítavam štatistiky…</div></div>
+            <div class="empty-state" id="statistikyEmpty" style="display:none"><div class="empty-icon">📊</div><div class="empty-title">Zatiaľ žiadne turnajové štatistiky</div><div class="empty-sub">Štatistiky sa vytvoria po ukončení prvého turnaja.</div></div>
+            <div class="feed" id="statistikyList" style="display:none"></div>
           </div>
 
           <!-- TURNAJE — genuine "not built yet" empty state. Tournaments do
@@ -847,11 +845,9 @@ a{color:inherit;text-decoration:none}
                separate follow-up work, same reasoning as the "Nadchádzajúce
                turnaje" sidebar widget below. -->
           <div class="tab-panel" id="tabPanel-turnaje">
-            <div class="empty-state">
-              <div class="empty-icon">🏆</div>
-              <div class="empty-title">Turnaje sa pripravujú</div>
-              <div class="empty-sub">Prehľad tvojich turnajov tu pribudne v samostatnej funkcii.</div>
-            </div>
+            <div class="empty-state" id="turnajeLoading"><div class="empty-sub">Načítavam turnaje…</div></div>
+            <div class="empty-state" id="turnajeEmpty" style="display:none"><div class="empty-icon">🏆</div><div class="empty-title">Zatiaľ žiadne turnaje</div><div class="empty-sub">Vytvor turnaj alebo sa pripoj ako registrovaný hráč.</div></div>
+            <div class="feed" id="turnajeList" style="display:none"></div>
           </div>
 
           <!-- ZÁPASY — real content: the user's own training_sessions rows
@@ -1026,6 +1022,8 @@ function setContentTab(btn, tabKey){
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tabPanel-' + tabKey)?.classList.add('active');
   if(tabKey === 'zapasy') loadZapasyTab();
+  if(tabKey === 'turnaje') loadTurnajeTab();
+  if(tabKey === 'statistiky') loadStatistikyTab();
 }
 function toggleUserMenu(e){
   e.stopPropagation();
@@ -1115,6 +1113,30 @@ function renderMemberSince(){
     const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
     memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
   }
+}
+
+
+let turnajeLoaded=false, statistikyLoaded=false;
+function profileTournamentCard(t, played){
+  const pos = t.final_position ? ` · ${t.final_position}. miesto` : '';
+  return `<div class="feed-item"><div class="feed-icon">🏆</div><div class="feed-body"><div class="feed-title">${escapeHtml(t.name||'Turnaj')}</div><div class="feed-meta">${escapeHtml(t.sport||'')} ${t.discipline?'· '+escapeHtml(t.discipline):''} · ${escapeHtml(t.status||'')}${pos}</div><div class="feed-text">${played?'Odohraný turnaj':'Organizovaný turnaj'}${t.date?' · '+escapeHtml(t.date):''}</div></div></div>`;
+}
+async function loadTurnajeTab(){
+  if(turnajeLoaded||!currentSession) return; turnajeLoaded=true;
+  const loading=document.getElementById('turnajeLoading'),empty=document.getElementById('turnajeEmpty'),list=document.getElementById('turnajeList');
+  try{
+    const [{data:owned,error:e1},{data:played,error:e2}] = await Promise.all([
+      cspAuth.client.from('tournaments').select('*').eq('owner_id',currentSession.user.id).order('created_at',{ascending:false}),
+      cspAuth.client.from('user_tournament_history').select('*').eq('user_id',currentSession.user.id).order('created_at',{ascending:false})
+    ]); if(e1) throw e1;if(e2) throw e2;
+    const rows=[...(owned||[]).map(x=>({x,played:false})),...(played||[]).map(x=>({x,played:true}))];
+    loading.style.display='none'; if(!rows.length){empty.style.display='block';return;} list.innerHTML=rows.map(r=>profileTournamentCard(r.x,r.played)).join('');list.style.display='block';
+  }catch(err){console.error('[profil] tournaments:',err);loading.innerHTML='<div class="empty-sub">Turnaje sa nepodarilo načítať.</div>';}
+}
+async function loadStatistikyTab(){
+  if(statistikyLoaded||!currentSession)return;statistikyLoaded=true;
+  const loading=document.getElementById('statistikyLoading'),empty=document.getElementById('statistikyEmpty'),list=document.getElementById('statistikyList');
+  try{const {data,error}=await cspAuth.client.from('user_sport_statistics').select('*').eq('user_id',currentSession.user.id);if(error)throw error;loading.style.display='none';if(!data?.length){empty.style.display='block';return;}list.innerHTML=data.map(r=>`<div class="feed-item"><div class="feed-icon">📊</div><div class="feed-body"><div class="feed-title">${escapeHtml(r.sport)}${r.discipline?' · '+escapeHtml(r.discipline):''}</div><div class="feed-meta">${r.tournaments_played} turnajov · ${r.matches_played} zápasov</div><div class="feed-text">Výhry ${r.wins} · Prehry ${r.losses} · Úspešnosť ${r.win_rate}% · Tituly ${r.tournament_wins}</div></div></div>`).join('');list.style.display='block';}catch(err){console.error('[profil] stats:',err);loading.innerHTML='<div class="empty-sub">Štatistiky sa nepodarilo načítať.</div>';}
 }
 
 // ── ZÁPASY tab — real training_sessions history (migrations 0016/0017) ──

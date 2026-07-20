@@ -514,8 +514,13 @@ async function saveTrainingSession(finalScore, winnerName, durationSeconds){
       winner_name: winnerName,
       race_to: state.raceTo,
       duration_seconds: durationSeconds,
+      status: 'completed',
+      started_at: new Date(Date.now()-durationSeconds*1000).toISOString(),
+      completed_at: new Date().toISOString(),
+      elapsed_seconds: durationSeconds,
     });
     if(error) throw error;
+    console.info('[scoreboard] Training session saved.');
   } catch(err){
     console.error('[scoreboard] Failed to save training session (live scoreboard unaffected):', err);
   }

@@ -745,6 +745,16 @@ function openTableGen(t){
   }));
   location.href = TABLEGEN_URL+'?t='+encodeURIComponent(t.id);
 }
+
+async function completeTournament(id){
+  if(!confirm('Ukončiť turnaj a uzamknúť výsledky?')) return;
+  try{const {error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:id,p_results:null});if(error)throw error;toast('Turnaj ukončený ✓');await openTournament(id);}catch(err){console.error('[turnament] complete:',err);toast(cspAuth.formatError?cspAuth.formatError(err):('Turnaj sa nepodarilo ukončiť: '+(err.message||err)),true);}
+}
+async function archiveTournament(id){
+  if(!confirm('Archivovať ukončený turnaj?')) return;
+  try{const {error}=await cspAuth.client.rpc('archive_tournament',{p_tournament_id:id});if(error)throw error;toast('Turnaj archivovaný ✓');go('dashboard');}catch(err){console.error('[turnament] archive:',err);toast('Turnaj sa nepodarilo archivovať: '+(err.message||err),true);}
+}
+
 async function deleteTournament(id){
   if(!confirm(`Zmazať tento turnaj? Túto akciu nemožno vrátiť.`)) return;
   try {
@@ -1000,7 +1010,9 @@ async function viewDetail(id){
         <p>${curT.sport}${curT.discipline?' · '+curT.discipline:''} · ${pcount(curT)} hráčov${curT.date?' · '+curT.date:''}${curT.venue?' · '+curT.venue:''}</p>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>
+        ${curT.status==='active'?`<button class="btn btn-primary" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
+        ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
+        ${curT.status!=='archived'?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>
     </div>
@@ -1665,10 +1677,14 @@ async function createTournament(){
     } else {
       const { data: created, error: cErr } = await cspAuth.client
         .from('tournaments')
-        .insert({ ...payload, owner_id: currentSession.user.id, status: 'active' })
+        .insert({ ...payload, owner_id: currentSession.user.id, status: 'active', started_at: new Date().toISOString() })
         .select().single();
       if(cErr) throw cErr;
       tournamentId = created.id; tournamentRow = created;
+      const phaseType = wiz.format==='rr_sko'||wiz.format==='rr_dko' ? 'rr' : wiz.format;
+      const { data: phase, error: phaseErr } = await cspAuth.client.from('tournament_phases').insert({tournament_id:tournamentId,phase_number:1,phase_type:phaseType,status:'active',started_at:new Date().toISOString(),config:{target_format:wiz.format}}).select().single();
+      if(phaseErr) throw phaseErr;
+      await cspAuth.client.from('tournaments').update({current_phase_id:phase.id}).eq('id',tournamentId);
     }
 
     const playerRows = wiz.players.map((p, i) => ({ tournament_id: tournamentId, name: p.name, seed: i + 1 }));
