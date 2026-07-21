@@ -829,15 +829,6 @@ button,input,select{font:inherit}
   var r = sessionStorage.getItem('csp_redirect');
   if(r){ sessionStorage.removeItem('csp_redirect'); window.history.replaceState(null,null,r); }
 })();
-function toggleNovinky(e){
-  e.stopPropagation();
-  document.getElementById('novinkyDropdown').classList.toggle('open');
-}
-document.addEventListener('click', function(e){
-  if(!e.target.closest('#novinkyDropdown')){
-    document.getElementById('novinkyDropdown')?.classList.remove('open');
-  }
-});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
@@ -855,18 +846,8 @@ document.addEventListener('click', function(e){
     <nav class="nav">
       <a href="./" class="icon-btn" title="Domov">🏠</a>
       <a href="./search/" class="icon-btn search-btn" title="Hľadať">🔍</a>
-
-      <div class="dropdown" id="novinkyDropdown">
-        <button class="dropdown-trigger" type="button" onclick="toggleNovinky(event)">
-          NOVINKY <span class="caret">▾</span>
-        </button>
-        <div class="dropdown-menu">
-          <a href="/magazin/?cat=novinky">📰 Novinky</a>
-          <a href="/magazin/?cat=recenzie">⭐ Recenzie</a>
-          <a href="/magazin/?cat=historia">🏛 História</a>
-          <a href="/magazin/?cat=pravidla">📖 Pravidlá hry</a>
-        </div>
-      </div>
+      <a href="https://www.cspmanager.app/login/?returnTo=%2Fdashboard%2F" class="btn btn-gold" style="display:inline-flex;align-items:center;min-height:42px;padding:0 14px;border-radius:12px;">CSP Club Manager</a>
+      <a href="/magazin/">MAGAZÍN</a>
 
       <a href="./login/">Prihlásiť</a>
       <a href="./login/" class="primary">Pridaj sa</a>
@@ -894,7 +875,6 @@ document.addEventListener('click', function(e){
     <div class="hero-actions">
       <a href="./login/" class="btn btn-green" style="display:inline-flex;align-items:center;">Pridaj sa</a>
       <a href="./login/" class="btn btn-dark" style="display:inline-flex;align-items:center;">Prihlásiť</a>
-      <a href="https://cspmanager.app/" class="btn btn-dark" style="display:inline-flex;align-items:center;border-color:rgba(216,176,75,.32);color:var(--gold);">CSP Manager</a>
     </div>
   </div>
 
@@ -1152,8 +1132,7 @@ document.addEventListener('click', function(e){
 <section class="panel">
   <div class="section-head" style="margin-bottom:20px">
     <div>
-      <h2 class="section-title">Z magazínu</h2>
-      <p>Najnovšie články zo sveta kulečníku, šípok a bowlingu</p>
+      <h2 class="section-title">Magazín</h2>
     </div>
   </div>
   <div id="magGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
