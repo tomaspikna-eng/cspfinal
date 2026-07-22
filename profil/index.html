@@ -541,6 +541,45 @@ a{color:inherit;text-decoration:none}
 .t-card-meta{font-family:var(--mono);font-size:.7rem;color:var(--muted2);letter-spacing:.04em}
 .t-card-meta .date{color:var(--gold)}
 
+
+/* Profile event calendar */
+.profile-events-list{display:flex;flex-direction:column;gap:9px}
+.profile-event{
+  display:grid;grid-template-columns:54px 1fr;gap:11px;
+  padding:11px;border-radius:10px;background:var(--bg3);
+  border:1px solid var(--line);transition:.12s;
+}
+.profile-event:hover{border-color:var(--gold-b);background:rgba(212,168,67,.04)}
+.profile-event-date{
+  min-height:52px;border-radius:9px;background:var(--gold-dim);
+  border:1px solid var(--gold-b);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+}
+.profile-event-date strong{
+  font-family:var(--display);font-size:1.35rem;line-height:1;color:var(--gold)
+}
+.profile-event-date span{
+  font-family:var(--mono);font-size:.62rem;color:var(--text-soft);
+  text-transform:uppercase;margin-top:3px
+}
+.profile-event-main{min-width:0}
+.profile-event-title{
+  font-size:.84rem;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.profile-event-meta{
+  font-family:var(--mono);font-size:.67rem;color:var(--muted2);
+  margin-top:4px;line-height:1.45
+}
+.profile-event-status{
+  display:inline-flex;margin-top:6px;padding:3px 7px;border-radius:99px;
+  font-family:var(--mono);font-size:.58rem;font-weight:700;
+  background:var(--green-dim);color:var(--green)
+}
+.profile-event-status.draft{background:var(--gold-dim);color:var(--gold)}
+.profile-event-status.cancelled{background:rgba(217,79,79,.10);color:#ff8a8a}
+.profile-event-status.completed{background:rgba(74,130,204,.12);color:#8db9f3}
+
 /* ════════════════════════════════════
    SHARE FAB
 ═══════════════════════════════════ */
@@ -869,6 +908,22 @@ a{color:inherit;text-decoration:none}
 
         <!-- ═══════════ SIDE WIDGETS ═══════════ -->
         <aside class="content-side">
+
+          <!-- PROFILE EVENT CALENDAR -->
+          <div class="widget">
+            <div class="widget-head">
+              <h3>Kalendár udalostí</h3>
+              <a href="/udalost/" class="see-all">Vytvoriť →</a>
+            </div>
+            <div class="empty-state small" id="profileEventsLoading">
+              <div class="empty-sub">Načítavam udalosti…</div>
+            </div>
+            <div class="empty-state small" id="profileEventsEmpty" style="display:none">
+              <div class="empty-icon">📅</div>
+              <div class="empty-sub">Zatiaľ nemáš vytvorenú žiadnu udalosť.</div>
+            </div>
+            <div class="profile-events-list" id="profileEventsList" style="display:none"></div>
+          </div>
 
           <!-- PERFORMANCE GRAPH -->
           <!-- Genuine empty state: no ratings-history table exists yet,
@@ -1267,6 +1322,82 @@ async function loadZapasyTab(){
   }
 }
 
+
+// ── PROFILE EVENT CALENDAR ──────────────────────────────────────────
+let profileEventsLoaded = false;
+
+const PROFILE_EVENT_MONTHS = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
+
+function profileEventStatusLabel(status){
+  if(status === 'draft') return 'Koncept';
+  if(status === 'cancelled') return 'Zrušená';
+  if(status === 'completed') return 'Ukončená';
+  return 'Publikovaná';
+}
+
+function renderProfileEvent(eventRow){
+  const d = new Date(eventRow.starts_at);
+  const day = Number.isNaN(d.getTime()) ? '—' : d.getDate();
+  const month = Number.isNaN(d.getTime()) ? '' : PROFILE_EVENT_MONTHS[d.getMonth()];
+  const time = Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'});
+  const type = eventRow.event_type || eventRow.sport || 'Udalosť';
+  const location = [eventRow.location_text, eventRow.city].filter(Boolean).join(', ');
+  const statusClass = ['draft','cancelled','completed'].includes(eventRow.status) ? eventRow.status : '';
+
+  return `
+    <a class="profile-event" href="/udalost/?id=${encodeURIComponent(eventRow.id)}">
+      <div class="profile-event-date">
+        <strong>${escapeHtml(day)}</strong>
+        <span>${escapeHtml(month)}</span>
+      </div>
+      <div class="profile-event-main">
+        <div class="profile-event-title">${escapeHtml(eventRow.title || type)}</div>
+        <div class="profile-event-meta">
+          ${escapeHtml(type)}${time ? ' · ' + escapeHtml(time) : ''}${location ? '<br>' + escapeHtml(location) : ''}
+        </div>
+        <span class="profile-event-status ${statusClass}">${escapeHtml(profileEventStatusLabel(eventRow.status))}</span>
+      </div>
+    </a>`;
+}
+
+async function loadProfileEvents(){
+  if(profileEventsLoaded || !currentSession) return;
+  profileEventsLoaded = true;
+
+  const loading = document.getElementById('profileEventsLoading');
+  const empty = document.getElementById('profileEventsEmpty');
+  const list = document.getElementById('profileEventsList');
+
+  try{
+    const { data, error } = await cspAuth.withTimeout(
+      cspAuth.client
+        .from('events')
+        .select('id,title,event_type,sport,starts_at,location_text,city,status')
+        .eq('owner_id', currentSession.user.id)
+        .order('starts_at', { ascending: true }),
+      8000,
+      'load profile events'
+    );
+
+    if(error) throw error;
+
+    loading.style.display = 'none';
+
+    if(!data || !data.length){
+      empty.style.display = '';
+      return;
+    }
+
+    list.innerHTML = data.map(renderProfileEvent).join('');
+    list.style.display = '';
+  }catch(err){
+    console.error('[profil] Failed to load events:', err);
+    profileEventsLoaded = false;
+    loading.innerHTML = '<div class="empty-sub">Udalosti sa nepodarilo načítať.</div>';
+  }
+}
+
+
 // ── Settings modal ─────────────────────────────────────────────────
 function openSettings(){
   if(!currentSession){
@@ -1466,6 +1597,7 @@ const authGateReady = (async function initAuthGate(){
 
     renderIdentity();
     renderMemberSince();
+    loadProfileEvents();
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }
