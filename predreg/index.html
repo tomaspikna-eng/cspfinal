@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Predregistrácia · Connect Sports Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{
+  --bg:#060608;--panel:#0d0d11;--field:#14141a;--line:rgba(255,255,255,.08);
+  --text:#f4f4f8;--soft:#a8a8b8;--muted:#747482;--gold:#d4a843;
+  --green:#1ec86a;--red:#d94f4f
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
+a{color:inherit;text-decoration:none}
+header{border-bottom:1px solid var(--line);background:rgba(6,6,8,.95)}
+.top{max-width:900px;margin:auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900}.gold{color:var(--gold)}
+main{max-width:900px;margin:auto;padding:36px 20px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px}
+h1,h2{margin:0 0 10px}.sub{color:var(--soft);line-height:1.55}
+.event-head{display:grid;gap:8px}
+.event-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.badge{padding:6px 10px;border-radius:99px;background:rgba(212,168,67,.10);border:1px solid rgba(212,168,67,.25);color:var(--gold);font-size:12px;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;color:var(--soft);font-weight:700;font-size:12px;margin-bottom:6px}
+input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--text)}
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:14px;color:var(--soft);line-height:1.45;font-size:12px}
+.consent input{width:auto;margin-top:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.btn{padding:13px 18px;border:0;border-radius:10px;font-weight:800;cursor:pointer}
+.btn:disabled{opacity:.55}
+.btn-green{background:var(--green);color:#06230f}
+.btn-gold{background:var(--gold);color:#111}
+.btn-dark{background:var(--field);color:var(--text);border:1px solid var(--line)}
+.btn-red{background:var(--red);color:#fff}
+.notice{padding:13px 15px;border-radius:10px;margin-bottom:18px;background:rgba(30,200,106,.11);border:1px solid rgba(30,200,106,.28);color:#a9f3c8}
+.notice.error{background:rgba(217,79,79,.10);border-color:rgba(217,79,79,.30);color:#ffb1b1}
+.list{display:flex;flex-direction:column;gap:9px}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:11px;background:var(--field)}
+.nick{font-weight:800}.time{color:var(--muted);font-size:12px}
+.owner-table{width:100%;border-collapse:collapse}
+.owner-table th,.owner-table td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
+.owner-table th{color:var(--soft);font-size:11px;text-transform:uppercase}
+.owner-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.hidden{display:none!important}
+.empty{color:var(--soft);padding:16px 0}
+@media(max-width:650px){
+  .grid{grid-template-columns:1fr}
+  .row{align-items:flex-start;flex-direction:column}
+  .owner-table{display:block;overflow-x:auto}
+  .btn{width:100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <a class="brand" href="/"><span class="gold">Connect</span>Sports<span class="gold">Pro</span></a>
+    <a href="/profil/" class="gold">Profil</a>
+  </div>
+</header>
+
+<main>
+  <div id="notice"></div>
+
+  <section class="panel event-head">
+    <div class="sub">Predregistrácia na udalosť</div>
+    <h1 id="eventTitle">Načítavam…</h1>
+    <div class="event-meta">
+      <span class="badge" id="eventType">Udalosť</span>
+      <span class="badge" id="eventDate">—</span>
+      <span class="badge hidden" id="eventCapacity"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="formPanel">
+    <h2>Predregistrácia hráča</h2>
+    <p class="sub">
+      Verejne sa zobrazí iba nickname. Meno a priezvisko bude dostupné výhradne autorovi udalosti na organizačné účely.
+    </p>
+
+    <form id="registrationForm">
+      <div class="grid">
+        <div>
+          <label>Meno a priezvisko</label>
+          <input id="fullName" maxlength="120" autocomplete="name" required placeholder="Ján Novák">
+        </div>
+        <div>
+          <label>Nickname</label>
+          <input id="nickname" maxlength="60" required placeholder="Johnny">
+        </div>
+      </div>
+
+      <label class="consent">
+        <input type="checkbox" id="consent" required>
+        <span>
+          Súhlasím so spracovaním mena a priezviska autorom udalosti výhradne na účely predregistrácie a prípravy zoznamu hráčov. Verejne bude zobrazený iba nickname.
+        </span>
+      </label>
+
+      <div class="actions">
+        <button class="btn btn-green" id="submitBtn">Odoslať predregistráciu</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Predregistrovaní hráči</h2>
+    <p class="sub">Verejný zoznam obsahuje iba nickname.</p>
+    <div class="list" id="publicList">
+      <div class="empty">Načítavam…</div>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="ownerPanel">
+    <h2>Organizačný zoznam autora</h2>
+    <p class="sub">Táto časť je viditeľná iba autorovi udalosti.</p>
+
+    <div class="owner-tools">
+      <button class="btn btn-gold" id="copyNamesBtn">Kopírovať mená</button>
+      <button class="btn btn-dark" id="copyFullListBtn">Kopírovať meno + nickname</button>
+    </div>
+
+    <div id="ownerList">
+      <div class="empty">Načítavam…</div>
+    </div>
+  </section>
+</main>
+
+<script>
+(()=>{
+  'use strict';
+
+  const db = window.cspAuth?.client;
+  const $ = id => document.getElementById(id);
+  const eventId = new URLSearchParams(location.search).get('event');
+
+  let currentSession = null;
+  let currentEvent = null;
+  let ownerRows = [];
+
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[char]));
+
+  const formatDate = value => value
+    ? new Date(value).toLocaleString('sk-SK',{
+        day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'
+      })
+    : '—';
+
+  function show(message, error=false){
+    $('notice').innerHTML = message
+      ? `<div class="notice ${error ? 'error' : ''}">${esc(message)}</div>`
+      : '';
+  }
+
+  async function loadSession(){
+    const result = await db.auth.getSession();
+    currentSession = result.data.session;
+  }
+
+  async function loadEvent(){
+    if(!eventId) throw Error('V odkaze chýba identifikátor udalosti.');
+
+    const result = await db
+      .from('events')
+      .select('id,owner_id,title,event_type,starts_at,status,visibility,registration_enabled,registration_deadline,max_participants')
+      .eq('id', eventId)
+      .maybeSingle();
+
+    if(result.error) throw result.error;
+    if(!result.data) throw Error('Udalosť sa nenašla.');
+
+    currentEvent = result.data;
+
+    $('eventTitle').textContent = currentEvent.title || 'Udalosť';
+    $('eventType').textContent = currentEvent.event_type || 'Udalosť';
+    $('eventDate').textContent = formatDate(currentEvent.starts_at);
+
+    if(currentEvent.max_participants){
+      $('eventCapacity').textContent = `Kapacita ${currentEvent.max_participants}`;
+      $('eventCapacity').classList.remove('hidden');
+    }
+
+    const available =
+      currentEvent.status === 'published' &&
+      currentEvent.visibility === 'public' &&
+      currentEvent.registration_enabled === true &&
+      (!currentEvent.registration_deadline || new Date(currentEvent.registration_deadline) >= new Date());
+
+    if(!available){
+      $('formPanel').classList.add('hidden');
+      show('Predregistrácia pre túto udalosť nie je aktívna.', true);
+    }
+
+    const isOwner = currentSession && currentSession.user.id === currentEvent.owner_id;
+    $('ownerPanel').classList.toggle('hidden', !isOwner);
+  }
+
+  async function loadPublicList(){
+    const result = await db.rpc('get_public_event_preregistrations',{
+      p_event_id:eventId
+    });
+
+    if(result.error) throw result.error;
+
+    $('publicList').innerHTML = (result.data || []).map((row,index)=>`
+      <div class="row">
+        <div class="nick">${index + 1}. ${esc(row.nickname)}</div>
+        <div class="time">${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</div>
+      </div>
+    `).join('') || '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
+  }
+
+  async function loadOwnerList(){
+    if(!currentSession || !currentEvent || currentSession.user.id !== currentEvent.owner_id) return;
+
+    const result = await db.rpc('get_owner_event_preregistrations',{
+      p_event_id:eventId
+    });
+
+    if(result.error) throw result.error;
+
+    ownerRows = result.data || [];
+
+    $('ownerList').innerHTML = ownerRows.length
+      ? `<table class="owner-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Meno a priezvisko</th>
+              <th>Nickname</th>
+              <th>Dátum</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ownerRows.map((row,index)=>`
+              <tr>
+                <td>${index + 1}</td>
+                <td>${esc(row.full_name)}</td>
+                <td>${esc(row.nickname)}</td>
+                <td>${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</td>
+                <td><button class="btn btn-red" data-delete-id="${esc(row.id)}" style="padding:7px 10px">Zmazať</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      : '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
+  }
+
+  async function submitRegistration(event){
+    event.preventDefault();
+    show('');
+
+    const button = $('submitBtn');
+    button.disabled = true;
+    button.textContent = 'Odosielam…';
+
+    try{
+      const result = await db.rpc('submit_event_preregistration',{
+        p_event_id:eventId,
+        p_full_name:$('fullName').value.trim(),
+        p_nickname:$('nickname').value.trim(),
+        p_consent:$('consent').checked
+      });
+
+      if(result.error) throw result.error;
+
+      $('registrationForm').reset();
+      show('Predregistrácia bola úspešne odoslaná.');
+      await loadPublicList();
+      await loadOwnerList();
+    }catch(error){
+      show(error.message || 'Predregistráciu sa nepodarilo odoslať.', true);
+    }finally{
+      button.disabled = false;
+      button.textContent = 'Odoslať predregistráciu';
+    }
+  }
+
+  async function deleteRegistration(id){
+    if(!currentSession) return;
+
+    const confirmed = window.confirm('Naozaj chceš túto predregistráciu zmazať?');
+    if(!confirmed) return;
+
+    const result = await db
+      .from('event_preregistrations')
+      .delete()
+      .eq('id', id);
+
+    if(result.error){
+      show(result.error.message, true);
+      return;
+    }
+
+    show('Predregistrácia bola zmazaná.');
+    await loadPublicList();
+    await loadOwnerList();
+  }
+
+  async function copyText(text, successMessage){
+    try{
+      await navigator.clipboard.writeText(text);
+      show(successMessage);
+    }catch{
+      show('Text sa nepodarilo skopírovať.', true);
+    }
+  }
+
+  $('registrationForm').addEventListener('submit', submitRegistration);
+
+  $('copyNamesBtn').addEventListener('click',()=>{
+    const text = ownerRows.map(row => row.full_name).join('\n');
+    copyText(text,'Mená boli skopírované.');
+  });
+
+  $('copyFullListBtn').addEventListener('click',()=>{
+    const text = ownerRows.map(row => `${row.full_name} (${row.nickname})`).join('\n');
+    copyText(text,'Zoznam bol skopírovaný.');
+  });
+
+  $('ownerList').addEventListener('click',event=>{
+    const button = event.target.closest('[data-delete-id]');
+    if(button) deleteRegistration(button.dataset.deleteId);
+  });
+
+  if(!db){
+    show('Supabase klient nie je dostupný.', true);
+    return;
+  }
+
+  (async()=>{
+    try{
+      await loadSession();
+      await loadEvent();
+      await loadPublicList();
+      await loadOwnerList();
+    }catch(error){
+      show(error.message || 'Predregistráciu sa nepodarilo načítať.', true);
+      $('formPanel').classList.add('hidden');
+      $('publicList').innerHTML = '<div class="empty">Údaje sa nepodarilo načítať.</div>';
+    }
+  })();
+})();
+</script>
+</body>
+</html>
