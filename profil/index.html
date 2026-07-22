@@ -144,6 +144,9 @@ a{color:inherit;text-decoration:none}
 
 .cover{
   height:240px;position:relative;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
   background:
     radial-gradient(ellipse 80% 100% at 20% 0%, rgba(212,168,67,.35), transparent 60%),
     radial-gradient(ellipse 60% 80% at 80% 50%, rgba(30,200,106,.18), transparent 60%),
@@ -752,8 +755,8 @@ a{color:inherit;text-decoration:none}
     <div class="profile">
 
       <!-- COVER -->
-      <div class="cover">
-        <button class="cover-edit">📷 Upraviť pozadie</button>
+      <div class="cover" id="profileCover">
+        <button class="cover-edit" id="coverEditBtn" type="button">📷 Upraviť pozadie</button>
       </div>
 
       <!-- HEADER -->
@@ -1052,6 +1055,7 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <input type="file" id="avatarFileInput" accept="image/*" style="display:none"/>
+<input type="file" id="coverFileInput" accept="image/jpeg,image/png,image/webp" style="display:none"/>
 
 <div class="toast" id="toast"></div>
 
@@ -1146,6 +1150,15 @@ function renderIdentity(){
   // by the storage migration — see supabase/migrations/0007); otherwise
   // fall back to the initials placeholder, never a fake photo.
   const avatarUrl = currentProfile && currentProfile.avatar_url;
+  const coverUrl = currentProfile && currentProfile.cover_url;
+  const coverEl = document.getElementById('profileCover');
+  if(coverEl){
+    if(coverUrl){
+      coverEl.style.backgroundImage = `linear-gradient(rgba(0,0,0,.20),rgba(0,0,0,.32)),url("${coverUrl}")`;
+    }else{
+      coverEl.style.backgroundImage = '';
+    }
+  }
   [document.getElementById('profileAvatarInitials'), document.getElementById('topbarAvatarInitials'), document.getElementById('settingsAvatarPreview')].forEach(el => {
     if(!el) return;
     if(avatarUrl){
@@ -1469,12 +1482,76 @@ function closeSettings(){
 document.getElementById('editProfileBtn')?.addEventListener('click', openSettings);
 document.getElementById('openSettingsBtn')?.addEventListener('click', (e) => { e.preventDefault(); openSettings(); });
 document.getElementById('avatarEditBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
+document.getElementById('coverEditBtn')?.addEventListener('click', () => {
+  if(!currentSession){
+    toast('Načítavam profil, skús o chvíľu znova.', 'error');
+    return;
+  }
+  document.getElementById('coverFileInput').click();
+});
 document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
 document.getElementById('cancelSettingsBtn')?.addEventListener('click', closeSettings);
 document.getElementById('settingsOverlay')?.addEventListener('click', (e) => {
   if(e.target.id === 'settingsOverlay') closeSettings();
 });
 document.getElementById('settingsChangePhotoBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
+
+
+// ── Profile cover upload ─────────────────────────────────────────────
+document.getElementById('coverFileInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file || !currentSession) return;
+
+  const allowedTypes = ['image/jpeg','image/png','image/webp'];
+  if(!allowedTypes.includes(file.type)){
+    toast('Použi JPG, PNG alebo WEBP.', 'error');
+    return;
+  }
+  if(file.size > 5 * 1024 * 1024){
+    toast('Fotografia môže mať maximálne 5 MB.', 'error');
+    return;
+  }
+
+  const ext = file.type === 'image/png' ? 'png' : (file.type === 'image/webp' ? 'webp' : 'jpg');
+  const path = `${currentSession.user.id}/cover.${ext}`;
+
+  toast('Nahrávam pozadie...');
+  try{
+    const { error: uploadError } = await cspAuth.withTimeout(
+      cspAuth.client.storage.from('profile-covers').upload(path, file, {
+        upsert:true,
+        cacheControl:'3600',
+        contentType:file.type
+      }),
+      15000,
+      'profile cover upload'
+    );
+    if(uploadError) throw uploadError;
+
+    const { data: urlData } = cspAuth.client.storage.from('profile-covers').getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+
+    const { data: updated, error: updateError } = await cspAuth.withTimeout(
+      cspAuth.client
+        .from('profiles')
+        .update({ cover_url: publicUrl })
+        .eq('id', currentSession.user.id)
+        .select()
+        .single(),
+      8000,
+      'profile cover_url update'
+    );
+    if(updateError) throw updateError;
+
+    currentProfile = updated;
+    renderIdentity();
+    toast('Pozadie profilu bolo aktualizované.');
+  }catch(err){
+    console.error('[profil] Cover upload failed:', err);
+    toast('Pozadie sa nepodarilo nahrať.', 'error');
+  }
+});
 
 // ── Avatar upload — uploads immediately on file selection (its own
 // save action, independent of the name/role Save button below), to the
