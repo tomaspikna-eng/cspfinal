@@ -1,321 +1,102 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Nová udalosť · Connect Sports Pro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Udalosť · Connect Sports Pro</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
-:root{
-  --bg:#060608; --bg2:#0d0d11; --bg3:#14141a; --bg4:#1a1a22;
-  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.04);
-  --text:#f4f4f8; --text-soft:#a8a8b8; --muted:#6a6a7a; --muted2:#80809a;
-  --gold:#d4a843; --gold-bright:#e8b94f; --gold-dim:rgba(212,168,67,.10); --gold-b:rgba(212,168,67,.25);
-  --green:#1ec86a; --green-dim:rgba(30,200,106,.10);
-  --red:#d94f4f;
-  --font:'Syne',sans-serif; --display:'Bebas Neue',sans-serif; --mono:'JetBrains Mono',monospace;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
-button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-a{color:inherit;text-decoration:none}
-input,textarea,select{font-family:inherit;font-size:.92rem;color:var(--text);background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:11px 13px;width:100%}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold-b)}
-textarea{resize:vertical;min-height:90px}
-label{display:block;font-size:.78rem;color:var(--text-soft);font-weight:600;margin-bottom:6px}
-
-.topbar{position:sticky;top:0;z-index:20;background:rgba(6,6,8,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.topbar-in{max-width:720px;margin:0 auto;padding:0 20px;min-height:60px;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-mark{width:30px;height:30px;border-radius:8px;display:block;object-fit:cover}
-.brand-word{font-family:var(--display);font-size:1.15rem;letter-spacing:.02em}
-.brand-word .g{color:var(--gold)} .brand-word .w{color:var(--text)}
-.tb-right{display:flex;align-items:center;gap:14px}
-.tb-user{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-soft)}
-.tb-av{width:26px;height:26px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--gold)}
-.link-btn{font-size:.82rem;color:var(--gold);font-weight:600}
-.link-btn:hover{text-decoration:underline}
-
-.wrap{max-width:640px;margin:0 auto;padding:40px 20px 80px}
-.page-head{margin-bottom:28px}
-.page-head h1{font-family:var(--display);font-size:2.2rem;letter-spacing:.01em;line-height:1.05}
-.page-head p{color:var(--text-soft);font-size:.92rem;margin-top:8px;max-width:460px}
-
-.field{margin-bottom:18px}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:520px){.field-row{grid-template-columns:1fr}}
-.hint{font-size:.72rem;color:var(--muted);margin-top:5px}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:.9rem;padding:13px 20px;border-radius:10px;border:1px solid var(--line);transition:.14s;width:100%}
-.btn-primary{background:var(--gold);color:#1a1000;border-color:var(--gold)}
-.btn-primary:hover{background:var(--gold-bright)}
-.btn-primary:disabled{opacity:.55;cursor:not-allowed}
-
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#06230f;font-weight:700;font-size:.85rem;padding:11px 20px;border-radius:99px;opacity:0;pointer-events:none;transition:.2s}
-.toast.show{opacity:1}
-.toast.err{background:var(--red);color:#fff}
-
-.loading-gate{max-width:640px;margin:0 auto;padding:60px 20px;color:var(--muted2);font-size:.9rem}
-
-
-.section-label{
-  font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--gold);margin:26px 0 12px;
-}
-.section-label:first-child{margin-top:0}
-
-.share-box{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
-.share-row{display:flex;flex-wrap:wrap;gap:8px}
-.share-btn{padding:10px 16px;border-radius:9px;border:1px solid var(--line);font-size:.82rem;font-weight:700;background:var(--bg2);color:var(--text-soft);transition:.14s}
-.share-btn:hover{border-color:var(--gold-b);color:var(--gold)}
-.share-btn.fb:hover{border-color:#4267B2;color:#4267B2}
-.share-btn.wa:hover{border-color:#25D366;color:#25D366}
-.share-btn.x:hover{border-color:#fff;color:#fff}
-.share-btn.ig:hover{border-color:#E1306C;color:#E1306C}
+:root{--bg:#060608;--panel:#0d0d11;--field:#14141a;--line:rgba(255,255,255,.08);--text:#f4f4f8;--soft:#a8a8b8;--gold:#d4a843;--green:#1ec86a;--red:#d94f4f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}a{color:inherit;text-decoration:none}
+header{border-bottom:1px solid var(--line);background:rgba(6,6,8,.94);position:sticky;top:0}.top{max-width:920px;margin:auto;padding:18px 20px;display:flex;justify-content:space-between}.brand{font-weight:900}.gold{color:var(--gold)}
+main{max-width:920px;margin:auto;padding:36px 20px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:20px}
+h1,h2{margin-top:0}.sub{color:var(--soft);line-height:1.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}
+label{display:block;font-size:12px;color:var(--soft);font-weight:700;margin-bottom:6px}input,select,textarea{width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--text)}
+textarea{min-height:110px;resize:vertical}.actions{display:flex;justify-content:flex-end;margin-top:18px}.btn{padding:13px 18px;border:0;border-radius:10px;background:var(--gold);font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}
+.notice{padding:13px 15px;border-radius:10px;margin-bottom:18px;background:rgba(30,200,106,.11);border:1px solid rgba(30,200,106,.28);color:#a9f3c8}.error{background:rgba(217,79,79,.1);border-color:rgba(217,79,79,.3);color:#ffb1b1}
+.event-list{display:flex;flex-direction:column;gap:9px}.event-row{display:grid;grid-template-columns:1.3fr 1fr auto;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--field)}.club{font-weight:800}.type{color:var(--soft)}.date{color:var(--gold)}
+.hidden{display:none}.detail{display:grid;grid-template-columns:1fr 1fr;gap:14px}.item{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--field)}.item small{display:block;color:var(--soft);margin-bottom:5px;text-transform:uppercase;font-size:10px}
+@media(max-width:680px){.grid,.detail,.event-row{grid-template-columns:1fr}.full{grid-column:auto}.actions .btn{width:100%}}
 </style>
 </head>
 <body>
+<header><div class="top"><a class="brand" href="/"><span class="gold">Connect</span>Sports<span class="gold">Pro</span></a><a class="gold" href="/profil/">Profil</a></div></header>
+<main>
+<h1 id="pageTitle">Vytvoriť udalosť</h1>
+<p class="sub" id="pageSubtitle">Udalosť sa po publikovaní zobrazí v kalendári udalostí.</p>
+<div id="notice"></div>
 
-<div class="topbar">
-  <div class="topbar-in">
-    <a class="brand" href="/profil/">
-      <img class="brand-mark" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAAb40lEQVR42u18e5hU1ZXvWmvvU8/u6hfd0KACNgrKAAHRhEfAaKKj+ID5ZoxRjGbuDTHjTa4xOnlc80388jkmzp2MZjJOMjGaO6PfGM2oSRyZJEaNb4FEXiqIvEGg3496nnP2WvePfepUIdJUS4uROT+K+qq7q+pUrbX3Wr/12gARIkSIECFChAgRIkSIECFChAgRIkSIECFChAgRIkSIECFChAgRIkQ43oDvz1UREQER7D8AABEAsP/lbZ8PD/qUYp8rICAikQJqljgRIKKIGDOaYiNCwkArIh88lby3CiBCQmQR5oME09KcbB+bGj8uPb4t3dqSamqINdTpmEPpJCXipBUxC7AY33M9Gcp5+bw7kPX7+gp9A6Wu3mJnj9vV5/YMuNm8f+hFlUIEMPzBUAa+R+tdERrmUAQtLamZp7WcOavtjBljT53UMGFcqqnR0QkCRYAIwmAYDAMzMINA8IA9EAFhEBEWMD4b43l+sST5vNc/5HX2lvZ2Frfsyr6xK7d5Z3b3/mJXn/ffegcgAhEZw/bHaac2n3/25AvOnTx7enNbWwJiCD6Da8Bjz2dmZhYRa87ZyhlFQITZgBgRFmZmYRZhEeOLCAqDMKFoYoWgSJQCZskVvN5+d8fewqtbc+vfzD61pm/nARcR/sj3wWgqQKlA9E2NycuWTr1y2dSzZo2JNybAFyh6nmfYCAIDMCIABpbbWgqxqmABFgEWNsAsIMImkD4LsGEWAGb7V8P2rywMLIisUGKKFUCmQf/9v+6+8fs7tULf/FFrQI+WrWcWY7ilKfm/Vpzx2eXTJ0zKQMnnnFfqKSAiEhIgKgRAS2Aq1CdkNSIigmBVIgcRHxEAFhBAERYQQRAgQEBEIQZBEAFjJO+z5xki5veJ4L0PCrALXxF94bNn3HjdnAknN0Gu5HbnAYEItIMgaPklohUngTCAIIRE0krcSh/QSh/LnCYgqFbIgqFuDtaTJayEKAqUAviA8KGjVYBW5BueeVrrP3/3vPmLToShotudU4qUUgBcZvWC1dYOgw0Qrn8RYWFhEcMiImJAWCSwS8wCzHbhCwiKhG9m3waxEhGUHyDS8b4DEIAU+oavuWz692//WLoh4XbllEKtyQrdLmNAAQhdIYd6EEZjWJgVoaNIJQjIOgYJbmyADYCAYWABYzzfeK7vup7vsTHC1hAF+8CSJQYpa/cDwoL0UUifjOFv3jjvb74xH4Zcb6CoNZUXoZSfZaUfxrDWqwICxRIKYnFg42fdrj5/74GhffsHD3SX+gbdgYFS0WVjjDArgnRKN9TFmjM0tiXZ2uQ011FzvUqllSJxXVMoeiXXZ58RGMNgTKos1XGpAKXIN3zb1xZ89f/M97oLRKgU2WWPUCX8gz2p8SUeV7ouDiXe8mbfsy/veX71vrUbO3fuzfX0FWq7LjbWxya0JU49KTVrav3sqfXTTkq2t8QU+YWCly/4xgh/oLIU+l3b/a9cd9ZXb17gduaVpsC7VvI5EgQFwS/QGHYcpRvjffuyP3/4zft+tun51XuLRf9tVArx0MRP5RGzGCM9/aWe/tL6NwZ+9sQ+AGhpjM2emlk8O7N4Vv20yYnmjM4WjOVMx6cClELf8EWf6Pj2357t9RSVVli26lgt/YrkkA3HGpNDvfl/vOuVf/5/6/e8NVSVM8AgFKukK+QIYQuWc3kAhqWn333i5e4nXu4mhFmn1l20sOmiBS1nzc6kU85xGAkTIQi0tabWP728pSXJJaaQbIhU9oAA2FDLsADoxsQvfv7mTbc888a2Pit3AOBRytUgAiECQpjjizt0ydlj4pruW7mfCJiPIwUohcbIv/3jBcs/M8PrLiityotesMICQ5YpqJAcuvFvnvvuD/8AAFqTMe9hxtIaMWM+SBnREShAERqWGae3vvLUVeD6SFQ2GCwB0ZQqsgNACJquWPH4Q49tUQpFgI+JYUYEomN3uWPoAxAA4KZr56qU9oq+ojD0QUSQMDZCAEEBdlLOVStWPvTYFschz+PRky8O8yMzW0qAGNi62peYHGZhBmbV7m55nxRAiMbIhPb6P7voFMl6IemsWCAECISMxjexltQd333pvoc3HY30ERERiSgUrhxScznUoJn3cuETASGy2FD9WCpAIfvyp+ecnB6b8rrzSikbc5Zj3LCQiMyi0/Ftr3V//fYXFaHv88i/JBFRmK3mg92oUiqRiDuO4zgxrXUsHos5MaV1Mh7P5wtvbNl8zpnNdUliFkeh1hSPoVakCOy9ItAKtFaaEIQBhRC1AiLlaCqvfSm5ki+ZgsvZvN8z4O3v9fb3eAd63aJr6xWBRzx6KlGrAux1PrFoonB1qC8ildxOkOhhoHj81jt/Xyj4WpP4MiLRI6Ixxgo9k8l0dHRMPXXq1GlTJ02a1N7e3tzc3NDQkE7XxWKBAhxHa+2IiNbq4Ud+ce1nLv2P78zQaHwOgmGyfMxK1pKFIDsCwgxgqw0ASAJAiGVvhpWsiYhrIJfn7gHvjV2FFzcOPbtucP2bOevtFSEfxW7QtZkCMEYcR50xcywWfapEWOHat/coIrGE2rul+8Ffvo4IYWWmNoqljDEA0NHRsWTJkvPPP3/27Nnt7e21vNb3fBH4xWO/mjUl5mjs7HGVIssPpDoqDzwVVy0sBhuJAAfJ1AqNQyh3DSCho/GksfFTTkxesrA5V+BNuwo/f6bn/l93Huj1rJrfneWrTQGAAtLakh7XlgHPVDkoLgdegU4Ms07q3z6/I5vzLGet3a8aYz70oQ/ddNNNS5cuS6WS4eozxkhwDXzbfZWFVAjy4gvP/89zxyKI1qSIBEBIgvQcVnvX6pQ2AXE5wYqINp2CctDTEBBYoORKoeSLABGcfnJy7mknrVg69gcPH/inh/d5PluWOGJ7Wzv/GdOSStfF2LDNC0hgjIJMfXkfMCA+t2Yf4ttldERW861vfWvVqlVXXHFFKpX0PM/3fWuIlFJaa621UkopZT0EVkFEiHDnrt0H9m5ZNKetUPJtQBCuYQyugVBZ2IGtx1DAUP785WCmYlcxMAOIoAi1QkLMF7mz38uk9d9+ftKv/mHGtIlJw6JGngOnGk0QAKTTDmrkIOLloIIVFLMCNkSE4PHWHQNSWz7Mkhyt9SMPP3LzzTcrpTzPY2Yr7hpVaPn+U08/l4nnp5xUV3IF0aa2g71Sbi4qtxNVNkLFOAW1ogrJKj8DK9oKbhhUfjSRb+RAb2n21OR//cP0hbMa3oUOaARPRQAxVf03gnY1hd/NbgWPh7JujSl563K/973vXbr00lKpBABa6yPK3dolP4CxTvs/V/7mjGnJ+pT2DVTKBEBSReQruRIplx3KC4gr9yKCLGAEjBHDFYVVf4Lg+yI4GgdyfipBD9wyddaUtGGhkehA10aBAAByeVdcm0mQcrdBsNPDp9mKesA4avO6iz666Nprr/U8LxZzjhg2WWKqtQ6DAwBwHA0Aa19Z/dW/mKAdSsRIaQIAYQAkQEAwIiyWESBYQy/CQaXIJgIxDOxRgJQmrUkTAHOhxAXXINolCNb2VioeiFphvmTqk+rHX59y7hc2DuW59m6MEUTCAwOlYsGNKWGW8v7mchIo4A1sGBQ0ZmKh4ToirrvuurCOeETpK6UAoLu7e/369Zs2bdq9e9f+/QdyuVwul9uxbfMdD8T/5dEuY4KC/NuXyCEhXHkTirAAoiVMKAgI8ZhqyjgTx8Vmnpw66/S6KSemXJ/zRaNQqkVrXyYAWuFg3px+cuLrV5/wlbt2KkJTmwZq3AECAJ09uZ7e/AntSXb9SqkLpfLVbF+JhimTMk88E1CK4Y1PKpVasHAhIlrJDv8ZlFJbt2795je/uXLlyp6enkOfs3Gr/15Ev3VJOu8jLTddOeG0icmBrEuENp4IC9t2MToaegf9K88f84NHDmzfV6yRmFKNJogQczlvy/Z+iAWsLcg/Mwtz0L9mHxh//pxWgSM4Ybsy29raxowZU4ObZUTcvHnzvHnz7rvvvp6eHuu6Q1j9EYEipHdzg7f9RhEqhVqhIswW+OGnus774oZfvdzbWB8zLFBFqsIiKAAYA00ZZ/kFrQBQY1dArU6YFALAS6/sA0exKTti4TIHCroakNjk3MVnjqtPO2zkiFbobdZ8GJ6DiA888EBXV1cymUREZvarYCM4ZjBsl8RIb/C23xgWY8Q3YlgQQSscypu/vPXNN/Z6qYRmwbBBu6oYgkhYcPlP5zXrmmOgWhVgl/NvntkFJR/twhcTfHBhe2c5UqHonTgxc8nHJwmAOrxw7Rv29fXlcrkaY4W5Z8wFgEKhYKOBY5YxFgHfiFaYK5j/e9+eZFwJV6Vj8CC+XvJ48vjE5PHJgDeOlgLYCAK8sOatza93xeLIxpRFzxI07wRNnCDgl7ybVszQmkQOuwlEhIh6enpef/01m3cbli+RMbzkoiX33HNPa2trGKONKFw4Stit8OuXuvd0FuOO9X822iREkiBkQN9IXUpNnZiq0QqpETBWRZ7HqaRz3nkTS1mXKAzDoNxga3sLwS16EyfWeSX+3ar9jqbDFUaUUtaSLFu2zPf94f0wIrLInDlzrrrqqvb29p6env3793M5G3ls9gQiFEp8wbymk8fHXU+QyrXpIOwnQBDA+rSz6rXs6tcGFeER/fAIFGDp/6atA59eekp9nQryzAeToLDn0C26585ve+kPXVt2Dh1OB8xMRBs2bFi0aFFHR4fneUfUgTEmk8nMnz9/xYoVS5cunTR5su/7nV2dbskNNYEBMxx9KEIR+PhZDTM6UoUSl6d8bLIDkJCIGCidcta+kXv6931UgwJoRKaQCHv6Ct+64w9OOmY8E3QVMoDY1FC5YCIsLL5rHvzewo/ObfV81oe3E8x82WWXbdiwIRaLhbZlmNiNmT3PE5FZs2Z95a//+qmnnnrt1dfuvfcnS5YsSdelbVRcC689GltUyVIgIAGStUNB2gkRY7Farz6ybcssivCH92984tfb6xsTnsdW3EEHedBSyCBi3VE8pn75g0WXX3iib0QEDlWDFVZXV9c555zz6KOPOo6jlPJ9M4waEFFrbbOnnucZYyZOnHjNNVc/9thjr2589Y477pw7d67NVdi03SiK3vLvlgbHZwBEQZSg0R7Rhtxlc1Qo1pqHVyO3g8gsv3t5/+UXdTSktVvybWCPAReWQBUCiOh7hhAuv/CkE8alX17fM5TzbSEJbdhZ5Y1zudxPf/rTbdu2TZ8+va2tlYisEMNk2uESeZaSWhra1NT0kY98eMWKFQsXLuzq6tqyZYsN30bFItnsQiqpblp+UjJBRpAQCZEIEe1/QkIRrEs5j/6uZ/WrAzS6PiA0RIqwf9Bdva7riks7FILvGUKboLbumMNaMQIYI8Wiv2BOy5+ff4Ln8xs7soVSEKVrFQjX1vWJaN26dffcc8/evXvHjRs3YcIEpVQ4eXBoDeBwmkCkjo6O5cuXn3nmmWvXru3s7BwVHWiFLPCxuc0r/qw9XzR2GWGw+ss3RACKx/S9v3hr844cEsqoK8DqQCvcvie79tXeTy6Z5ChwXR+DyYpyb3NVtppAsjkvk6ZLz25fdm77+LZkz4B7oLvEErZQB8OO2tHFYmnNmjU/+tG/PPHEbwuFQmtrW3Nzk60CAIDv+zVoAmwNZ+rUqddcc013d8+aNauPUgeKbN0Vf/i1qe1jHM8XVWXxrfjBaoCUb+Dv/nV7d79XvdFHUwEAwAJa4ebtAy+v7VrysQlNmXgu71M5URW2L2BZH4Tieyabd5sy+uy5zZ86v/38D7ecODaOAPmiyRWDLGq5hEkAsmvXrscff/zee+5++uknBwb6M5mG1tbWkG76vo94WOsU1pYTicTFF19ERE8++aTWutq1VFGYd75RQGwQMUiyfOcLHcsWNw/kfKXK9QbLPil4LICJuH5zT+nv79thQ6Laal1HsSt9I6dMyvzk2/Pmn9k62Ff0DCuCsFwTpOesUbKBmxFjjEZJxiiupVj09/cUt+0pbtqe3bK3uG1vfueBUnefP5gzJQ+q61Ixx5kxc+aSJUsuvvjiuXPnBqVg36dy9WuYyoHjONdff/2dd94Zlp1HihlT6m7+zMQLFjQNZL2g3YgQAW0/TtkDk8/Q2hT/zk92fuOfNtc4nna0MaQt/MYcuvmvZvzvT0+tT1P/QMkYVigVcEBSgU25v4mNYTYGhbWSmAZNgCjGSC5vBnJmYMjrGfD393h7urzOfrP69ezq14fCi86dO/eaa665/PLLW1pagq02rA6YBRHOmDNn3fr1VgcxB4nCiiQcVB4TIIKYQ5m0bh8TmzElfe7chsVzGuuSaiDnKyqveyREDLosAnNEgKi1XnD1i5u2Z633es8VAOUJPQCYNa3p5s+ffsk5ExTy4JDr+cbO5AmzsAExwAw2jSJsB05t7w/bFJp1xQgKQRE4SpQKGLbny59/Y+uTfxhyNJXcIOfc3t5+w5dv+NL1X7LBwTA6MMZorZ/87ZPnfvxcRyvPN5ed23rbdR19Ay5hOaUOgCDMIGy0VvG4Sqd0XYoSMTRGhgqGBZSyQ/nlUxYQxXphQkTyfBjbkvj+A7uu/7vXai/Qj04WxbZj2vzf4rPa/uqTJ3/8I22NDU6h4OXyrvF9ZEZgEA6GHbnsqEGARezOADjIhdsfEI2RMQ161ev5T1z/evlyRETWIS9evPihhx4aM6aV2dCwuT9EnD179rp16wDg9JPrn//xmcYvCZvqIYSAxyECIAv4HLywvPCxUiIPkhBESERkjKRSel+Xt+DqF3oH3NqbGEctXLRxMiLu2JP72a/3/PLpfQd6So31zvgxscY6R5OwYd+wMRyGbFWU6eAmEAya2wlRESiFrgctDbGHf9fXP+QTgs0CIqLjONu2bXvuueeuumq5DX0Ptw+MYaXUnj27n332WSI1kHWXnd2aqaOSy0bAmGBS3zCwILPl70hESilSAdMHJLslA75FhKiIlGGMJzQh/cWNr2zema2FfY6+AiA4LgMUISJ29ZaeWdN976M7n3ixe/vegvElndCZOpVJ63RSxTVqBSjlOrKxFgi4ynGUNwDaN2yocx57vm/ngRJVfT1mdhxn586d06ZNmzVrlvXJwyRf+/r6H3zwQaXI83jp2a2Txic8Xw4ikwiVDAPRwayIbNwVyF0pJEVEPkN9fdwwXPm1dU+u6rL9iqNclH8XqRLL630jqzb2rdrYBwDNDc6UE5OnTUqfNrlucntsfIvTnHHSCUg4KhYXQluWCtyDMDKDIPoMnoe5ohkquKV36nK0kl25cuWVV155RGNr++ystcuXgIjEDrSG8QhUHmM1V4XQ2IPtyxdBEYzF1JiW+CubBlbcsnbNxv7ae9HeQwWEWSM7kmp3rWHpHfBWDXirNg5Waq0pnUnruiTVp1XCoUSM4nGyoYPxJVcS15d8iYfynCv4+aLJFw0c0vxsu3f7+/uHsT/hn1KpVFVxnsqSpXCeE0BsLhWrRB924wmS7ZpTilIJlUw4XX3mth9vve1Hm4Zy/ruQ/nuogLBVQlg4dNTlyMmOXmfz/jueNzPS3BQiTp48GYatQts/uW4p/E065VgfWlnt5f4JAZEwzENCWx/WyonpeExrTdm8/+rWwYd/u//fH9+7a1/O7vh3N5nz3irgbWwV5KBjfMpsomqM4h2GW6vOM5B3XtcicsWnrhh+B1j09fXbXhIiaMxoBgJSlZdZVkOYTmjbe88iLOgbyRYlm/M7+wvb9hbWbup/YW3Pus391tZbo/+up3GOnQLCBWIjSduVDPDuJ3pt7cX3/RWfXTFv/jxjzDA1AOvYt2/bZi/d3Bgb25I0DIpUZXZfMBFXO/YWvnj7WssIXI9dX4olHsr5g1nP2sDqRIDhox1J08ds+V9xSceWHQO/39BdHaDb062k3F0qMBx/rm7IDTshPve5z911113GmOGXv33VSy+/bD3UpAmpMU3xYtElrew+QwEAdBydLRSee6V3mHAHbSzDMioH4RwLBSAAs9z4P2bMOi3zyobuF9f2PPHC3t+/2rvrrdyhyyecSQrNS+hpq+eTlFKLFy3+8o1fvvDCC21MMHw2QikaGhpauXKl7RY780+a00knX/BsLy0CAiEJEGmlddhgKwe7EHsizugK59iZoN5Bz3jmtI7M7D9p/vynJvf0u29sH1q9oXvD5r4tO4Z27y909XnZvFuuw7wDkqlk+7j26dOnL1iw4IILLpg5c6ZNM5ClMcNZP3Yc/eCDD3Z2djqO9jz/Y2e1esw2pLJ6JyIW20uK5hiOVx47BWhFgJAv+rmCTwAJh86a0TR/TjOwuK4M9g0MOouKjcv6ersHBocGBwdd1xURx3FSqVQm09DY2Nja2jq2rS0Wj4VRWNgtOiwhZiIaGhq65ZZbiND3TVtLYt6s5nzRV4oC7g8oiAI22jp2HUfHSgEIIGBz8cH5lYA+y1DesBEAISLtyIkTWpyJpx3xzXzft8GXzRMcKTgXYzgWc2644Ybdu3fHY7rk+hctHn/C2ERXX0krVZlGCiItAsTjTgECAECqHOcH3xgQkVQQfzJgyfMVMxsP8KDqFVaPWYyk3cG6jVjM+fZt37777ru11p5vCPHqSya6vijbRlo5LZasJcLjUAHBDigP9SFBcDBZGALYTBcREYICPNoMVViHAYBbb73Vzt6AGGZZOGfMh2c1ZfMeqbLy7QaQMlc6Dk1QQLPLUb0tYzCg7WcF2+IxCl+7XP5hx3GIaOeOHV+64YZHHnlEKWXY2An6Gz8zTWslaMIRpvLZOlLjmMIHVQFKa2HwDQe9EIgodrgSy7WNoxG6QHlURinV2dl577333n777b29vbYEZiskHz2j9cLF4wdynu0sqpK1YNnUAR6vOwBINSTHxAlExBfXY89jY5iZBUAYiMUYIyyI73zmZEjGq8KioEZv/YLn+WvWrL7//vsfeuihzs5OqJo9tvblli/ORFWZmgzerpwKIkFSdGzlf0wUYEW2/PrfzJjWNH1Kw/RTMiefmBnXmmrOxOrTcUcLag2+D2OaQCkYYUthNpvdsWPH+vXrn37q6WeefWbz5s1hpBY2bNk85ScvnLT4w2P7+otaYVVyKcjAEeL7crDQ+3a2YzqpW5oS7W3J9rbkhLF1bU3YPmle6+Qlmfr6ZDKZSCSTqaTjOHbV+56fLxRKpWI2m+3v7+vs7Nq9e/eOHTu2b9++Z8+effv2VYZLEe2qD39DiALS3pZ+5dElbS0xz2NLAiwfCBrIAmeAsbSzYWPvzIt+fhyaoHIEEJz+liv4uUJ211vZqqe8CnB39fOVPYBVgI90KIZNzNnQzNaKq1ksM3x62ZTBkuza0Ke1AkR7JimInaEMjzXFVNLZsjP/32IHYFjlxrAjBAUq3SzDJ+NCr2DjuyOmVGMOuR4HR3FUZZmgemb7YGdznCuglh1zqAeO8AEGHumvCB+QA78jRIgQIUKECBEiRIgQIUKECBEiRIgQIUKECBEiRIgQIUKECBEiRIgQIUKECBEiRIgQIUKECBEiRIgQIcIfB/4/ZJ91xuNcubcAAAAASUVORK5CYII=" alt="Connect Sports Pro"/>
-      <span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span>
-    </a>
-    <div class="tb-right">
-      <div class="tb-user"><span class="tb-av" id="tbAv">—</span><span id="tbName">—</span></div>
-      <a class="link-btn" href="/profil/">← Profil</a>
-    </div>
-  </div>
+<section class="panel" id="formPanel">
+<h2>Základné informácie</h2>
+<form id="eventForm">
+<div class="grid">
+<div class="full"><label>Názov udalosti</label><input id="title" required></div>
+<div><label>Typ udalosti</label><select id="eventType" required><option value="">Vyber typ</option><option>Turnaj</option><option>Liga</option><option>Tréning</option><option>Klubová udalosť</option><option>Otvorený deň</option><option>Iné</option></select></div>
+<div><label>Šport</label><input id="sport" required></div>
+<div><label>Disciplína</label><input id="discipline"></div>
+<div><label>Miesto</label><input id="location"></div>
+<div><label>Mesto</label><input id="city"></div>
+<div><label>Začiatok</label><input id="startsAt" type="datetime-local" required></div>
+<div><label>Viditeľnosť</label><select id="visibility"><option value="public">Verejná</option><option value="unlisted">Nezaradená</option><option value="private">Súkromná</option></select></div>
+<div><label>Stav</label><select id="status"><option value="published">Publikovať</option><option value="draft">Koncept</option></select></div>
+<div class="full"><label>Fotografia udalosti</label><input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"><div class="sub" style="margin-top:6px;font-size:12px">JPG, PNG alebo WEBP, maximálne 5 MB.</div></div>
+<div class="full"><label>Popis</label><textarea id="description"></textarea></div>
 </div>
+<div class="actions"><button class="btn" id="submitBtn">Vytvoriť udalosť</button></div>
+</form>
+</section>
 
-<div class="loading-gate" id="loadingGate">Načítavam…</div>
-
-<div class="wrap" id="formWrap" style="display:none">
-  <div class="page-head">
-    <h1>Nová udalosť</h1>
-  </div>
-
-
-  <form id="eventForm" onsubmit="return false">
-    <div class="section-label">Čo</div>
-    <div class="field">
-      <label for="evTitle">Názov udalosti</label>
-      <input id="evTitle" type="text" placeholder="napr. Jarné stretnutie klubu ŠK Pohoda" required/>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label for="evSport">Šport (nepovinné)</label>
-        <select id="evSport" onchange="onSportChange()">
-          <option value="">— nešpecifikované —</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="evDiscipline">Disciplína</label>
-        <select id="evDiscipline" disabled>
-          <option value="">— vyber najprv šport —</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="section-label">Kde</div>
-    <div class="field">
-      <label for="evLocation">Miesto</label>
-      <input id="evLocation" type="text" placeholder="napr. Klub Pohoda, Žilina"/>
-    </div>
-
-    <div class="section-label">Kedy</div>
-    <div class="field-row">
-      <div class="field">
-        <label for="evStart">Začiatok</label>
-        <input id="evStart" type="datetime-local" required/>
-      </div>
-      <div class="field">
-        <label for="evEnd">Koniec (nepovinné)</label>
-        <input id="evEnd" type="datetime-local"/>
-        <div class="hint">Nechaj prázdne, ak udalosť nemá presný koniec.</div>
-      </div>
-    </div>
-
-    <div class="section-label">Poznámka</div>
-    <div class="field">
-      <label for="evDescription">Poznámka pre účastníkov</label>
-      <textarea id="evDescription" placeholder="Pre koho je to určené, čo si priniesť, ďalšie detaily..."></textarea>
-    </div>
-
-    <button class="btn btn-primary" id="saveBtn" onclick="saveEvent()">Vytvoriť udalosť</button>
-  </form>
-
-  <div class="share-box" id="shareBox" style="display:none">
-    <div class="section-label">Zdieľať</div>
-    <p class="hint" style="margin-bottom:12px">Udalosť je uložená. Zdieľaj ju ďalej:</p>
-    <div class="share-row">
-      <button class="share-btn fb" onclick="shareTo('facebook')">Facebook</button>
-      <button class="share-btn wa" onclick="shareTo('whatsapp')">WhatsApp</button>
-      <button class="share-btn x" onclick="shareTo('x')">X</button>
-      <button class="share-btn ig" onclick="shareTo('instagram')">Instagram</button>
-      <button class="share-btn copy" onclick="shareTo('copy')">Kopírovať odkaz</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<section class="panel hidden" id="detailPanel"><h2>Detail udalosti</h2><div class="detail" id="detailGrid"></div></section>
+<section class="panel"><h2>Kalendár udalostí</h2><div class="event-list" id="calendarList">Načítavam…</div></section>
+</main>
 
 <script>
-let currentSession = null;
-
-/* Same sport/discipline catalogue as Tournament Manager, reused as-is for
-   consistency across the app — not a separate list for events. */
-const SPORTS=['Biliard','Šípky','Bowling','Tenis','Stolný tenis','Padel','Šach','Bedminton','Karty'];
-const DISCIPLINES={
-  'Biliard':['8-ball','9-ball','10-ball','Snooker','Karambol','Pyramída','14.1 nekonečná'],
-  'Šípky':['501','301','Cricket'],
-  'Bowling':['Klasik'],
-  'Tenis':['Dvojhra','Štvorhra'],
-  'Stolný tenis':['Dvojhra','Štvorhra'],
-  'Padel':['Štvorhra'],
-  'Šach':['Klasik','Rapid','Blitz'],
-  'Bedminton':['Dvojhra','Štvorhra'],
-  'Karty':['Mariáš','Žolíky','Rummy','Bridge','Kanasta'],
-};
-
-function populateSportSelect(){
-  const sel=document.getElementById('evSport');
-  SPORTS.forEach(sp=>{
-    const opt=document.createElement('option');
-    opt.value=sp; opt.textContent=sp;
-    sel.appendChild(opt);
-  });
+(()=>{
+const db=window.cspAuth?.client,$=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const fmt=v=>v?new Date(v).toLocaleString('sk-SK',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+function show(m,e=false){$('notice').innerHTML=m?`<div class="notice ${e?'error':''}">${esc(m)}</div>`:''}
+async function getSession(){return (await db.auth.getSession()).data.session}
+async function getClub(uid){const r=await db.from('clubs').select('id,name').eq('owner_id',uid).limit(1).maybeSingle();if(r.error)throw r.error;return r.data}
+async function calendar(){
+ const r=await db.rpc('get_public_event_calendar',{p_limit:6});
+ if(r.error){$('calendarList').innerHTML=esc(r.error.message);return}
+ $('calendarList').innerHTML=(r.data||[]).map(e=>`<a class="event-row" href="/udalost/?id=${e.id}"><div class="club">${esc(e.club_name||'Connect Sports Pro')}</div><div class="type">${esc(e.event_type||e.title||'Udalosť')}</div><div class="date">${esc(fmt(e.starts_at))}</div></a>`).join('')||'Žiadne nadchádzajúce udalosti.';
+}
+async function detail(id){
+ const r=await db.from('events').select('*,clubs(name)').eq('id',id).maybeSingle();
+ if(r.error||!r.data)return show(r.error?.message||'Udalosť sa nenašla.',true);
+ const e=r.data;$('pageTitle').textContent=e.title;$('pageSubtitle').textContent=e.event_type||'Udalosť';$('formPanel').classList.add('hidden');$('detailPanel').classList.remove('hidden');
+ $('detailGrid').innerHTML=`<div class="item"><small>Klub</small><strong>${esc(e.clubs?.name||'—')}</strong></div><div class="item"><small>Typ</small><strong>${esc(e.event_type||'—')}</strong></div><div class="item"><small>Šport</small><strong>${esc(e.sport||'—')}</strong></div><div class="item"><small>Disciplína</small><strong>${esc(e.discipline||'—')}</strong></div><div class="item"><small>Dátum</small><strong>${esc(fmt(e.starts_at))}</strong></div><div class="item"><small>Miesto</small><strong>${esc([e.location_text,e.city].filter(Boolean).join(', ')||'—')}</strong></div><div class="item full"><small>Popis</small><strong>${esc(e.description||'—')}</strong></div>`;
 }
 
-function onSportChange(){
-  const sport=document.getElementById('evSport').value;
-  const discSel=document.getElementById('evDiscipline');
-  discSel.innerHTML='';
-  if(!sport){
-    discSel.disabled=true;
-    discSel.innerHTML='<option value="">— vyber najprv šport —</option>';
-    return;
-  }
-  discSel.disabled=false;
-  (DISCIPLINES[sport]||[]).forEach(d=>{
-    const opt=document.createElement('option');
-    opt.value=d; opt.textContent=d;
-    discSel.appendChild(opt);
-  });
+async function uploadCover(userId){
+ const file=$('coverFile').files?.[0];
+ if(!file)return null;
+ if(file.size>5*1024*1024)throw Error('Fotografia môže mať maximálne 5 MB.');
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Použi JPG, PNG alebo WEBP.');
+ const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+ const objectPath=`${userId}/${crypto.randomUUID()}.${ext}`;
+ const up=await db.storage.from('event-covers').upload(objectPath,file,{contentType:file.type,cacheControl:'3600',upsert:false});
+ if(up.error)throw up.error;
+ return db.storage.from('event-covers').getPublicUrl(objectPath).data.publicUrl;
 }
 
-(async function initPage(){
-  try{
-    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(!session){ location.href = '/login/'; return; }
-    currentSession = session;
-    const { data: profile } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
-    const displayName = (profile && profile.full_name) || session.user.email;
-    document.getElementById('tbName').textContent = displayName;
-    document.getElementById('tbAv').textContent = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
-  }catch(err){
-    console.error('[udalost] Auth check failed or timed out:', err);
-    location.href = '/login/';
-    return;
-  }
-  document.getElementById('loadingGate').style.display = 'none';
-  document.getElementById('formWrap').style.display = '';
-  populateSportSelect();
+$('eventForm').addEventListener('submit',async ev=>{
+ ev.preventDefault();show('');$('submitBtn').disabled=true;$('submitBtn').textContent='Ukladám…';
+ try{
+  const s=await getSession();if(!s)throw Error('Pre vytvorenie udalosti sa musíš prihlásiť.');
+  const club=await getClub(s.user.id),start=new Date($('startsAt').value);
+  const coverImageUrl=await uploadCover(s.user.id);
+  const payload={owner_id:s.user.id,club_id:club?.id||null,title:$('title').value.trim(),event_type:$('eventType').value,sport:$('sport').value.trim(),discipline:$('discipline').value.trim()||null,location_text:$('location').value.trim()||null,city:$('city').value.trim()||null,starts_at:start.toISOString(),description:$('description').value.trim()||null,visibility:$('visibility').value,status:$('status').value,registration_enabled:false,cover_image_url:coverImageUrl};
+  const r=await db.from('events').insert(payload).select('id').single();if(r.error)throw r.error;
+  show('Udalosť bola vytvorená a uložená do kalendára.');$('notice').innerHTML+=` <a class="gold" href="/udalost/?id=${r.data.id}">Zobraziť udalosť</a>`;$('eventForm').reset();await calendar();
+ }catch(e){show(e.message,true)}finally{$('submitBtn').disabled=false;$('submitBtn').textContent='Vytvoriť udalosť'}
+});
+if(!db)return show('Supabase klient nie je dostupný.',true);
+const id=new URLSearchParams(location.search).get('id');if(id)detail(id);calendar();
 })();
-
-function toast(msg, err){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (err ? ' err' : '');
-  setTimeout(()=>{ t.className = 'toast' + (err ? ' err' : ''); }, 2400);
-}
-
-/* Inserts into the real `events` table (migration 0018). Published
-   immediately — same as how tournaments and clubs work in this repo,
-   no draft/review step. */
-async function saveEvent(){
-  const title = document.getElementById('evTitle').value.trim();
-  const startsAt = document.getElementById('evStart').value;
-  if(!title){ toast('Zadaj názov udalosti.', true); return; }
-  if(!startsAt){ toast('Zadaj začiatok udalosti.', true); return; }
-
-  const btn = document.getElementById('saveBtn');
-  btn.disabled = true;
-  btn.textContent = 'Ukladám…';
-
-  const payload = {
-    owner_id: currentSession.user.id,
-    title: title,
-    description: document.getElementById('evDescription').value.trim() || null,
-    sport: document.getElementById('evSport').value || null,
-    discipline: document.getElementById('evDiscipline').value || null,
-    location_text: document.getElementById('evLocation').value.trim() || null,
-    starts_at: new Date(startsAt).toISOString(),
-    ends_at: document.getElementById('evEnd').value ? new Date(document.getElementById('evEnd').value).toISOString() : null,
-    status: 'published',
-  };
-
-  try{
-    const { data: inserted, error } = await cspAuth.withTimeout(
-      cspAuth.client.from('events').insert(payload).select().single(),
-      8000, 'insert event'
-    );
-    if(error) throw error;
-
-    lastSavedEvent = inserted;
-    toast('Udalosť vytvorená ✓');
-    document.getElementById('shareBox').style.display = '';
-    document.getElementById('shareBox').scrollIntoView({behavior:'smooth', block:'start'});
-  }catch(err){
-    console.error('[udalost] Failed to save event:', err);
-    toast('Nepodarilo sa uložiť udalosť. Skús to znova.', true);
-  }finally{
-    btn.disabled = false;
-    btn.textContent = 'Vytvoriť udalosť';
-  }
-}
-
-/* Share text uses the real events row returned from the DB insert.
-   The shared URL points to /udalosti/ (the public events listing page).
-   A per-event deep-link anchor (e.g. /udalosti/#ev-{id}) would require
-   either server-side routing or a JS hash-router on the listing page.
-   Since /udalosti/ is a client-rendered static page without either,
-   using the listing URL directly is the practical choice — the user can
-   find their event at the top of the "Nadchádzajúce" section. */
-let lastSavedEvent = null;
-
-function buildShareText(){
-  if(!lastSavedEvent) return '';
-  const when = new Date(lastSavedEvent.starts_at).toLocaleString('sk-SK', {dateStyle:'medium', timeStyle:'short'});
-  const whereLine = lastSavedEvent.location_text ? ` · ${lastSavedEvent.location_text}` : '';
-  return `${lastSavedEvent.title} — ${when}${whereLine} · Connect Sports Pro`;
-}
-
-function shareTo(network){
-  const text = buildShareText();
-  const url = location.origin + '/udalosti/';
-  let target = null;
-  if(network==='facebook'){
-    target = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-  } else if(network==='whatsapp'){
-    target = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
-  } else if(network==='x'){
-    target = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-  }
-  if(target){ window.open(target, '_blank', 'noopener'); return; }
-
-  // Instagram has no web share-intent URL, and "copy link" has nothing
-  // meaningful to link to yet — both fall back to copying the text.
-  navigator.clipboard?.writeText(text + ' ' + url).then(()=>{
-    toast(network==='instagram' ? 'Text skopírovaný — vlož ho do Instagram príbehu/príspevku.' : 'Odkaz skopírovaný ✓');
-  }).catch(()=>{
-    toast('Nepodarilo sa skopírovať.', true);
-  });
-}
 </script>
 </body>
 </html>
