@@ -1376,7 +1376,7 @@ function scoreboardSportFromTournament(){
 function liveMatchElapsed(row){
   if(!row) return 0;
   let sec=Number(row.match_clock_elapsed_seconds||0);
-  if(row.status==='running' && row.match_clock_started_at){
+  if((row.status==='live'||row.status==='in_progress') && !row.match_clock_paused_at && row.match_clock_started_at){
     sec += Math.max(0, Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
   }
   return sec;
@@ -1423,7 +1423,7 @@ async function startLiveMatch(loc){
   const m=getMatchByLoc(loc); if(!m)return;
   try{
     const row=await ensureRealMatch(loc,m), now=new Date().toISOString();
-    const payload={status:'running',match_clock_started_at:now,match_clock_paused_at:null,match_clock_stopped_at:null};
+    const payload={status:'live',match_clock_started_at:now,match_clock_paused_at:null,match_clock_stopped_at:null};
     if(!row.started_at) payload.started_at=now;
     const {error}=await cspAuth.client.from('matches').update(payload).eq('id',row.id);
     if(error)throw error; await refreshRealMatch(loc);
@@ -1433,14 +1433,14 @@ async function pauseLiveMatch(loc){
   const row=realMatchesByKey.get(loc); if(!row)return;
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
-    const {error}=await cspAuth.client.from('matches').update({status:'paused',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:now}).eq('id',row.id);
+    const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:now}).eq('id',row.id);
     if(error)throw error; await refreshRealMatch(loc);
   }catch(err){console.error('[turnament] pause match:',err);toast('Zápas sa nepodarilo pozastaviť.',true);}
 }
 async function resumeLiveMatch(loc){
   const row=realMatchesByKey.get(loc); if(!row)return;
   try{
-    const {error}=await cspAuth.client.from('matches').update({status:'running',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
+    const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
     if(error)throw error; await refreshRealMatch(loc);
   }catch(err){console.error('[turnament] resume match:',err);toast('Zápas sa nepodarilo obnoviť.',true);}
 }
@@ -1448,7 +1448,7 @@ async function stopLiveMatch(loc){
   const row=realMatchesByKey.get(loc); if(!row)return;
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
-    const {error}=await cspAuth.client.from('matches').update({status:'stopped',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_stopped_at:now}).eq('id',row.id);
+    const {error}=await cspAuth.client.from('matches').update({status:'ready',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:null,match_clock_stopped_at:now}).eq('id',row.id);
     if(error)throw error; await refreshRealMatch(loc);
   }catch(err){console.error('[turnament] stop match:',err);toast('Zápas sa nepodarilo zastaviť.',true);}
 }
@@ -1479,8 +1479,12 @@ function closeMatchQr(){matchQrOverlay.classList.add('hidden')}
 matchQrOpenBtn.onclick=()=>{const u=matchQrOpenBtn.dataset.url;if(u)window.open(u,'_blank','noopener')};
 matchQrCopyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(matchQrUrl.value);toast('Link skopírovaný ✓')}catch{matchQrUrl.select();document.execCommand('copy');toast('Link skopírovaný ✓')}};
 function liveMatchControls(m,loc){
-  const row=realMatchesByKey.get(loc),status=row?.status||'pending';
-  const state=['running','paused','stopped'].includes(status)?status:'pending';
+  const row=realMatchesByKey.get(loc);
+  const status=row?.status||'pending';
+  const isLive=status==='live'||status==='in_progress';
+  const isPaused=isLive && !!row?.match_clock_paused_at;
+  const wasStopped=!!row?.match_clock_stopped_at && !isLive;
+  const state=isPaused?'paused':isLive?'running':wasStopped?'stopped':'pending';
   const statusLabel=state==='running'?'PREBIEHA':state==='paused'?'PAUZA':state==='stopped'?'ZASTAVENÝ':'NEZAČAL';
   const elapsed=liveMatchElapsed(row);
   let buttons='';
@@ -1504,7 +1508,7 @@ function matchRow(m, loc){
   const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
   const clickable = !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const row=realMatchesByKey.get(loc);
-  const liveClass=row?.status==='running'?'live-running':row?.status==='paused'?'live-paused':row?.status==='stopped'?'live-stopped':'';
+  const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}">
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
       <span class="mt-key mono">${m.key}</span>
