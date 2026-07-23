@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
 :root{
@@ -310,6 +311,43 @@ input:focus,select:focus{border-color:var(--gold)}
 .toast.show{opacity:1}.toast.err{background:var(--red);color:#fff}
 .note-box{background:var(--gold-dim);border:1px solid var(--gold-b);border-radius:10px;padding:12px 14px;font-size:.82rem;color:var(--muted-2);margin-top:14px}
 .note-box b{color:var(--gold)}
+
+/* ── LIVE MATCH CONTROL ── */
+.match-wrap{border-radius:12px;margin-bottom:8px}
+.match-wrap .match-row{margin-bottom:0}
+.match-wrap.live-running{border:1px solid rgba(38,208,125,.48);background:rgba(38,208,125,.055);box-shadow:0 0 0 1px rgba(38,208,125,.05)}
+.match-wrap.live-paused{border:1px solid rgba(212,168,67,.42);background:rgba(212,168,67,.045)}
+.match-wrap.live-stopped{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.025)}
+.match-livebar{display:grid;grid-template-columns:minmax(90px,130px) auto 1fr auto;gap:8px;align-items:center;padding:8px 10px 10px;border-top:1px solid var(--line-2)}
+.match-table-input{width:100%;padding:7px 9px;font-size:.74rem;border-radius:7px;font-family:var(--mono)}
+.match-live-status{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.match-live-status.running{color:var(--green)}
+.match-live-status.paused{color:var(--gold)}
+.match-live-status.stopped{color:var(--muted-2)}
+.match-live-status.pending{color:var(--muted)}
+.match-live-status .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.match-live-status.running .dot{box-shadow:0 0 0 4px rgba(38,208,125,.12);animation:livepulse 1.4s ease-in-out infinite}
+@keyframes livepulse{50%{opacity:.35}}
+.match-clock{font-family:var(--mono);font-size:.8rem;font-weight:800;color:var(--fg);min-width:68px}
+.match-ops{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.match-op{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:.7rem;font-weight:700;background:var(--bg-2);color:var(--muted-2)}
+.match-op:hover{border-color:var(--gold);color:var(--gold)}
+.match-op.start{border-color:rgba(38,208,125,.35);color:var(--green)}
+.match-op.stop{border-color:rgba(227,81,73,.3);color:var(--red)}
+.match-op.qr{border-color:var(--gold-b);color:var(--gold)}
+@media(max-width:760px){
+  .match-livebar{grid-template-columns:1fr 1fr}
+  .match-ops{grid-column:1/-1;justify-content:flex-start}
+}
+.match-qr-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:18px}
+.match-qr-card{width:min(480px,100%);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+.match-qr-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}
+.match-qr-title{font-size:1.15rem;font-weight:800}
+.match-qr-sub{font-size:.78rem;color:var(--muted);margin-top:4px}
+.match-qr-code{width:280px;max-width:100%;min-height:280px;background:#fff;border-radius:12px;margin:0 auto 14px;padding:14px;display:grid;place-items:center}
+.match-qr-code img,.match-qr-code canvas{max-width:100%;height:auto}
+.match-qr-url{font-family:var(--mono);font-size:.68rem}
+
 </style>
 </head>
 <body>
@@ -331,6 +369,20 @@ input:focus,select:focus{border-color:var(--gold)}
 
 <div id="app"></div>
 <div class="toast" id="toast"></div>
+<div class="match-qr-overlay hidden" id="matchQrOverlay" onclick="if(event.target===this)closeMatchQr()">
+  <div class="match-qr-card">
+    <div class="match-qr-head">
+      <div><div class="match-qr-title" id="matchQrTitle">QR zápasu</div><div class="match-qr-sub" id="matchQrSub"></div></div>
+      <button class="btn btn-ghost" style="padding:7px 10px" onclick="closeMatchQr()">✕</button>
+    </div>
+    <div class="match-qr-code" id="matchQrCode"></div>
+    <input class="match-qr-url" id="matchQrUrl" readonly>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" id="matchQrOpenBtn">Otvoriť scoreboard</button>
+      <button class="btn btn-ghost" id="matchQrCopyBtn">Kopírovať link</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ════════════════════════════════════════════════════════════
@@ -607,6 +659,7 @@ const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný l
 
 let currentSession = null;
 let currentProfile = null;
+let realMatchesByKey = new Map();
 
 function bracketStorageKey(id){ return 'csp_tournament_bracket_'+id; }
 function loadBracketState(id){
@@ -1029,6 +1082,7 @@ async function viewDetail(id){
     );
     if(mErr) throw mErr;
     matchRows = matches || [];
+    realMatchesByKey = new Map(matchRows.map(row => [row.round_key, row]));
 
     const { data: phases, error: phaseErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_phases').select('*').eq('tournament_id', id).order('phase_number', { ascending: true }),
@@ -1144,6 +1198,7 @@ async function editTournament(id){
     if(pErr) throw pErr;
     const bracketState=loadBracketState(id);
     go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
+                   raceTo: t.config?.race_to || 5,
                    protectedSeeds: bracketState.protectedSeeds || 0,
                    players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
   } catch(err){
@@ -1308,6 +1363,139 @@ function rrTable(players, matches){
     .sort((a,b)=>b.p-a.p||b.w-a.w||(b.gw-b.gl)-(a.gw-a.gl)||a.seed-b.seed);
 }
 
+
+function matchRaceTo(){
+  return Number(curT?.config?.race_to || 5);
+}
+function scoreboardSportFromTournament(){
+  const s=String(curT?.sport||'').toLowerCase();
+  if(s.includes('biliard')||s.includes('billiard')||s.includes('pool')) return 'billiard';
+  if(s.includes('šíp')||s.includes('dart')) return 'darts';
+  return 'other';
+}
+function liveMatchElapsed(row){
+  if(!row) return 0;
+  let sec=Number(row.match_clock_elapsed_seconds||0);
+  if(row.status==='running' && row.match_clock_started_at){
+    sec += Math.max(0, Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
+  }
+  return sec;
+}
+function formatMatchClock(sec){
+  sec=Math.max(0,Number(sec||0));
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
+  return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+async function ensureRealMatch(loc,m){
+  let row=realMatchesByKey.get(loc);
+  if(row) return row;
+  const p1Id=resolvePlayerId(m.p1),p2Id=resolvePlayerId(m.p2);
+  const prefix=loc.split(':')[0], parts=loc.split(':');
+  const isGroup=prefix==='grp';
+  const phaseId=isGroup?curT.groupPhaseId:((prefix.startsWith('p2'))?curT.knockoutPhaseId:curT.current_phase_id);
+  const phaseSide=prefix==='p2W'?'W':prefix==='p2L'?'L':prefix==='p2F'?'GF':prefix==='W'?'W':prefix==='L'?'L':prefix==='F'?'GF':null;
+  const roundNumber=(prefix==='grp'||prefix==='rr')?(m.round||null):((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
+  const matchNumber=(parts.length>2&&Number.isFinite(+parts[2]))?+parts[2]+1:((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
+  const {data,error}=await cspAuth.client.from('matches').upsert({
+    tournament_id:curT.id,phase_id:phaseId||null,round_key:loc,round_number:roundNumber,match_number:matchNumber,
+    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending'
+  },{onConflict:'tournament_id,round_key'}).select('*').single();
+  if(error) throw error;
+  row=data; realMatchesByKey.set(loc,row); return row;
+}
+async function refreshRealMatch(loc){
+  const {data,error}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id).eq('round_key',loc).single();
+  if(error) throw error;
+  realMatchesByKey.set(loc,data);
+  const area=document.getElementById('matchArea'); if(area) area.innerHTML=renderMatchArea(curT);
+  return data;
+}
+async function setMatchStationLabel(loc,value){
+  const m=getMatchByLoc(loc); if(!m)return;
+  try{
+    const row=await ensureRealMatch(loc,m);
+    const {error}=await cspAuth.client.from('matches').update({station_label:String(value||'').trim()||null}).eq('id',row.id);
+    if(error)throw error;
+    await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] station label:',err);toast('Číslo stola sa nepodarilo uložiť.',true);}
+}
+async function startLiveMatch(loc){
+  const m=getMatchByLoc(loc); if(!m)return;
+  try{
+    const row=await ensureRealMatch(loc,m), now=new Date().toISOString();
+    const payload={status:'running',match_clock_started_at:now,match_clock_paused_at:null,match_clock_stopped_at:null};
+    if(!row.started_at) payload.started_at=now;
+    const {error}=await cspAuth.client.from('matches').update(payload).eq('id',row.id);
+    if(error)throw error; await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] start match:',err);toast('Zápas sa nepodarilo spustiť.',true);}
+}
+async function pauseLiveMatch(loc){
+  const row=realMatchesByKey.get(loc); if(!row)return;
+  try{
+    const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
+    const {error}=await cspAuth.client.from('matches').update({status:'paused',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:now}).eq('id',row.id);
+    if(error)throw error; await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] pause match:',err);toast('Zápas sa nepodarilo pozastaviť.',true);}
+}
+async function resumeLiveMatch(loc){
+  const row=realMatchesByKey.get(loc); if(!row)return;
+  try{
+    const {error}=await cspAuth.client.from('matches').update({status:'running',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
+    if(error)throw error; await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] resume match:',err);toast('Zápas sa nepodarilo obnoviť.',true);}
+}
+async function stopLiveMatch(loc){
+  const row=realMatchesByKey.get(loc); if(!row)return;
+  try{
+    const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
+    const {error}=await cspAuth.client.from('matches').update({status:'stopped',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_stopped_at:now}).eq('id',row.id);
+    if(error)throw error; await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] stop match:',err);toast('Zápas sa nepodarilo zastaviť.',true);}
+}
+function matchScoreboardUrl(row,m){
+  const u=new URL('/scoreboard/',location.origin);
+  u.searchParams.set('sport',scoreboardSportFromTournament());
+  u.searchParams.set('discipline',curT.discipline||'');
+  u.searchParams.set('players','2');
+  u.searchParams.set('race',String(matchRaceTo()));
+  u.searchParams.set('p1',m.p1?.name||'Hráč 1');
+  u.searchParams.set('p2',m.p2?.name||'Hráč 2');
+  if(row.station_label)u.searchParams.set('station',row.station_label);
+  u.searchParams.set('match_token',row.public_token);
+  return u.toString();
+}
+async function showMatchQr(loc){
+  const m=getMatchByLoc(loc); if(!m)return;
+  try{
+    const row=await ensureRealMatch(loc,m),url=matchScoreboardUrl(row,m);
+    matchQrTitle.textContent=`${m.p1.name} vs ${m.p2.name}`;
+    matchQrSub.textContent=`${curT.discipline} · Race to ${matchRaceTo()}${row.station_label?' · '+row.station_label:''}`;
+    matchQrUrl.value=url; matchQrOpenBtn.dataset.url=url; matchQrCode.innerHTML='';
+    new QRCode(matchQrCode,{text:url,width:252,height:252,correctLevel:QRCode.CorrectLevel.L});
+    matchQrOverlay.classList.remove('hidden');
+  }catch(err){console.error('[turnament] QR:',err);toast('QR zápasu sa nepodarilo vytvoriť.',true);}
+}
+function closeMatchQr(){matchQrOverlay.classList.add('hidden')}
+matchQrOpenBtn.onclick=()=>{const u=matchQrOpenBtn.dataset.url;if(u)window.open(u,'_blank','noopener')};
+matchQrCopyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(matchQrUrl.value);toast('Link skopírovaný ✓')}catch{matchQrUrl.select();document.execCommand('copy');toast('Link skopírovaný ✓')}};
+function liveMatchControls(m,loc){
+  const row=realMatchesByKey.get(loc),status=row?.status||'pending';
+  const state=['running','paused','stopped'].includes(status)?status:'pending';
+  const statusLabel=state==='running'?'PREBIEHA':state==='paused'?'PAUZA':state==='stopped'?'ZASTAVENÝ':'NEZAČAL';
+  const elapsed=liveMatchElapsed(row);
+  let buttons='';
+  if(state==='pending'||state==='stopped')buttons+=`<button class="match-op start" onclick="event.stopPropagation();startLiveMatch('${loc}')">▶ Spustiť</button>`;
+  if(state==='running')buttons+=`<button class="match-op" onclick="event.stopPropagation();pauseLiveMatch('${loc}')">⏸ Pauza</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
+  if(state==='paused')buttons+=`<button class="match-op start" onclick="event.stopPropagation();resumeLiveMatch('${loc}')">▶ Pokračovať</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
+  buttons+=`<button class="match-op qr" onclick="event.stopPropagation();showMatchQr('${loc}')">▦ QR</button>`;
+  return `<div class="match-livebar" onclick="event.stopPropagation()">
+    <input class="match-table-input" value="${row?.station_label||''}" placeholder="Stôl / terč" onchange="setMatchStationLabel('${loc}',this.value)">
+    <span class="match-live-status ${state}"><span class="dot"></span>${statusLabel}</span>
+    <span class="match-clock" data-match-clock="${loc}">${formatMatchClock(elapsed)}</span>
+    <span class="match-ops">${buttons}</span>
+  </div>`;
+}
+
 function matchRow(m, loc){
   const bye = (m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
   const name=(p)=> p? (p.bye?'<span class="mt-bye">(bye)</span>':p.name) : '<span class="mt-wait">čaká na postup</span>';
@@ -1315,12 +1503,17 @@ function matchRow(m, loc){
   const w1=m.winner===1, w2=m.winner===2;
   const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
   const clickable = !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
-  return `<div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
-    <span class="mt-key mono">${m.key}</span>
-    <span class="mt-side ${w1?'win':''}">${name(m.p1)}</span>
-    ${score}
-    <span class="mt-side right ${w2?'win':''}">${name(m.p2)}</span>
-    ${done?'<span class="mt-check">✓</span>':(clickable?'<span class="mt-edit">›</span>':'')}
+  const row=realMatchesByKey.get(loc);
+  const liveClass=row?.status==='running'?'live-running':row?.status==='paused'?'live-paused':row?.status==='stopped'?'live-stopped':'';
+  return `<div class="match-wrap ${liveClass}">
+    <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
+      <span class="mt-key mono">${m.key}</span>
+      <span class="mt-side ${w1?'win':''}">${name(m.p1)}</span>
+      ${score}
+      <span class="mt-side right ${w2?'win':''}">${name(m.p2)}</span>
+      ${done?'<span class="mt-check">✓</span>':(clickable?'<span class="mt-edit">›</span>':'')}
+    </div>
+    ${clickable?liveMatchControls(m,loc):''}
   </div>`;
 }
 
@@ -1445,6 +1638,10 @@ async function saveMatchToDB(loc, m){
     status: 'completed',
   }, { onConflict: 'tournament_id,round_key' });
   if(error) throw error;
+  try{
+    const {data}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id).eq('round_key',loc).single();
+    if(data) realMatchesByKey.set(loc,data);
+  }catch(e){}
 }
 // Resets the row rather than deleting it -- migration 0003 deliberately
 // granted no DELETE on matches ("corrected via UPDATE, not removed,
@@ -1572,7 +1769,7 @@ const FORMATS={
 const STEPS=[['Info','📋'],['Formát','🏆'],['Hráči','👥'],['Skupiny','🔢'],['Súhrn','✓']];
 
 let wiz={};
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', format:'sko', players:[], groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return isKarty()? [0,2,4] : (isCombo()? [0,1,2,3,4] : [0,1,2,4]); }
@@ -1586,7 +1783,7 @@ function viewWizard(){
 function initWizard(existing){
   wiz=blankWiz();
   if(existing){ // editácia
-    wiz={...wiz, ...existing, players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
   }
   renderWiz();
 }
@@ -1623,6 +1820,7 @@ function renderWiz(){
         <div class="field"><label>Dátum</label><input type="date" id="wDate" value="${wiz.date}" onchange="wiz.date=this.value"/></div>
         <div class="field"><label>Miesto (nepovinné)</label><input id="wVenue" value="${wiz.venue}" placeholder="napr. ŠK Pohoda" oninput="wiz.venue=this.value"/></div>
       </div>
+      <div class="field"><label>Race to / cieľ zápasu</label><input type="number" id="wRaceTo" min="1" max="99" value="${wiz.raceTo||5}" oninput="wiz.raceTo=Math.max(1,+this.value||1)"/><div class="hint">Prenesie sa aj do QR scoreboardu konkrétneho zápasu.</div></div>
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="go('dashboard')">Zrušiť</button><button class="btn btn-primary" onclick="saveInfo()">Ďalej →</button></div>`;
   }
   else if(wiz.step===1){
@@ -1681,6 +1879,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${wiz.sport} · ${wiz.discipline}</span></div>
         <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
+        <div class="sumrow"><span class="k">Race to</span><span class="v">${wiz.raceTo||5}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
         ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
@@ -1766,6 +1965,7 @@ async function createTournament(){
       venue: wiz.venue || null,
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
+      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5) },
     };
 
     let tournamentId, tournamentRow;
@@ -1846,6 +2046,14 @@ async function createTournament(){
 }
 
 function toast(msg,err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast'+(err?' err':''),2200); }
+
+
+setInterval(()=>{
+  document.querySelectorAll('[data-match-clock]').forEach(el=>{
+    const loc=el.dataset.matchClock,row=realMatchesByKey.get(loc);
+    if(row) el.textContent=formatMatchClock(liveMatchElapsed(row));
+  });
+},1000);
 
 /* INIT happens inside initAuth() above once a real session is confirmed
    -- see the auth gate at the top of this script. */
