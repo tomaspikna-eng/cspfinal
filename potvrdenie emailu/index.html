@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E-mail potvrdený — Connect Sports Pro</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#08080c;--card:#13131a;--line:rgba(255,255,255,.09);--fg:#f5f5f7;--muted:#9797a3;--gold:#d4a843;--green:#26d07d;--red:#e35149}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 50% 15%,rgba(212,168,67,.08),transparent 34%),var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;padding:22px}
+.card{width:min(560px,100%);background:var(--card);border:1px solid var(--line);border-radius:22px;padding:34px;text-align:center;box-shadow:0 26px 90px rgba(0,0,0,.5)}
+.mark{width:64px;height:64px;margin:0 auto 20px;border-radius:18px;display:grid;place-items:center;background:rgba(38,208,125,.12);border:1px solid rgba(38,208,125,.28);color:var(--green);font-size:2rem;font-weight:900}
+h1{margin:0;font-size:clamp(1.8rem,5vw,2.5rem);line-height:1.05}h1 span{color:var(--gold)}
+p{margin:14px auto 0;color:var(--muted);line-height:1.6;max-width:440px}
+.status{margin:22px 0 0;padding:12px 14px;border-radius:11px;background:rgba(38,208,125,.08);border:1px solid rgba(38,208,125,.22);color:var(--green);font:700 .78rem "JetBrains Mono",monospace}
+.status.error{background:rgba(227,81,73,.08);border-color:rgba(227,81,73,.24);color:var(--red)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+a{min-height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800;font-size:.9rem;border:1px solid var(--line);color:var(--fg)}
+a.primary{background:var(--green);border-color:var(--green);color:#06230f}.brand{margin-top:24px;font-size:.72rem;font-family:"JetBrains Mono",monospace;color:#666672;letter-spacing:.06em;text-transform:uppercase}.brand b{color:var(--gold)}
+@media(max-width:520px){.card{padding:26px 20px}.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="card">
+<div class="mark" id="mark">✓</div>
+<h1 id="title">E-mail bol <span>potvrdený</span></h1>
+<p id="message">Tvoj účet Connect Sports Pro je aktívny. Môžeš pokračovať do svojho profilu alebo sa prihlásiť.</p>
+<div class="status" id="status">Overujem potvrdenie…</div>
+<div class="actions">
+<a class="primary" href="/profil/" id="profileBtn">Pokračovať do profilu</a>
+<a href="/login/">Prihlásiť sa</a>
+</div>
+<div class="brand"><b>Connect</b> Sports <b>Pro</b></div>
+</main>
+<script>
+(async()=>{
+  const status=document.getElementById('status');
+  const mark=document.getElementById('mark');
+  const title=document.getElementById('title');
+  const message=document.getElementById('message');
+  const profileBtn=document.getElementById('profileBtn');
+  try{
+    const {data:{session},error}=await cspAuth.withTimeout(cspAuth.getSession(),8000,'email confirmation session');
+    if(error) throw error;
+    if(session){
+      status.textContent='Účet je potvrdený a prihlásenie je aktívne.';
+      if(location.hash) history.replaceState({},document.title,location.pathname);
+      return;
+    }
+    status.textContent='E-mail bol potvrdený. Pokračuj prihlásením.';
+    profileBtn.style.display='none';
+  }catch(err){
+    console.error('[email-confirmation]',err);
+    mark.textContent='!';
+    mark.style.color='var(--red)';
+    title.innerHTML='Potvrdenie <span>sa nepodarilo dokončiť</span>';
+    message.textContent='Potvrdzovací odkaz mohol expirovať alebo už bol použitý. Skús sa prihlásiť.';
+    status.textContent='Potvrdzovací token sa nepodarilo spracovať.';
+    status.classList.add('error');
+    profileBtn.style.display='none';
+  }
+})();
+</script>
+</body>
+</html>
