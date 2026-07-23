@@ -147,6 +147,24 @@ textarea{min-height:110px;resize:vertical}
           </div>
         </div>
 
+        <div>
+          <label>Predregistrácia</label>
+          <select id="registrationEnabled">
+            <option value="false">Vypnutá</option>
+            <option value="true">Zapnutá</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Kapacita / max. počet účastníkov</label>
+          <input id="maxParticipants" type="number" min="1" step="1" placeholder="napr. 64">
+        </div>
+
+        <div class="full">
+          <label>Deadline predregistrácie</label>
+          <input id="registrationDeadline" type="datetime-local">
+        </div>
+
         <div class="full">
           <label>Popis</label>
           <textarea id="description"></textarea>
@@ -171,6 +189,18 @@ textarea{min-height:110px;resize:vertical}
     <div class="actions" style="justify-content:flex-start;margin:0 0 18px">
       <button class="btn btn-green" id="shareBtn">Zdieľať</button>
       <button class="btn btn-dark" id="copyLinkBtn">Kopírovať odkaz</button>
+    </div>
+
+    <div class="author-tools hidden" id="preregTools" style="display:block;margin:0 0 22px">
+      <div style="width:100%;border:1px solid rgba(38,208,125,.28);background:rgba(38,208,125,.06);border-radius:14px;padding:16px">
+        <div style="font-weight:800;margin-bottom:8px">Predregistrácia</div>
+        <div id="preregStatus" style="font-size:.8rem;color:#aaa;margin-bottom:10px"></div>
+        <input id="preregLink" readonly style="width:100%;margin-bottom:10px">
+        <div class="actions" style="justify-content:flex-start;margin:0">
+          <button class="btn btn-green" id="copyPreregBtn" type="button">Kopírovať predregistračný link</button>
+          <button class="btn btn-dark" id="openPreregBtn" type="button">Otvoriť formulár</button>
+        </div>
+      </div>
     </div>
 
     <h2>Detail udalosti</h2>
@@ -315,6 +345,9 @@ textarea{min-height:110px;resize:vertical}
       <div class="item"><small>Miesto</small><strong>${esc([eventRow.location_text,eventRow.city].filter(Boolean).join(', ') || '—')}</strong></div>
       <div class="item"><small>Stav</small><strong>${esc(eventRow.status || '—')}</strong></div>
       <div class="item"><small>Viditeľnosť</small><strong>${esc(eventRow.visibility || '—')}</strong></div>
+      <div class="item"><small>Predregistrácia</small><strong>${eventRow.registration_enabled === true ? 'Aktívna' : 'Vypnutá'}</strong></div>
+      <div class="item"><small>Kapacita</small><strong>${esc(eventRow.max_participants || '—')}</strong></div>
+      <div class="item"><small>Deadline registrácie</small><strong>${esc(fmt(eventRow.registration_deadline))}</strong></div>
       <div class="item full"><small>Popis</small><strong>${esc(eventRow.description || '—')}</strong></div>
     `;
 
@@ -324,6 +357,18 @@ textarea{min-height:110px;resize:vertical}
     );
 
     $('authorTools').classList.toggle('hidden', !isOwner);
+    $('preregTools').classList.toggle('hidden', !isOwner);
+
+    if(isOwner){
+      const preregUrl = new URL('/predregistracia/', window.location.origin);
+      preregUrl.searchParams.set('event', eventRow.id);
+
+      $('preregLink').value = preregUrl.toString();
+      $('preregStatus').textContent = eventRow.registration_enabled === true
+        ? 'Predregistrácia je aktívna. Tento link môžeš poslať hráčom.'
+        : 'Predregistrácia je momentálne vypnutá. Link je pripravený, ale formulár bude prijímať registrácie až po jej zapnutí.';
+      $('openPreregBtn').dataset.url = preregUrl.toString();
+    }
   }
 
   async function detail(id){
@@ -354,6 +399,9 @@ textarea{min-height:110px;resize:vertical}
     $('startsAt').value = toLocalInputValue(eventRow.starts_at);
     $('visibility').value = eventRow.visibility || 'public';
     $('status').value = eventRow.status || 'published';
+    $('registrationEnabled').value = eventRow.registration_enabled === true ? 'true' : 'false';
+    $('registrationDeadline').value = toLocalInputValue(eventRow.registration_deadline);
+    $('maxParticipants').value = eventRow.max_participants || '';
     $('description').value = eventRow.description || '';
     $('coverFile').value = '';
   }
@@ -428,7 +476,13 @@ textarea{min-height:110px;resize:vertical}
         description:$('description').value.trim() || null,
         visibility:$('visibility').value,
         status:$('status').value,
-        registration_enabled:currentEvent?.registration_enabled || false
+        registration_enabled:$('registrationEnabled').value === 'true',
+        registration_deadline:$('registrationDeadline').value
+          ? new Date($('registrationDeadline').value).toISOString()
+          : null,
+        max_participants:$('maxParticipants').value
+          ? Math.max(1, parseInt($('maxParticipants').value,10))
+          : null
       };
 
       if(uploadedCover){
@@ -549,6 +603,24 @@ textarea{min-height:110px;resize:vertical}
       show('Odkaz sa nepodarilo skopírovať.', true);
     }
   }
+
+  $('copyPreregBtn').addEventListener('click', async ()=>{
+    const value = $('preregLink').value;
+    if(!value) return;
+    try{
+      await navigator.clipboard.writeText(value);
+      show('Predregistračný link bol skopírovaný.');
+    }catch{
+      $('preregLink').select();
+      document.execCommand('copy');
+      show('Predregistračný link bol skopírovaný.');
+    }
+  });
+
+  $('openPreregBtn').addEventListener('click', ()=>{
+    const url = $('openPreregBtn').dataset.url;
+    if(url) window.open(url,'_blank','noopener');
+  });
 
   $('eventForm').addEventListener('submit', saveEvent);
   $('editBtn').addEventListener('click', enterEditMode);
