@@ -1,67 +1,331 @@
-<!-- CSP Tournament Calendar — Magazine right sidebar -->
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CSP Magazine — Novinky, recenzie, história a pravidlá zo sveta športu</title>
+<meta name="description" content="Magazín Connect Sports Pro: aktuality, recenzie vybavenia a klubov, história športov a vždy aktuálne pravidlá — od biliardu po padel."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-.csp-mag-tournaments{border:1px solid rgba(255,255,255,.09);border-radius:16px;background:#0d0d11;padding:15px;color:#f4f4f5;font-family:Inter,Arial,sans-serif}
-.csp-mag-tournaments-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
-.csp-mag-tournaments-title{font-weight:900;color:#d8b04b}
-.csp-mag-tournaments-all{font-size:.7rem;color:#d8b04b;text-decoration:none;font-weight:900}
-.csp-mag-tournaments-list{display:grid;gap:7px}
-.csp-mag-tournament{display:block;padding:10px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);text-decoration:none;color:#f4f4f5}
-.csp-mag-tournament:hover{border-color:rgba(216,176,75,.3)}
-.csp-mag-tournament-date{font-size:.66rem;font-weight:900;color:#d8b04b;margin-bottom:3px}
-.csp-mag-tournament-name{font-size:.8rem;font-weight:850;line-height:1.25}
-.csp-mag-tournament-meta{font-size:.65rem;color:#9999a3;margin-top:4px}
+:root{
+  --bg:#0a0a0e;--bg-2:#0f0f15;--card:#14141b;--card-2:#191921;
+  --line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.05);
+  --fg:#f3f3f5;--muted:#8a8a96;--muted-2:#a6a6b2;
+  --gold:#d4a843;--gold-soft:#a8862e;--gold-dim:rgba(212,168,67,.12);
+  --green:#26d07d;
+  --c-novinky:#d4a843;--c-recenzie:#26d07d;--c-historia:#c08457;--c-pravidla:#5aa9e6;
+  --radius:12px;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:9px 12px;font-size:14px;outline:none}
+input:focus,select:focus{border-color:var(--gold)}
+.hidden{display:none!important}
+
+.header{position:sticky;top:0;z-index:50;background:rgba(10,10,14,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.header-in{max-width:1320px;margin:0 auto;padding:0 22px;height:64px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#1a1000}
+.brand-word{font-weight:800;font-size:1rem;letter-spacing:-.01em}
+.brand-word .g{color:var(--gold)}.brand-word .w{color:#fff}
+.brand-mag{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:block;margin-top:1px}
+.nav{display:flex;align-items:center;gap:4px;margin-left:8px}
+.nav a{padding:8px 13px;border-radius:8px;font-size:.88rem;font-weight:600;color:var(--muted-2);transition:.12s}
+.nav a:hover{background:rgba(255,255,255,.04);color:var(--fg)}
+.nav a.active{color:var(--gold)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:0 12px;width:230px;transition:.14s}
+.search:focus-within{border-color:var(--gold)}
+.search input{border:none;background:none;padding:9px 0;width:100%}
+.lang{display:flex;align-items:center;gap:5px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;font-size:.82rem;font-weight:600;color:var(--muted-2)}
+.lang:hover{border-color:var(--gold);color:var(--gold)}
+.admin-link{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);color:var(--muted);font-size:.9rem;transition:.14s;opacity:.6}
+.admin-link:hover{opacity:1;border-color:var(--gold);color:var(--gold)}
+.menu-toggle{display:none;font-size:1.5rem;padding:4px}
+@media(max-width:1080px){.search{width:160px}}
+@media(max-width:920px){.nav,.search,.lang{display:none}.menu-toggle{display:block}}
+
+.layout{max-width:1320px;margin:0 auto;padding:24px 22px 60px;display:grid;grid-template-columns:210px 1fr 320px;gap:26px;align-items:start}
+@media(max-width:1120px){.layout{grid-template-columns:190px 1fr}.col-right{display:none}}
+@media(max-width:920px){.layout{grid-template-columns:1fr;gap:18px}.col-left{display:none}}
+
+.col-left{position:sticky;top:88px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.panel-h{padding:13px 16px;font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.cat-list{padding:8px}
+.cat{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border-radius:9px;transition:.12s;cursor:pointer;border-left:3px solid transparent}
+.cat:hover{background:rgba(255,255,255,.03)}
+.cat.active{background:var(--gold-dim)}
+.cat .ic{font-size:1.15rem;line-height:1.2;flex-shrink:0}
+.cat .ct{font-weight:700;font-size:.9rem}
+.cat .cd{font-size:.72rem;color:var(--muted);margin-top:2px;line-height:1.35}
+.cat.active .ct{color:var(--gold)}
+.cat[data-cat="all"].active{border-left-color:var(--gold)}
+.cat[data-cat="novinky"].active{border-left-color:var(--c-novinky)}
+.cat[data-cat="recenzie"].active{border-left-color:var(--c-recenzie)}
+.cat[data-cat="historia"].active{border-left-color:var(--c-historia)}
+.cat[data-cat="pravidla"].active{border-left-color:var(--c-pravidla)}
+
+.feed-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.feed-head h1{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+.feed-head .sub{color:var(--muted);font-size:.86rem;margin-top:2px}
+
+.sport-filter{display:flex;gap:6px;flex-wrap:wrap}
+.sp{padding:6px 11px;border-radius:99px;border:1px solid var(--line);font-size:.76rem;font-weight:600;color:var(--muted-2);transition:.12s}
+.sp:hover{color:var(--fg)}
+.sp.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold)}
+
+.articles{display:flex;flex-direction:column;gap:16px}
+.art{display:grid;grid-template-columns:200px 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s}
+.art:hover{border-color:rgba(212,168,67,.3);transform:translateY(-2px)}
+@media(max-width:560px){.art{grid-template-columns:1fr}}
+.art-cover{position:relative;min-height:140px;display:flex;align-items:flex-end;padding:12px}
+.art-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.art-cover .cov-label{position:relative;z-index:1;font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0a0a0e;background:rgba(255,255,255,.92);padding:4px 9px;border-radius:6px}
+.art-body{padding:16px 18px;display:flex;flex-direction:column}
+.art-meta{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.68rem;font-weight:600;color:var(--muted);margin-bottom:9px;flex-wrap:wrap}
+.tag{padding:3px 8px;border-radius:6px;font-weight:700;font-size:.64rem;text-transform:uppercase;letter-spacing:.06em}
+.tag.novinky{background:rgba(212,168,67,.16);color:var(--c-novinky)}
+.tag.recenzie{background:rgba(38,208,125,.16);color:var(--c-recenzie)}
+.tag.historia{background:rgba(192,132,87,.18);color:var(--c-historia)}
+.tag.pravidla{background:rgba(90,169,230,.16);color:var(--c-pravidla)}
+.art-body h3{font-size:1.2rem;font-weight:800;line-height:1.2;letter-spacing:-.01em;transition:color .12s}
+.art:hover h3{color:var(--gold)}
+.art-body p{color:var(--muted-2);font-size:.88rem;line-height:1.5;margin-top:8px;flex:1}
+.art-foot{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.74rem;color:var(--muted)}
+.art-foot .dot{width:3px;height:3px;border-radius:50%;background:var(--muted)}
+.empty{padding:50px 20px;text-align:center;color:var(--muted-2);background:var(--card);border:1px solid var(--line);border-radius:14px}
+
+.col-right{position:sticky;top:88px;display:flex;flex-direction:column;gap:18px}
+.w{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.w-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line)}
+.w-h .t{font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}
+.w-h .more{font-size:.72rem;color:var(--muted);font-weight:600}
+.w-h .more:hover{color:var(--gold)}
+.w-body{padding:16px}
+.weather{display:flex;align-items:center;gap:16px}
+.weather .temp{font-size:2.4rem;font-weight:800;color:var(--gold);line-height:1}
+.weather .wx{font-size:2rem}
+.weather .winfo{font-size:.8rem;color:var(--muted-2)}
+.clock{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2);text-align:center}
+.clock .time{font-family:var(--mono);font-size:1.8rem;font-weight:700;letter-spacing:.04em}
+.clock .date{font-size:.8rem;color:var(--muted);margin-top:3px;text-transform:capitalize}
+.tlist{display:flex;flex-direction:column}
+.titem{display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line-2);transition:.1s;cursor:pointer}
+.titem:last-child{border-bottom:none}
+.titem:hover{background:rgba(255,255,255,.03)}
+.tdate{flex-shrink:0;width:42px;text-align:center}
+.tdate .d{font-size:1.2rem;font-weight:800;color:var(--gold);line-height:1}
+.tdate .m{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.06em}
+.tinfo .tn{font-weight:700;font-size:.85rem;line-height:1.2}
+.tinfo .tl{font-size:.74rem;color:var(--muted);margin-top:3px}
+.ultra-badge{display:inline-block;font-family:var(--mono);font-size:.56rem;font-weight:700;letter-spacing:.1em;background:linear-gradient(135deg,var(--gold),var(--gold-soft));color:#1a1000;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle}
+.rez-form{display:flex;flex-direction:column;gap:10px}
+.rez-form select,.rez-form input{width:100%}
+.rez-btn{padding:11px;border-radius:9px;background:var(--green);color:#06230f;font-weight:700;font-size:.86rem;transition:.13s}
+.rez-btn:hover{background:#33dd8a}
+.rez-note{font-size:.72rem;color:var(--muted);text-align:center;line-height:1.4}
+.mobile-cats{display:none;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px}
+@media(max-width:920px){.mobile-cats{display:flex}}
+.mobile-cats .mc{flex-shrink:0;padding:8px 14px;border-radius:99px;border:1px solid var(--line);font-size:.8rem;font-weight:600;color:var(--muted-2);white-space:nowrap}
+.mobile-cats .mc.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#06230f;font-weight:700;padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:200}
+.toast.show{opacity:1}
+.drawer{display:none;position:fixed;inset:0 0 0 auto;width:280px;background:var(--bg-2);border-left:1px solid var(--line);z-index:300;padding:20px;transform:translateX(100%);transition:.2s}
+.drawer.open{display:block;transform:none}
+.drawer a,.drawer button{display:block;width:100%;text-align:left;padding:12px;border-radius:9px;font-weight:600;color:var(--muted-2)}
+.drawer a:hover{background:rgba(255,255,255,.04);color:var(--fg)}
+.backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250}
+.backdrop.show{display:block}
 </style>
-<aside class="csp-mag-tournaments">
-  <div class="csp-mag-tournaments-head">
-    <div class="csp-mag-tournaments-title">Kalendár turnajov</div>
-    <a class="csp-mag-tournaments-all" href="/kalendar-turnajov/">Všetky →</a>
+</head>
+<body>
+<header class="header">
+  <div class="header-in">
+    <a href="#" class="brand" onclick="setCat('all');return false">
+      <span class="brand-mark">C</span>
+      <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-mag">Magazine</span></span>
+    </a>
+    <nav class="nav">
+      <a href="#" class="active" id="navHome" onclick="setCat('all');return false" data-i="home">Domov</a>
+      <a href="#" onclick="document.getElementById('sportScroll').scrollIntoView({behavior:'smooth'});return false" data-i="sports">Športy</a>
+    </nav>
+    <div class="header-right">
+      <div class="search">🔍 <input type="text" id="searchInput" placeholder="Hľadať v článkoch…" oninput="render()" data-i-ph="search"/></div>
+      <button class="lang" onclick="toggleLang()"><span id="langLabel">SK</span> ▾</button>
+      <a class="admin-link" href="/cms/" title="Redakcia · CMS (len admin)" aria-label="Redakcia CMS">🔒</a>
+      <button class="menu-toggle" onclick="toggleDrawer()">☰</button>
+    </div>
   </div>
-  <div class="csp-mag-tournaments-list" id="magTournamentList">Načítavam…</div>
-</aside>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/assets/csp-auth.js"></script>
+</header>
+
+<div class="layout">
+  <aside class="col-left">
+    <div class="panel">
+      <div class="panel-h" data-i="categories">Kategórie</div>
+      <div class="cat-list">
+        <div class="cat active" data-cat="all" onclick="setCat('all')"><span class="ic">🗂️</span><div><div class="ct">Všetko</div><div class="cd">Všetky články</div></div></div>
+        <div class="cat" data-cat="novinky" onclick="setCat('novinky')"><span class="ic">📰</span><div><div class="ct">Novinky</div><div class="cd">Aktuality zo sveta športu</div></div></div>
+        <div class="cat" data-cat="recenzie" onclick="setCat('recenzie')"><span class="ic">⭐</span><div><div class="ct">Recenzie</div><div class="cd">Vybavenie, podniky a kluby</div></div></div>
+        <div class="cat" data-cat="historia" onclick="setCat('historia')"><span class="ic">📜</span><div><div class="ct">História</div><div class="cd">Medailóniky hráčov, fakty</div></div></div>
+        <div class="cat" data-cat="pravidla" onclick="setCat('pravidla')"><span class="ic">📋</span><div><div class="ct">Pravidlá hry</div><div class="cd">Od biliardu po padel, vždy aktuálne</div></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="col-center" id="sportScroll">
+    <div class="feed-head">
+      <div><h1 id="feedTitle">Najnovšie články</h1><div class="sub" id="feedSub">Aktuálne dianie zo sveta cue sports, šípok, bowlingu a ďalších.</div></div>
+    </div>
+    <div class="mobile-cats" id="mobileCats"></div>
+    <div class="sport-filter" id="sportFilter" style="margin-bottom:18px"></div>
+    <div class="articles" id="articles"></div>
+  </main>
+
+  <aside class="col-right">
+    <div class="w">
+      <div class="w-h"><span class="t" data-i="weather">Počasie · Prievidza</span></div>
+      <div class="w-body">
+        <div class="weather"><span class="wx" id="wxIcon">⛅</span><div><div class="temp" id="wxTemp">—°</div><div class="winfo" id="wxInfo">Načítavam…</div></div></div>
+        <div class="clock"><div class="time" id="clockTime">00:00:00</div><div class="date" id="clockDate">—</div></div>
+      </div>
+    </div>
+    <div class="w">
+      <div class="w-h"><span class="t">🏆 Najbližšie turnaje <span class="ultra-badge">ULTRA</span></span><a class="more" href="#" onclick="return eventsSoon(event)">Všetky →</a></div>
+      <div class="tlist" id="tournaments"></div>
+    </div>
+    <div class="w">
+      <div class="w-h"><span class="t">📅 Rezervácia <span class="ultra-badge">ULTRA</span></span></div>
+      <div class="w-body">
+        <div class="rez-form">
+          <select id="rezCity"><option>Prievidza</option><option>Bratislava</option><option>Košice</option><option>Žilina</option></select>
+          <select id="rezClub"><option>ŠK Pohoda</option><option>Biliard Centrum</option><option>Darts Club</option></select>
+          <input type="time" id="rezTime" value="18:00"/>
+          <button class="rez-btn" onclick="rezSubmit()">Rezervovať</button>
+          <p class="rez-note">Po výbere ti príde potvrdenie e-mailom / SMS.</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="toggleDrawer()"></div>
+<nav class="drawer" id="drawer">
+  <div style="font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Menu</div>
+  <a href="#" onclick="setCat('all');toggleDrawer();return false">Domov</a>
+  <a href="/cms/">Prihlásiť · CMS</a>
+  <button onclick="toggleLang()">Jazyk: <span id="langLabel2">SK</span></button>
+</nav>
+<div class="toast" id="toast"></div>
+
 <script>
+const STORE_KEY="csp_magazine_articles";
+const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá'};
+const SPORT_LABEL={biliard:'Biliard',sipky:'Šípky',bowling:'Bowling',padel:'Padel',tenis:'Tenis',pingpong:'Ping pong',general:'Všeobecné'};
+const CAT_GRAD={novinky:'linear-gradient(135deg,#3a2f10,#1a160a)',recenzie:'linear-gradient(135deg,#0e3320,#0a1a12)',historia:'linear-gradient(135deg,#3a2418,#1c130d)',pravidla:'linear-gradient(135deg,#143049,#0c1822)'};
 
-function cspEsc(v){
-  return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const SEED=[]; // žiadne hardcoded — články prídu z CMS
+
+function loadStore(){
+  let arr;
+  try{const r=localStorage.getItem(STORE_KEY);if(r)arr=JSON.parse(r);}catch(e){}
+  if(!arr||!arr.length){localStorage.setItem(STORE_KEY,JSON.stringify(SEED));return SEED.slice();}
+  const OLD=['biliard','sipky','bowling','general'];let changed=false;
+  arr.forEach(a=>{
+    if(OLD.includes(a.category)){if(a.category!=='general'&&!a.sport)a.sport=a.category;a.category='novinky';changed=true;}
+    if(!a.sport)a.sport='general';
+  });
+  if(changed)localStorage.setItem(STORE_KEY,JSON.stringify(arr));
+  return arr;
 }
-function cspTournamentPlace(t){
-  const cfg = t.config || {};
-  return {
-    country: cfg.country || cfg.state || cfg.krajina || '',
-    city: cfg.city || cfg.mesto || '',
-  };
-}
-function cspTournamentHref(t){
-  return `/turnament/?id=${encodeURIComponent(t.id)}`;
-}
-function cspFmtDate(value){
-  if(!value) return '—';
-  const d = new Date(value + 'T12:00:00');
-  return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+let articles=loadStore();
+let curCat='all',curSport='all';
+
+function fmtDate(d){if(!d)return'';const M=['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];const p=d.split('-');if(p.length!==3)return d;return `${+p[2]}. ${M[+p[1]-1]} ${p[0]}`;}
+function readTime(a){const w=(a.body||[]).reduce((n,b)=>n+((b.text||'').split(/\s+/).length),0);return Math.max(2,Math.round(w/180))+' min';}
+
+function render(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase();
+  let list=articles.filter(a=>a.status==='published')
+    .filter(a=>curCat==='all'||a.category===curCat)
+    .filter(a=>curSport==='all'||a.sport===curSport)
+    .filter(a=>!q||a.title.toLowerCase().includes(q)||(a.excerpt||'').toLowerCase().includes(q))
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const wrap=document.getElementById('articles');
+  if(!list.length){wrap.innerHTML='<div class="empty">Zatiaľ tu nie sú žiadne články.<br><span style="font-size:.82rem;color:var(--muted)">Publikuj prvý cez CMS.</span></div>';return;}
+  wrap.innerHTML=list.map(a=>{
+    const cover=a.cover?`<img src="${a.cover}" alt=""/>`:'';
+    const bg=a.cover?'':`style="background:${CAT_GRAD[a.category]||CAT_GRAD.novinky}"`;
+    return `<article class="art" onclick="openArticle('${a.slug}')">
+      <div class="art-cover" ${bg}>${cover}<span class="cov-label">${SPORT_LABEL[a.sport]||a.sport||'CSP'}</span></div>
+      <div class="art-body">
+        <div class="art-meta"><span class="tag ${a.category}">${CAT_LABEL[a.category]||a.category}</span><span>${readTime(a)} čítania</span></div>
+        <h3>${a.title}</h3><p>${a.excerpt||''}</p>
+        <div class="art-foot"><span>${a.author||'Redakcia CSP'}</span><span class="dot"></span><span>${fmtDate(a.date)}</span></div>
+      </div>
+    </article>`;
+  }).join('');
 }
 
-(async()=>{
-  const box=document.getElementById('magTournamentList');
-  try{
-    const today=new Date().toISOString().slice(0,10);
-    const {data,error}=await cspAuth.client.from('tournaments')
-      .select('id,name,sport,discipline,date,venue,status,config')
-      .gte('date',today).order('date',{ascending:true}).limit(5);
-    if(error) throw error;
-    const rows=(data||[]).filter(t=>t.status!=='archived');
-    box.innerHTML=rows.length ? rows.map(t=>{
-      const p=cspTournamentPlace(t);
-      const place=[p.city,p.country].filter(Boolean).join(', ')||t.venue||'';
-      return `<a class="csp-mag-tournament" href="${cspTournamentHref(t)}">
-        <div class="csp-mag-tournament-date">${cspFmtDate(t.date)}</div>
-        <div class="csp-mag-tournament-name">${cspEsc(t.name||'Turnaj')}</div>
-        <div class="csp-mag-tournament-meta">${cspEsc([t.sport,t.discipline,place].filter(Boolean).join(' · '))}</div>
-      </a>`;
-    }).join('') : '<div style="color:#9999a3;font-size:.78rem">Žiadne nadchádzajúce turnaje.</div>';
-  }catch(e){
-    console.error('[mag tournament widget]',e);
-    box.innerHTML='<div style="color:#9999a3;font-size:.78rem">Turnaje sa nepodarilo načítať.</div>';
-  }
-})();
+function setCat(cat){
+  curCat=cat;
+  document.querySelectorAll('.cat').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));
+  document.querySelectorAll('.mc').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));
+  document.getElementById('navHome').classList.toggle('active',cat==='all');
+  const titles={all:'Najnovšie články',novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry'};
+  const subs={all:'Aktuálne dianie zo sveta cue sports, šípok, bowlingu a ďalších.',novinky:'Aktuality zo sveta športu.',recenzie:'Vybavenie, podniky a kluby pod lupou.',historia:'Medailóniky hráčov a historické fakty.',pravidla:'Vždy aktuálne pravidlá — od biliardu po padel.'};
+  document.getElementById('feedTitle').textContent=titles[cat];
+  document.getElementById('feedSub').textContent=subs[cat];
+  render();window.scrollTo({top:0,behavior:'smooth'});
+}
+function setSport(sp){curSport=sp;document.querySelectorAll('.sp').forEach(s=>s.classList.toggle('active',s.dataset.sp===sp));render();}
+function buildSportFilter(){
+  const sports=['all',...new Set(articles.filter(a=>a.status==='published').map(a=>a.sport).filter(s=>s&&s!=='general'))];
+  document.getElementById('sportFilter').innerHTML=sports.map(s=>`<button class="sp ${s==='all'?'active':''}" data-sp="${s}" onclick="setSport('${s}')">${s==='all'?'Všetky športy':(SPORT_LABEL[s]||s)}</button>`).join('');
+}
+function buildMobileCats(){
+  const cats=[['all','Všetko'],['novinky','Novinky'],['recenzie','Recenzie'],['historia','História'],['pravidla','Pravidlá']];
+  document.getElementById('mobileCats').innerHTML=cats.map(([c,l])=>`<button class="mc ${c==='all'?'active':''}" data-cat="${c}" onclick="setCat('${c}')">${l}</button>`).join('');
+}
+function openArticle(slug){location.href='/magazin/clanok/?slug='+encodeURIComponent(slug);}
+
+const WX={0:['☀️','Jasno'],1:['🌤️','Skoro jasno'],2:['⛅','Polooblačno'],3:['☁️','Zamračené'],45:['🌫️','Hmla'],48:['🌫️','Hmla'],51:['🌦️','Mrholenie'],61:['🌧️','Dážď'],63:['🌧️','Dážď'],65:['🌧️','Silný dážď'],71:['🌨️','Sneženie'],73:['🌨️','Sneženie'],80:['🌦️','Prehánky'],95:['⛈️','Búrky']};
+function loadWeather(){
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=48.7719&longitude=18.6256&current=temperature_2m,weather_code')
+    .then(r=>r.json()).then(d=>{const t=Math.round(d.current.temperature_2m),code=d.current.weather_code,w=WX[code]||['⛅','—'];document.getElementById('wxTemp').textContent=t+'°';document.getElementById('wxIcon').textContent=w[0];document.getElementById('wxInfo').textContent=w[1];})
+    .catch(()=>{document.getElementById('wxInfo').textContent='Počasie nedostupné';});
+}
+function tickClock(){const n=new Date();document.getElementById('clockTime').textContent=n.toLocaleTimeString('sk-SK');document.getElementById('clockDate').textContent=n.toLocaleDateString('sk-SK',{weekday:'long',day:'numeric',month:'long'});}
+
+const TOURNAMENTS=[]; // žiadne hardcoded — udalosti vložia kluby/zväzy (ULTRA)
+function renderTournaments(){
+  const M=['JAN','FEB','MAR','APR','MÁJ','JÚN','JÚL','AUG','SEP','OKT','NOV','DEC'];
+  const wrap=document.getElementById('tournaments');
+  if(!TOURNAMENTS.length){wrap.innerHTML='<div style="padding:28px 16px;text-align:center;color:var(--muted);font-size:.8rem">Zatiaľ žiadne turnaje.<br>Pridajú ich kluby a zväzy.</div>';return;}
+  wrap.innerHTML=TOURNAMENTS.slice(0,10).map(t=>{const p=t.date.split('-');return `<div class="titem" onclick="eventsSoon(event)"><div class="tdate"><div class="d">${+p[2]}</div><div class="m">${M[+p[1]-1]}</div></div><div class="tinfo"><div class="tn">${t.name}</div><div class="tl">${t.sport} · ${t.city}</div></div></div>`;}).join('');
+}
+function eventsSoon(e){if(e)e.preventDefault();toast('Vyhľadávač udalostí a turnajov pripravujeme (ULTRA).');return false;}
+function rezSubmit(){const c=document.getElementById('rezClub').value,t=document.getElementById('rezTime').value;toast(`Rezervácia ${c} o ${t} — potvrdenie pošleme e-mailom (ULTRA).`);}
+
+const I18N={sk:{home:'Domov',sports:'Športy',login:'Prihlásiť · CMS',categories:'Kategórie',weather:'Počasie · Prievidza',search:'Hľadať v článkoch…'},en:{home:'Home',sports:'Sports',login:'Sign in · CMS',categories:'Categories',weather:'Weather · Prievidza',search:'Search articles…'}};
+let lang='sk';
+function toggleLang(){
+  lang=lang==='sk'?'en':'sk';
+  document.getElementById('langLabel').textContent=lang.toUpperCase();
+  const l2=document.getElementById('langLabel2');if(l2)l2.textContent=lang.toUpperCase();
+  const d=I18N[lang];
+  document.querySelectorAll('[data-i]').forEach(el=>{const k=el.dataset.i;if(d[k])el.textContent=d[k];});
+  document.querySelectorAll('[data-i-ph]').forEach(el=>{const k=el.dataset.iPh;if(d[k])el.placeholder=d[k];});
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show';setTimeout(()=>t.className='toast',2600);}
+function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('show');}
+
+buildSportFilter();buildMobileCats();render();renderTournaments();
+tickClock();setInterval(tickClock,1000);loadWeather();
 </script>
+</body>
+</html>
