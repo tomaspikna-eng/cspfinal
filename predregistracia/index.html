@@ -3,236 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Udalosť · Connect Sports Pro</title>
+<title>Predregistrácia · Connect Sports Pro</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
 :root{
   --bg:#060608;--panel:#0d0d11;--field:#14141a;--line:rgba(255,255,255,.08);
-  --text:#f4f4f8;--soft:#a8a8b8;--gold:#d4a843;--green:#1ec86a;--red:#d94f4f
+  --text:#f4f4f8;--soft:#a8a8b8;--muted:#747482;--gold:#d4a843;
+  --green:#1ec86a;--red:#d94f4f
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
 a{color:inherit;text-decoration:none}
-header{border-bottom:1px solid var(--line);background:rgba(6,6,8,.94);position:sticky;top:0;z-index:10}
-.top{max-width:920px;margin:auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+header{border-bottom:1px solid var(--line);background:rgba(6,6,8,.95)}
+.top{max-width:900px;margin:auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
 .brand{font-weight:900}.gold{color:var(--gold)}
-main{max-width:920px;margin:auto;padding:36px 20px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:20px}
-h1,h2{margin-top:0}.sub{color:var(--soft);line-height:1.5}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}
-label{display:block;font-size:12px;color:var(--soft);font-weight:700;margin-bottom:6px}
-input,select,textarea{
-  width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--line);
-  background:var(--field);color:var(--text)
-}
-textarea{min-height:110px;resize:vertical}
-.actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
+main{max-width:900px;margin:auto;padding:36px 20px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px}
+h1,h2{margin:0 0 10px}.sub{color:var(--soft);line-height:1.55}
+.event-head{display:grid;gap:8px}
+.event-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.badge{padding:6px 10px;border-radius:99px;background:rgba(212,168,67,.10);border:1px solid rgba(212,168,67,.25);color:var(--gold);font-size:12px;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;color:var(--soft);font-weight:700;font-size:12px;margin-bottom:6px}
+input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--text)}
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:14px;color:var(--soft);line-height:1.45;font-size:12px}
+.consent input{width:auto;margin-top:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .btn{padding:13px 18px;border:0;border-radius:10px;font-weight:800;cursor:pointer}
-.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn:disabled{opacity:.55}
+.btn-green{background:var(--green);color:#06230f}
 .btn-gold{background:var(--gold);color:#111}
 .btn-dark{background:var(--field);color:var(--text);border:1px solid var(--line)}
-.btn-green{background:var(--green);color:#06230f}
 .btn-red{background:var(--red);color:#fff}
 .notice{padding:13px 15px;border-radius:10px;margin-bottom:18px;background:rgba(30,200,106,.11);border:1px solid rgba(30,200,106,.28);color:#a9f3c8}
-.error{background:rgba(217,79,79,.1);border-color:rgba(217,79,79,.3);color:#ffb1b1}
-.event-list{display:flex;flex-direction:column;gap:9px}
-.event-row{display:grid;grid-template-columns:1.3fr 1fr auto;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--field)}
-.club{font-weight:800}.type{color:var(--soft)}.date{color:var(--gold)}
+.notice.error{background:rgba(217,79,79,.10);border-color:rgba(217,79,79,.30);color:#ffb1b1}
+.list{display:flex;flex-direction:column;gap:9px}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:11px;background:var(--field)}
+.nick{font-weight:800}.time{color:var(--muted);font-size:12px}
+.owner-table{width:100%;border-collapse:collapse}
+.owner-table th,.owner-table td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
+.owner-table th{color:var(--soft);font-size:11px;text-transform:uppercase}
+.owner-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .hidden{display:none!important}
-.detail{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.item{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--field)}
-.item small{display:block;color:var(--soft);margin-bottom:5px;text-transform:uppercase;font-size:10px}
-.cover{
-  width:100%;max-height:420px;object-fit:cover;border-radius:14px;border:1px solid var(--line);
-  margin-bottom:18px;background:var(--field)
+.empty{color:var(--soft);padding:16px 0}
+@media(max-width:650px){
+  .grid{grid-template-columns:1fr}
+  .row{align-items:flex-start;flex-direction:column}
+  .owner-table{display:block;overflow-x:auto}
+  .btn{width:100%}
 }
-.author-tools{
-  display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;
-  padding:14px;border:1px solid rgba(212,168,67,.22);border-radius:12px;background:rgba(212,168,67,.05)
-}
-.mode-label{display:inline-flex;padding:5px 9px;border-radius:99px;background:rgba(212,168,67,.10);color:var(--gold);font-size:11px;font-weight:800;margin-bottom:12px}
-@media(max-width:680px){
-  .grid,.detail,.event-row{grid-template-columns:1fr}.full{grid-column:auto}
-  .actions .btn,.author-tools .btn{width:100%}
-}
-
-.public-prereg{margin:24px 0 0;border:1px solid var(--line);background:var(--card);border-radius:16px;padding:18px}
-.public-prereg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.public-prereg-head h3{margin:0;font-size:1rem}
-.public-prereg-count{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
-.public-prereg-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
-.public-prereg-person{border:1px solid var(--line);background:var(--bg-2);border-radius:10px;padding:10px 12px;font-size:.86rem;font-weight:700}
-.public-prereg-empty{color:var(--muted);font-size:.84rem;padding:8px 0}
-.prereg-public-cta{margin:18px 0 0;display:flex;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <header>
   <div class="top">
     <a class="brand" href="/"><span class="gold">Connect</span>Sports<span class="gold">Pro</span></a>
-    <a class="gold" href="/profil/">Profil</a>
+    <a href="/profil/" class="gold">Profil</a>
   </div>
 </header>
 
 <main>
-  <h1 id="pageTitle">Vytvoriť udalosť</h1>
-  <p class="sub" id="pageSubtitle">Udalosť sa po publikovaní zobrazí v kalendári udalostí.</p>
   <div id="notice"></div>
 
+  <section class="panel event-head">
+    <div class="sub">Predregistrácia na udalosť</div>
+    <h1 id="eventTitle">Načítavam…</h1>
+    <div class="event-meta">
+      <span class="badge" id="eventType">Udalosť</span>
+      <span class="badge" id="eventDate">—</span>
+      <span class="badge hidden" id="eventCapacity"></span>
+    </div>
+  </section>
+
   <section class="panel" id="formPanel">
-    <div class="mode-label hidden" id="editModeLabel">Režim úpravy</div>
-    <h2 id="formTitle">Základné informácie</h2>
+    <h2>Predregistrácia hráča</h2>
+    <p class="sub">
+      Verejne sa zobrazí iba nickname. Meno a priezvisko bude dostupné výhradne autorovi udalosti na organizačné účely.
+    </p>
 
-    <form id="eventForm">
+    <form id="registrationForm">
       <div class="grid">
-        <div class="full">
-          <label>Názov udalosti</label>
-          <input id="title" required>
-        </div>
-
         <div>
-          <label>Typ udalosti</label>
-          <select id="eventType" required>
-            <option value="">Vyber typ</option>
-            <option value="Turnaj">Turnaj</option>
-            <option value="Liga">Liga</option>
-            <option value="Tréning">Tréning</option>
-            <option value="Klubová udalosť">Klubová udalosť</option>
-            <option value="Otvorený deň">Otvorený deň</option>
-            <option value="Iné">Iné</option>
-          </select>
+          <label>Meno a priezvisko</label>
+          <input id="fullName" maxlength="120" autocomplete="name" required placeholder="Ján Novák">
         </div>
-
         <div>
-          <label>Šport</label>
-          <input id="sport" required>
-        </div>
-
-        <div>
-          <label>Disciplína</label>
-          <input id="discipline">
-        </div>
-
-        <div>
-          <label>Miesto</label>
-          <input id="location">
-        </div>
-
-        <div>
-          <label>Mesto</label>
-          <input id="city">
-        </div>
-
-        <div>
-          <label>Začiatok</label>
-          <input id="startsAt" type="datetime-local" required>
-        </div>
-
-        <div>
-          <label>Viditeľnosť</label>
-          <select id="visibility">
-            <option value="public">Verejná</option>
-            <option value="unlisted">Nezaradená</option>
-            <option value="private">Súkromná</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Stav</label>
-          <select id="status">
-            <option value="published">Publikovať</option>
-            <option value="draft">Koncept</option>
-            <option value="cancelled">Zrušená</option>
-            <option value="completed">Ukončená</option>
-          </select>
-        </div>
-
-        <div class="full">
-          <label>Fotografia udalosti</label>
-          <input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp">
-          <div class="sub" style="margin-top:6px;font-size:12px">
-            JPG, PNG alebo WEBP, maximálne 5 MB. Pri úprave nechaj prázdne, ak chceš zachovať pôvodnú fotografiu.
-          </div>
-        </div>
-
-        <div>
-          <label>Predregistrácia</label>
-          <select id="registrationEnabled">
-            <option value="false">Vypnutá</option>
-            <option value="true">Zapnutá</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Kapacita / max. počet účastníkov</label>
-          <input id="maxParticipants" type="number" min="1" step="1" placeholder="napr. 64">
-        </div>
-
-        <div class="full">
-          <label>Deadline predregistrácie</label>
-          <input id="registrationDeadline" type="datetime-local">
-        </div>
-
-        <div class="full">
-          <label>Popis</label>
-          <textarea id="description"></textarea>
+          <label>Nickname</label>
+          <input id="nickname" maxlength="60" required placeholder="Johnny">
         </div>
       </div>
 
+      <label class="consent">
+        <input type="checkbox" id="consent" required>
+        <span>
+          Súhlasím so spracovaním mena a priezviska autorom udalosti výhradne na účely predregistrácie a prípravy zoznamu hráčov. Verejne bude zobrazený iba nickname.
+        </span>
+      </label>
+
       <div class="actions">
-        <button type="button" class="btn btn-dark hidden" id="cancelEditBtn">Zrušiť úpravu</button>
-        <button class="btn btn-gold" id="submitBtn">Vytvoriť udalosť</button>
+        <button class="btn btn-green" id="submitBtn">Odoslať predregistráciu</button>
       </div>
     </form>
   </section>
 
-  <section class="panel hidden" id="detailPanel">
-    <img id="detailCover" class="cover hidden" alt="Fotografia udalosti">
-
-    <div class="author-tools hidden" id="authorTools">
-      <button class="btn btn-gold" id="editBtn">Upraviť udalosť</button>
-      <button class="btn btn-red" id="deleteBtn">Zmazať udalosť</button>
+  <section class="panel">
+    <h2>Predregistrovaní hráči</h2>
+    <p class="sub">Verejný zoznam obsahuje iba nickname.</p>
+    <div class="list" id="publicList">
+      <div class="empty">Načítavam…</div>
     </div>
-
-    <div class="actions" style="justify-content:flex-start;margin:0 0 18px">
-      <button class="btn btn-green" id="shareBtn">Zdieľať</button>
-      <button class="btn btn-dark" id="copyLinkBtn">Kopírovať odkaz</button>
-    </div>
-
-    <div class="author-tools hidden" id="preregTools" style="display:block;margin:0 0 22px">
-      <div style="width:100%;border:1px solid rgba(38,208,125,.28);background:rgba(38,208,125,.06);border-radius:14px;padding:16px">
-        <div style="font-weight:800;margin-bottom:8px">Predregistrácia</div>
-        <div id="preregStatus" style="font-size:.8rem;color:#aaa;margin-bottom:10px"></div>
-        <input id="preregLink" readonly style="width:100%;margin-bottom:10px">
-        <div class="actions" style="justify-content:flex-start;margin:0">
-          <button class="btn btn-green" id="copyPreregBtn" type="button">Kopírovať predregistračný link</button>
-          <button class="btn btn-dark" id="openPreregBtn" type="button">Otvoriť formulár</button>
-        </div>
-      </div>
-    </div>
-
-    <h2>Detail udalosti</h2>
-    <div class="detail" id="detailGrid"></div>
-
-    <div class="prereg-public-cta hidden" id="publicPreregCta">
-      <a class="btn btn-green" id="publicPreregBtn" href="#">Predregistrovať sa</a>
-    </div>
-
-    <section class="public-prereg hidden" id="publicPreregSection">
-      <div class="public-prereg-head">
-        <h3>Predregistrovaní účastníci</h3>
-        <span class="public-prereg-count" id="publicPreregCount">0 účastníkov</span>
-      </div>
-      <div class="public-prereg-list" id="publicPreregList">
-        <div class="public-prereg-empty">Načítavam…</div>
-      </div>
-    </section>
   </section>
 
-  <section class="panel">
-    <h2>Kalendár udalostí</h2>
-    <div class="event-list" id="calendarList">Načítavam…</div>
+  <section class="panel hidden" id="ownerPanel">
+    <h2>Organizačný zoznam autora</h2>
+    <p class="sub">Táto časť je viditeľná iba autorovi udalosti.</p>
+
+    <div class="owner-tools">
+      <button class="btn btn-gold" id="copyNamesBtn">Kopírovať mená</button>
+      <button class="btn btn-dark" id="copyFullListBtn">Kopírovať meno + nickname</button>
+    </div>
+
+    <div id="ownerList">
+      <div class="empty">Načítavam…</div>
+    </div>
   </section>
 </main>
 
@@ -242,472 +136,216 @@ textarea{min-height:110px;resize:vertical}
 
   const db = window.cspAuth?.client;
   const $ = id => document.getElementById(id);
-  const params = new URLSearchParams(location.search);
+  const eventId = new URLSearchParams(location.search).get('event');
 
   let currentSession = null;
   let currentEvent = null;
-  let editingEventId = null;
+  let ownerRows = [];
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[char]));
 
-  const fmt = value => value
+  const formatDate = value => value
     ? new Date(value).toLocaleString('sk-SK',{
         day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'
       })
     : '—';
 
-  const toLocalInputValue = value => {
-    if(!value) return '';
-    const date = new Date(value);
-    if(Number.isNaN(date.getTime())) return '';
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0,16);
-  };
-
-  function show(message, isError=false){
+  function show(message, error=false){
     $('notice').innerHTML = message
-      ? `<div class="notice ${isError ? 'error' : ''}">${esc(message)}</div>`
+      ? `<div class="notice ${error ? 'error' : ''}">${esc(message)}</div>`
       : '';
   }
 
-  async function getSession(){
-    if(currentSession) return currentSession;
+  async function loadSession(){
     const result = await db.auth.getSession();
     currentSession = result.data.session;
-    return currentSession;
   }
 
-  async function getClub(userId){
-    const result = await db
-      .from('clubs')
-      .select('id,name')
-      .eq('owner_id', userId)
-      .limit(1)
-      .maybeSingle();
-
-    if(result.error) throw result.error;
-    return result.data;
-  }
-
-  async function uploadCover(userId){
-    const file = $('coverFile').files?.[0];
-    if(!file) return null;
-
-    if(file.size > 5 * 1024 * 1024){
-      throw Error('Fotografia môže mať maximálne 5 MB.');
-    }
-
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
-      throw Error('Použi JPG, PNG alebo WEBP.');
-    }
-
-    const ext = file.type === 'image/png'
-      ? 'png'
-      : file.type === 'image/webp'
-        ? 'webp'
-        : 'jpg';
-
-    const objectPath = `${userId}/${crypto.randomUUID()}.${ext}`;
-
-    const upload = await db.storage
-      .from('event-covers')
-      .upload(objectPath, file, {
-        contentType:file.type,
-        cacheControl:'3600',
-        upsert:false
-      });
-
-    if(upload.error) throw upload.error;
-
-    return db.storage
-      .from('event-covers')
-      .getPublicUrl(objectPath)
-      .data
-      .publicUrl;
-  }
-
-  async function calendar(){
-    const result = await db.rpc('get_public_event_calendar',{p_limit:6});
-
-    if(result.error){
-      $('calendarList').innerHTML = esc(result.error.message);
-      return;
-    }
-
-    $('calendarList').innerHTML = (result.data || []).map(eventRow => `
-      <a class="event-row" href="/udalost/?id=${encodeURIComponent(eventRow.id)}">
-        <div class="club">${esc(eventRow.club_name || 'Connect Sports Pro')}</div>
-        <div class="type">${esc(eventRow.event_type || eventRow.title || 'Udalosť')}</div>
-        <div class="date">${esc(fmt(eventRow.starts_at))}</div>
-      </a>
-    `).join('') || 'Žiadne nadchádzajúce udalosti.';
-  }
-
-  async function loadPublicPreregistrations(eventRow){
-    const section=$('publicPreregSection');
-    const cta=$('publicPreregCta');
-    const list=$('publicPreregList');
-    const count=$('publicPreregCount');
-    const btn=$('publicPreregBtn');
-    if(!section||!cta||!list||!count||!btn) return;
-
-    const preregUrl=new URL('/predregistracia/',window.location.origin);
-    preregUrl.searchParams.set('event',eventRow.id);
-    btn.href=preregUrl.toString();
-
-    const enabled=eventRow.registration_enabled===true;
-    cta.classList.toggle('hidden',!enabled);
-
-    try{
-      const {data,error}=await db.rpc('get_public_event_preregistrations',{p_event_id:eventRow.id});
-      if(error) throw error;
-      const rows=Array.isArray(data)?data:[];
-      section.classList.toggle('hidden',rows.length===0&&!enabled);
-      count.textContent=`${rows.length} ${rows.length===1?'účastník':'účastníkov'}`;
-
-      if(!rows.length){
-        list.innerHTML='<div class="public-prereg-empty">Zatiaľ nie je predregistrovaný žiadny účastník.</div>';
-        return;
-      }
-
-      list.innerHTML=rows.map(row=>{
-        const nick=row.nickname||row.nick||row.display_name||'Účastník';
-        return `<div class="public-prereg-person">${esc(nick)}</div>`;
-      }).join('');
-    }catch(err){
-      console.error('[event] public preregistrations:',err);
-      section.classList.remove('hidden');
-      count.textContent='';
-      list.innerHTML='<div class="public-prereg-empty">Zoznam účastníkov sa nepodarilo načítať.</div>';
-    }
-  }
-
-  function renderDetail(eventRow){
-    $('pageTitle').textContent = eventRow.title || 'Udalosť';
-    $('pageSubtitle').textContent = eventRow.event_type || 'Udalosť';
-    $('formPanel').classList.add('hidden');
-    $('detailPanel').classList.remove('hidden');
-
-    if(eventRow.cover_image_url){
-      $('detailCover').src = eventRow.cover_image_url;
-      $('detailCover').classList.remove('hidden');
-    }else{
-      $('detailCover').classList.add('hidden');
-      $('detailCover').removeAttribute('src');
-    }
-
-    $('detailGrid').innerHTML = `
-      <div class="item"><small>Klub</small><strong>${esc(eventRow.clubs?.name || '—')}</strong></div>
-      <div class="item"><small>Typ</small><strong>${esc(eventRow.event_type || '—')}</strong></div>
-      <div class="item"><small>Šport</small><strong>${esc(eventRow.sport || '—')}</strong></div>
-      <div class="item"><small>Disciplína</small><strong>${esc(eventRow.discipline || '—')}</strong></div>
-      <div class="item"><small>Dátum</small><strong>${esc(fmt(eventRow.starts_at))}</strong></div>
-      <div class="item"><small>Miesto</small><strong>${esc([eventRow.location_text,eventRow.city].filter(Boolean).join(', ') || '—')}</strong></div>
-      <div class="item"><small>Stav</small><strong>${esc(eventRow.status || '—')}</strong></div>
-      <div class="item"><small>Viditeľnosť</small><strong>${esc(eventRow.visibility || '—')}</strong></div>
-      <div class="item"><small>Predregistrácia</small><strong>${eventRow.registration_enabled === true ? 'Aktívna' : 'Vypnutá'}</strong></div>
-      <div class="item"><small>Kapacita</small><strong>${esc(eventRow.max_participants || '—')}</strong></div>
-      <div class="item"><small>Deadline registrácie</small><strong>${esc(fmt(eventRow.registration_deadline))}</strong></div>
-      <div class="item full"><small>Popis</small><strong>${esc(eventRow.description || '—')}</strong></div>
-    `;
-
-    const isOwner = !!(
-      currentSession &&
-      eventRow.owner_id === currentSession.user.id
-    );
-
-    $('authorTools').classList.toggle('hidden', !isOwner);
-    $('preregTools').classList.toggle('hidden', !isOwner);
-
-    loadPublicPreregistrations(eventRow);
-
-    if(isOwner){
-      const preregUrl = new URL('/predregistracia/', window.location.origin);
-      preregUrl.searchParams.set('event', eventRow.id);
-
-      $('preregLink').value = preregUrl.toString();
-      $('preregStatus').textContent = eventRow.registration_enabled === true
-        ? 'Predregistrácia je aktívna. Tento link môžeš poslať hráčom.'
-        : 'Predregistrácia je momentálne vypnutá. Link je pripravený, ale formulár bude prijímať registrácie až po jej zapnutí.';
-      $('openPreregBtn').dataset.url = preregUrl.toString();
-    }
-  }
-
-  async function detail(id){
-    const session = await getSession();
+  async function loadEvent(){
+    if(!eventId) throw Error('V odkaze chýba identifikátor udalosti.');
 
     const result = await db
       .from('events')
-      .select('*,clubs(name)')
-      .eq('id', id)
+      .select('id,owner_id,title,event_type,starts_at,status,visibility,registration_enabled,registration_deadline,max_participants')
+      .eq('id', eventId)
       .maybeSingle();
 
-    if(result.error || !result.data){
-      show(result.error?.message || 'Udalosť sa nenašla.', true);
-      return;
-    }
+    if(result.error) throw result.error;
+    if(!result.data) throw Error('Udalosť sa nenašla.');
 
     currentEvent = result.data;
-    renderDetail(currentEvent);
-  }
 
-  function fillForm(eventRow){
-    $('title').value = eventRow.title || '';
-    $('eventType').value = eventRow.event_type || '';
-    $('sport').value = eventRow.sport || '';
-    $('discipline').value = eventRow.discipline || '';
-    $('location').value = eventRow.location_text || '';
-    $('city').value = eventRow.city || '';
-    $('startsAt').value = toLocalInputValue(eventRow.starts_at);
-    $('visibility').value = eventRow.visibility || 'public';
-    $('status').value = eventRow.status || 'published';
-    $('registrationEnabled').value = eventRow.registration_enabled === true ? 'true' : 'false';
-    $('registrationDeadline').value = toLocalInputValue(eventRow.registration_deadline);
-    $('maxParticipants').value = eventRow.max_participants || '';
-    $('description').value = eventRow.description || '';
-    $('coverFile').value = '';
-  }
+    $('eventTitle').textContent = currentEvent.title || 'Udalosť';
+    $('eventType').textContent = currentEvent.event_type || 'Udalosť';
+    $('eventDate').textContent = formatDate(currentEvent.starts_at);
 
-  function enterEditMode(){
-    if(!currentEvent) return;
-
-    editingEventId = currentEvent.id;
-    fillForm(currentEvent);
-
-    $('pageTitle').textContent = 'Upraviť udalosť';
-    $('pageSubtitle').textContent = currentEvent.title || '';
-    $('detailPanel').classList.add('hidden');
-    $('formPanel').classList.remove('hidden');
-    $('editModeLabel').classList.remove('hidden');
-    $('cancelEditBtn').classList.remove('hidden');
-    $('formTitle').textContent = 'Úprava udalosti';
-    $('submitBtn').textContent = 'Uložiť zmeny';
-
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
-
-  function leaveEditMode(){
-    editingEventId = null;
-    $('eventForm').reset();
-    $('editModeLabel').classList.add('hidden');
-    $('cancelEditBtn').classList.add('hidden');
-    $('formTitle').textContent = 'Základné informácie';
-    $('submitBtn').textContent = 'Vytvoriť udalosť';
-
-    if(currentEvent){
-      $('formPanel').classList.add('hidden');
-      $('detailPanel').classList.remove('hidden');
-      $('pageTitle').textContent = currentEvent.title || 'Udalosť';
-      $('pageSubtitle').textContent = currentEvent.event_type || 'Udalosť';
+    if(currentEvent.max_participants){
+      $('eventCapacity').textContent = `Kapacita ${currentEvent.max_participants}`;
+      $('eventCapacity').classList.remove('hidden');
     }
+
+    const available =
+      currentEvent.status === 'published' &&
+      currentEvent.visibility === 'public' &&
+      currentEvent.registration_enabled === true &&
+      (!currentEvent.registration_deadline || new Date(currentEvent.registration_deadline) >= new Date());
+
+    if(!available){
+      $('formPanel').classList.add('hidden');
+      show('Predregistrácia pre túto udalosť nie je aktívna.', true);
+    }
+
+    const isOwner = currentSession && currentSession.user.id === currentEvent.owner_id;
+    $('ownerPanel').classList.toggle('hidden', !isOwner);
   }
 
-  async function saveEvent(event){
+  async function loadPublicList(){
+    const result = await db.rpc('get_public_event_preregistrations',{
+      p_event_id:eventId
+    });
+
+    if(result.error) throw result.error;
+
+    $('publicList').innerHTML = (result.data || []).map((row,index)=>`
+      <div class="row">
+        <div class="nick">${index + 1}. ${esc(row.nickname)}</div>
+        <div class="time">${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</div>
+      </div>
+    `).join('') || '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
+  }
+
+  async function loadOwnerList(){
+    if(!currentSession || !currentEvent || currentSession.user.id !== currentEvent.owner_id) return;
+
+    const result = await db.rpc('get_owner_event_preregistrations',{
+      p_event_id:eventId
+    });
+
+    if(result.error) throw result.error;
+
+    ownerRows = result.data || [];
+
+    $('ownerList').innerHTML = ownerRows.length
+      ? `<table class="owner-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Meno a priezvisko</th>
+              <th>Nickname</th>
+              <th>Dátum</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ownerRows.map((row,index)=>`
+              <tr>
+                <td>${index + 1}</td>
+                <td>${esc(row.full_name)}</td>
+                <td>${esc(row.nickname)}</td>
+                <td>${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</td>
+                <td><button class="btn btn-red" data-delete-id="${esc(row.id)}" style="padding:7px 10px">Zmazať</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      : '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
+  }
+
+  async function submitRegistration(event){
     event.preventDefault();
     show('');
 
     const button = $('submitBtn');
     button.disabled = true;
-    button.textContent = editingEventId ? 'Ukladám zmeny…' : 'Ukladám…';
+    button.textContent = 'Odosielam…';
 
     try{
-      const session = await getSession();
-      if(!session){
-        throw Error('Pre vytvorenie alebo úpravu udalosti sa musíš prihlásiť.');
-      }
-
-      const club = await getClub(session.user.id);
-      const start = new Date($('startsAt').value);
-
-      if(Number.isNaN(start.getTime())){
-        throw Error('Zadaj platný dátum udalosti.');
-      }
-
-      const uploadedCover = await uploadCover(session.user.id);
-
-      const payload = {
-        owner_id:session.user.id,
-        club_id:club?.id || currentEvent?.club_id || null,
-        title:$('title').value.trim(),
-        event_type:$('eventType').value,
-        sport:$('sport').value.trim(),
-        discipline:$('discipline').value.trim() || null,
-        location_text:$('location').value.trim() || null,
-        city:$('city').value.trim() || null,
-        starts_at:start.toISOString(),
-        description:$('description').value.trim() || null,
-        visibility:$('visibility').value,
-        status:$('status').value,
-        registration_enabled:$('registrationEnabled').value === 'true',
-        registration_deadline:$('registrationDeadline').value
-          ? new Date($('registrationDeadline').value).toISOString()
-          : null,
-        max_participants:$('maxParticipants').value
-          ? Math.max(1, parseInt($('maxParticipants').value,10))
-          : null
-      };
-
-      if(uploadedCover){
-        payload.cover_image_url = uploadedCover;
-      }
-
-      if(editingEventId){
-        const update = await db
-          .from('events')
-          .update(payload)
-          .eq('id', editingEventId)
-          .eq('owner_id', session.user.id)
-          .select('*,clubs(name)')
-          .single();
-
-        if(update.error) throw update.error;
-
-        currentEvent = update.data;
-        show('Zmeny udalosti boli uložené.');
-        leaveEditMode();
-        renderDetail(currentEvent);
-      }else{
-        const insert = await db
-          .from('events')
-          .insert(payload)
-          .select('id')
-          .single();
-
-        if(insert.error) throw insert.error;
-
-        $('eventForm').reset();
-        show('Udalosť bola vytvorená a uložená do kalendára.');
-        window.location.href = `/udalost/?id=${encodeURIComponent(insert.data.id)}`;
-        return;
-      }
-
-      await calendar();
-    }catch(error){
-      show(error.message || 'Udalosť sa nepodarilo uložiť.', true);
-    }finally{
-      button.disabled = false;
-      button.textContent = editingEventId ? 'Uložiť zmeny' : 'Vytvoriť udalosť';
-    }
-  }
-
-  async function deleteEvent(){
-    if(!currentEvent) return;
-
-    const session = await getSession();
-    if(!session || currentEvent.owner_id !== session.user.id){
-      show('Udalosť môže zmazať iba jej autor.', true);
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Naozaj chceš natrvalo zmazať udalosť „${currentEvent.title}“?`
-    );
-
-    if(!confirmed) return;
-
-    $('deleteBtn').disabled = true;
-    $('deleteBtn').textContent = 'Mažem…';
-
-    try{
-      const result = await db
-        .from('events')
-        .delete()
-        .eq('id', currentEvent.id)
-        .eq('owner_id', session.user.id);
+      const result = await db.rpc('submit_event_preregistration',{
+        p_event_id:eventId,
+        p_full_name:$('fullName').value.trim(),
+        p_nickname:$('nickname').value.trim(),
+        p_consent:$('consent').checked
+      });
 
       if(result.error) throw result.error;
 
-      show('Udalosť bola zmazaná.');
-      currentEvent = null;
-
-      setTimeout(() => {
-        window.location.href = '/profil/';
-      }, 700);
+      $('registrationForm').reset();
+      show('Predregistrácia bola úspešne odoslaná.');
+      await loadPublicList();
+      await loadOwnerList();
     }catch(error){
-      show(error.message || 'Udalosť sa nepodarilo zmazať.', true);
-      $('deleteBtn').disabled = false;
-      $('deleteBtn').textContent = 'Zmazať udalosť';
+      show(error.message || 'Predregistráciu sa nepodarilo odoslať.', true);
+    }finally{
+      button.disabled = false;
+      button.textContent = 'Odoslať predregistráciu';
     }
   }
 
-  async function shareEvent(){
-    if(!currentEvent) return;
+  async function deleteRegistration(id){
+    if(!currentSession) return;
 
-    const shareData = {
-      title:currentEvent.title || 'Udalosť',
-      text:[
-        currentEvent.event_type,
-        currentEvent.clubs?.name,
-        fmt(currentEvent.starts_at)
-      ].filter(Boolean).join(' · '),
-      url:window.location.href
-    };
+    const confirmed = window.confirm('Naozaj chceš túto predregistráciu zmazať?');
+    if(!confirmed) return;
 
-    try{
-      if(navigator.share){
-        await navigator.share(shareData);
-      }else{
-        await navigator.clipboard.writeText(window.location.href);
-        show('Odkaz na udalosť bol skopírovaný.');
-      }
-    }catch(error){
-      if(error?.name !== 'AbortError'){
-        show('Zdieľanie sa nepodarilo.', true);
-      }
+    const result = await db
+      .from('event_preregistrations')
+      .delete()
+      .eq('id', id);
+
+    if(result.error){
+      show(result.error.message, true);
+      return;
     }
+
+    show('Predregistrácia bola zmazaná.');
+    await loadPublicList();
+    await loadOwnerList();
   }
 
-  async function copyLink(){
+  async function copyText(text, successMessage){
     try{
-      await navigator.clipboard.writeText(window.location.href);
-      show('Odkaz na udalosť bol skopírovaný.');
+      await navigator.clipboard.writeText(text);
+      show(successMessage);
     }catch{
-      show('Odkaz sa nepodarilo skopírovať.', true);
+      show('Text sa nepodarilo skopírovať.', true);
     }
   }
 
-  $('copyPreregBtn').addEventListener('click', async ()=>{
-    const value = $('preregLink').value;
-    if(!value) return;
-    try{
-      await navigator.clipboard.writeText(value);
-      show('Predregistračný link bol skopírovaný.');
-    }catch{
-      $('preregLink').select();
-      document.execCommand('copy');
-      show('Predregistračný link bol skopírovaný.');
-    }
+  $('registrationForm').addEventListener('submit', submitRegistration);
+
+  $('copyNamesBtn').addEventListener('click',()=>{
+    const text = ownerRows.map(row => row.full_name).join('\n');
+    copyText(text,'Mená boli skopírované.');
   });
 
-  $('openPreregBtn').addEventListener('click', ()=>{
-    const url = $('openPreregBtn').dataset.url;
-    if(url) window.open(url,'_blank','noopener');
+  $('copyFullListBtn').addEventListener('click',()=>{
+    const text = ownerRows.map(row => `${row.full_name} (${row.nickname})`).join('\n');
+    copyText(text,'Zoznam bol skopírovaný.');
   });
 
-  $('eventForm').addEventListener('submit', saveEvent);
-  $('editBtn').addEventListener('click', enterEditMode);
-  $('cancelEditBtn').addEventListener('click', leaveEditMode);
-  $('deleteBtn').addEventListener('click', deleteEvent);
-  $('shareBtn').addEventListener('click', shareEvent);
-  $('copyLinkBtn').addEventListener('click', copyLink);
+  $('ownerList').addEventListener('click',event=>{
+    const button = event.target.closest('[data-delete-id]');
+    if(button) deleteRegistration(button.dataset.deleteId);
+  });
 
   if(!db){
     show('Supabase klient nie je dostupný.', true);
     return;
   }
 
-  const eventId = params.get('id');
-
   (async()=>{
-    await getSession();
-
-    if(eventId){
-      await detail(eventId);
+    try{
+      await loadSession();
+      await loadEvent();
+      await loadPublicList();
+      await loadOwnerList();
+    }catch(error){
+      show(error.message || 'Predregistráciu sa nepodarilo načítať.', true);
+      $('formPanel').classList.add('hidden');
+      $('publicList').innerHTML = '<div class="empty">Údaje sa nepodarilo načítať.</div>';
     }
-
-    await calendar();
   })();
 })();
 </script>
