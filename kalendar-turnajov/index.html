@@ -67,14 +67,15 @@ function cspEsc(v){
   return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 function cspTournamentPlace(t){
-  const cfg = t.config || {};
   return {
-    country: cfg.country || cfg.state || cfg.krajina || '',
-    city: cfg.city || cfg.mesto || '',
+    country: t.country || '',
+    city: t.city || '',
   };
 }
 function cspTournamentHref(t){
-  return `/turnament/?id=${encodeURIComponent(t.id)}`;
+  if(t.event_id) return `/udalost/?id=${encodeURIComponent(t.event_id)}`;
+  if(t.external_url) return t.external_url;
+  return '';
 }
 function cspFmtDate(value){
   if(!value) return '—';
@@ -120,18 +121,22 @@ function render(){
   grid.innerHTML=rows.map(t=>{
     const p=cspTournamentPlace(t);
     const place=[p.city,p.country].filter(Boolean).join(', ') || t.venue || 'Miesto neuvedené';
-    return `<a class="card" href="${cspTournamentHref(t)}">
-      <div class="date">${cspFmtDate(t.date)}</div>
+    const href=cspTournamentHref(t);
+    const content=`
+      <div class="date">${cspFmtDate(t.event_date)}</div>
       <div>
         <div class="name">${cspEsc(t.name || 'Turnaj')}</div>
         <div class="meta">
           <span class="badge">${cspEsc(t.sport || 'Šport')}</span>
           ${t.discipline?`<span>${cspEsc(t.discipline)}</span>`:''}
           <span>${cspEsc(place)}</span>
+          ${t.organizer_name?`<span>${cspEsc(t.organizer_name)}</span>`:''}
         </div>
       </div>
-      <div class="open">Detail →</div>
-    </a>`;
+      ${href?'<div class="open">Detail →</div>':''}`;
+    return href
+      ? `<a class="card" href="${cspEsc(href)}">${content}</a>`
+      : `<div class="card">${content}</div>`;
   }).join('');
 }
 
@@ -139,11 +144,11 @@ function render(){
   try{
     if(!window.cspAuth?.client) throw new Error('CSP auth client unavailable');
     const {data,error}=await cspAuth.client
-      .from('tournaments')
-      .select('id,name,sport,discipline,date,venue,status,config')
-      .order('date',{ascending:true});
+      .from('tournament_calendar')
+      .select('id,tournament_id,event_id,name,sport,discipline,event_date,venue,city,country,organizer_name,visibility,registration_enabled,registration_deadline,max_participants,external_url,public_slug,status')
+      .order('event_date',{ascending:true});
     if(error) throw error;
-    allTournaments=(data||[]).filter(t=>t.status!=='archived');
+    allTournaments=(data||[]).filter(t=>t.visibility==='public' && !['archived','draft','cancelled'].includes(t.status));
     fillSelect(document.getElementById('countryFilter'),allTournaments.map(t=>cspTournamentPlace(t).country));
     fillSelect(document.getElementById('cityFilter'),allTournaments.map(t=>cspTournamentPlace(t).city));
     fillSelect(document.getElementById('sportFilter'),allTournaments.map(t=>t.sport));
