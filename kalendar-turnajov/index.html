@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kalendár turnajov — Connect Sports Pro</title>
+<meta name="description" content="Verejný kalendár turnajov evidovaných v Connect Sports Pro.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#050505;--card:#0d0d11;--card2:#121218;--line:rgba(255,255,255,.09);--text:#f4f4f5;--muted:#9999a3;--gold:#d8b04b;--green:#22d36b;--greenText:#06230f}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+a{color:inherit;text-decoration:none}
+.page{width:min(1400px,calc(100% - 32px));margin:22px auto 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0 24px}
+.brand{font-size:1.15rem;font-weight:900} .brand .g{color:var(--gold)}
+.back{border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-weight:800}
+.hero{padding:28px 0 22px}
+.kicker{font-size:.72rem;color:var(--gold);font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:clamp(2rem,5vw,4rem);letter-spacing:-.05em;margin:8px 0 8px}
+.lead{color:var(--muted);max-width:720px;line-height:1.55}
+.filters{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:10px;margin:18px 0 22px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+select,input,button{min-height:48px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--text);padding:0 13px;font:inherit}
+button{background:var(--green);color:var(--greenText);font-weight:900;border-color:transparent;cursor:pointer}
+.summary{color:var(--muted);font-size:.86rem;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{display:grid;grid-template-columns:90px 1fr auto;gap:16px;align-items:center;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01))}
+.card:hover{border-color:rgba(216,176,75,.32)}
+.date{font-weight:900;color:var(--gold);font-size:.9rem}
+.name{font-weight:900;font-size:1rem;margin-bottom:6px}
+.meta{font-size:.8rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:5px 8px;border-radius:999px;border:1px solid var(--line);font-size:.7rem;font-weight:800}
+.open{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
+.empty{padding:35px;border:1px solid var(--line);border-radius:16px;color:var(--muted);text-align:center;grid-column:1/-1}
+@media(max-width:900px){.filters{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr}}
+@media(max-width:560px){.filters{grid-template-columns:1fr} .card{grid-template-columns:1fr} .open{justify-self:start}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="brand"><span class="g">Connect</span> Sports <span class="g">Pro</span></div>
+    <a class="back" href="/">Domov</a>
+  </header>
+
+  <section class="hero">
+    <div class="kicker">Connect Sports Pro</div>
+    <h1>Kalendár turnajov</h1>
+    <div class="lead">Turnaje evidované v CSP naprieč organizátormi, klubmi a športmi.</div>
+  </section>
+
+  <div class="filters">
+    <select id="countryFilter"><option value="">ŠTÁT — VŠETKY</option></select>
+    <select id="cityFilter"><option value="">MESTO — VŠETKY</option></select>
+    <select id="sportFilter"><option value="">ŠPORT — VŠETKY</option></select>
+    <input id="searchFilter" type="search" placeholder="HĽADAŤ turnaj, disciplínu, miesto…">
+    <button id="clearBtn" type="button">Vymazať</button>
+  </div>
+
+  <div class="summary" id="summary">Načítavam turnaje…</div>
+  <main class="grid" id="calendarGrid"></main>
+</div>
+<script>
+
+function cspEsc(v){
+  return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+function cspTournamentPlace(t){
+  const cfg = t.config || {};
+  return {
+    country: cfg.country || cfg.state || cfg.krajina || '',
+    city: cfg.city || cfg.mesto || '',
+  };
+}
+function cspTournamentHref(t){
+  return `/turnament/?id=${encodeURIComponent(t.id)}`;
+}
+function cspFmtDate(value){
+  if(!value) return '—';
+  const d = new Date(value + 'T12:00:00');
+  return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+}
+
+let allTournaments=[];
+
+function uniqueSorted(values){
+  return [...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'sk'));
+}
+function fillSelect(el,values){
+  const first=el.options[0];
+  el.innerHTML='';
+  el.appendChild(first);
+  uniqueSorted(values).forEach(v=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o);
+  });
+}
+function render(){
+  const country=document.getElementById('countryFilter').value;
+  const city=document.getElementById('cityFilter').value;
+  const sport=document.getElementById('sportFilter').value;
+  const q=document.getElementById('searchFilter').value.trim().toLowerCase();
+
+  const rows=allTournaments.filter(t=>{
+    const p=cspTournamentPlace(t);
+    const hay=[t.name,t.sport,t.discipline,t.venue,p.country,p.city].filter(Boolean).join(' ').toLowerCase();
+    return (!country||p.country===country) &&
+           (!city||p.city===city) &&
+           (!sport||t.sport===sport) &&
+           (!q||hay.includes(q));
+  });
+
+  document.getElementById('summary').textContent=`Nájdené turnaje: ${rows.length}`;
+  const grid=document.getElementById('calendarGrid');
+  if(!rows.length){
+    grid.innerHTML='<div class="empty">Pre zvolený filter nie sú evidované žiadne turnaje.</div>';
+    return;
+  }
+
+  grid.innerHTML=rows.map(t=>{
+    const p=cspTournamentPlace(t);
+    const place=[p.city,p.country].filter(Boolean).join(', ') || t.venue || 'Miesto neuvedené';
+    return `<a class="card" href="${cspTournamentHref(t)}">
+      <div class="date">${cspFmtDate(t.date)}</div>
+      <div>
+        <div class="name">${cspEsc(t.name || 'Turnaj')}</div>
+        <div class="meta">
+          <span class="badge">${cspEsc(t.sport || 'Šport')}</span>
+          ${t.discipline?`<span>${cspEsc(t.discipline)}</span>`:''}
+          <span>${cspEsc(place)}</span>
+        </div>
+      </div>
+      <div class="open">Detail →</div>
+    </a>`;
+  }).join('');
+}
+
+(async()=>{
+  try{
+    if(!window.cspAuth?.client) throw new Error('CSP auth client unavailable');
+    const {data,error}=await cspAuth.client
+      .from('tournaments')
+      .select('id,name,sport,discipline,date,venue,status,config')
+      .order('date',{ascending:true});
+    if(error) throw error;
+    allTournaments=(data||[]).filter(t=>t.status!=='archived');
+    fillSelect(document.getElementById('countryFilter'),allTournaments.map(t=>cspTournamentPlace(t).country));
+    fillSelect(document.getElementById('cityFilter'),allTournaments.map(t=>cspTournamentPlace(t).city));
+    fillSelect(document.getElementById('sportFilter'),allTournaments.map(t=>t.sport));
+    render();
+  }catch(err){
+    console.error('[tournament-calendar]',err);
+    document.getElementById('summary').textContent='';
+    document.getElementById('calendarGrid').innerHTML='<div class="empty">Kalendár turnajov sa nepodarilo načítať.</div>';
+  }
+})();
+
+['countryFilter','cityFilter','sportFilter'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+document.getElementById('searchFilter').addEventListener('input',render);
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  ['countryFilter','cityFilter','sportFilter'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchFilter').value='';
+  render();
+});
+</script>
+</body>
+</html>
