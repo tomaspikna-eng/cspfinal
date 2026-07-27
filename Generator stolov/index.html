@@ -94,6 +94,10 @@
     <section class="hero">
       <h1>Nastavenie turnaja</h1>
       <p>Pridaj hráčov, skontroluj duplicity a priprav automatické rozdelenie stolov.</p>
+      <div id="tournamentContext" style="display:none;margin-top:14px;padding:12px 14px;border:1px solid rgba(216,176,75,.28);background:rgba(216,176,75,.07);border-radius:14px;color:var(--muted)">
+        <strong id="tournamentContextName" style="color:var(--gold)"></strong>
+        <span id="tournamentContextDiscipline"></span>
+      </div>
     </section>
 
     <section class="card">
@@ -299,6 +303,42 @@ Martin Horváth"></textarea>
       updateStats();
     });
 
+    function loadTournamentHandoff() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const tournamentId = params.get('t');
+        if (!tournamentId) return;
+
+        const key = 'csp_karty_turnaj_' + tournamentId;
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+          console.warn('[generator-stolov] Handoff dáta sa nenašli pre turnaj:', tournamentId);
+          return;
+        }
+
+        const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.players)) return;
+
+        playerNamesEl.value = data.players.join('\n');
+        tableCountEl.dataset.touched = '';
+
+        const context = document.getElementById('tournamentContext');
+        const nameEl = document.getElementById('tournamentContextName');
+        const disciplineEl = document.getElementById('tournamentContextDiscipline');
+
+        if (context) context.style.display = 'block';
+        if (nameEl) nameEl.textContent = data.tournamentName || 'Kartový turnaj';
+        if (disciplineEl) {
+          disciplineEl.textContent = data.discipline ? ' · ' + data.discipline : '';
+        }
+
+        updateStats();
+      } catch (err) {
+        console.error('[generator-stolov] Chyba pri načítaní turnaja:', err);
+      }
+    }
+
+    loadTournamentHandoff();
     updateStats();
   </script>
 </body>
