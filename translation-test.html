@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSP Translation API test</title>
+<style>
+body{font-family:system-ui;background:#08080c;color:#fff;max-width:720px;margin:50px auto;padding:20px}
+textarea,select,button{width:100%;box-sizing:border-box;margin:8px 0;padding:12px}
+textarea{min-height:120px}pre{white-space:pre-wrap;background:#16161c;padding:16px;border-radius:10px}
+</style>
+</head>
+<body>
+<h1>Translation API test</h1>
+<textarea id="text">Nový turnaj</textarea>
+<select id="target">
+  <option value="en">English</option>
+  <option value="cs">Čeština</option>
+  <option value="de">Deutsch</option>
+  <option value="pl">Polski</option>
+</select>
+<button id="go">Preložiť</button>
+<pre id="out">—</pre>
+<script>
+go.onclick=async()=>{
+  out.textContent='Načítavam…';
+  const r=await fetch('/api/translate',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      text:text.value,
+      source:'sk',
+      target:target.value
+    })
+  });
+  out.textContent=JSON.stringify(await r.json(),null,2);
+};
+</script>
+</body>
+</html>
