@@ -193,6 +193,59 @@
     }
   }
 
+
+  async function translateNewContent(root=document.body){
+    if(translating||currentLanguage===SOURCE_LANGUAGE||!root) return;
+
+    translating=true;
+    document.body?.setAttribute('aria-busy','true');
+
+    try{
+      const textNodes=collectTextNodes(root).filter(node=>{
+        const original=originalTextNodes.get(node);
+        return typeof original==='string' && node.nodeValue===original;
+      });
+
+      const attributeItems=collectAttributeItems(root).filter(item=>{
+        const original=originalAttributes.get(item.element)?.[item.attribute];
+        return typeof original==='string' &&
+          item.element.getAttribute(item.attribute)===original;
+      });
+
+      const textValues=textNodes.map(node=>
+        String(originalTextNodes.get(node)||'').trim()
+      );
+
+      const attributeValues=attributeItems.map(item=>
+        String(originalAttributes.get(item.element)?.[item.attribute]||'').trim()
+      );
+
+      const allValues=[...textValues,...attributeValues];
+      if(!allValues.length) return;
+
+      const translated=await translateValues(allValues,currentLanguage);
+
+      textNodes.forEach((node,index)=>{
+        const original=String(originalTextNodes.get(node)||node.nodeValue||'');
+        const lead=original.match(/^\s*/)?.[0]||'';
+        const trail=original.match(/\s*$/)?.[0]||'';
+        node.nodeValue=lead+(translated[index]||original.trim())+trail;
+      });
+
+      attributeItems.forEach((item,index)=>{
+        const value=translated[textValues.length+index];
+        if(value) item.element.setAttribute(item.attribute,value);
+      });
+
+      document.documentElement.lang=currentLanguage;
+    }catch(error){
+      console.error('[CSP translate dynamic]',error);
+    }finally{
+      translating=false;
+      document.body?.removeAttribute('aria-busy');
+    }
+  }
+
   function bindLanguageSelectors(){
     document.querySelectorAll('#cspLanguageSelect,[data-csp-language-select],.lang-select').forEach(select=>{
       if(select.tagName!=='SELECT'||select.dataset.cspTranslationBound==='1') return;
@@ -209,16 +262,41 @@
   function startObserver(){
     if(!document.body) return;
     stopObserver();
+
     mutationObserver=new MutationObserver(mutations=>{
       if(translating||currentLanguage===SOURCE_LANGUAGE) return;
-      const relevant=mutations.some(m=>m.type==='characterData'||(m.type==='childList'&&m.addedNodes?.length));
-      if(!relevant) return;
-      mutationTimer=setTimeout(()=>{
+
+      const roots=[];
+      mutations.forEach(mutation=>{
+        if(mutation.type==='characterData' && mutation.target?.parentElement){
+          roots.push(mutation.target.parentElement);
+        }
+
+        if(mutation.type==='childList' && mutation.addedNodes?.length){
+          mutation.addedNodes.forEach(node=>{
+            if(node.nodeType===Node.ELEMENT_NODE) roots.push(node);
+            else if(node.nodeType===Node.TEXT_NODE && node.parentElement) roots.push(node.parentElement);
+          });
+        }
+      });
+
+      if(!roots.length) return;
+
+      if(mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer=setTimeout(async()=>{
         bindLanguageSelectors();
-        applyLanguage(currentLanguage,{silent:true});
-      },250);
+
+        for(const root of [...new Set(roots)]){
+          await translateNewContent(root);
+        }
+      },150);
     });
-    mutationObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
+
+    mutationObserver.observe(document.body,{
+      childList:true,
+      subtree:true,
+      characterData:true
+    });
   }
 
   function initialize(){
@@ -226,7 +304,12 @@
     const saved=getSavedLanguage();
     currentLanguage=saved;
     setSelectorValue(saved);
-    applyLanguage(saved,{silent:true});
+    applyLanguage(saved,{silent:true}).finally(()=>{
+      if(saved!==SOURCE_LANGUAGE){
+        setTimeout(()=>translateNewContent(document.body),500);
+        setTimeout(()=>translateNewContent(document.body),1500);
+      }
+    });
   }
 
   window.CSPTranslate={
@@ -234,6 +317,7 @@
     getLanguage:()=>currentLanguage,
     getSavedLanguage,
     restoreSlovak:()=>applyLanguage(SOURCE_LANGUAGE),
+    refresh:(root=document.body)=>translateNewContent(root),
     clearCache(){try{localStorage.removeItem(CACHE_STORAGE_KEY);}catch{}}
   };
 
