@@ -1,22 +1,262 @@
-<!doctype html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ligy – Connect Sports Pro</title><style>
-:root{--bg:#07080a;--card:#111319;--line:#2a2d35;--text:#f5f6f8;--muted:#9ba0aa;--gold:#d4a843;--green:#26d07d;--red:#e35149}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}a{color:inherit;text-decoration:none}.wrap{width:min(1180px,calc(100% - 28px));margin:auto}.top{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand span{color:var(--gold)}button,.btn,input,select,textarea{font:inherit}.btn{border:1px solid var(--line);background:#171920;color:var(--text);padding:11px 15px;border-radius:10px;font-weight:800;cursor:pointer}.green{background:var(--green);color:#062416;border:0}.gold{background:var(--gold);color:#171005;border:0}.hero{padding:42px 0 20px}.hero h1{font-size:clamp(2.4rem,6vw,4.5rem);margin:0 0 10px}.muted{color:var(--muted)}.panel{display:none;padding:20px 0 60px}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}.league{cursor:pointer}.league:hover{border-color:var(--gold)}.tabs,.row{display:flex;gap:10px;flex-wrap:wrap}.tab.active{color:var(--gold);border-color:var(--gold)}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:6px}.full{grid-column:1/-1}.input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b0d11;color:var(--text)}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}.table{overflow:auto}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat b{font-size:1.4rem;display:block}.hide{display:none!important}.notice{padding:12px;border:1px solid var(--line);border-radius:10px;margin:12px 0}.ok{color:var(--green)}.err{color:#ff817b}.match{display:grid;grid-template-columns:80px 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;margin:8px 0}.score{width:58px}.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.stats{grid-template-columns:1fr 1fr}.match{grid-template-columns:1fr}}@media(max-width:520px){.grid,.stats{grid-template-columns:1fr}.top{height:auto;padding:14px 0}}
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/assets/csp-auth.js"></script></head><body>
-<header class="wrap top"><a class="brand" href="/"><span>Connect</span> Sports Pro</a><div class="row"><a class="btn" href="/profil/">Profil</a><button class="btn green" id="newBtn">Vytvoriť ligu</button></div></header>
-<main class="wrap"><section class="hero"><p class="muted">LIGOVÉ PROSTREDIE</p><h1>Sezóna. Zápasy. Tabuľka.</h1><p class="muted">Liga jednotlivcov od registrácie hráčov po konečné poradie.</p></section>
-<section id="list" class="panel active"><div class="tabs"><button class="btn tab active" data-filter="public">Verejné ligy</button><button class="btn tab" data-filter="mine">Moje ligy</button></div><div id="leagueList" class="grid"></div><div id="listNotice" class="notice hide"></div></section>
-<section id="create" class="panel"><div class="head"><h2>Vytvoriť ligu</h2><button class="btn" id="cancel">Späť</button></div><form id="leagueForm" class="card form"><label class="field full">Názov<input class="input" name="name" required minlength="3"></label><label class="field">Šport<select class="input" name="sport"><option>Biliard</option><option>Šípky</option><option>Bowling</option><option>Karty</option></select></label><label class="field">Disciplína<input class="input" name="discipline" placeholder="8-ball"></label><label class="field">Sezóna<input class="input" name="season_name" required value="2026"></label><label class="field">Systém<select class="input" name="competition_format"><option value="round_robin_single">Každý s každým – 1×</option><option value="round_robin_double">Každý s každým – 2×</option><option value="round_robin_playoff">Základná časť + play-off</option></select></label><label class="field">Rozpis<select class="input" name="scheduling_mode"><option value="rounds">Pevné kolá</option><option value="open_deadline">Voľné odohranie</option></select></label><label class="field">Viditeľnosť<select class="input" name="visibility"><option value="public">Verejná</option><option value="unlisted">Cez odkaz</option><option value="private">Súkromná</option></select></label><label class="field">Začiatok<input class="input" type="date" name="starts_on"></label><label class="field">Koniec<input class="input" type="date" name="ends_on"></label><label class="field">Body za výhru<input class="input" type="number" step=".5" name="win_points" value="3"></label><label class="field">Body za prehru<input class="input" type="number" step=".5" name="loss_points" value="0"></label><label class="field full">Opis<textarea class="input" name="description"></textarea></label><button class="btn green full">Vytvoriť ligu</button><div id="createNotice" class="notice hide full"></div></form></section>
-<section id="detail" class="panel"><div class="head"><div><button class="btn" id="back">← Ligy</button><h2 id="title"></h2><p id="meta" class="muted"></p></div><button class="btn gold" id="generate">Vygenerovať rozpis</button></div><div class="stats"><div class="card stat"><b id="sp">0</b><small>Hráči</small></div><div class="card stat"><b id="sm">0</b><small>Zápasy</small></div><div class="card stat"><b id="sd">0</b><small>Odohrané</small></div><div class="card stat"><b id="sx">0 %</b><small>Priebeh</small></div></div><div class="tabs"><button class="btn tab active" data-tab="standings">Tabuľka</button><button class="btn tab" data-tab="matches">Zápasy</button><button class="btn tab" data-tab="players">Hráči</button></div><div id="detailNotice" class="notice hide"></div><div id="standings" class="card tabpane"><div class="table"><table><thead><tr><th>#</th><th>Hráč</th><th>Z</th><th>V</th><th>R</th><th>P</th><th>Skóre</th><th>+/-</th><th>Body</th></tr></thead><tbody id="standingsBody"></tbody></table></div></div><div id="matches" class="card tabpane hide"><div id="matchList"></div></div><div id="players" class="card tabpane hide"><form id="playerForm" class="row"><input class="input" name="display_name" placeholder="Meno hráča" required><input class="input" name="seed" type="number" min="1" placeholder="Nasadenie"><button class="btn green">Pridať hráča</button></form><div class="table"><table><thead><tr><th>Hráč</th><th>Nasadenie</th><th>Stav</th></tr></thead><tbody id="playersBody"></tbody></table></div></div></section></main>
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ligy – Connect Sports Pro</title>
+<meta name="description" content="Ligové prostredie Connect Sports Pro">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080a;--card:#11141a;--card2:#171b23;--line:rgba(255,255,255,.09);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#e35d55}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1240px,calc(100% - 28px));margin:auto}.top{height:74px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b{color:var(--gold)}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn.red{color:#ff8d86;border-color:rgba(227,93,85,.35);background:rgba(227,93,85,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:42px 0 24px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.3rem,5vw,4.5rem);letter-spacing:-.05em;margin:10px 0}.muted{color:var(--muted)}.panel{display:none;padding-bottom:60px}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.league-card{cursor:pointer}.league-card:hover{border-color:rgba(212,168,67,.45)}.toolbar,.actions,.tabs,.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar{margin:20px 0}.badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:800}.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.head h2{font-size:2rem;margin:10px 0 5px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat b{display:block;font-size:1.45rem}.stat small{color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:.82rem;font-weight:700;color:#d4d7dd}.input{width:100%;min-height:46px;border-radius:11px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:10px 12px;outline:none}.input:focus{border-color:rgba(212,168,67,.55)}textarea.input{min-height:105px;resize:vertical}.tabs{margin:18px 0}.tab.active{color:var(--gold);border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.1)}.hide{display:none!important}.notice{padding:12px 14px;border-radius:11px;border:1px solid var(--line);margin:12px 0;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.35)}.notice.err{color:#ff8d86;border-color:rgba(227,93,85,.35)}.participant-strip{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.25);background:rgba(212,168,67,.06);border-radius:15px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}th{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.match{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px}.score{width:58px;text-align:center}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:100}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:16px}.modal-head h3{margin:0}.member-list{display:grid;gap:8px}.member-row{display:grid;grid-template-columns:1fr auto;gap:8px}.empty{text-align:center;padding:35px 15px;color:var(--muted)}
+@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.match{grid-template-columns:1fr}.participant-strip{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.grid,.stats{grid-template-columns:1fr}.actions .btn{width:auto}.btn{width:100%}.top .btn{width:auto}.member-row{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/"><b>Connect</b> Sports Pro</a>
+  <div class="actions"><a class="btn" href="/profil/">Profil</a><button class="btn green" id="newBtn">Vytvoriť ligu</button></div>
+</header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="eyebrow">Ligové prostredie</div>
+  <h1>Sezóna. Zápasy. Tabuľka.</h1>
+  <p class="muted">Liga jednotlivcov aj tímová liga v jednom prostredí.</p>
+</section>
+
+<section id="listPanel" class="panel active">
+  <div class="toolbar"><button class="btn tab active" data-filter="public">Verejné ligy</button><button class="btn tab" data-filter="mine">Moje ligy</button></div>
+  <div id="leagueList" class="grid"></div>
+  <div id="listNotice" class="notice hide"></div>
+</section>
+
+<section id="createPanel" class="panel">
+  <div class="head"><div><h2>Vytvoriť ligu</h2><p class="muted">Zvoľ typ ligy. Podľa toho sa bude pridávať hráč alebo tím.</p></div><button class="btn" id="cancelCreate">Späť</button></div>
+  <form id="leagueForm" class="card form-grid">
+    <div class="field full"><label>Názov ligy</label><input class="input" name="name" required minlength="3"></div>
+    <div class="field"><label>Typ ligy</label><select class="input" name="participant_type" id="participantType"><option value="player">Liga jednotlivcov</option><option value="team">Tímová liga</option></select></div>
+    <div class="field"><label>Sezóna</label><input class="input" name="season_name" required placeholder="2026"></div>
+    <div class="field"><label>Šport</label><select class="input" name="sport"><option>Biliard</option><option>Šípky</option><option>Bowling</option><option>Karty</option></select></div>
+    <div class="field"><label>Disciplína</label><input class="input" name="discipline" placeholder="8-ball"></div>
+    <div class="field"><label>Herný systém</label><select class="input" name="competition_format"><option value="round_robin_single">Každý s každým – 1×</option><option value="round_robin_double">Každý s každým – 2×</option><option value="round_robin_playoff">Základná časť + play-off</option></select></div>
+    <div class="field"><label>Režim rozpisu</label><select class="input" name="scheduling_mode"><option value="rounds">Pevné kolá</option><option value="open_deadline">Voľné odohranie</option></select></div>
+    <div class="field"><label>Viditeľnosť</label><select class="input" name="visibility"><option value="public">Verejná</option><option value="unlisted">Len cez odkaz</option><option value="private">Súkromná</option></select></div>
+    <div class="field"><label>Začiatok</label><input class="input" type="date" name="starts_on"></div>
+    <div class="field"><label>Koniec</label><input class="input" type="date" name="ends_on"></div>
+    <div class="field"><label>Body za výhru</label><input class="input" type="number" step=".5" name="win_points" value="3"></div>
+    <div class="field"><label>Body za prehru</label><input class="input" type="number" step=".5" name="loss_points" value="0"></div>
+    <div class="field full"><label>Opis</label><textarea class="input" name="description"></textarea></div>
+    <div class="field full"><button class="btn green">Vytvoriť ligu</button><div id="createNotice" class="notice hide"></div></div>
+  </form>
+</section>
+
+<section id="detailPanel" class="panel">
+  <div class="head">
+    <div><button class="btn" id="backBtn">← Ligy</button><h2 id="leagueTitle"></h2><p id="leagueMeta" class="muted"></p></div>
+    <div class="actions" id="managerActions"><button class="btn green" id="addParticipantTop">+ Pridať hráča</button><button class="btn gold" id="generateBtn">Vygenerovať rozpis</button></div>
+  </div>
+
+  <div class="stats">
+    <div class="card stat"><b id="statParticipants">0</b><small id="statParticipantLabel">Hráči</small></div>
+    <div class="card stat"><b id="statMatches">0</b><small>Zápasy</small></div>
+    <div class="card stat"><b id="statPlayed">0</b><small>Odohrané</small></div>
+    <div class="card stat"><b id="statProgress">0 %</b><small>Priebeh</small></div>
+  </div>
+
+  <div id="participantStrip" class="participant-strip">
+    <div><b id="participantStripTitle">Účastníci ligy</b><div class="muted" id="participantStripText">Najprv pridaj hráčov, potom vygeneruj rozpis.</div></div>
+    <button class="btn green" id="addParticipantStrip">+ Pridať hráča</button>
+  </div>
+
+  <div class="tabs">
+    <button class="btn tab active" data-tab="standingsTab">Tabuľka</button>
+    <button class="btn tab" data-tab="matchesTab">Zápasy</button>
+    <button class="btn tab" data-tab="participantsTab" id="participantsTabButton">Hráči</button>
+  </div>
+
+  <div id="detailNotice" class="notice hide"></div>
+
+  <div id="standingsTab" class="card tabpane">
+    <div class="table"><table><thead><tr><th>#</th><th id="standingsNameHeader">Hráč</th><th>Z</th><th>V</th><th>R</th><th>P</th><th>Skóre</th><th>+/-</th><th>Body</th></tr></thead><tbody id="standingsBody"></tbody></table></div>
+  </div>
+
+  <div id="matchesTab" class="card tabpane hide"><div id="matchList"></div></div>
+
+  <div id="participantsTab" class="card tabpane hide">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px"><h3 id="participantsHeading" style="margin:0">Hráči</h3><button class="btn green" id="addParticipantInside">+ Pridať hráča</button></div>
+    <div class="table"><table><thead><tr><th id="participantNameHeader">Hráč</th><th>Nasadenie</th><th>Detail</th><th>Stav</th><th></th></tr></thead><tbody id="participantsBody"></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<div id="participantModal" class="modal hide">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modalTitle">Pridať hráča</h3><button class="btn" id="closeModal">×</button></div>
+    <form id="participantForm" class="form-grid">
+      <div class="field full"><label id="nameLabel">Meno hráča</label><input class="input" name="display_name" required></div>
+      <div class="field"><label>Nasadenie</label><input class="input" name="seed" type="number" min="1"></div>
+      <div class="field team-only hide"><label>Kapitán tímu</label><input class="input" name="captain"></div>
+      <div class="field full team-only hide"><label>Členovia tímu</label><div id="memberList" class="member-list"></div><button type="button" class="btn" id="addMemberBtn">+ Pridať člena</button></div>
+      <div class="field full"><button class="btn green" id="saveParticipantBtn">Pridať hráča</button><div id="participantNotice" class="notice hide"></div></div>
+    </form>
+  </div>
+</div>
+
 <script>
-const db=cspAuth.client,$=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let session,current,isManager=false,filter='public';const panels=['list','create','detail'];function show(id){panels.forEach(x=>$('#'+x).classList.toggle('active',x===id))}function msg(el,t,c=''){el.textContent=t;el.className='notice '+c}function hide(el){el.className='notice hide'}function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function slug(v){return v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Math.random().toString(36).slice(2,7)}
-async function init(){session=(await cspAuth.getSession()).data?.session||null;bind();const id=new URLSearchParams(location.search).get('id');id?openLeague(id):loadLeagues()}
-function bind(){$('#newBtn').onclick=()=>session?show('create'):location.href='/login/?returnTo=%2Fligy%2F';$('#cancel').onclick=()=>show('list');$('#back').onclick=()=>{history.pushState({},'', '/ligy/');show('list');loadLeagues()};$('#leagueForm').onsubmit=createLeague;$('#playerForm').onsubmit=addPlayer;$('#generate').onclick=generate;$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;loadLeagues()});$$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tabpane').forEach(x=>x.classList.add('hide'));$('#'+b.dataset.tab).classList.remove('hide')})}
-async function loadLeagues(){const el=$('#leagueList'),n=$('#listNotice');hide(n);el.innerHTML='';let q=db.from('leagues').select('*').order('created_at',{ascending:false});if(filter==='mine'){if(!session)return msg(n,'Prihlás sa pre zobrazenie vlastných líg.','err');q=q.eq('owner_id',session.user.id)}else q=q.neq('status','draft').in('visibility',['public','unlisted']);const {data,error}=await q;if(error)return msg(n,error.message,'err');el.innerHTML=(data||[]).map(l=>`<article class="card league" data-id="${l.id}"><b>${esc(l.name)}</b><p class="muted">${esc(l.sport)}${l.discipline?' · '+esc(l.discipline):''}<br>${esc(l.season_name)} · ${esc(l.status)}</p></article>`).join('')||'<div class="card">Zatiaľ žiadna liga.</div>';$$('.league').forEach(x=>x.onclick=()=>openLeague(x.dataset.id))}
-async function createLeague(e){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const row={owner_id:session.user.id,name:f.name.trim(),public_slug:slug(f.name),sport:f.sport,discipline:f.discipline||null,season_name:f.season_name,description:f.description||null,competition_format:f.competition_format,scheduling_mode:f.scheduling_mode,visibility:f.visibility,starts_on:f.starts_on||null,ends_on:f.ends_on||null,win_points:+f.win_points,loss_points:+f.loss_points,status:'draft'};const {data,error}=await db.from('leagues').insert(row).select().single();if(error)return msg($('#createNotice'),error.message,'err');openLeague(data.id)}
-async function openLeague(id){show('detail');history.pushState({},'',`/ligy/?id=${id}`);const {data,error}=await db.from('leagues').select('*').eq('id',id).single();if(error)return msg($('#detailNotice'),error.message,'err');current=data;isManager=!!session&&session.user.id===data.owner_id;$('#generate').classList.toggle('hide',!isManager);$('#playerForm').classList.toggle('hide',!isManager);$('#title').textContent=data.name;$('#meta').textContent=[data.sport,data.discipline,data.season_name,data.status].filter(Boolean).join(' · ');await Promise.all([loadPlayers(),loadMatches(),loadStandings()])}
-async function loadPlayers(){const {data,error}=await db.from('league_players').select('*').eq('league_id',current.id).order('seed',{ascending:true,nullsFirst:false});if(error)return msg($('#detailNotice'),error.message,'err');$('#sp').textContent=data.length;$('#playersBody').innerHTML=data.map(p=>`<tr><td data-player-name>${esc(p.display_name)}</td><td>${p.seed??'–'}</td><td>${p.status}</td></tr>`).join('')||'<tr><td colspan="3">Bez hráčov</td></tr>'}
-async function addPlayer(e){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {error}=await db.from('league_players').insert({league_id:current.id,display_name:f.display_name.trim(),seed:f.seed?+f.seed:null,status:'active'});if(error)return msg($('#detailNotice'),error.message,'err');e.target.reset();loadPlayers()}
-async function generate(){const {data,error}=await db.rpc('generate_league_schedule',{p_league_id:current.id});if(error)return msg($('#detailNotice'),error.message,'err');msg($('#detailNotice'),`Rozpis vytvorený: ${data.matches} zápasov.`,'ok');await Promise.all([loadMatches(),loadStandings()])}
-async function loadStandings(){const {data,error}=await db.rpc('get_league_standings',{p_league_id:current.id});if(error)return msg($('#detailNotice'),error.message,'err');$('#standingsBody').innerHTML=(data||[]).map(r=>`<tr><td>${r.standing_position}</td><td data-player-name>${esc(r.display_name)}</td><td>${r.played}</td><td>${r.wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.score_for}:${r.score_against}</td><td>${r.score_difference}</td><td><b>${r.points}</b></td></tr>`).join('')||'<tr><td colspan="9">Tabuľka je prázdna.</td></tr>'}
-async function loadMatches(){const {data,error}=await db.from('league_matches').select('*,player1:league_players!league_matches_player1_id_fkey(display_name),player2:league_players!league_matches_player2_id_fkey(display_name)').eq('league_id',current.id).order('round_number').order('match_number');if(error)return msg($('#detailNotice'),error.message,'err');const done=data.filter(m=>['completed','forfeited'].includes(m.status)).length;$('#sm').textContent=data.length;$('#sd').textContent=done;$('#sx').textContent=data.length?Math.round(done/data.length*100)+' %':'0 %';$('#matchList').innerHTML=data.map(m=>`<div class="match"><b>Kolo ${m.round_number}</b><div><span data-player-name>${esc(m.player1?.display_name||'')}</span> vs <span data-player-name>${esc(m.player2?.display_name||'')}</span></div>${isManager?`<div><input class="input score" id="a${m.id}" type="number" min="0" value="${m.score1??''}"> : <input class="input score" id="b${m.id}" type="number" min="0" value="${m.score2??''}"> <button class="btn green" onclick="saveResult('${m.id}','${m.player1_id}','${m.player2_id}')">Uložiť</button></div>`:`<b>${m.score1??'–'} : ${m.score2??'–'}</b>`}</div>`).join('')||'Rozpis ešte nebol vytvorený.'}
-async function saveResult(id,p1,p2){const s1=+$('#a'+id).value,s2=+$('#b'+id).value,draw=s1===s2,w=draw?null:(s1>s2?p1:p2);const now=new Date().toISOString();const {error}=await db.from('league_matches').update({score1:s1,score2:s2,winner_id:w,result_type:draw?'draw':'normal',status:'completed',reported_by:session.user.id,reported_at:now,confirmed_by:session.user.id,confirmed_at:now,completed_at:now}).eq('id',id);if(error)return msg($('#detailNotice'),error.message,'err');await Promise.all([loadMatches(),loadStandings()])}window.saveResult=saveResult;init();
-</script><script src="/assets/csp-translate.js" defer></script></body></html>
+const db=cspAuth.client;
+let session=null,currentLeague=null,isManager=false,currentFilter='public';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const panels={list:$('#listPanel'),create:$('#createPanel'),detail:$('#detailPanel')};
+
+function showPanel(name){Object.values(panels).forEach(p=>p.classList.remove('active'));panels[name].classList.add('active')}
+function msg(el,text,type=''){el.textContent=text;el.className='notice '+type}
+function hideMsg(el){el.className='notice hide'}
+function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function slug(v){return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Math.random().toString(36).slice(2,7)}
+function participantType(){return currentLeague?.config?.participant_type==='team'?'team':'player'}
+function isTeam(){return participantType()==='team'}
+function label(one,plural){return isTeam()?(plural==='Hráči'?'Tímy':plural.replace('hráč','tím').replace('Hráč','Tím')):one}
+
+async function init(){
+  const r=await cspAuth.getSession();session=r.data?.session||null;bind();
+  const id=new URLSearchParams(location.search).get('id');
+  if(id)openLeague(id);else loadLeagues();
+}
+function bind(){
+  $('#newBtn').onclick=()=>session?showPanel('create'):location.href='/login/?returnTo=%2Fligy%2F';
+  $('#cancelCreate').onclick=()=>showPanel('list');
+  $('#backBtn').onclick=()=>{history.pushState({},'', '/ligy/');showPanel('list');loadLeagues()};
+  $('#leagueForm').onsubmit=createLeague;
+  $('#generateBtn').onclick=generateSchedule;
+  ['#addParticipantTop','#addParticipantStrip','#addParticipantInside'].forEach(id=>$(id).onclick=openParticipantModal);
+  $('#closeModal').onclick=closeParticipantModal;
+  $('#participantModal').onclick=e=>{if(e.target.id==='participantModal')closeParticipantModal()};
+  $('#participantForm').onsubmit=addParticipant;
+  $('#addMemberBtn').onclick=()=>addMemberField();
+  $$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentFilter=b.dataset.filter;loadLeagues()});
+  $$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tabpane').forEach(x=>x.classList.add('hide'));$('#'+b.dataset.tab).classList.remove('hide')});
+}
+async function loadLeagues(){
+  const list=$('#leagueList');list.innerHTML='';hideMsg($('#listNotice'));
+  let q=db.from('leagues').select('*').order('created_at',{ascending:false});
+  if(currentFilter==='mine'){
+    if(!session)return msg($('#listNotice'),'Pre vlastné ligy sa prihlás.','err');
+    q=q.eq('owner_id',session.user.id);
+  }else q=q.neq('status','draft').in('visibility',['public','unlisted']);
+  const {data,error}=await q;
+  if(error)return msg($('#listNotice'),error.message,'err');
+  list.innerHTML=(data||[]).map(l=>`<article class="card league-card" data-id="${l.id}"><span class="badge">${esc(l.status)}</span><h3>${esc(l.name)}</h3><p class="muted">${esc(l.sport)}${l.discipline?' · '+esc(l.discipline):''}<br>${l.config?.participant_type==='team'?'Tímová liga':'Liga jednotlivcov'}</p></article>`).join('')||'<div class="card empty">Zatiaľ bez líg.</div>';
+  $$('.league-card').forEach(c=>c.onclick=()=>openLeague(c.dataset.id));
+}
+async function createLeague(e){
+  e.preventDefault();hideMsg($('#createNotice'));
+  if(!session)return msg($('#createNotice'),'Najprv sa prihlás.','err');
+  const f=Object.fromEntries(new FormData(e.target));
+  const row={owner_id:session.user.id,name:f.name.trim(),public_slug:slug(f.name),sport:f.sport,discipline:f.discipline||null,season_name:f.season_name.trim(),description:f.description||null,competition_format:f.competition_format,scheduling_mode:f.scheduling_mode,visibility:f.visibility,starts_on:f.starts_on||null,ends_on:f.ends_on||null,win_points:Number(f.win_points||3),loss_points:Number(f.loss_points||0),status:'draft',config:{participant_type:f.participant_type}};
+  const {data,error}=await db.from('leagues').insert(row).select().single();
+  if(error)return msg($('#createNotice'),error.message,'err');
+  await openLeague(data.id);
+}
+async function openLeague(id){
+  showPanel('detail');history.pushState({},'',`/ligy/?id=${id}`);
+  const {data,error}=await db.from('leagues').select('*').eq('id',id).single();
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  currentLeague=data;isManager=!!session&&data.owner_id===session.user.id;
+  $('#managerActions').classList.toggle('hide',!isManager);$('#participantStrip').classList.toggle('hide',!isManager);$('#addParticipantInside').classList.toggle('hide',!isManager);
+  const team=isTeam();
+  $('#leagueTitle').textContent=data.name;
+  $('#leagueMeta').textContent=[data.sport,data.discipline,data.season_name,team?'Tímová liga':'Liga jednotlivcov'].filter(Boolean).join(' · ');
+  $('#addParticipantTop').textContent=team?'+ Pridať tím':'+ Pridať hráča';
+  $('#addParticipantStrip').textContent=team?'+ Pridať tím':'+ Pridať hráča';
+  $('#addParticipantInside').textContent=team?'+ Pridať tím':'+ Pridať hráča';
+  $('#participantsTabButton').textContent=team?'Tímy':'Hráči';
+  $('#participantsHeading').textContent=team?'Tímy':'Hráči';
+  $('#participantNameHeader').textContent=team?'Tím':'Hráč';
+  $('#standingsNameHeader').textContent=team?'Tím':'Hráč';
+  $('#statParticipantLabel').textContent=team?'Tímy':'Hráči';
+  $('#participantStripTitle').textContent=team?'Tímy v lige':'Hráči v lige';
+  $('#participantStripText').textContent=team?'Najprv pridaj tímy, potom vygeneruj rozpis.':'Najprv pridaj hráčov, potom vygeneruj rozpis.';
+  await Promise.all([loadParticipants(),loadMatches(),loadStandings()]);
+}
+function openParticipantModal(){
+  if(!isManager)return;
+  const team=isTeam();
+  $('#modalTitle').textContent=team?'Pridať tím':'Pridať hráča';
+  $('#nameLabel').textContent=team?'Názov tímu':'Meno hráča';
+  $('#saveParticipantBtn').textContent=team?'Pridať tím':'Pridať hráča';
+  $$('.team-only').forEach(x=>x.classList.toggle('hide',!team));
+  $('#memberList').innerHTML='';
+  if(team){addMemberField();addMemberField()}
+  $('#participantForm').reset();hideMsg($('#participantNotice'));$('#participantModal').classList.remove('hide');
+}
+function closeParticipantModal(){$('#participantModal').classList.add('hide')}
+function addMemberField(value=''){
+  const row=document.createElement('div');row.className='member-row';
+  row.innerHTML=`<input class="input team-member" placeholder="Meno člena tímu" value="${esc(value)}"><button type="button" class="btn red">Odstrániť</button>`;
+  row.querySelector('button').onclick=()=>row.remove();$('#memberList').appendChild(row);
+}
+async function addParticipant(e){
+  e.preventDefault();hideMsg($('#participantNotice'));
+  const f=Object.fromEntries(new FormData(e.target));
+  const metadata=isTeam()?{participant_type:'team',captain:f.captain||null,members:$$('.team-member').map(i=>i.value.trim()).filter(Boolean)}:{participant_type:'player'};
+  const {error}=await db.from('league_players').insert({league_id:currentLeague.id,display_name:f.display_name.trim(),seed:f.seed?Number(f.seed):null,status:'active',metadata});
+  if(error)return msg($('#participantNotice'),error.message,'err');
+  closeParticipantModal();await loadParticipants();
+}
+async function loadParticipants(){
+  const {data,error}=await db.from('league_players').select('*').eq('league_id',currentLeague.id).order('seed',{ascending:true,nullsFirst:false}).order('joined_at');
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  $('#statParticipants').textContent=data.length;
+  $('#generateBtn').disabled=data.length<2;
+  $('#participantsBody').innerHTML=data.map(p=>{
+    const detail=isTeam()?[
+      p.metadata?.captain?`Kapitán: ${esc(p.metadata.captain)}`:'',
+      Array.isArray(p.metadata?.members)&&p.metadata.members.length?`${p.metadata.members.length} členov`:''
+    ].filter(Boolean).join(' · '):'CSP hráč / hosť';
+    return `<tr><td><b>${esc(p.display_name)}</b></td><td>${p.seed??'–'}</td><td class="muted">${detail||'–'}</td><td>${esc(p.status)}</td><td>${isManager?`<button class="btn red" onclick="removeParticipant('${p.id}')">Odstrániť</button>`:''}</td></tr>`;
+  }).join('')||`<tr><td colspan="5" class="empty">${isTeam()?'Zatiaľ nebol pridaný žiadny tím.':'Zatiaľ nebol pridaný žiadny hráč.'}</td></tr>`;
+}
+async function removeParticipant(id){
+  if(!isManager||!confirm('Naozaj odstrániť účastníka?'))return;
+  const {error}=await db.from('league_players').delete().eq('id',id);
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  await loadParticipants();
+}
+async function generateSchedule(){
+  const {data,error}=await db.rpc('generate_league_schedule',{p_league_id:currentLeague.id});
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  msg($('#detailNotice'),`Rozpis vytvorený: ${data.matches} zápasov.`,'ok');
+  await Promise.all([loadMatches(),loadStandings()]);
+}
+async function loadStandings(){
+  const {data,error}=await db.rpc('get_league_standings',{p_league_id:currentLeague.id});
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  $('#standingsBody').innerHTML=(data||[]).map(r=>`<tr><td>${r.standing_position}</td><td><b>${esc(r.display_name)}</b></td><td>${r.played}</td><td>${r.wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.score_for}:${r.score_against}</td><td>${r.score_difference}</td><td><b>${r.points}</b></td></tr>`).join('')||'<tr><td colspan="9" class="empty">Tabuľka sa zobrazí po pridaní účastníkov.</td></tr>';
+}
+async function loadMatches(){
+  const {data,error}=await db.from('league_matches').select('*,player1:league_players!league_matches_player1_id_fkey(display_name),player2:league_players!league_matches_player2_id_fkey(display_name)').eq('league_id',currentLeague.id).order('round_number').order('match_number');
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  const played=data.filter(m=>['completed','forfeited'].includes(m.status)).length;
+  $('#statMatches').textContent=data.length;$('#statPlayed').textContent=played;$('#statProgress').textContent=data.length?Math.round(played/data.length*100)+' %':'0 %';
+  $('#matchList').innerHTML=data.map(m=>`<div class="match"><div><b>Kolo ${m.round_number}</b></div><div><b>${esc(m.player1?.display_name||'Účastník 1')}</b> vs <b>${esc(m.player2?.display_name||'Účastník 2')}</b><div class="muted">${esc(m.status)}</div></div>${isManager?`<div><input class="input score" id="s1-${m.id}" type="number" min="0" value="${m.score1??''}"> : <input class="input score" id="s2-${m.id}" type="number" min="0" value="${m.score2??''}"> <button class="btn green" onclick="saveResult('${m.id}','${m.player1_id}','${m.player2_id}')">Uložiť</button></div>`:`<div><b>${m.score1??'–'} : ${m.score2??'–'}</b></div>`}</div>`).join('')||'<div class="empty">Rozpis ešte nebol vytvorený.</div>';
+}
+async function saveResult(id,p1,p2){
+  const s1=Number($('#s1-'+id).value),s2=Number($('#s2-'+id).value);
+  if(Number.isNaN(s1)||Number.isNaN(s2))return;
+  const winner=s1===s2?null:(s1>s2?p1:p2);
+  const {error}=await db.from('league_matches').update({score1:s1,score2:s2,winner_id:winner,result_type:s1===s2?'draw':'normal',status:'completed',reported_by:session.user.id,reported_at:new Date().toISOString(),confirmed_by:session.user.id,confirmed_at:new Date().toISOString(),completed_at:new Date().toISOString()}).eq('id',id);
+  if(error)return msg($('#detailNotice'),error.message,'err');
+  await Promise.all([loadMatches(),loadStandings()]);
+}
+window.removeParticipant=removeParticipant;window.saveResult=saveResult;
+init();
+</script>
+<script src="/assets/csp-translate.js" defer></script>
+</body>
+</html>
