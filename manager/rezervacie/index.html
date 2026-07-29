@@ -40,7 +40,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 .sb-sub{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 .sb-nav{padding:14px 12px;flex:1}
 .sb-section{padding:14px 10px 6px;font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.sb-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:9px;font-size:.86rem;font-weight:500;color:var(--muted-2);transition:.12s;text-align:left}
+.sb-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;font-size:.86rem;font-weight:500;color:var(--muted-2);transition:.12s}
 .sb-item:hover{background:rgba(255,255,255,.03);color:var(--fg)}
 .sb-item.active{background:var(--gold-dim);color:var(--gold);font-weight:600}
 .sb-item .ico{width:20px;text-align:center;font-size:1.05rem}
@@ -138,13 +138,13 @@ td{padding:4px}
     <nav class="sb-nav">
       <a class="sb-item" href="/manager/Dashboard%20obsluhy/"><span class="ico">📊</span> Dashboard</a>
       <div class="sb-section">Prevádzka</div>
-      <a class="sb-item" href="/manager/"><span class="ico">🎮</span> Manažér</a>
+      <a class="sb-item" href="#"><span class="ico">🎮</span> Manažér</a>
       <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
-      <a class="sb-item active" href="/manager/rezervacie/" aria-current="page"><span class="ico">📅</span> Rezervácie</a>
+      <a class="sb-item active" href="#"><span class="ico">📅</span> Rezervácie</a>
       <div class="sb-section">Správa</div>
       <a class="sb-item" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
-      <button class="sb-item" type="button" data-manager-coming-soon="Zákazníci"><span class="ico">👥</span> Zákazníci</button>
-      <button class="sb-item" type="button" data-manager-coming-soon="Ekonomika"><span class="ico">💰</span> Ekonomika</button>
+      <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
+      <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
     </nav>
     <div class="sb-foot"><button class="sb-signout" id="signOutBtn"><span>↪</span> Odhlásiť sa</button></div>
   </aside>
@@ -260,9 +260,6 @@ function buildSportTabs(){
 }
 
 document.getElementById('signOutBtn')?.addEventListener('click', () => cspManager.signOut());
-document.querySelectorAll('[data-manager-coming-soon]').forEach(button => {
-  button.addEventListener('click', () => toast(`Modul ${button.dataset.managerComingSoon} pripravujeme.`));
-});
 
 /* ════════════════════════════════════════════════
    Zdieľané sklady (localStorage) — neskôr Supabase
