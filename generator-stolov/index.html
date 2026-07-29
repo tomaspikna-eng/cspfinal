@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nastavenie turnaja | Connect Sports Pro</title>
+  <title>Nastavenie turnaja | CardScoresPro</title>
   <style>
     :root{
       --bg:#05070d;
@@ -70,17 +70,46 @@
     .btn{border:none;border-radius:16px;min-height:52px;padding:0 22px;font-weight:800;font-size:1rem;cursor:pointer}
     .btn-primary{background:linear-gradient(180deg, rgba(90,154,56,.98), rgba(47,103,36,.98));color:#fff;box-shadow:0 10px 22px rgba(0,0,0,.22)}
     .btn-secondary{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text)}
+    .btn-danger{background:rgba(217,106,106,.12);border:1px solid rgba(217,106,106,.35);color:#ffb5b5}
+    .btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none}
     .duplicates{margin-top:18px;padding:14px 16px;border-radius:16px;border:1px solid rgba(217,106,106,.25);background:rgba(217,106,106,.08);color:#ffb5b5;display:none}
     .duplicates.show{display:block}
     .tables-output{margin-top:24px;display:grid;gap:14px}
+    .notice{display:none;margin-top:22px;padding:14px 16px;border-radius:16px;border:1px solid rgba(216,176,75,.28);background:rgba(216,176,75,.08);color:#f4df9c;line-height:1.5}
+    .notice.show{display:block}
+    .notice.error{border-color:rgba(217,106,106,.35);background:rgba(217,106,106,.09);color:#ffb5b5}
+    .notice.success{border-color:rgba(90,154,56,.42);background:rgba(90,154,56,.10);color:#c9f2b8}
+    .round-block{background:rgba(255,255,255,.018);border:1px solid var(--line-soft);border-radius:22px;padding:18px}
+    .round-block.current{border-color:rgba(216,176,75,.30)}
+    .round-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+    .round-header h3{margin:0;color:var(--gold);font-size:1.2rem}
+    .round-meta{margin-top:5px;color:var(--muted);font-size:.9rem}
+    .round-tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
     .table-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:16px}
-    .table-card h4{margin:0 0 10px;color:var(--gold);font-size:1rem}
+    .table-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .table-card h4{margin:0;color:var(--gold);font-size:1rem}
+    .status-badge{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:rgba(216,176,75,.10);border:1px solid rgba(216,176,75,.25);color:#f4df9c;font-size:.76rem;font-weight:800}
+    .status-badge.closed{background:rgba(90,154,56,.10);border-color:rgba(90,154,56,.35);color:#c9f2b8}
     .player-list{display:grid;gap:8px}
-    .player-item{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);font-size:.96rem}
+    .player-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);font-size:.96rem}
+    .player-item.eliminated{border-color:rgba(217,106,106,.28);background:rgba(217,106,106,.07);color:#ffb5b5}
+    .elimination-label{display:inline-flex;align-items:center;gap:8px;margin:0;color:var(--muted);font-size:.82rem;white-space:nowrap;cursor:pointer}
+    .elimination-label input{width:18px;height:18px;margin:0;accent-color:var(--danger)}
+    .table-actions{display:flex;gap:8px;margin-top:12px}
+    .table-actions .btn{min-height:42px;padding:0 15px;font-size:.88rem}
+    .round-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)}
+    .round-summary{color:var(--muted);font-size:.92rem;line-height:1.5}
+    .final-ranking{display:grid;gap:10px;margin-top:14px}
+    .final-ranking-row{display:grid;grid-template-columns:1fr 130px;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
+    .final-ranking-row select{min-height:42px;padding:0 10px;border-radius:12px;font-weight:800}
+    .winner-banner{padding:18px;border-radius:18px;border:1px solid rgba(216,176,75,.36);background:rgba(216,176,75,.10);color:#f4df9c;font-size:1.05rem;line-height:1.55}
+    .winner-banner strong{color:var(--gold);font-size:1.2rem}
     .footer-note{margin-top:18px;color:rgba(255,255,255,.54);font-size:.9rem;line-height:1.5}
     @media (max-width: 920px){
       .grid{grid-template-columns:1fr}
       textarea{min-height:260px}
+      .round-actions{align-items:stretch;flex-direction:column}
+      .final-ranking-row{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -88,7 +117,7 @@
   <main class="page">
     <div class="brand">
       <div class="logo-mark">CSP</div>
-      <div class="brand-title"><span class="gold">Connect</span><span class="white">Sports</span><span class="gold">Pro</span></div>
+      <div class="brand-title"><span class="gold">CardScores</span><span class="white">Pro</span></div>
     </div>
 
     <section class="hero">
@@ -150,26 +179,27 @@ Martin Horváth"></textarea>
               </div>
 
               <div class="field">
-                <label for="advancingCount">Počet postupujúcich</label>
-                <input id="advancingCount" type="number" min="1" value="2" />
+                <label for="finalPlayerCount">Počet hráčov vo finále</label>
+                <input id="finalPlayerCount" type="number" value="4" disabled />
               </div>
             </div>
 
             <div class="helper">
-              Aplikácia navrhne počet stolov automaticky podľa počtu hráčov a zvoleného počtu hráčov na stole. Hodnoty môžeš ručne upraviť.
+              Po každom kole označíš vypadávajúcich hráčov a ukončíš všetky stoly. Ďalšie kolo sa vygeneruje iba z postupujúcich. Finále má vždy presne 4 hráčov.
             </div>
 
             <div class="actions">
-              <button class="btn btn-primary" id="generateBtn" type="button">Generovať stoly</button>
+              <button class="btn btn-primary" id="generateBtn" type="button">Vygenerovať prvé kolo</button>
               <button class="btn btn-secondary" id="clearBtn" type="button">Vymazať všetko</button>
             </div>
           </div>
         </div>
 
+        <div class="notice" id="statusMessage"></div>
         <div class="tables-output" id="tablesOutput"></div>
 
         <div class="footer-note">
-          Funkcionalita zostáva zachovaná. Zmenený je len vizuál a názov sekcie z pôvodného generátora.
+          Kartový turnaj pokračuje cez jednotlivé kolá až po finálový stôl so štyrmi hráčmi. Rozbehnutý stav sa priebežne ukladá v tomto zariadení.
         </div>
       </div>
     </section>
@@ -179,13 +209,22 @@ Martin Horváth"></textarea>
     const playerNamesEl = document.getElementById('playerNames');
     const playersPerTableEl = document.getElementById('playersPerTable');
     const tableCountEl = document.getElementById('tableCount');
-    const advancingCountEl = document.getElementById('advancingCount');
     const playerCountEl = document.getElementById('playerCount');
     const suggestedTablesEl = document.getElementById('suggestedTables');
     const duplicatesBox = document.getElementById('duplicatesBox');
     const tablesOutput = document.getElementById('tablesOutput');
+    const statusMessage = document.getElementById('statusMessage');
     const generateBtn = document.getElementById('generateBtn');
     const clearBtn = document.getElementById('clearBtn');
+
+    const FINAL_PLAYER_COUNT = 4;
+    const PROGRESS_KEY_PREFIX = 'csp_karty_progress_';
+    const STANDALONE_PROGRESS_KEY = 'csp_karty_progress_standalone';
+    const HISTORY_KEY = 'csp_karty_turnaje_history';
+
+    let tournamentId = null;
+    let tournamentMeta = { name: 'Kartový turnaj', discipline: '' };
+    let tournamentState = null;
 
     function normalizeName(name) {
       return name.trim().toLowerCase();
@@ -209,7 +248,8 @@ Martin Horváth"></textarea>
 
     function suggestTableCount(playerCount, playersPerTable) {
       if (!playerCount || !playersPerTable) return 0;
-      return Math.max(1, Math.ceil(playerCount / playersPerTable));
+      if (playerCount <= FINAL_PLAYER_COUNT + 1) return 1;
+      return Math.max(1, Math.round(playerCount / playersPerTable));
     }
 
     function updateStats() {
@@ -234,55 +274,471 @@ Martin Horváth"></textarea>
       }
     }
 
-    function splitIntoTables(players, tableCount) {
+    function splitIntoTables(playerIds, tableCount, roundNumber) {
       const tables = Array.from({ length: tableCount }, (_, i) => ({
+        id: `r${roundNumber}t${i + 1}`,
         name: `Stôl ${i + 1}`,
-        players: []
+        playerIds: [],
+        eliminatedIds: [],
+        status: 'open'
       }));
-      players.forEach((player, index) => {
-        tables[index % tableCount].players.push(player);
+      playerIds.forEach((playerId, index) => {
+        tables[index % tableCount].playerIds.push(playerId);
       });
       return tables;
     }
 
-    function renderTables() {
-      const players = getPlayers();
-      const tableCount = Math.max(1, Number(tableCountEl.value) || 1);
-      const duplicates = getDuplicateNames(players);
-      tablesOutput.innerHTML = '';
+    function getProgressKey() {
+      return tournamentId ? PROGRESS_KEY_PREFIX + tournamentId : STANDALONE_PROGRESS_KEY;
+    }
 
-      if (!players.length) return;
+    function saveState() {
+      if (!tournamentState) return;
+      try {
+        localStorage.setItem(getProgressKey(), JSON.stringify(tournamentState));
+      } catch (err) {
+        console.error('[generator-stolov] Stav turnaja sa nepodarilo uložiť:', err);
+      }
+    }
+
+    function restoreState() {
+      try {
+        const raw = localStorage.getItem(getProgressKey());
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.players) || !Array.isArray(parsed.rounds)) return false;
+        tournamentState = parsed;
+        renderTournament();
+        return true;
+      } catch (err) {
+        console.error('[generator-stolov] Rozbehnutý turnaj sa nepodarilo obnoviť:', err);
+        return false;
+      }
+    }
+
+    function showMessage(text, type = '') {
+      statusMessage.textContent = text;
+      statusMessage.className = 'notice show' + (type ? ' ' + type : '');
+    }
+
+    function clearMessage() {
+      statusMessage.textContent = '';
+      statusMessage.className = 'notice';
+    }
+
+    function setSetupLocked(locked) {
+      playerNamesEl.disabled = locked;
+      playersPerTableEl.disabled = locked;
+      tableCountEl.disabled = locked;
+      generateBtn.disabled = locked;
+      generateBtn.textContent = tournamentState && tournamentState.status === 'completed'
+        ? 'Turnaj je ukončený'
+        : locked ? 'Turnaj prebieha' : 'Vygenerovať prvé kolo';
+      clearBtn.textContent = locked ? 'Začať nový turnaj' : 'Vymazať všetko';
+    }
+
+    function sanitizeTableCount(playerCount, requested) {
+      const maxTables = Math.max(1, Math.floor(playerCount / 2));
+      return Math.max(1, Math.min(maxTables, requested || 1));
+    }
+
+    function createRound(playerIds, requestedTableCount) {
+      const roundNumber = tournamentState.rounds.length + 1;
+      const isFinal = playerIds.length === FINAL_PLAYER_COUNT;
+      const tableCount = isFinal
+        ? 1
+        : sanitizeTableCount(
+            playerIds.length,
+            requestedTableCount || suggestTableCount(playerIds.length, tournamentState.playersPerTable)
+          );
+      return {
+        number: roundNumber,
+        type: isFinal ? 'final' : 'qualification',
+        playerIds: [...playerIds],
+        tables: splitIntoTables(playerIds, tableCount, roundNumber),
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function startTournament() {
+      const players = getPlayers();
+      const duplicates = getDuplicateNames(players);
+      clearMessage();
 
       if (duplicates.length) {
-        const warn = document.createElement('div');
-        warn.className = 'duplicates show';
-        warn.textContent = 'Najprv oprav duplicity v zozname hráčov.';
-        tablesOutput.appendChild(warn);
+        showMessage('Najprv oprav duplicity v zozname hráčov.', 'error');
         return;
       }
 
-      const tables = splitIntoTables(players, tableCount);
-      tables.forEach(table => {
+      if (players.length < FINAL_PLAYER_COUNT) {
+        showMessage('Kartový turnaj potrebuje najmenej 4 hráčov. Finále musí mať presne 4 hráčov.', 'error');
+        return;
+      }
+
+      const playerObjects = players.map((name, index) => ({
+        id: `p${index + 1}`,
+        name
+      }));
+      const initialTableCount = sanitizeTableCount(
+        players.length,
+        Math.max(1, Number(tableCountEl.value) || 1)
+      );
+
+      tournamentState = {
+        version: 2,
+        id: tournamentId || `local-${Date.now()}`,
+        tournamentName: tournamentMeta.name,
+        discipline: tournamentMeta.discipline,
+        status: 'in_progress',
+        playersPerTable: Number(playersPerTableEl.value) || 4,
+        players: playerObjects,
+        activePlayerIds: playerObjects.map(player => player.id),
+        rounds: [],
+        finalPlacements: {},
+        startedAt: new Date().toISOString(),
+        completedAt: null
+      };
+
+      tournamentState.rounds.push(
+        createRound(tournamentState.activePlayerIds, initialTableCount)
+      );
+      saveState();
+      renderTournament();
+    }
+
+    function playerById(playerId) {
+      return tournamentState.players.find(player => player.id === playerId);
+    }
+
+    function currentRound() {
+      return tournamentState.rounds[tournamentState.rounds.length - 1];
+    }
+
+    function roundSurvivors(round) {
+      const eliminated = new Set(
+        round.tables.flatMap(table => table.eliminatedIds || [])
+      );
+      return round.playerIds.filter(playerId => !eliminated.has(playerId));
+    }
+
+    function roundEliminatedCount(round) {
+      return round.tables.reduce(
+        (sum, table) => sum + (table.eliminatedIds || []).length,
+        0
+      );
+    }
+
+    function allTablesClosed(round) {
+      return round.tables.every(table => table.status === 'closed');
+    }
+
+    function toggleElimination(roundNumber, tableId, playerId, checked) {
+      const round = tournamentState.rounds.find(item => item.number === roundNumber);
+      if (!round || round !== currentRound() || round.type === 'final') return;
+      const table = round.tables.find(item => item.id === tableId);
+      if (!table || table.status === 'closed') return;
+      const eliminated = new Set(table.eliminatedIds || []);
+      if (checked) eliminated.add(playerId);
+      else eliminated.delete(playerId);
+      table.eliminatedIds = [...eliminated];
+      saveState();
+      renderTournament();
+    }
+
+    function toggleTableStatus(roundNumber, tableId) {
+      const round = tournamentState.rounds.find(item => item.number === roundNumber);
+      if (!round || round !== currentRound() || round.type === 'final') return;
+      const table = round.tables.find(item => item.id === tableId);
+      if (!table) return;
+
+      if (table.status === 'closed') {
+        table.status = 'open';
+        saveState();
+        renderTournament();
+        return;
+      }
+
+      const eliminatedCount = (table.eliminatedIds || []).length;
+      if (eliminatedCount < 1) {
+        showMessage(`Na stole „${table.name}“ označ aspoň jedného vypadávajúceho hráča.`, 'error');
+        return;
+      }
+      if (eliminatedCount >= table.playerIds.length) {
+        showMessage(`Zo stola „${table.name}“ musí postúpiť aspoň jeden hráč.`, 'error');
+        return;
+      }
+
+      table.status = 'closed';
+      clearMessage();
+      saveState();
+      renderTournament();
+    }
+
+    function generateNextRound() {
+      const round = currentRound();
+      if (!round || round.type === 'final') return;
+      if (!allTablesClosed(round)) {
+        showMessage('Ďalšie kolo môžeš vytvoriť až po ukončení všetkých stolov.', 'error');
+        return;
+      }
+
+      const survivors = roundSurvivors(round);
+      if (survivors.length < FINAL_PLAYER_COUNT) {
+        showMessage('Takto by zostali menej ako 4 hráči. Znovu otvor niektorý stôl a oprav označenie vypadávajúcich.', 'error');
+        return;
+      }
+      if (survivors.length === round.playerIds.length) {
+        showMessage('Pred ďalším kolom musí vypadnúť aspoň jeden hráč.', 'error');
+        return;
+      }
+
+      tournamentState.activePlayerIds = survivors;
+      tournamentState.rounds.push(createRound(survivors));
+      clearMessage();
+      saveState();
+      renderTournament();
+    }
+
+    function updateFinalPlacement(playerId, value) {
+      if (!tournamentState || currentRound().type !== 'final') return;
+      if (value) tournamentState.finalPlacements[playerId] = Number(value);
+      else delete tournamentState.finalPlacements[playerId];
+      saveState();
+      renderTournament();
+    }
+
+    function finalRankingIsValid() {
+      const finalRound = currentRound();
+      if (!finalRound || finalRound.type !== 'final') return false;
+      const positions = finalRound.playerIds.map(
+        playerId => Number(tournamentState.finalPlacements[playerId])
+      );
+      return positions.length === FINAL_PLAYER_COUNT &&
+        positions.every(position => position >= 1 && position <= FINAL_PLAYER_COUNT) &&
+        new Set(positions).size === FINAL_PLAYER_COUNT;
+    }
+
+    function saveTournamentToHistory() {
+      try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        const record = JSON.parse(JSON.stringify(tournamentState));
+        const index = history.findIndex(item => item.id === record.id);
+        if (index >= 0) history[index] = record;
+        else history.unshift(record);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch (err) {
+        console.error('[generator-stolov] Výsledok sa nepodarilo uložiť do histórie:', err);
+      }
+    }
+
+    function completeTournament() {
+      if (!finalRankingIsValid()) {
+        showMessage('Vo finále nastav každému zo štyroch hráčov jedinečné umiestnenie 1.–4.', 'error');
+        return;
+      }
+      tournamentState.status = 'completed';
+      tournamentState.completedAt = new Date().toISOString();
+      saveTournamentToHistory();
+      saveState();
+      renderTournament();
+    }
+
+    function renderPlayerRow(round, table, playerId, interactive) {
+      const player = playerById(playerId);
+      const eliminated = (table.eliminatedIds || []).includes(playerId);
+      const item = document.createElement('div');
+      item.className = 'player-item' + (eliminated ? ' eliminated' : '');
+
+      const name = document.createElement('span');
+      name.textContent = player ? player.name : playerId;
+      item.appendChild(name);
+
+      const label = document.createElement('label');
+      label.className = 'elimination-label';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = eliminated;
+      checkbox.disabled = !interactive || table.status === 'closed';
+      checkbox.setAttribute('aria-label', `Vypadáva: ${player ? player.name : playerId}`);
+      checkbox.addEventListener('change', () => {
+        toggleElimination(round.number, table.id, playerId, checkbox.checked);
+      });
+      const text = document.createElement('span');
+      text.textContent = eliminated ? 'Vypadáva' : 'Označiť ako vypadávajúceho';
+      label.appendChild(checkbox);
+      label.appendChild(text);
+      item.appendChild(label);
+      return item;
+    }
+
+    function renderQualificationRound(round, container, isCurrent) {
+      const tablesGrid = document.createElement('div');
+      tablesGrid.className = 'round-tables';
+
+      round.tables.forEach(table => {
         const card = document.createElement('div');
         card.className = 'table-card';
 
+        const head = document.createElement('div');
+        head.className = 'table-card-head';
         const title = document.createElement('h4');
         title.textContent = table.name;
+        const badge = document.createElement('span');
+        badge.className = 'status-badge' + (table.status === 'closed' ? ' closed' : '');
+        badge.textContent = table.status === 'closed' ? 'Ukončený' : 'Otvorený';
+        head.appendChild(title);
+        head.appendChild(badge);
 
         const list = document.createElement('div');
         list.className = 'player-list';
-
-        table.players.forEach((player, idx) => {
-          const item = document.createElement('div');
-          item.className = 'player-item';
-          item.innerHTML = `<span>${idx + 1}. ${player}</span><span>hráč</span>`;
-          list.appendChild(item);
+        table.playerIds.forEach(playerId => {
+          list.appendChild(renderPlayerRow(round, table, playerId, isCurrent));
         });
 
-        card.appendChild(title);
+        card.appendChild(head);
         card.appendChild(list);
-        tablesOutput.appendChild(card);
+
+        if (isCurrent) {
+          const actions = document.createElement('div');
+          actions.className = 'table-actions';
+          const toggleButton = document.createElement('button');
+          toggleButton.type = 'button';
+          toggleButton.className = 'btn ' + (table.status === 'closed' ? 'btn-secondary' : 'btn-primary');
+          toggleButton.textContent = table.status === 'closed' ? 'Znovu otvoriť stôl' : 'Ukončiť stôl';
+          toggleButton.addEventListener('click', () => toggleTableStatus(round.number, table.id));
+          actions.appendChild(toggleButton);
+          card.appendChild(actions);
+        }
+
+        tablesGrid.appendChild(card);
       });
+
+      container.appendChild(tablesGrid);
+
+      const actions = document.createElement('div');
+      actions.className = 'round-actions';
+      const survivors = roundSurvivors(round);
+      const summary = document.createElement('div');
+      summary.className = 'round-summary';
+      summary.innerHTML = `Vypadávajúci: <strong>${roundEliminatedCount(round)}</strong> · Zostáva: <strong>${survivors.length}</strong> · Finále: <strong>${FINAL_PLAYER_COUNT} hráči</strong>`;
+      actions.appendChild(summary);
+
+      if (isCurrent) {
+        const nextButton = document.createElement('button');
+        nextButton.type = 'button';
+        nextButton.className = 'btn btn-primary';
+        nextButton.textContent = survivors.length === FINAL_PLAYER_COUNT
+          ? 'Vygenerovať finálový stôl'
+          : 'Vygenerovať ďalšie kolo';
+        nextButton.disabled = !allTablesClosed(round) || survivors.length < FINAL_PLAYER_COUNT;
+        nextButton.addEventListener('click', generateNextRound);
+        actions.appendChild(nextButton);
+      }
+      container.appendChild(actions);
+    }
+
+    function renderFinalRound(round, container, isCurrent) {
+      const card = document.createElement('div');
+      card.className = 'table-card';
+      const head = document.createElement('div');
+      head.className = 'table-card-head';
+      const title = document.createElement('h4');
+      title.textContent = 'Finálový stôl';
+      const badge = document.createElement('span');
+      badge.className = 'status-badge closed';
+      badge.textContent = `${FINAL_PLAYER_COUNT} hráči`;
+      head.appendChild(title);
+      head.appendChild(badge);
+      card.appendChild(head);
+
+      const ranking = document.createElement('div');
+      ranking.className = 'final-ranking';
+      round.playerIds.forEach(playerId => {
+        const player = playerById(playerId);
+        const row = document.createElement('div');
+        row.className = 'final-ranking-row';
+        const name = document.createElement('strong');
+        name.textContent = player ? player.name : playerId;
+        const select = document.createElement('select');
+        select.disabled = !isCurrent || tournamentState.status === 'completed';
+        select.setAttribute('aria-label', `Umiestnenie: ${player ? player.name : playerId}`);
+        select.innerHTML = '<option value="">Umiestnenie</option>' +
+          [1, 2, 3, 4].map(position => `<option value="${position}">${position}. miesto</option>`).join('');
+        select.value = tournamentState.finalPlacements[playerId] || '';
+        select.addEventListener('change', () => updateFinalPlacement(playerId, select.value));
+        row.appendChild(name);
+        row.appendChild(select);
+        ranking.appendChild(row);
+      });
+      card.appendChild(ranking);
+      container.appendChild(card);
+
+      if (isCurrent && tournamentState.status !== 'completed') {
+        const actions = document.createElement('div');
+        actions.className = 'round-actions';
+        const summary = document.createElement('div');
+        summary.className = 'round-summary';
+        summary.textContent = 'Každému finalistovi nastav jedinečné umiestnenie od 1. do 4. miesta.';
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'btn btn-primary';
+        saveButton.textContent = 'Ukončiť turnaj a uložiť výsledok';
+        saveButton.disabled = !finalRankingIsValid();
+        saveButton.addEventListener('click', completeTournament);
+        actions.appendChild(summary);
+        actions.appendChild(saveButton);
+        container.appendChild(actions);
+      }
+    }
+
+    function renderTournament() {
+      tablesOutput.innerHTML = '';
+      if (!tournamentState) {
+        setSetupLocked(false);
+        return;
+      }
+
+      setSetupLocked(true);
+      tournamentState.rounds.forEach((round, index) => {
+        const isCurrent = index === tournamentState.rounds.length - 1;
+        const block = document.createElement('section');
+        block.className = 'round-block' + (isCurrent ? ' current' : '');
+
+        const header = document.createElement('div');
+        header.className = 'round-header';
+        const heading = document.createElement('div');
+        const title = document.createElement('h3');
+        title.textContent = round.type === 'final' ? 'Finále' : `Kolo ${round.number}`;
+        const meta = document.createElement('div');
+        meta.className = 'round-meta';
+        meta.textContent = round.type === 'final'
+          ? 'Jeden stôl · presne 4 hráči'
+          : `${round.playerIds.length} hráčov · ${round.tables.length} ${round.tables.length === 1 ? 'stôl' : 'stoly'}`;
+        heading.appendChild(title);
+        heading.appendChild(meta);
+        header.appendChild(heading);
+        block.appendChild(header);
+
+        if (round.type === 'final') renderFinalRound(round, block, isCurrent);
+        else renderQualificationRound(round, block, isCurrent);
+        tablesOutput.appendChild(block);
+      });
+
+      if (tournamentState.status === 'completed') {
+        const winnerId = Object.keys(tournamentState.finalPlacements)
+          .find(playerId => Number(tournamentState.finalPlacements[playerId]) === 1);
+        const winner = playerById(winnerId);
+        const banner = document.createElement('div');
+        banner.className = 'winner-banner';
+        banner.appendChild(document.createTextNode('Turnaj bol ukončený a uložený do histórie.'));
+        banner.appendChild(document.createElement('br'));
+        banner.appendChild(document.createTextNode('Víťaz: '));
+        const winnerName = document.createElement('strong');
+        winnerName.textContent = winner ? winner.name : '—';
+        banner.appendChild(winnerName);
+        tablesOutput.prepend(banner);
+        showMessage('Výsledok turnaja bol úspešne uložený.', 'success');
+      }
     }
 
     playerNamesEl.addEventListener('input', updateStats);
@@ -291,22 +747,31 @@ Martin Horváth"></textarea>
       tableCountEl.dataset.touched = '1';
     });
 
-    generateBtn.addEventListener('click', renderTables);
+    generateBtn.addEventListener('click', startTournament);
 
     clearBtn.addEventListener('click', () => {
+      if (tournamentState && tournamentState.status !== 'completed') {
+        const confirmed = window.confirm('Naozaj chceš vymazať rozbehnutý turnaj a začať odznova?');
+        if (!confirmed) return;
+      }
+      try {
+        localStorage.removeItem(getProgressKey());
+      } catch (err) {}
+      tournamentState = null;
       playerNamesEl.value = '';
       tableCountEl.dataset.touched = '';
       tableCountEl.value = 1;
-      advancingCountEl.value = 2;
       playersPerTableEl.value = 4;
       tablesOutput.innerHTML = '';
+      clearMessage();
+      setSetupLocked(false);
       updateStats();
     });
 
     function loadTournamentHandoff() {
       try {
         const params = new URLSearchParams(window.location.search);
-        const tournamentId = params.get('t');
+        tournamentId = params.get('t');
         if (!tournamentId) return;
 
         const key = 'csp_karty_turnaj_' + tournamentId;
@@ -319,17 +784,29 @@ Martin Horváth"></textarea>
         const data = JSON.parse(raw);
         if (!data || !Array.isArray(data.players)) return;
 
-        playerNamesEl.value = data.players.join('\n');
+        const playerNames = data.players
+          .map(player => {
+            if (typeof player === 'string') return player;
+            return player && (player.name || player.full_name || player.email || '');
+          })
+          .map(name => String(name).trim())
+          .filter(Boolean);
+
+        playerNamesEl.value = playerNames.join('\n');
         tableCountEl.dataset.touched = '';
+        tournamentMeta = {
+          name: data.tournamentName || 'Kartový turnaj',
+          discipline: data.discipline || ''
+        };
 
         const context = document.getElementById('tournamentContext');
         const nameEl = document.getElementById('tournamentContextName');
         const disciplineEl = document.getElementById('tournamentContextDiscipline');
 
         if (context) context.style.display = 'block';
-        if (nameEl) nameEl.textContent = data.tournamentName || 'Kartový turnaj';
+        if (nameEl) nameEl.textContent = tournamentMeta.name;
         if (disciplineEl) {
-          disciplineEl.textContent = data.discipline ? ' · ' + data.discipline : '';
+          disciplineEl.textContent = tournamentMeta.discipline ? ' · ' + tournamentMeta.discipline : '';
         }
 
         updateStats();
@@ -339,8 +816,7 @@ Martin Horváth"></textarea>
     }
 
     loadTournamentHandoff();
-    updateStats();
+    if (!restoreState()) updateStats();
   </script>
-  <script src="/assets/csp-translate.js" defer></script>
 </body>
 </html>
