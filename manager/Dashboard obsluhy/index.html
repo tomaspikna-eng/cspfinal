@@ -72,7 +72,7 @@ a{color:inherit;text-decoration:none}
 .sb-section{padding:14px 10px 6px;font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .sb-item{
   display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;
-  font-size:.86rem;font-weight:500;color:var(--muted-2);transition:.12s;
+  width:100%;font-size:.86rem;font-weight:500;color:var(--muted-2);transition:.12s;text-align:left;
 }
 .sb-item:hover{background:rgba(255,255,255,.03);color:var(--fg)}
 .sb-item.active{background:var(--gold-dim);color:var(--gold);font-weight:600}
@@ -83,6 +83,8 @@ a{color:inherit;text-decoration:none}
 .sb-foot{padding:12px;border-top:1px solid var(--line)}
 .sb-signout{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:9px;color:var(--muted-2);font-size:.84rem;font-weight:500;border:1px solid var(--line);transition:.12s}
 .sb-signout:hover{border-color:var(--red-b);color:var(--red);background:var(--red-dim)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-dark);font-weight:700;padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:400}
+.toast.show{opacity:1}
 
 /* ════════════════════ MAIN / TOPBAR ════════════════════ */
 .main{display:flex;flex-direction:column;min-width:0}
@@ -189,21 +191,21 @@ td.muted{color:var(--muted-2)}
     </div>
 
     <nav class="sb-nav">
-      <a class="sb-item active" href="#"><span class="ico">📊</span> Dashboard</a>
+      <a class="sb-item active" href="/manager/Dashboard%20obsluhy/" aria-current="page"><span class="ico">📊</span> Dashboard</a>
 
       <div class="sb-cta">
-        <a href="#"><span style="font-size:1rem">▶</span> Manažér klubu</a>
+        <a href="/manager/"><span style="font-size:1rem">▶</span> Manažér klubu</a>
       </div>
 
       <div class="sb-section">Prevádzka</div>
-      <a class="sb-item" href="#"><span class="ico">🎮</span> Manažér</a>
-      <a class="sb-item" href="#"><span class="ico">🖥️</span> Scoreboardy</a>
+      <a class="sb-item" href="/manager/"><span class="ico">🎮</span> Manažér</a>
+      <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
       <a class="sb-item" href="/manager/rezervacie/"><span class="ico">📅</span> Rezervácie</a>
 
       <div class="sb-section">Správa</div>
-      <a class="sb-item" href="#"><span class="ico">🎱</span> Športoviská</a>
-      <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
-      <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
+      <a class="sb-item" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
+      <button class="sb-item" type="button" data-manager-coming-soon="Zákazníci"><span class="ico">👥</span> Zákazníci</button>
+      <button class="sb-item" type="button" data-manager-coming-soon="Ekonomika"><span class="ico">💰</span> Ekonomika</button>
     </nav>
 
     <div class="sb-foot">
@@ -222,8 +224,9 @@ td.muted{color:var(--muted-2)}
       <div class="tb-right">
         <span class="tb-clock" id="clock">00:00:00</span>
         <div class="tb-user"><span class="tb-av">JN</span> Ján Novák</div>
-      </div>
-    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
     <div class="content">
       <div class="page-head">
@@ -445,6 +448,16 @@ function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('backdrop').classList.toggle('show');
 }
+function toast(message){
+  const el=document.getElementById('toast');
+  if(!el)return;
+  el.textContent=message;
+  el.className='toast show';
+  setTimeout(()=>{el.className='toast'},2400);
+}
+document.querySelectorAll('[data-manager-coming-soon]').forEach(button=>{
+  button.addEventListener('click',()=>toast(`Modul ${button.dataset.managerComingSoon} pripravujeme.`));
+});
 
 (async function initManagerDashboard(){
   const ctx=await cspManager.requireClubManagerAccess({allowNoClub:true});

@@ -146,13 +146,13 @@ input:focus,select:focus{border-color:var(--gold)}
 <body>
 <header class="header">
   <div class="header-in">
-    <a href="#" class="brand" onclick="setCat('all');return false">
+    <a href="/magazin/" class="brand" onclick="setCat('all');return false">
       <span class="brand-mark">C</span>
       <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-mag">Magazine</span></span>
     </a>
     <nav class="nav">
-      <a href="#" class="active" id="navHome" onclick="setCat('all');return false" data-i="home">Domov</a>
-      <a href="#" onclick="document.getElementById('sportScroll').scrollIntoView({behavior:'smooth'});return false" data-i="sports">Športy</a>
+      <a href="/magazin/" class="active" id="navHome" onclick="setCat('all');return false" data-i="home" aria-current="page">Domov</a>
+      <a href="#sportScroll" onclick="document.getElementById('sportScroll').scrollIntoView({behavior:'smooth'});return false" data-i="sports">Športy</a>
     </nav>
     <div class="header-right">
       <div class="search">🔍 <input type="text" id="searchInput" placeholder="Hľadať v článkoch…" oninput="render()" data-i-ph="search"/></div>
@@ -195,7 +195,7 @@ input:focus,select:focus{border-color:var(--gold)}
       </div>
     </div>
     <div class="w">
-      <div class="w-h"><span class="t">🏆 Najbližšie turnaje <span class="ultra-badge">ULTRA</span></span><a class="more" href="#" onclick="return eventsSoon(event)">Všetky →</a></div>
+      <div class="w-h"><span class="t">🏆 Najbližšie turnaje <span class="ultra-badge">ULTRA</span></span><a class="more" href="/kalendar-turnajov/">Všetky →</a></div>
       <div class="tlist" id="tournaments"></div>
     </div>
     <div class="w">
@@ -216,7 +216,7 @@ input:focus,select:focus{border-color:var(--gold)}
 <div class="backdrop" id="backdrop" onclick="toggleDrawer()"></div>
 <nav class="drawer" id="drawer">
   <div style="font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Menu</div>
-  <a href="#" onclick="setCat('all');toggleDrawer();return false">Domov</a>
+  <a href="/magazin/" onclick="setCat('all');toggleDrawer();return false">Domov</a>
   <a href="/cms/">Prihlásiť · CMS</a>
   <button onclick="toggleLang()">Jazyk: <span id="langLabel2">SK</span></button>
 </nav>
@@ -306,9 +306,8 @@ function renderTournaments(){
   const M=['JAN','FEB','MAR','APR','MÁJ','JÚN','JÚL','AUG','SEP','OKT','NOV','DEC'];
   const wrap=document.getElementById('tournaments');
   if(!TOURNAMENTS.length){wrap.innerHTML='<div style="padding:28px 16px;text-align:center;color:var(--muted);font-size:.8rem">Zatiaľ žiadne turnaje.<br>Pridajú ich kluby a zväzy.</div>';return;}
-  wrap.innerHTML=TOURNAMENTS.slice(0,10).map(t=>{const p=t.date.split('-');return `<div class="titem" onclick="eventsSoon(event)"><div class="tdate"><div class="d">${+p[2]}</div><div class="m">${M[+p[1]-1]}</div></div><div class="tinfo"><div class="tn">${t.name}</div><div class="tl">${t.sport} · ${t.city}</div></div></div>`;}).join('');
+  wrap.innerHTML=TOURNAMENTS.slice(0,10).map(t=>{const p=t.date.split('-');return `<div class="titem" onclick="location.href='/kalendar-turnajov/'"><div class="tdate"><div class="d">${+p[2]}</div><div class="m">${M[+p[1]-1]}</div></div><div class="tinfo"><div class="tn">${t.name}</div><div class="tl">${t.sport} · ${t.city}</div></div></div>`;}).join('');
 }
-function eventsSoon(e){if(e)e.preventDefault();toast('Vyhľadávač udalostí a turnajov pripravujeme (ULTRA).');return false;}
 function rezSubmit(){const c=document.getElementById('rezClub').value,t=document.getElementById('rezTime').value;toast(`Rezervácia ${c} o ${t} — potvrdenie pošleme e-mailom (ULTRA).`);}
 
 const I18N={sk:{home:'Domov',sports:'Športy',login:'Prihlásiť · CMS',categories:'Kategórie',weather:'Počasie · Prievidza',search:'Hľadať v článkoch…'},en:{home:'Home',sports:'Sports',login:'Sign in · CMS',categories:'Categories',weather:'Weather · Prievidza',search:'Search articles…'}};
