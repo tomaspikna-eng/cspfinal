@@ -378,7 +378,7 @@ input:focus,select:focus{border-color:var(--gold)}
     <div class="match-qr-code" id="matchQrCode"></div>
     <input class="match-qr-url" id="matchQrUrl" readonly>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-      <button class="btn btn-primary" id="matchQrOpenBtn">Otvoriť scoreboard</button>
+      <button class="btn btn-primary" id="matchQrOpenBtn">Otvoriť tablet</button>
       <button class="btn btn-ghost" id="matchQrCopyBtn">Kopírovať link</button>
     </div>
   </div>
@@ -1506,13 +1506,40 @@ function matchScoreboardUrl(row,m){
 async function showMatchQr(loc){
   const m=getMatchByLoc(loc); if(!m)return;
   try{
-    const row=await ensureRealMatch(loc,m),url=matchScoreboardUrl(row,m);
-    matchQrTitle.textContent=`${m.p1.name} vs ${m.p2.name}`;
-    matchQrSub.textContent=`${curT.discipline} · Race to ${matchRaceTo()}${row.station_label?' · '+row.station_label:''}`;
-    matchQrUrl.value=url; matchQrOpenBtn.dataset.url=url; matchQrCode.innerHTML='';
+    const row=await ensureRealMatch(loc,m);
+    let url="", title="", sub="";
+
+    if(row.tournament_resource_id){
+      const {data:resource,error:resourceError}=await cspAuth.client
+        .from('tournament_resources')
+        .select('id,label,resource_type,device_token,tablet_name')
+        .eq('id',row.tournament_resource_id)
+        .single();
+      if(resourceError)throw resourceError;
+
+      const u=new URL('/scoreboard/',location.origin);
+      u.searchParams.set('device_token',resource.device_token);
+      u.searchParams.set('lock','1');
+      url=u.toString();
+      title=`Tablet · ${resource.label}`;
+      sub=`Trvalé priradenie stanoviska${resource.tablet_name?' · '+resource.tablet_name:''}`;
+    }else{
+      url=matchScoreboardUrl(row,m);
+      title=`${m.p1.name} vs ${m.p2.name}`;
+      sub=`Zápas zatiaľ nemá pridelený stôl alebo terč · dočasný link zápasu`;
+    }
+
+    matchQrTitle.textContent=title;
+    matchQrSub.textContent=sub;
+    matchQrUrl.value=url;
+    matchQrOpenBtn.dataset.url=url;
+    matchQrCode.innerHTML='';
     new QRCode(matchQrCode,{text:url,width:252,height:252,correctLevel:QRCode.CorrectLevel.L});
     matchQrOverlay.classList.remove('hidden');
-  }catch(err){console.error('[turnament] QR:',err);toast('QR zápasu sa nepodarilo vytvoriť.',true);}
+  }catch(err){
+    console.error('[turnament] tablet QR:',err);
+    toast('QR tabletu sa nepodarilo vytvoriť.',true);
+  }
 }
 function closeMatchQr(){matchQrOverlay.classList.add('hidden')}
 matchQrOpenBtn.onclick=()=>{const u=matchQrOpenBtn.dataset.url;if(u)window.open(u,'_blank','noopener')};
@@ -1530,7 +1557,7 @@ function liveMatchControls(m,loc){
   if(state==='pending'||state==='stopped')buttons+=`<button class="match-op start" onclick="event.stopPropagation();startLiveMatch('${loc}')">▶ Spustiť</button>`;
   if(state==='running')buttons+=`<button class="match-op" onclick="event.stopPropagation();pauseLiveMatch('${loc}')">⏸ Pauza</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
   if(state==='paused')buttons+=`<button class="match-op start" onclick="event.stopPropagation();resumeLiveMatch('${loc}')">▶ Pokračovať</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
-  buttons+=`<button class="match-op qr" onclick="event.stopPropagation();showMatchQr('${loc}')">▦ QR</button>`;
+  buttons+=`<button class="match-op qr" onclick="event.stopPropagation();showMatchQr('${loc}')">▦ Tablet</button>`;
   return `<div class="match-livebar" onclick="event.stopPropagation()">
     <input class="match-table-input" value="${row?.station_label||''}" placeholder="Stôl / terč" onchange="setMatchStationLabel('${loc}',this.value)">
     <span class="match-live-status ${state}"><span class="dot"></span>${statusLabel}</span>
