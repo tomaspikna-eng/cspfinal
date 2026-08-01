@@ -660,6 +660,8 @@ const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný l
 let currentSession = null;
 let currentProfile = null;
 let realMatchesByKey = new Map();
+let tournamentMatchesChannel = null;
+let realtimeRefreshTimer = null;
 
 function bracketStorageKey(id){ return 'csp_tournament_bracket_'+id; }
 function loadBracketState(id){
@@ -722,19 +724,55 @@ async function startNewTournament(){
   }
 }
 
+function stopTournamentMatchesRealtime(){
+  if(tournamentMatchesChannel){
+    cspAuth.client.removeChannel(tournamentMatchesChannel);
+    tournamentMatchesChannel=null;
+  }
+  if(realtimeRefreshTimer){
+    clearTimeout(realtimeRefreshTimer);
+    realtimeRefreshTimer=null;
+  }
+}
+
+function startTournamentMatchesRealtime(tournamentId){
+  stopTournamentMatchesRealtime();
+  if(!tournamentId)return;
+
+  tournamentMatchesChannel=cspAuth.client
+    .channel(`tournament-matches-${tournamentId}`)
+    .on("postgres_changes",{
+      event:"*",
+      schema:"public",
+      table:"matches",
+      filter:`tournament_id=eq.${tournamentId}`
+    },()=>{
+      clearTimeout(realtimeRefreshTimer);
+      realtimeRefreshTimer=setTimeout(()=>{
+        go("detail",tournamentId);
+      },250);
+    })
+    .subscribe();
+}
+
 /* ════════════════════════════════════════════════════════════
    ROUTER / VIEWS
 ════════════════════════════════════════════════════════════ */
 async function go(view, data){
   const app=document.getElementById('app');
   if(view==='dashboard'){
+    stopTournamentMatchesRealtime();
     app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
     app.innerHTML=await viewDashboard();
   }
-  else if(view==='wizard') { app.innerHTML=viewWizard(); initWizard(data); }
+  else if(view==='wizard') {
+    stopTournamentMatchesRealtime();
+    app.innerHTML=viewWizard(); initWizard(data);
+  }
   else if(view==='detail') {
     app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
     app.innerHTML=await viewDetail(data);
+    startTournamentMatchesRealtime(data);
   }
   window.scrollTo(0,0);
 }
@@ -1461,6 +1499,7 @@ function matchScoreboardUrl(row,m){
   u.searchParams.set('p1',m.p1?.name||'Hráč 1');
   u.searchParams.set('p2',m.p2?.name||'Hráč 2');
   if(row.station_label)u.searchParams.set('station',row.station_label);
+  u.searchParams.set('match_id',row.id);
   u.searchParams.set('match_token',row.public_token);
   return u.toString();
 }
@@ -2062,6 +2101,5 @@ setInterval(()=>{
 /* INIT happens inside initAuth() above once a real session is confirmed
    -- see the auth gate at the top of this script. */
 </script>
-  <script src="/assets/csp-translate.js" defer></script>
 </body>
 </html>
