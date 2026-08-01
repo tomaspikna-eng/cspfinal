@@ -159,6 +159,34 @@ summary b{color:var(--gold)}
   .top{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* FIXED TOURNAMENT TABLET */
+.station-gate{
+  position:fixed;inset:0;z-index:500;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:22px;
+}
+.station-gate.hidden{display:none}
+.station-card{
+  width:min(760px,100%);background:var(--panel);border:1px solid var(--border);
+  border-radius:24px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.45)
+}
+.station-kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;color:var(--gold);font-weight:700}
+.station-title{font-size:clamp(2rem,6vw,4.5rem);font-weight:800;margin:6px 0 4px}
+.station-sub{color:var(--muted);margin-bottom:22px}
+.station-players{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.station-player{
+  padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--panel2)
+}
+.station-player.ready{border-color:var(--green);box-shadow:0 0 0 1px rgba(24,201,100,.35)}
+.station-player-name{font-size:1.35rem;font-weight:800;margin-bottom:14px}
+.station-presence-btn{width:100%;min-height:58px;font-size:1rem;font-weight:800}
+.station-presence-btn.ready{background:rgba(24,201,100,.14);border-color:var(--green);color:var(--green)}
+.station-start{width:100%;min-height:64px;margin-top:16px;font-size:1.12rem}
+.station-message{text-align:center;color:var(--muted);padding:28px 8px;font-size:1.08rem}
+.station-state-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 18px}
+.station-state-pill{font-family:var(--mono);font-size:.72rem;padding:7px 10px;border-radius:99px;background:var(--panel2);color:var(--muted)}
+@media(max-width:650px){.station-players{grid-template-columns:1fr}.station-card{padding:20px}}
+
 </style>
 </head>
 <body>
@@ -176,7 +204,35 @@ summary b{color:var(--gold)}
     </div>
   </div>
 </div>
-<main class="app">
+
+<div class="station-gate hidden" id="stationGate">
+  <section class="station-card">
+    <div class="station-kicker">CONNECT SPORTS PRO · TOURNAMENT TABLET</div>
+    <h1 class="station-title" id="stationGateTitle">Stanovisko</h1>
+    <div class="station-sub" id="stationGateSub">Pripájam tablet…</div>
+    <div class="station-state-line">
+      <span class="station-state-pill" id="stationTournamentPill">Turnaj</span>
+      <span class="station-state-pill" id="stationStatusPill">PRIPÁJANIE</span>
+    </div>
+    <div id="stationWaiting" class="station-message">Čakám na pridelenie zápasu…</div>
+    <div id="stationPresence" class="hidden">
+      <div class="station-players">
+        <article class="station-player" id="stationP1Card">
+          <div class="station-player-name" id="stationP1Name">Hráč 1</div>
+          <button class="station-presence-btn primary" id="stationP1Btn">SOM PRÍTOMNÝ</button>
+        </article>
+        <article class="station-player" id="stationP2Card">
+          <div class="station-player-name" id="stationP2Name">Hráč 2</div>
+          <button class="station-presence-btn primary" id="stationP2Btn">SOM PRÍTOMNÝ</button>
+        </article>
+      </div>
+      <button class="station-start primary" id="stationStartBtn" disabled>ČAKÁM NA OBOCH HRÁČOV</button>
+    </div>
+    <div id="stationError" class="station-message hidden"></div>
+  </section>
+</div>
+
+<main class="app" id="scoreboardApp">
   <header>
     <div class="brand">
       <div class="kicker">CONNECT SPORTS PRO</div>
@@ -311,8 +367,9 @@ const START_SCORE={"501":501,"301":301};
 /* ════════════════════ URL (Club Manager) ════════════════════ */
 const URL_PARAMS=new URLSearchParams(location.search);
 const STATION_NAME=URL_PARAMS.get("station")||"";
-const MATCH_ID=URL_PARAMS.get("match_id")||"";
-const MATCH_TOKEN=URL_PARAMS.get("match_token")||"";
+let MATCH_ID=URL_PARAMS.get("match_id")||"";
+let MATCH_TOKEN=URL_PARAMS.get("match_token")||"";
+const DEVICE_TOKEN=URL_PARAMS.get("device_token")||"";
 const STATION_SLUG=STATION_NAME?"_"+STATION_NAME.replace(/\W+/g,"_"):"";
 const STORAGE_KEY="csp_scoreboard_v1"+STATION_SLUG;
 let tournamentMatch=null;
@@ -521,6 +578,14 @@ async function endMatchDialog(){
     stopTimer();
     button.textContent="Výsledok odoslaný";
     render();
+    if(DEVICE_TOKEN){
+      setTimeout(async()=>{
+        stationActiveMatchId=null;
+        MATCH_ID="";MATCH_TOKEN="";tournamentMatch=null;
+        showStationGate();
+        await fetchStationState();
+      },1400);
+    }
   }catch(err){
     console.error("[scoreboard] Tournament result submission failed:",err);
     alert(err?.message||"Výsledok sa nepodarilo odoslať.");
@@ -967,13 +1032,154 @@ async function loadTournamentMatch(){
   }
 }
 
+
+/* ════════════════════ FIXED TOURNAMENT TABLET ════════════════════ */
+let stationState=null;
+let stationPollTimer=null;
+let stationBusy=false;
+let stationActiveMatchId=null;
+
+function stationRow(data){
+  return Array.isArray(data)?data[0]:data;
+}
+function showStationGate(){
+  $("stationGate").classList.remove("hidden");
+  $("scoreboardApp").classList.add("hidden");
+}
+function showScoreboardApp(){
+  $("stationGate").classList.add("hidden");
+  $("scoreboardApp").classList.remove("hidden");
+}
+function stationStatusLabel(row){
+  if(!row?.match_id)return "VOĽNÉ";
+  if(row.match_status==="in_progress"||row.match_status==="live")return "PREBIEHA";
+  if(row.both_players_present)return "PRIPRAVENÍ";
+  if(row.player1_present||row.player2_present)return "ČAKÁ NA HRÁČA";
+  return "ČAKÁ NA HRÁČOV";
+}
+function renderStationState(row){
+  stationState=row;
+  $("stationGateTitle").textContent=row?.resource_label||"Turnajové stanovisko";
+  $("stationGateSub").textContent=row?.tablet_name||"Tablet je pevne priradený k tomuto stanovisku";
+  $("stationTournamentPill").textContent=row?.tournament_name||"Turnaj";
+  $("stationStatusPill").textContent=stationStatusLabel(row);
+
+  const hasMatch=!!row?.match_id;
+  $("stationWaiting").classList.toggle("hidden",hasMatch);
+  $("stationPresence").classList.toggle("hidden",!hasMatch);
+  $("stationError").classList.add("hidden");
+  if(!hasMatch){
+    $("stationWaiting").textContent="Čakám na pridelenie ďalšieho zápasu…";
+    stationActiveMatchId=null;
+    return;
+  }
+
+  $("stationP1Name").textContent=row.player1_name||"Hráč 1";
+  $("stationP2Name").textContent=row.player2_name||"Hráč 2";
+  $("stationP1Card").classList.toggle("ready",!!row.player1_present);
+  $("stationP2Card").classList.toggle("ready",!!row.player2_present);
+  $("stationP1Btn").classList.toggle("ready",!!row.player1_present);
+  $("stationP2Btn").classList.toggle("ready",!!row.player2_present);
+  $("stationP1Btn").textContent=row.player1_present?"PRÍTOMNOSŤ POTVRDENÁ ✓":"SOM PRÍTOMNÝ";
+  $("stationP2Btn").textContent=row.player2_present?"PRÍTOMNOSŤ POTVRDENÁ ✓":"SOM PRÍTOMNÝ";
+  $("stationP1Btn").disabled=!!row.player1_present||stationBusy;
+  $("stationP2Btn").disabled=!!row.player2_present||stationBusy;
+
+  const running=row.match_status==="in_progress"||row.match_status==="live";
+  $("stationStartBtn").disabled=!row.can_start||stationBusy;
+  $("stationStartBtn").textContent=running?"ZÁPAS PREBIEHA":row.can_start?"ZAČAŤ ZÁPAS":"ČAKÁM NA OBOCH HRÁČOV";
+
+  if(running && stationActiveMatchId!==row.match_id){
+    openAssignedStationMatch(row);
+  }
+}
+async function fetchStationState(){
+  if(!DEVICE_TOKEN)return;
+  try{
+    const {data,error}=await cspAuth.client.rpc("get_station_tablet_state",{p_device_token:DEVICE_TOKEN});
+    if(error)throw error;
+    const row=stationRow(data);
+    if(!row)throw new Error("Tablet nie je priradený k aktívnemu stanovisku.");
+    renderStationState(row);
+  }catch(err){
+    console.error("[scoreboard] station state:",err);
+    showStationGate();
+    $("stationWaiting").classList.add("hidden");
+    $("stationPresence").classList.add("hidden");
+    $("stationError").classList.remove("hidden");
+    $("stationError").textContent=err?.message||"Stanovisko sa nepodarilo načítať.";
+  }
+}
+async function confirmStationPresence(playerId){
+  if(!DEVICE_TOKEN||!playerId||stationBusy)return;
+  stationBusy=true;
+  try{
+    const {error}=await cspAuth.client.rpc("confirm_station_player_presence",{
+      p_device_token:DEVICE_TOKEN,p_player_id:playerId
+    });
+    if(error)throw error;
+    await fetchStationState();
+  }catch(err){
+    alert(err?.message||"Prítomnosť sa nepodarilo potvrdiť.");
+  }finally{stationBusy=false}
+}
+async function openAssignedStationMatch(row){
+  stationActiveMatchId=row.match_id;
+  MATCH_ID=row.match_id;
+  MATCH_TOKEN=row.match_token;
+  state=structuredClone(defaultState);
+  resetScoresForMode();
+  tournamentMatch=null;
+  pendingWinnerIndex=null;
+  pendingSetMode=null;
+  tournamentResultSubmitting=false;
+  $("endMatchBtn").disabled=false;
+  $("endMatchBtn").textContent="Ukončiť zápas";
+  await loadTournamentMatch();
+  showScoreboardApp();
+}
+async function startAssignedStationMatch(){
+  if(!DEVICE_TOKEN||stationBusy)return;
+  stationBusy=true;
+  $("stationStartBtn").disabled=true;
+  $("stationStartBtn").textContent="SPÚŠŤAM ZÁPAS…";
+  try{
+    const {data,error}=await cspAuth.client.rpc("start_station_match",{p_device_token:DEVICE_TOKEN});
+    if(error)throw error;
+    const started=stationRow(data);
+    await fetchStationState();
+    if(started?.match_id){
+      const row={...(stationState||{}),match_id:started.match_id,match_token:started.match_token,match_status:started.match_status};
+      await openAssignedStationMatch(row);
+    }
+  }catch(err){
+    alert(err?.message||"Zápas sa nepodarilo spustiť.");
+    await fetchStationState();
+  }finally{stationBusy=false}
+}
+function initFixedStationTablet(){
+  showStationGate();
+  $("stationP1Btn").onclick=()=>confirmStationPresence(stationState?.player1_id);
+  $("stationP2Btn").onclick=()=>confirmStationPresence(stationState?.player2_id);
+  $("stationStartBtn").onclick=startAssignedStationMatch;
+  fetchStationState();
+  stationPollTimer=setInterval(fetchStationState,5000);
+}
+
 /* ════════════════════ INIT ════════════════════ */
-loadState();
-applyUrlParams();
-syncSettingsUI();
-render();
-loadTournamentMatch();
-if(!state.log.length){addLog("Scoreboard pripravený");render();}
+if(DEVICE_TOKEN){
+  state=structuredClone(defaultState);
+  syncSettingsUI();
+  render();
+  initFixedStationTablet();
+}else{
+  loadState();
+  applyUrlParams();
+  syncSettingsUI();
+  render();
+  loadTournamentMatch();
+  if(!state.log.length){addLog("Scoreboard pripravený");render();}
+}
 
 /* ── Lock mód pre tablety (?lock=1) — skryje prepínač športu + nastavenia ── */
 if(URL_PARAMS.get("lock")==="1"){
