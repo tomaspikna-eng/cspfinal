@@ -583,6 +583,14 @@ a{color:inherit;text-decoration:none}
 .profile-event-status.cancelled{background:rgba(217,79,79,.10);color:#ff8a8a}
 .profile-event-status.completed{background:rgba(74,130,204,.12);color:#8db9f3}
 
+
+.role-lock{padding:22px;border-radius:12px;background:var(--bg3);border:1px solid var(--gold-b);color:var(--text-soft);line-height:1.55}.role-lock strong{color:var(--gold)}
+.role-card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:18px}.role-card h3{font-size:1rem;color:var(--text);margin-bottom:8px}.role-card p{color:var(--text-soft);line-height:1.55}
+.role-list{display:flex;flex-direction:column;gap:10px}.club-event-card{display:grid;grid-template-columns:58px 1fr;gap:12px;padding:14px;border:1px solid var(--line);background:var(--bg2);border-radius:12px}
+.club-event-date{min-height:56px;border-radius:10px;background:var(--gold-dim);border:1px solid var(--gold-b);display:flex;flex-direction:column;align-items:center;justify-content:center}.club-event-date strong{font-family:var(--display);font-size:1.45rem;color:var(--gold);line-height:1}.club-event-date span{font-family:var(--mono);font-size:.62rem;color:var(--text-soft);margin-top:4px;text-transform:uppercase}.club-event-title{font-weight:700}.club-event-meta{font-family:var(--mono);font-size:.7rem;color:var(--muted2);margin-top:5px;line-height:1.5}
+.gallery-role-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media(max-width:700px){.gallery-role-grid{grid-template-columns:1fr}}.gallery-role-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg2)}.gallery-role-thumb{aspect-ratio:16/10;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--muted2);font-size:1.6rem}.gallery-role-body{padding:12px}.gallery-role-title{font-weight:700}.gallery-role-meta{font-size:.75rem;color:var(--muted2);margin-top:4px}
+.role-badge{display:inline-flex;padding:4px 9px;border-radius:999px;background:var(--gold-dim);border:1px solid var(--gold-b);color:var(--gold);font-family:var(--mono);font-size:.65rem;font-weight:700}
+
 /* ════════════════════════════════════
    SHARE FAB
 ═══════════════════════════════════ */
@@ -778,7 +786,7 @@ a{color:inherit;text-decoration:none}
            yet (no followers, respects, or match-history tables exist), so
            every new real user sees honest zeros/dashes here instead of
            leftover demo numbers. -->
-      <div class="stats-bar">
+      <div class="stats-bar" id="roleStatsBar">
         <div class="stat">
           <div class="stat-num">0</div>
           <div class="stat-label">Sledujú</div>
@@ -809,7 +817,7 @@ a{color:inherit;text-decoration:none}
       <!-- Ratings are "—" (no fake number) since there is no ratings
            table yet — a genuinely new player has no rating until they
            actually play. -->
-      <div class="sport-tabs">
+      <div class="sport-tabs" id="roleSportTabs">
         <button class="sport-tab active" onclick="setSport(this)">
           <span class="icon">🎱</span> Biliard
           <span class="rating">—</span>
@@ -832,9 +840,9 @@ a{color:inherit;text-decoration:none}
       <div class="content-grid">
 
         <!-- LEFT: FEED -->
-        <div class="content-main">
+        <div class="content-main" id="roleContentMain">
 
-          <div class="content-tabs">
+          <div class="content-tabs" id="roleContentTabs">
             <button class="content-tab active" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
             <button class="content-tab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
             <button class="content-tab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
@@ -897,7 +905,7 @@ a{color:inherit;text-decoration:none}
         </div>
 
         <!-- ═══════════ SIDE WIDGETS ═══════════ -->
-        <aside class="content-side">
+        <aside class="content-side" id="roleContentSide">
 
           <!-- PROFILE EVENT CALENDAR -->
           <div class="widget">
@@ -1008,7 +1016,7 @@ a{color:inherit;text-decoration:none}
           <option value="club">Klub</option>
           <option value="organization">Organizácia</option>
         </select>
-        <div class="settings-hint">Rola mení, čo vidíš v aplikácii — neovplyvňuje tvoj plán ani prístup k funkciám.</div>
+        <div class="settings-hint">Rola určuje typ profilového dashboardu. Plán odomyká funkcie v rámci tejto roly.</div>
       </div>
 
       <div class="settings-field">
@@ -1455,6 +1463,22 @@ async function loadProfileEvents(){
 }
 
 
+
+const PLAYER_DASHBOARD_SNAPSHOT={stats:document.getElementById('roleStatsBar')?.innerHTML||'',sports:document.getElementById('roleSportTabs')?.innerHTML||'',tabs:document.getElementById('roleContentTabs')?.innerHTML||'',main:document.getElementById('roleContentMain')?.innerHTML||'',side:document.getElementById('roleContentSide')?.innerHTML||''};
+let roleDashboardKey=null,currentClubRecord=null;const PLAN_LEVEL={free:0,pro:1,ultra:2,elite:3};
+function currentPlanLevel(){return currentProfile?.is_admin===true?99:(PLAN_LEVEL[String(currentProfile?.plan||'free').toLowerCase()]??0)}
+function hasPlan(p){return currentPlanLevel()>=(PLAN_LEVEL[p]??0)}
+function setRoleTabs(items){const t=document.getElementById('roleContentTabs');t.innerHTML=items.map((x,i)=>`<button class="content-tab ${i===0?'active':''}" data-role-tab="${escapeHtml(x.key)}">${escapeHtml(x.label)}</button>`).join('');t.onclick=e=>{const b=e.target.closest('[data-role-tab]');if(!b)return;t.querySelectorAll('.content-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('#roleContentMain .tab-panel').forEach(x=>x.classList.remove('active'));document.getElementById('rolePanel-'+b.dataset.roleTab)?.classList.add('active')}}
+function rolePanel(k,h,a=false){return `<div class="tab-panel ${a?'active':''}" id="rolePanel-${k}">${h}</div>`}
+function setRoleStats(items){document.getElementById('roleStatsBar').innerHTML=items.map(x=>`<div class="stat ${x.highlight?'highlight':''}"><div class="stat-num">${escapeHtml(x.value)}</div><div class="stat-label">${escapeHtml(x.label)}</div></div>`).join('')}
+function restorePlayerDashboard(){document.getElementById('roleStatsBar').innerHTML=PLAYER_DASHBOARD_SNAPSHOT.stats;const s=document.getElementById('roleSportTabs');s.innerHTML=PLAYER_DASHBOARD_SNAPSHOT.sports;s.style.display='';document.getElementById('roleContentTabs').outerHTML=`<div class="content-tabs" id="roleContentTabs">${PLAYER_DASHBOARD_SNAPSHOT.tabs}</div>`;document.getElementById('roleContentMain').innerHTML=PLAYER_DASHBOARD_SNAPSHOT.main;document.getElementById('roleContentSide').innerHTML=PLAYER_DASHBOARD_SNAPSHOT.side;profileEventsLoaded=false;turnajeLoaded=false;statistikyLoaded=false;zapasyLoaded=false;loadProfileEvents()}
+async function getOwnedClub(){if(currentClubRecord||!currentSession)return currentClubRecord;const{data,error}=await cspAuth.withTimeout(cspAuth.client.from('clubs').select('id,name,owner_id').eq('owner_id',currentSession.user.id).maybeSingle(),8000,'load owned club');if(error)throw error;return currentClubRecord=data||null}
+function renderClubShell(){document.getElementById('roleSportTabs').style.display='none';setRoleTabs([{key:'about',label:'O nás'},{key:'reservations',label:'Rezervácie'},{key:'events',label:'Udalosti'},{key:'representatives',label:'Naši reprezentanti / Naše tímy'},{key:'gallery',label:'Fotogaléria'}]);document.getElementById('roleContentMain').innerHTML=rolePanel('about','<div class="empty-state" id="clubAboutState"><div class="empty-sub">Načítavam klubový profil…</div></div>',true)+rolePanel('reservations','<div class="empty-state" id="clubReservationsState"><div class="empty-sub">Načítavam verejné rezervácie…</div></div>')+rolePanel('events','<div class="empty-state" id="clubEventsState"><div class="empty-sub">Načítavam udalosti…</div></div>')+rolePanel('representatives','<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Reprezentanti a tímy zatiaľ nie sú publikovaní</div><div class="empty-sub">Sekcia je pripravená pre fotografiu, disciplínu, medailón a úspechy.</div></div>')+rolePanel('gallery','<div class="empty-state" id="clubGalleryState"><div class="empty-sub">Načítavam fotogalériu…</div></div>');setRoleStats([{value:'—',label:'Udalosti'},{value:'—',label:'Fotoreporty'},{value:'—',label:'Reprezentanti'},{value:'0',label:'Sledujú'},{value:'0',label:'Sledovatelia'},{value:'0',label:'Respekty',highlight:true}]);document.getElementById('roleContentSide').innerHTML=`<div class="widget"><div class="widget-head"><h3>Typ profilu</h3></div><div class="role-card"><span class="role-badge">KLUB</span><p style="margin-top:10px">Verejný klubový profil. Interná prevádzka zostáva v Club Manageri.</p></div></div><div class="widget"><div class="widget-head"><h3>Plán</h3></div><div class="role-card"><span class="role-badge">${escapeHtml(String(currentProfile?.plan||'free').toUpperCase())}</span><p style="margin-top:10px">Plán odomyká funkcie; nemení typ profilu.</p></div></div>`}
+async function loadClubData(){const club=await getOwnedClub(),about=document.getElementById('clubAboutState');if(!club){about.innerHTML='<div class="empty-title">Klubový záznam sa nenašiel</div>';return}about.innerHTML=`<div class="role-card"><span class="role-badge">O NÁS</span><h3 style="margin-top:12px">${escapeHtml(club.name||currentProfile?.full_name||'Klub')}</h3><p>Text kto sme, ponuka, kontakty a história zatiaľ nemajú samostatné databázové polia. Profil preto nezobrazuje vymyslený obsah.</p></div>`;const[e,g,b]=await Promise.all([cspAuth.client.from('events').select('id,title,event_type,sport,discipline,starts_at,location_text,city,status').eq('club_id',club.id).eq('status','published').gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}),cspAuth.client.from('gallery_collections').select('id,title,published_at,visibility').eq('entity_type','club').eq('entity_id',club.id).eq('visibility','public').not('published_at','is',null).order('published_at',{ascending:false}),cspAuth.client.rpc('get_public_club_booking_context',{p_club_id:club.id})]);const events=e.data||[],gals=g.data||[];setRoleStats([{value:String(events.length),label:'Udalosti'},{value:String(gals.length),label:'Fotoreporty'},{value:'—',label:'Reprezentanti'},{value:'0',label:'Sledujú'},{value:'0',label:'Sledovatelia'},{value:'0',label:'Respekty',highlight:true}]);const ev=document.getElementById('clubEventsState');ev.className='';ev.innerHTML=events.length?`<div class="role-list">${events.map(x=>{const d=new Date(x.starts_at),loc=[x.location_text,x.city].filter(Boolean).join(', ');return `<a class="club-event-card" href="/udalost/?id=${encodeURIComponent(x.id)}"><div class="club-event-date"><strong>${d.getDate()}</strong><span>${PROFILE_EVENT_MONTHS[d.getMonth()]}</span></div><div><div class="club-event-title">${escapeHtml(x.title)}</div><div class="club-event-meta">${escapeHtml(x.event_type||x.sport||'Udalosť')}${x.discipline?' · '+escapeHtml(x.discipline):''}${loc?'<br>'+escapeHtml(loc):''}</div></div></a>`}).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Žiadne publikované udalosti</div></div>';const ga=document.getElementById('clubGalleryState');ga.className='';ga.innerHTML=gals.length?`<div class="gallery-role-grid">${gals.map(x=>`<div class="gallery-role-card"><div class="gallery-role-thumb">📷</div><div class="gallery-role-body"><div class="gallery-role-title">${escapeHtml(x.title)}</div><div class="gallery-role-meta">${x.published_at?new Date(x.published_at).toLocaleDateString('sk-SK'):''}</div></div></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">📷</div><div class="empty-title">Žiadne publikované fotoreporty</div></div>';const rs=document.getElementById('clubReservationsState'),ctx=Array.isArray(b.data)?b.data[0]:b.data;if(!hasPlan('ultra')&&!currentProfile?.is_admin)rs.innerHTML='<div class="role-lock"><strong>Verejné rezervácie nie sú v tomto pláne aktívne.</strong><br>Plán iba odomyká rezervačnú funkciu.</div>';else if(ctx?.booking_enabled)rs.innerHTML=`<div class="role-card"><span class="role-badge">REZERVÁCIE AKTÍVNE</span><h3 style="margin-top:12px">${escapeHtml(ctx.club_name||club.name)}</h3><p>Dostupných športovísk: ${escapeHtml(ctx.station_count||0)}.</p><div style="margin-top:14px"><a class="btn btn-green" href="/rezervacie/?club=${encodeURIComponent(club.id)}">Otvoriť rezervačný kalendár</a></div></div>`;else rs.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Verejné rezervácie nie sú zapnuté</div></div>'}
+function renderOrganization(){document.getElementById('roleSportTabs').style.display='none';setRoleTabs([{key:'clubs',label:'Kluby'},{key:'players',label:'Hráči a licencie'},{key:'events',label:'Udalosti a turnaje'},{key:'leagues',label:'Ligy a sezóny'},{key:'rankings',label:'Rebríčky'},{key:'results',label:'Výsledky'},{key:'organizers',label:'Organizátori'},{key:'import',label:'Import dát'}]);const e=(i,t,s)=>`<div class="empty-state"><div class="empty-icon">${i}</div><div class="empty-title">${t}</div><div class="empty-sub">${s}</div></div>`;document.getElementById('roleContentMain').innerHTML=rolePanel('clubs',e('🏢','Zatiaľ žiadne prepojené kluby','Tu bude sieť klubov patriacich pod organizáciu.'),true)+rolePanel('players',e('🪪','Zatiaľ žiadni hráči ani licencie','Sekcia bude pracovať s členstvom a licenciami.'))+rolePanel('events',e('🏆','Zatiaľ žiadne organizačné udalosti','Publikované udalosti a turnaje sa zobrazia tu.'))+rolePanel('leagues',e('🏅','Zatiaľ žiadne ligy ani sezóny','Ligová štruktúra zatiaľ nemá dáta.'))+rolePanel('rankings',e('📊','Zatiaľ žiadne rebríčky','Rebríčky sa zobrazia po napojení výsledkov.'))+rolePanel('results',e('✅','Zatiaľ žiadne výsledky','Výsledky sa zobrazia po odohratí súťaží.'))+rolePanel('organizers',e('👤','Zatiaľ žiadni organizátori','Tu sa bude spravovať tím organizátorov.'))+rolePanel('import',hasPlan('ultra')?e('⇄','Import dát je pripravený na napojenie','Sekcia bude slúžiť pre synchronizáciu externých zdrojov.'):'<div class="role-lock"><strong>Import dát vyžaduje vyšší plán.</strong></div>');setRoleStats([{value:'0',label:'Kluby'},{value:'0',label:'Hráči'},{value:'0',label:'Ligy'},{value:'0',label:'Udalosti'},{value:'0',label:'Organizátori'},{value:'0',label:'Respekty',highlight:true}]);document.getElementById('roleContentSide').innerHTML=`<div class="widget"><div class="widget-head"><h3>Typ profilu</h3></div><div class="role-card"><span class="role-badge">ORGANIZÁCIA</span><p style="margin-top:10px">Dashboard je pripravený na kluby, licencie, ligy, rebríčky a výsledky.</p></div></div>`}
+async function renderDashboardByRole(force=false){if(!currentProfile||!currentSession)return;const role=String(currentProfile.role||'player').toLowerCase(),key=`${role}:${currentProfile.plan}:${currentProfile.is_admin===true}`;if(!force&&roleDashboardKey===key)return;roleDashboardKey=key;currentClubRecord=null;if(role==='club'){renderClubShell();try{await loadClubData()}catch(err){console.error('[profil] Club dashboard failed:',err)}}else if(role==='organization')renderOrganization();else restorePlayerDashboard()}
+
+
 // ── Settings modal ─────────────────────────────────────────────────
 function openSettings(){
   if(!currentSession){
@@ -1668,6 +1692,7 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
     currentProfile = updated;
     renderPlanCtas();
     renderIdentity();
+    await renderDashboardByRole(true);
     closeSettings();
     toast('Zmeny boli uložené.');
   } catch(err){
@@ -1722,7 +1747,7 @@ const authGateReady = (async function initAuthGate(){
     renderPlanCtas();
     renderIdentity();
     renderMemberSince();
-    loadProfileEvents();
+    await renderDashboardByRole(true);
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }
