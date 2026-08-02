@@ -45,6 +45,8 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
 .owner-table th,.owner-table td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
 .owner-table th{color:var(--soft);font-size:11px;text-transform:uppercase}
 .owner-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.export-note{font-size:12px;color:var(--soft);margin:-4px 0 14px}
+.btn-loading{opacity:.65;cursor:wait}
 .hidden{display:none!important}
 .empty{color:var(--soft);padding:16px 0}
 @media(max-width:650px){
@@ -120,8 +122,12 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     <p class="sub">Táto časť je viditeľná iba autorovi udalosti.</p>
 
     <div class="owner-tools">
+      <button class="btn btn-green" id="exportTournamentBtn">Vytvoriť turnaj z udalosti</button>
       <button class="btn btn-gold" id="copyNamesBtn">Kopírovať mená</button>
       <button class="btn btn-dark" id="copyFullListBtn">Kopírovať meno + nickname</button>
+    </div>
+    <div class="export-note" id="exportTournamentNote">
+      Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči.
     </div>
 
     <div id="ownerList">
@@ -141,6 +147,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   let currentSession = null;
   let currentEvent = null;
   let ownerRows = [];
+  let linkedTournamentId = null;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -168,7 +175,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
 
     const result = await db
       .from('events')
-      .select('id,owner_id,title,event_type,starts_at,status,visibility,registration_enabled,registration_deadline,max_participants')
+      .select('id,owner_id,title,event_type,starts_at,status,visibility,registration_enabled,registration_deadline,max_participants,sport,discipline,location_text,city')
       .eq('id', eventId)
       .maybeSingle();
 
@@ -199,6 +206,32 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
 
     const isOwner = currentSession && currentSession.user.id === currentEvent.owner_id;
     $('ownerPanel').classList.toggle('hidden', !isOwner);
+
+    if(isOwner){
+      await loadLinkedTournament();
+    }
+  }
+
+  async function loadLinkedTournament(){
+    const result = await db
+      .from('tournaments')
+      .select('id,status')
+      .eq('source_event_id', eventId)
+      .maybeSingle();
+
+    if(result.error) throw result.error;
+
+    linkedTournamentId = result.data?.id || null;
+    const button = $('exportTournamentBtn');
+    const note = $('exportTournamentNote');
+
+    if(linkedTournamentId){
+      button.textContent = 'Otvoriť nastavenia turnaja';
+      note.textContent = 'Turnaj už existuje. Otvoria sa jeho nastavenia a aktuálny zoznam hráčov.';
+    }else{
+      button.textContent = 'Vytvoriť turnaj z udalosti';
+      note.textContent = `Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči (${ownerRows.length}).`;
+    }
   }
 
   async function loadPublicList(){
@@ -226,6 +259,12 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     if(result.error) throw result.error;
 
     ownerRows = result.data || [];
+    if(currentSession && currentEvent && currentSession.user.id === currentEvent.owner_id){
+      const note = $('exportTournamentNote');
+      if(note && !linkedTournamentId){
+        note.textContent = `Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči (${ownerRows.length}).`;
+      }
+    }
 
     $('ownerList').innerHTML = ownerRows.length
       ? `<table class="owner-table">
@@ -304,6 +343,44 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     await loadOwnerList();
   }
 
+
+  async function exportToTournament(){
+    if(!currentSession || !currentEvent || currentSession.user.id !== currentEvent.owner_id) return;
+
+    if(!currentEvent.sport || !currentEvent.discipline){
+      show('Pred exportom doplň v udalosti šport a disciplínu.', true);
+      return;
+    }
+
+    const button = $('exportTournamentBtn');
+    button.disabled = true;
+    button.classList.add('btn-loading');
+    button.textContent = linkedTournamentId ? 'Otváram…' : 'Vytváram turnaj…';
+
+    try{
+      const result = await db.rpc('export_event_to_tournament',{
+        p_event_id:eventId,
+        p_format:'sko',
+        p_groups_count:null,
+        p_advance_count:null
+      });
+
+      if(result.error) throw result.error;
+
+      const tournamentId = result.data?.tournament_id || result.data?.id || result.data || linkedTournamentId;
+      if(!tournamentId) throw Error('Backend nevrátil ID turnaja.');
+
+      linkedTournamentId = tournamentId;
+      show(`Turnaj je pripravený. Prenesených hráčov: ${ownerRows.length}.`);
+      location.href = `/turnament/?tournament_id=${encodeURIComponent(tournamentId)}&mode=settings`;
+    }catch(error){
+      show(error.message || 'Turnaj sa nepodarilo vytvoriť z udalosti.', true);
+      button.disabled = false;
+      button.classList.remove('btn-loading');
+      button.textContent = linkedTournamentId ? 'Otvoriť nastavenia turnaja' : 'Vytvoriť turnaj z udalosti';
+    }
+  }
+
   async function copyText(text, successMessage){
     try{
       await navigator.clipboard.writeText(text);
@@ -314,6 +391,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   }
 
   $('registrationForm').addEventListener('submit', submitRegistration);
+  $('exportTournamentBtn').addEventListener('click', exportToTournament);
 
   $('copyNamesBtn').addEventListener('click',()=>{
     const text = ownerRows.map(row => row.full_name).join('\n');

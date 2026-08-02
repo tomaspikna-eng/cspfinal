@@ -725,7 +725,20 @@ function saveBracketState(id,state){
     document.getElementById('tbUser').style.display = 'flex';
     document.getElementById('signOutBtn').style.display = 'inline-flex';
 
-    go('dashboard');
+    const launchParams = new URLSearchParams(location.search);
+    const launchTournamentId = launchParams.get('tournament_id');
+    const launchMode = launchParams.get('mode');
+
+    if(launchTournamentId){
+      if(launchMode === 'settings'){
+        await editTournament(launchTournamentId);
+      }else{
+        await openTournament(launchTournamentId);
+      }
+      history.replaceState({}, '', location.pathname);
+    }else{
+      go('dashboard');
+    }
   } catch(err) {
     console.error('[turnament] Auth check failed or timed out:', err);
     window.location.href = '/login/';
@@ -1284,6 +1297,7 @@ async function editTournament(id){
     go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
                    raceTo: t.config?.race_to || 5,
                    protectedSeeds: bracketState.protectedSeeds || 0,
+                   source_event_id: t.source_event_id || null,
                    players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
   } catch(err){
     console.error('[turnament] Failed to load tournament for editing:', err);
@@ -1887,7 +1901,7 @@ function initWizard(existing){
 function renderRail(){
   const steps=activeSteps(), cur=steps.indexOf(wiz.step);
   document.getElementById('wizRail').innerHTML=
-    `<div class="rail-title">Nový turnaj</div>`+
+    `<div class="rail-title">${wiz.editId?'Nastavenia turnaja':'Nový turnaj'}</div>`+
     steps.map((s,idx)=>{
       const cls = wiz.step===s?'active':(idx<cur?'done':'');
       return `<div class="rail-step ${cls}" onclick="gotoStep(${s})"><span class="num">${idx<cur?'✓':idx+1}</span><span class="lbl">${STEPS[s][0]}</span></div>`;
@@ -1905,6 +1919,7 @@ function renderWiz(){
     if(!discs.includes(wiz.discipline)) wiz.discipline=discs[0];
     p.innerHTML=`
       <h2>Základné info</h2><div class="sub">Pomenuj turnaj, vyber šport a disciplínu.</div>
+      ${wiz.source_event_id?`<div class="note-box" style="margin-bottom:18px"><b>Importované z udalosti.</b> Základné údaje a ${wiz.players.length} hráčov boli prenesené automaticky. Teraz nastav formát a herné parametre.</div>`:''}
       <div class="field"><label>Názov turnaja</label><input id="wName" value="${wiz.name}" placeholder="napr. Letný pool open 2026"/></div>
       <div class="field"><label>Šport</label>
         <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';renderWiz()">
