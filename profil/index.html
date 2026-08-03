@@ -666,6 +666,26 @@ a{color:inherit;text-decoration:none}
 .btn:disabled{opacity:.55;cursor:not-allowed;pointer-events:none}
 
 
+
+/* SOCIAL CORE */
+.social-actions{display:flex;gap:10px;flex-wrap:wrap}
+.social-count-btn.given{background:var(--gold-dim);border-color:var(--gold-b);color:var(--gold)}
+.notification-menu{
+  position:absolute;top:48px;right:0;width:min(360px,calc(100vw - 32px));max-height:430px;overflow:auto;
+  background:var(--bg2);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.55);
+  display:none;z-index:60;padding:8px
+}
+.notification-menu.show{display:block}
+.notification-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 12px}
+.notification-head strong{font-size:.86rem}
+.notification-item{display:flex;gap:10px;padding:11px;border-radius:9px;border-top:1px solid var(--line2)}
+.notification-item.unread{background:var(--gold-dim)}
+.notification-icon{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--bg3);flex:0 0 34px}
+.notification-copy{min-width:0}
+.notification-title{font-size:.82rem;font-weight:700}
+.notification-body{font-size:.75rem;color:var(--muted2);margin-top:3px;line-height:1.4}
+.notification-time{font-family:var(--mono);font-size:.64rem;color:var(--muted);margin-top:4px}
+
 /* CLUB PUBLIC PROFILE EDITOR */
 
 #roleContentSide{display:flex !important}
@@ -760,7 +780,11 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" title="Notifikácie">🔔</button>
+        <button class="icon-btn" id="notificationsBtn" title="Notifikácie">🔔<span class="bell-dot" id="notificationDot" style="display:none"></span></button>
+        <div class="notification-menu" id="notificationMenu">
+          <div class="notification-head"><strong>Notifikácie</strong><button id="markNotificationsReadBtn" class="see-all" type="button">Označiť ako prečítané</button></div>
+          <div id="notificationList"><div class="empty-state small"><div class="empty-sub">Načítavam…</div></div></div>
+        </div>
         <button class="user-pill" onclick="toggleUserMenu(event)">
           <span class="av-mini" id="topbarAvatarInitials">JN</span>
           <span id="topbarUserName">Ján Novák</span>
@@ -804,9 +828,11 @@ a{color:inherit;text-decoration:none}
           </div>
         </div>
 
-        <div class="profile-actions">
+        <div class="profile-actions social-actions">
           <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
-          <button class="btn btn-secondary">📤 Share</button>
+          <button class="btn btn-primary" id="followProfileBtn" style="display:none">Sledovať</button>
+          <button class="btn btn-secondary social-count-btn" id="respectProfileBtn" style="display:none">⭐ Rešpekt</button>
+          <button class="btn btn-secondary" id="shareProfileBtn">📤 Zdieľať</button>
         </div>
       </div>
 
@@ -817,15 +843,15 @@ a{color:inherit;text-decoration:none}
            leftover demo numbers. -->
       <div class="stats-bar">
         <div class="stat">
-          <div class="stat-num">0</div>
+          <div class="stat-num" id="followingCount">0</div>
           <div class="stat-label">Sledujú</div>
         </div>
         <div class="stat">
-          <div class="stat-num">0</div>
+          <div class="stat-num" id="followersCount">0</div>
           <div class="stat-label">Sledovatelia</div>
         </div>
         <div class="stat">
-          <div class="stat-num">0</div>
+          <div class="stat-num" id="respectCount">0</div>
           <div class="stat-label">Respekty</div>
         </div>
         <div class="stat">
@@ -1019,9 +1045,7 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <!-- SHARE FAB -->
-<button class="share-fab" onclick="alert('Funkcia Share Card príde čoskoro – generuje IG/FB kartu s tvojím profilom.')">
-  📤 Share môj profil
-</button>
+<button class="share-fab" id="shareProfileFab">📤 Zdieľať profil</button>
 
 <!-- ═══════════ SETTINGS MODAL ═══════════ -->
 <div class="modal-overlay" id="settingsOverlay">
@@ -1234,10 +1258,15 @@ function toast(msg, type){
 // ── State shared between the auth gate and the settings modal ────────
 let currentSession = null;
 let currentProfile = null;
+let authProfile = null;
+let viewedProfileId = null;
+let isOwnProfile = true;
+let socialState = {viewer_follows:false,viewer_respected:false};
 
 function renderPlanCtas(){
   const box = document.getElementById('profilePlanCtas');
   if(!box || !currentProfile) return;
+  if(!isOwnProfile){box.innerHTML='';return;}
 
   const plan = String(currentProfile.plan || 'free').toLowerCase();
   const role = String(currentProfile.role || 'player').toLowerCase();
@@ -1575,6 +1604,140 @@ async function loadProfileEvents(force=false){
 
 
 
+
+// ── SOCIAL CORE: follows, respect, sharing, notifications ───────────
+function profileUrl(profileId){
+  const url=new URL(location.href);
+  url.searchParams.set('id',profileId);
+  return url.toString();
+}
+async function loadViewedProfile(authLoadedProfile){
+  authProfile=authLoadedProfile;
+  const requested=new URLSearchParams(location.search).get('id');
+  viewedProfileId=requested||currentSession.user.id;
+  isOwnProfile=viewedProfileId===currentSession.user.id;
+  if(isOwnProfile) return authLoadedProfile;
+
+  const {data,error}=await cspAuth.withTimeout(
+    cspAuth.client.from('profiles').select('*').eq('id',viewedProfileId).maybeSingle(),
+    8000,'load viewed profile'
+  );
+  if(error) throw error;
+  if(!data) throw new Error('Profil neexistuje.');
+  return data;
+}
+async function loadSocialState(){
+  if(!viewedProfileId) return;
+  const {data,error}=await cspAuth.client.rpc('get_profile_social_state',{p_profile_id:viewedProfileId});
+  if(error) throw error;
+  const row=Array.isArray(data)?data[0]:data;
+  socialState=row||{};
+  document.getElementById('followingCount').textContent=String(row?.following_count||0);
+  document.getElementById('followersCount').textContent=String(row?.followers_count||0);
+  document.getElementById('respectCount').textContent=String(row?.respect_count||0);
+
+  const follow=document.getElementById('followProfileBtn');
+  const respect=document.getElementById('respectProfileBtn');
+  const edit=document.getElementById('editProfileBtn');
+  if(edit) edit.style.display=isOwnProfile?'':'none';
+  if(follow){
+    follow.style.display=isOwnProfile?'none':'';
+    follow.textContent=row?.viewer_follows?'Sledujem':'Sledovať';
+    follow.classList.toggle('btn-secondary',!!row?.viewer_follows);
+    follow.classList.toggle('btn-primary',!row?.viewer_follows);
+  }
+  if(respect){
+    respect.style.display=isOwnProfile?'none':'';
+    respect.classList.toggle('given',!!row?.viewer_respected);
+    respect.textContent=row?.viewer_respected?'⭐ Rešpekt udelený':'⭐ Rešpekt';
+  }
+}
+async function toggleFollow(){
+  if(isOwnProfile||!viewedProfileId)return;
+  if(socialState.viewer_follows){
+    const {error}=await cspAuth.client.from('profile_follows').delete()
+      .eq('follower_id',currentSession.user.id).eq('following_profile_id',viewedProfileId);
+    if(error)throw error;
+  }else{
+    const {error}=await cspAuth.client.from('profile_follows').insert({
+      follower_id:currentSession.user.id,following_profile_id:viewedProfileId
+    });
+    if(error)throw error;
+  }
+  await loadSocialState();
+}
+async function toggleRespect(){
+  if(isOwnProfile||!viewedProfileId)return;
+  if(socialState.viewer_respected){
+    const {error}=await cspAuth.client.from('social_reactions').delete()
+      .eq('user_id',currentSession.user.id).eq('entity_type','profile')
+      .eq('entity_id',viewedProfileId).eq('reaction_type','respect');
+    if(error)throw error;
+  }else{
+    const {error}=await cspAuth.client.from('social_reactions').insert({
+      user_id:currentSession.user.id,entity_type:'profile',entity_id:viewedProfileId,reaction_type:'respect'
+    });
+    if(error)throw error;
+  }
+  await loadSocialState();
+}
+async function shareProfile(){
+  const name=currentProfile?.full_name||'Profil';
+  const url=profileUrl(viewedProfileId||currentSession.user.id);
+  const payload={title:`${name} · Connect Sports Pro`,text:`Pozri si profil ${name} na Connect Sports Pro.`,url};
+  try{
+    if(navigator.share){await navigator.share(payload)}
+    else{await navigator.clipboard.writeText(url);toast('Odkaz na profil bol skopírovaný.')}
+  }catch(err){
+    if(err?.name!=='AbortError'){console.error(err);toast('Profil sa nepodarilo zdieľať.','error')}
+  }
+}
+function notificationRelative(iso){
+  const d=new Date(iso),mins=Math.floor((Date.now()-d.getTime())/60000);
+  if(mins<1)return'práve teraz';if(mins<60)return`pred ${mins} min`;
+  const h=Math.floor(mins/60);if(h<24)return`pred ${h} h`;
+  return d.toLocaleDateString('sk-SK');
+}
+async function loadNotifications(){
+  if(!currentSession)return;
+  const {data,error}=await cspAuth.client.from('notifications')
+    .select('id,notification_type,title,body,is_read,created_at,actor_id')
+    .eq('recipient_id',currentSession.user.id).order('created_at',{ascending:false}).limit(30);
+  if(error)throw error;
+  const rows=data||[], unread=rows.some(x=>!x.is_read);
+  document.getElementById('notificationDot').style.display=unread?'':'none';
+  document.getElementById('notificationList').innerHTML=rows.length?rows.map(n=>`
+    <div class="notification-item ${n.is_read?'':'unread'}">
+      <div class="notification-icon">${n.notification_type==='new_follower'?'👤':'⭐'}</div>
+      <div class="notification-copy"><div class="notification-title">${escapeHtml(n.title)}</div>
+      <div class="notification-body">${escapeHtml(n.body||'')}</div>
+      <div class="notification-time">${notificationRelative(n.created_at)}</div></div>
+    </div>`).join(''):
+    '<div class="empty-state small"><div class="empty-sub">Zatiaľ nemáš žiadne notifikácie.</div></div>';
+}
+async function markNotificationsRead(){
+  const {error}=await cspAuth.client.rpc('mark_all_notifications_read');
+  if(error)throw error;
+  await loadNotifications();
+}
+document.getElementById('followProfileBtn')?.addEventListener('click',()=>toggleFollow().catch(err=>{console.error(err);toast('Sledovanie sa nepodarilo zmeniť.','error')}));
+document.getElementById('respectProfileBtn')?.addEventListener('click',()=>toggleRespect().catch(err=>{console.error(err);toast('Rešpekt sa nepodarilo zmeniť.','error')}));
+document.getElementById('shareProfileBtn')?.addEventListener('click',shareProfile);
+document.getElementById('shareProfileFab')?.addEventListener('click',shareProfile);
+document.getElementById('notificationsBtn')?.addEventListener('click',async e=>{
+  e.stopPropagation();
+  const menu=document.getElementById('notificationMenu');
+  menu.classList.toggle('show');
+  if(menu.classList.contains('show')) await loadNotifications().catch(console.error);
+});
+document.getElementById('markNotificationsReadBtn')?.addEventListener('click',()=>markNotificationsRead().catch(err=>{console.error(err);toast('Notifikácie sa nepodarilo označiť.','error')}));
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#notificationsBtn')&&!e.target.closest('#notificationMenu')){
+    document.getElementById('notificationMenu')?.classList.remove('show');
+  }
+});
+
+
 // ── CLUB ROLE: public profile tabs + editor ─────────────────────────
 let currentClub = null;
 let clubPublicProfile = null;
@@ -1586,7 +1749,7 @@ function clubText(value){
 async function loadCurrentClub(){
   if(currentClub || !currentSession) return currentClub;
   const {data,error}=await cspAuth.withTimeout(
-    cspAuth.client.from('clubs').select('id,name,owner_id').eq('owner_id',currentSession.user.id).maybeSingle(),
+    cspAuth.client.from('clubs').select('id,name,owner_id').eq('owner_id',viewedProfileId||currentSession.user.id).maybeSingle(),
     8000,'load current club'
   );
   if(error) throw error;
@@ -1829,10 +1992,10 @@ function openSettings(){
     toast('Načítavam profil, skús o chvíľu znova.', 'error');
     return;
   }
-  document.getElementById('settingsFullName').value = (currentProfile && currentProfile.full_name) || '';
-  document.getElementById('settingsRole').value = (currentProfile && currentProfile.role) || 'player';
+  document.getElementById('settingsFullName').value = (authProfile && authProfile.full_name) || '';
+  document.getElementById('settingsRole').value = (authProfile && authProfile.role) || 'player';
 
-  const plan = (currentProfile && currentProfile.plan) || 'free';
+  const plan = (authProfile && authProfile.plan) || 'free';
   const planBadge = document.getElementById('settingsPlanBadge');
   planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
   planBadge.classList.toggle('plan-ultra', plan === 'ultra');
@@ -1843,7 +2006,7 @@ function openSettings(){
   // bypasses) already used to protect Club Manager itself. Checked
   // locally against the already-loaded profile rather than an extra RPC
   // round trip, same style as the plan badge above.
-  const isAdmin = !!(currentProfile && currentProfile.is_admin);
+  const isAdmin = !!(authProfile && authProfile.is_admin);
   const venuesUnlocked = plan === 'ultra' || isAdmin;
   document.getElementById('settingsVenuesLocked').style.display = venuesUnlocked ? 'none' : '';
   document.getElementById('settingsVenuesUnlocked').style.display = venuesUnlocked ? '' : 'none';
@@ -1892,6 +2055,7 @@ function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
 }
 document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+  if(!isOwnProfile)return;
   if(String(currentProfile?.role||'player').toLowerCase()==='club') openClubEditor().catch(err=>{console.error(err);toast('Editor profilu sa nepodarilo načítať.','error')});
   else openSettings();
 });
@@ -1986,7 +2150,10 @@ document.getElementById('coverFileInput')?.addEventListener('change', async (e) 
     );
     if(updateError) throw updateError;
 
+    authProfile = updated;
     currentProfile = updated;
+    viewedProfileId = updated.id;
+    isOwnProfile = true;
     renderPlanCtas();
     renderIdentity();
     toast('Pozadie profilu bolo aktualizované.');
@@ -2118,11 +2285,13 @@ const authGateReady = (async function initAuthGate(){
     if(profileError){
       console.error('[profil] Could not load profile row, falling back to email-derived name:', profileError);
     }
-    currentProfile = profile;
+    currentProfile = await loadViewedProfile(profile);
 
     renderPlanCtas();
     renderIdentity();
     renderMemberSince();
+    await loadSocialState();
+    await loadNotifications();
     await renderDashboardByRole();
     loadProfileEvents();
   } catch(err) {
