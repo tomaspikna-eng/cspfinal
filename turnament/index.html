@@ -1480,6 +1480,83 @@ function scoreboardSportFromTournament(){
   return 'other';
 }
 
+function liveMatchElapsed(row){
+  if(!row) return 0;
+  let sec=Number(row.match_clock_elapsed_seconds||0);
+  if((row.status==='live'||row.status==='in_progress')&&!row.match_clock_paused_at&&row.match_clock_started_at){
+    sec+=Math.max(0,Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
+  }
+  return sec;
+}
+function formatMatchClock(sec){
+  sec=Math.max(0,Number(sec||0));
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
+  return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+async function ensureRealMatch(loc,m){
+  let row=realMatchesByKey.get(loc);
+  if(row)return row;
+  const p1Id=resolvePlayerId(m.p1),p2Id=resolvePlayerId(m.p2);
+  const prefix=loc.split(':')[0],parts=loc.split(':');
+  const isGroup=prefix==='grp';
+  const phaseId=isGroup?curT.groupPhaseId:(prefix.startsWith('p2')?curT.knockoutPhaseId:curT.current_phase_id);
+  const phaseSide=prefix==='p2W'?'W':prefix==='p2L'?'L':prefix==='p2F'?'GF':prefix==='W'?'W':prefix==='L'?'L':prefix==='F'?'GF':null;
+  const roundNumber=(prefix==='grp'||prefix==='rr')?(m.round||null):((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
+  const matchNumber=(parts.length>2&&Number.isFinite(+parts[2]))?+parts[2]+1:((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
+  const {data,error}=await cspAuth.client.from('matches').upsert({
+    tournament_id:curT.id,phase_id:phaseId||null,round_key:loc,round_number:roundNumber,match_number:matchNumber,
+    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending'
+  },{onConflict:'tournament_id,round_key'}).select('*').single();
+  if(error)throw error;
+  row=data;realMatchesByKey.set(loc,row);return row;
+}
+async function refreshRealMatch(loc){
+  const {data,error}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id).eq('round_key',loc).single();
+  if(error)throw error;
+  realMatchesByKey.set(loc,data);
+  const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
+  return data;
+}
+async function reloadRealMatches(){
+  const {data,error}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id);
+  if(error)throw error;
+  realMatchesByKey=new Map((data||[]).map(row=>[row.round_key,row]));
+  return data||[];
+}
+async function startLiveMatch(loc){
+  const m=getMatchByLoc(loc);if(!m)return;
+  try{
+    const row=await ensureRealMatch(loc,m),now=new Date().toISOString();
+    const payload={status:'live',match_clock_started_at:now,match_clock_paused_at:null,match_clock_stopped_at:null};
+    if(!row.started_at)payload.started_at=now;
+    const {error}=await cspAuth.client.from('matches').update(payload).eq('id',row.id);
+    if(error)throw error;await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] start match:',err);toast('Zápas sa nepodarilo spustiť.',true);}
+}
+async function pauseLiveMatch(loc){
+  const row=realMatchesByKey.get(loc);if(!row)return;
+  try{
+    const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
+    const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:now}).eq('id',row.id);
+    if(error)throw error;await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] pause match:',err);toast('Zápas sa nepodarilo pozastaviť.',true);}
+}
+async function resumeLiveMatch(loc){
+  const row=realMatchesByKey.get(loc);if(!row)return;
+  try{
+    const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
+    if(error)throw error;await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] resume match:',err);toast('Zápas sa nepodarilo obnoviť.',true);}
+}
+async function stopLiveMatch(loc){
+  const row=realMatchesByKey.get(loc);if(!row)return;
+  try{
+    const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
+    const {error}=await cspAuth.client.from('matches').update({status:'ready',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:null,match_clock_stopped_at:now}).eq('id',row.id);
+    if(error)throw error;await refreshRealMatch(loc);
+  }catch(err){console.error('[turnament] stop match:',err);toast('Zápas sa nepodarilo zastaviť.',true);}
+}
+
 async function loadTournamentOperations(tournamentId){
   try{
     const {data,error}=await cspAuth.client.rpc('get_tournament_operations',{p_tournament_id:tournamentId});
