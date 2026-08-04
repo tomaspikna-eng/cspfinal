@@ -299,9 +299,16 @@ input:focus,select:focus{border-color:var(--gold)}
 .player-count{font-size:.9rem;font-weight:700}.player-count b{color:var(--gold);font-family:var(--mono)}
 .player-bracket{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
 .player-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
-.pl-item{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:9px}
-.pl-seed{font-family:var(--mono);font-size:.74rem;font-weight:700;color:var(--gold);width:26px}
+.pl-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:9px;transition:.12s}
+.pl-item[draggable="true"]{cursor:grab}.pl-item.dragging{opacity:.42;border-color:var(--gold)}.pl-item.drag-over{border-color:var(--gold);background:var(--gold-dim)}
+.pl-drag{color:var(--muted);font-size:1rem;width:18px;text-align:center;user-select:none;cursor:grab}
+.pl-seed{font-family:var(--mono);font-size:.68rem;font-weight:700;color:var(--gold);min-width:62px}
+.pl-seed.unseeded{color:var(--muted)}
 .pl-name{flex:1;font-size:.88rem;font-weight:600}
+.pl-move{display:flex;gap:3px}.pl-move button{width:24px;height:24px;border-radius:6px;color:var(--muted);font-size:.72rem}.pl-move button:hover{background:var(--gold-dim);color:var(--gold)}
+.seed-control{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:14px;align-items:end;margin:14px 0}
+.seed-control .field{margin:0}.seed-info{font-size:.78rem;color:var(--muted);line-height:1.45}
+@media(max-width:620px){.seed-control{grid-template-columns:1fr}.pl-move{display:none}}
 .pl-del{color:var(--muted);font-size:1rem;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center}
 .pl-del:hover{background:var(--red-dim);color:var(--red)}
 .player-empty{text-align:center;padding:30px;color:var(--muted);font-size:.86rem;border:1px dashed var(--line);border-radius:11px}
@@ -1269,7 +1276,7 @@ async function viewDetail(id){
         <div class="detail-card" style="margin-top:16px">
           <div class="dc-head"><h3>Hráči (${players.length})</h3><button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button></div>
           <div class="player-list" style="max-height:240px">
-            ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed">${i+1}</span><span class="pl-name">${esc(p.name)}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
+            ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
           </div>
         </div>
       </div>
@@ -1297,6 +1304,7 @@ async function editTournament(id){
     go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
                    raceTo: t.config?.race_to || 5,
                    protectedSeeds: bracketState.protectedSeeds || 0,
+                   seedCount: Number(t.config?.seed_count ?? (players||[]).length),
                    source_event_id: t.source_event_id || null,
                    players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
   } catch(err){
@@ -1879,7 +1887,7 @@ const FORMATS={
 const STEPS=[['Info','📋'],['Formát','🏆'],['Hráči','👥'],['Skupiny','🔢'],['Súhrn','✓']];
 
 let wiz={};
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return isKarty()? [0,2,4] : (isCombo()? [0,1,2,3,4] : [0,1,2,4]); }
@@ -1893,7 +1901,7 @@ function viewWizard(){
 function initWizard(existing){
   wiz=blankWiz();
   if(existing){ // editácia
-    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
   }
   renderWiz();
 }
@@ -1950,7 +1958,7 @@ function renderWiz(){
   else if(wiz.step===2){
     const N=TM.nextPow2(Math.max(2,wiz.players.length));
     p.innerHTML=`
-      <h2>Hráči</h2><div class="sub">Pridaj hráčov jednotlivo, alebo hromadne vlož celý zoznam.</div>
+      <h2>Hráči a seedovanie</h2><div class="sub">Pridaj hráčov, nastav počet seedov a ručne uprav ich poradie potiahnutím.</div>
       <div class="player-add">
         <input id="wPlayerName" placeholder="Meno a priezvisko hráča" onkeydown="if(event.key==='Enter')addPlayer()"/>
         <button class="btn btn-primary" onclick="addPlayer()">＋ Pridať</button></div>
@@ -1962,7 +1970,17 @@ function renderWiz(){
         <span class="player-count"><b>${wiz.players.length}</b> hráčov</span>
         ${wiz.players.length?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
       </div>
-      ${wiz.players.length? `<div class="player-list">${wiz.players.map((pl,i)=>`<div class="pl-item"><span class="pl-seed">${i+1}</span><span class="pl-name">${pl.name}</span><button class="pl-del" onclick="removePlayer(${i})">✕</button></div>`).join('')}</div>`
+      ${wiz.players.length?`<div class="seed-control">
+        <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
+        <div class="seed-info">Prvých <b>${Math.min(wiz.seedCount,wiz.players.length)}</b> hráčov v zozname bude nasadených. Poradie zmeníš potiahnutím alebo šípkami. Ostatní zostanú bez seedu.</div>
+      </div>
+      <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" draggable="true" data-player-index="${i}" ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)">
+        <span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>
+        <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
+        <span class="pl-name">${esc(pl.name)}</span>
+        <span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
+        <button class="pl-del" onclick="removePlayer(${i})">✕</button>
+      </div>`).join('')}</div>`
         : `<div class="player-empty">Zatiaľ žiadni hráči. Pridaj prvého vyššie.</div>`}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
     setTimeout(()=>{const e=document.getElementById('wPlayerName'); if(e&&!wiz.showBulk) e.focus();},30);
@@ -1990,6 +2008,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${wiz.sport} · ${wiz.discipline}</span></div>
         <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
+        <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         <div class="sumrow"><span class="k">Race to</span><span class="v">${wiz.raceTo||5}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
         ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
@@ -2017,8 +2036,52 @@ function addBulk(){
   names.forEach(n=>wiz.players.push({name:n}));
   wiz.showBulk=false; renderWiz(); toast(`Pridaných ${names.length} hráčov`);
 }
-function removePlayer(i){ wiz.players.splice(i,1); renderWiz(); }
-function clearPlayers(){ if(confirm('Vymazať všetkých hráčov?')){ wiz.players=[]; renderWiz(); } }
+function setSeedCount(value){
+  wiz.seedCount=Math.max(0,Math.min(wiz.players.length,Number(value)||0));
+  renderWiz();
+}
+function movePlayer(index,delta){
+  const target=index+delta;
+  if(target<0||target>=wiz.players.length)return;
+  const [player]=wiz.players.splice(index,1);
+  wiz.players.splice(target,0,player);
+  renderWiz();
+}
+let draggedPlayerIndex=null;
+function playerDragStart(event,index){
+  draggedPlayerIndex=index;
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain',String(index));
+  event.currentTarget.classList.add('dragging');
+}
+function playerDragOver(event,index){
+  event.preventDefault();
+  event.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.pl-item.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  event.currentTarget.classList.add('drag-over');
+}
+function playerDragLeave(event){event.currentTarget.classList.remove('drag-over')}
+function playerDrop(event,targetIndex){
+  event.preventDefault();
+  const source=draggedPlayerIndex??Number(event.dataTransfer.getData('text/plain'));
+  if(Number.isInteger(source)&&source!==targetIndex){
+    const [player]=wiz.players.splice(source,1);
+    wiz.players.splice(targetIndex,0,player);
+  }
+  draggedPlayerIndex=null;
+  renderWiz();
+}
+function playerDragEnd(event){
+  draggedPlayerIndex=null;
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.pl-item.drag-over').forEach(el=>el.classList.remove('drag-over'));
+}
+function removePlayer(i){
+  wiz.players.splice(i,1);
+  wiz.seedCount=Math.min(wiz.seedCount,wiz.players.length);
+  renderWiz();
+}
+function clearPlayers(){ if(confirm('Vymazať všetkých hráčov?')){ wiz.players=[]; wiz.seedCount=0; renderWiz(); } }
 function refreshGroupNote(){
   const el=document.getElementById('groupNote'); if(!el) return;
   const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total));
@@ -2076,7 +2139,7 @@ async function createTournament(){
       venue: wiz.venue || null,
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
-      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5) },
+      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)) },
     };
 
     let tournamentId, tournamentRow;
