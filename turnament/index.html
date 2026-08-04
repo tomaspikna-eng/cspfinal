@@ -2110,7 +2110,7 @@ function renderWiz(){
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
       <div id="genPreview"></div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${wiz.editId?'✓ Uložiť zmeny':(isKarty()?'✓ Vytvoriť turnaj a otvoriť stoly':'✓ Vytvoriť turnaj')}</button></div>`;
+      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${isKarty()?(wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly'):'▶ Spustiť turnaj'}</button></div>`;
     renderPreview();
   }
 }
@@ -2221,7 +2221,7 @@ function renderPreview(){
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
   const btn = document.querySelector('#wizPanel .btn-green');
-  if(btn){ btn.disabled = true; btn.textContent = 'Ukladám...'; }
+  if(btn){ btn.disabled = true; btn.textContent = isKarty()?'Ukladám...':'Spúšťam...'; }
 
   let createdTournamentId = null;
   try {
@@ -2284,15 +2284,24 @@ async function createTournament(){
 
     if(isCombo()) saveBracketState(tournamentId,{protectedSeeds:wiz.format==='rr_sko'?wiz.protectedSeeds:0});
 
-    const finalTournament = { ...tournamentRow, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
+    let finalTournament = { ...tournamentRow, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
 
-    toast(wiz.editId ? 'Zmeny uložené ✓' : 'Turnaj vytvorený ✓');
     if(finalTournament.format === 'karty'){
+      toast(wiz.editId ? 'Zmeny uložené ✓' : 'Turnaj vytvorený ✓');
       setTimeout(() => openTableGen(finalTournament), 700);
-    } else if(wiz.editId){
-      setTimeout(() => go('detail', tournamentId), 700);
     } else {
-      setTimeout(() => go('dashboard'), 700);
+      const startedAt = new Date().toISOString();
+      const { data: startedTournament, error: startErr } = await cspAuth.client
+        .from('tournaments')
+        .update({ status:'active', started_at:startedAt })
+        .eq('id', tournamentId)
+        .eq('owner_id', currentSession.user.id)
+        .select()
+        .single();
+      if(startErr) throw startErr;
+      finalTournament = { ...startedTournament, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
+      toast('Turnaj bol spustený ✓');
+      setTimeout(() => go('detail', tournamentId), 500);
     }
   } catch(err){
     console.error('[turnament] Failed to save tournament:', err);
@@ -2301,7 +2310,7 @@ async function createTournament(){
       if(rollbackErr) console.error('[turnament] Failed to rollback incomplete tournament:',rollbackErr);
     }
     toast('Nepodarilo sa uložiť turnaj: '+cspAuth.formatError(err), true);
-    if(btn){ btn.disabled = false; btn.textContent = wiz.editId ? '✓ Uložiť zmeny' : (isKarty() ? '✓ Vytvoriť turnaj a otvoriť stoly' : '✓ Vytvoriť turnaj'); }
+    if(btn){ btn.disabled = false; btn.textContent = isKarty() ? (wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly') : '▶ Spustiť turnaj'; }
   }
 }
 
