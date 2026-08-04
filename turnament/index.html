@@ -906,12 +906,30 @@ async function archiveTournament(id){
 
 
 async function setTournamentWorkflowStatus(id,status){
+  // Tournament workflow is intentionally independent from Club Manager,
+  // calendar reservations and club-table occupancy.
+  const allowed=new Set(['ready','active']);
+  if(!allowed.has(status)){toast('Nepovolený stav turnaja.',true);return;}
   try{
-    const {error}=await cspAuth.client.rpc('set_tournament_workflow_status',{p_tournament_id:id,p_status:status});
+    const patch={
+      status,
+      started_at:status==='active'?new Date().toISOString():null
+    };
+    const {data,error}=await cspAuth.client
+      .from('tournaments')
+      .update(patch)
+      .eq('id',id)
+      .eq('owner_id',currentSession.user.id)
+      .select('id,status,started_at')
+      .single();
     if(error)throw error;
-    toast(status==='ready'?'Turnaj je pripravený ✓':status==='active'?'Turnaj bol spustený ✓':'Stav uložený ✓');
-    go('detail',id);
-  }catch(err){console.error('[turnament] workflow status:',err);toast(cspAuth.formatError?cspAuth.formatError(err):err.message,true)}
+    if(!data)throw new Error('Turnaj sa nepodarilo aktualizovať.');
+    toast(status==='ready'?'Turnaj je pripravený ✓':'Turnaj bol spustený ✓');
+    await go('detail',id);
+  }catch(err){
+    console.error('[turnament] workflow status:',err);
+    toast(cspAuth.formatError?cspAuth.formatError(err):(err.message||String(err)),true);
+  }
 }
 async function deleteTournament(id){
   if(!confirm(`Zmazať tento turnaj? Túto akciu nemožno vrátiť.`)) return;
