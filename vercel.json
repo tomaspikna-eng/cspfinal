@@ -1,11 +1,35 @@
 {
   "cleanUrls": true,
-  "trailingSlash": true,
-  "redirects": [
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
     {
       "source": "/",
-      "destination": "/scoreboard/",
-      "permanent": false
+      "has": [
+        {
+          "type": "host",
+          "value": "cspmanager.app"
+        }
+      ],
+      "destination": "/manager/"
     }
   ]
 }
