@@ -6,6 +6,7 @@
 <title>Udalosť · Connect Sports Pro</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js"></script>
 <style>
 :root{
   --bg:#060608;--panel:#0d0d11;--field:#14141a;--line:rgba(255,255,255,.08);
@@ -34,6 +35,7 @@ textarea{min-height:110px;resize:vertical}
 .btn-dark{background:var(--field);color:var(--text);border:1px solid var(--line)}
 .btn-green{background:var(--green);color:#06230f}
 .btn-red{background:var(--red);color:#fff}
+.btn-like.liked{background:rgba(30,200,106,.14);border-color:rgba(30,200,106,.45);color:var(--green)}
 .notice{padding:13px 15px;border-radius:10px;margin-bottom:18px;background:rgba(30,200,106,.11);border:1px solid rgba(30,200,106,.28);color:#a9f3c8}
 .error{background:rgba(217,79,79,.1);border-color:rgba(217,79,79,.3);color:#ffb1b1}
 .event-list{display:flex;flex-direction:column;gap:9px}
@@ -187,6 +189,7 @@ textarea{min-height:110px;resize:vertical}
     </div>
 
     <div class="actions" style="justify-content:flex-start;margin:0 0 18px">
+      <button class="btn btn-dark btn-like" id="eventLikeBtn" type="button" aria-pressed="false">♥ <span data-like-label>Páči sa mi</span> · <span id="eventLikeCount">0</span></button>
       <button class="btn btn-green" id="shareBtn">Zdieľať</button>
       <button class="btn btn-dark" id="copyLinkBtn">Kopírovať odkaz</button>
     </div>
@@ -369,6 +372,17 @@ textarea{min-height:110px;resize:vertical}
         : 'Predregistrácia je momentálne vypnutá. Link je pripravený, ale formulár bude prijímať registrácie až po jej zapnutí.';
       $('openPreregBtn').dataset.url = preregUrl.toString();
     }
+
+    const publicUrl=window.location.origin+'/udalost/?id='+encodeURIComponent(eventRow.id);
+    cspSocial.bind({
+      entityType:'event',entityId:eventRow.id,
+      likeButton:'eventLikeBtn',likeCount:'eventLikeCount',
+      title:`${eventRow.title || 'Udalosť'} · Connect Sports Pro`,
+      text:[eventRow.event_type,eventRow.sport,fmt(eventRow.starts_at)].filter(Boolean).join(' · '),
+      url:publicUrl,
+      onCopied:()=>show('Odkaz na udalosť bol skopírovaný.'),
+      onError:()=>show('Akciu sa nepodarilo dokončiť.',true)
+    }).catch(error=>{console.error('[udalost] social init failed:',error);show('Sociálne funkcie sa nepodarilo načítať.',true)});
   }
 
   async function detail(id){
@@ -570,24 +584,13 @@ textarea{min-height:110px;resize:vertical}
 
   async function shareEvent(){
     if(!currentEvent) return;
-
-    const shareData = {
-      title:currentEvent.title || 'Udalosť',
-      text:[
-        currentEvent.event_type,
-        currentEvent.clubs?.name,
-        fmt(currentEvent.starts_at)
-      ].filter(Boolean).join(' · '),
-      url:window.location.href
-    };
-
     try{
-      if(navigator.share){
-        await navigator.share(shareData);
-      }else{
-        await navigator.clipboard.writeText(window.location.href);
-        show('Odkaz na udalosť bol skopírovaný.');
-      }
+      const result=await cspSocial.share({
+        title:currentEvent.title || 'Udalosť',
+        text:[currentEvent.event_type,currentEvent.clubs?.name,fmt(currentEvent.starts_at)].filter(Boolean).join(' · '),
+        url:window.location.origin+'/udalost/?id='+encodeURIComponent(currentEvent.id)
+      });
+      if(result.copied)show('Odkaz na udalosť bol skopírovaný.');
     }catch(error){
       if(error?.name !== 'AbortError'){
         show('Zdieľanie sa nepodarilo.', true);

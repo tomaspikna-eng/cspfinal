@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js"></script>
 <style>
 :root{
   --bg:#08080c;--bg-2:#0c0c12;--card:#13131a;--card-2:#181820;
@@ -111,6 +112,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
 .page-head h1{font-size:1.8rem;font-weight:800}
 .page-head p{color:var(--muted);font-size:.9rem;margin-top:3px}
+.social-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-8px 0 22px}.social-like.liked{background:var(--green-dim);border-color:rgba(38,208,125,.45);color:var(--green)}
 .t-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .t-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;transition:.15s}
 .t-card:hover{border-color:var(--gold-b);transform:translateY(-2px)}
@@ -838,6 +840,7 @@ async function go(view, data){
   else if(view==='detail') {
     app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
     app.innerHTML=await viewDetail(data);
+    bindTournamentSocial();
     startTournamentMatchesRealtime(data);
   }
   window.scrollTo(0,0);
@@ -1297,6 +1300,10 @@ async function viewDetail(id){
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
     </div>
+    <div class="social-bar">
+      <button class="btn btn-ghost social-like" id="tournamentLikeBtn" type="button" aria-pressed="false">♥ <span data-like-label>Páči sa mi</span> · <span id="tournamentLikeCount">0</span></button>
+      <button class="btn btn-green" id="tournamentShareBtn" type="button">📤 Zdieľať</button>
+    </div>
     ${isPublicReadOnly?'':renderOperationsPanel()}
     <div class="detail-grid">
       <div>
@@ -1322,6 +1329,18 @@ async function viewDetail(id){
     </div>
   </div>
   <div id="matchModalArea"></div>`;
+}
+function bindTournamentSocial(){
+  if(!curT||!window.cspSocial)return;
+  cspSocial.bind({
+    entityType:'tournament',entityId:curT.id,
+    likeButton:'tournamentLikeBtn',likeCount:'tournamentLikeCount',shareButton:'tournamentShareBtn',
+    title:`${curT.name} · Connect Sports Pro`,
+    text:[curT.sport,curT.discipline,curT.date,curT.venue].filter(Boolean).join(' · '),
+    url:window.location.origin+'/turnament/?id='+encodeURIComponent(curT.id),
+    onCopied:()=>toast('Odkaz na turnaj bol skopírovaný.'),
+    onError:()=>toast('Akciu sa nepodarilo dokončiť.',true)
+  }).catch(error=>{console.error('[turnament] social init failed:',error);toast('Sociálne funkcie sa nepodarilo načítať.',true)});
 }
 async function editTournament(id){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }

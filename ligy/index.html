@@ -11,11 +11,13 @@
 <style>
 :root{--bg:#07080a;--card:#11141a;--card2:#171b23;--line:rgba(255,255,255,.09);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#e35d55}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1240px,calc(100% - 28px));margin:auto}.top{height:74px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b{color:var(--gold)}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn.red{color:#ff8d86;border-color:rgba(227,93,85,.35);background:rgba(227,93,85,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:42px 0 24px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.3rem,5vw,4.5rem);letter-spacing:-.05em;margin:10px 0}.muted{color:var(--muted)}.panel{display:none;padding-bottom:60px}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.league-card{cursor:pointer}.league-card:hover{border-color:rgba(212,168,67,.45)}.toolbar,.actions,.tabs,.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar{margin:20px 0}.badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:800}.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.head h2{font-size:2rem;margin:10px 0 5px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat b{display:block;font-size:1.45rem}.stat small{color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:.82rem;font-weight:700;color:#d4d7dd}.input{width:100%;min-height:46px;border-radius:11px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:10px 12px;outline:none}.input:focus{border-color:rgba(212,168,67,.55)}textarea.input{min-height:105px;resize:vertical}.tabs{margin:18px 0}.tab.active{color:var(--gold);border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.1)}.hide{display:none!important}.notice{padding:12px 14px;border-radius:11px;border:1px solid var(--line);margin:12px 0;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.35)}.notice.err{color:#ff8d86;border-color:rgba(227,93,85,.35)}.participant-strip{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.25);background:rgba(212,168,67,.06);border-radius:15px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}th{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.match{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px}.score{width:58px;text-align:center}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:100}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:16px}.modal-head h3{margin:0}.member-list{display:grid;gap:8px}.member-row{display:grid;grid-template-columns:1fr auto;gap:8px}.empty{text-align:center;padding:35px 15px;color:var(--muted)}
+.social-like.liked{background:rgba(39,207,125,.1);border-color:rgba(39,207,125,.45);color:var(--green)}
 @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.match{grid-template-columns:1fr}.participant-strip{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.grid,.stats{grid-template-columns:1fr}.actions .btn{width:auto}.btn{width:100%}.top .btn{width:auto}.member-row{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -59,7 +61,10 @@
 <section id="detailPanel" class="panel">
   <div class="head">
     <div><button class="btn" id="backBtn">← Ligy</button><h2 id="leagueTitle"></h2><p id="leagueMeta" class="muted"></p></div>
-    <div class="actions" id="managerActions"><button class="btn green" id="addParticipantTop">+ Pridať hráča</button><button class="btn gold" id="generateBtn">Vygenerovať rozpis</button></div>
+    <div>
+      <div class="actions" style="justify-content:flex-end;margin-bottom:10px"><button class="btn social-like" id="leagueLikeBtn" type="button" aria-pressed="false">♥ <span data-like-label>Páči sa mi</span> · <span id="leagueLikeCount">0</span></button><button class="btn green" id="leagueShareBtn" type="button">📤 Zdieľať</button></div>
+      <div class="actions" id="managerActions"><button class="btn green" id="addParticipantTop">+ Pridať hráča</button><button class="btn gold" id="generateBtn">Vygenerovať rozpis</button></div>
+    </div>
   </div>
 
   <div class="stats">
@@ -182,6 +187,15 @@ async function openLeague(id){
   $('#statParticipantLabel').textContent=team?'Tímy':'Hráči';
   $('#participantStripTitle').textContent=team?'Tímy v lige':'Hráči v lige';
   $('#participantStripText').textContent=team?'Najprv pridaj tímy, potom vygeneruj rozpis.':'Najprv pridaj hráčov, potom vygeneruj rozpis.';
+  cspSocial.bind({
+    entityType:'league',entityId:data.id,
+    likeButton:'leagueLikeBtn',likeCount:'leagueLikeCount',shareButton:'leagueShareBtn',
+    title:`${data.name} · Connect Sports Pro`,
+    text:[data.sport,data.discipline,data.season_name].filter(Boolean).join(' · '),
+    url:window.location.origin+'/ligy/?id='+encodeURIComponent(data.id),
+    onCopied:()=>msg($('#detailNotice'),'Odkaz na ligu bol skopírovaný.','ok'),
+    onError:()=>msg($('#detailNotice'),'Akciu sa nepodarilo dokončiť.','err')
+  }).catch(error=>{console.error('[ligy] social init failed:',error);msg($('#detailNotice'),'Sociálne funkcie sa nepodarilo načítať.','err')});
   await Promise.all([loadParticipants(),loadMatches(),loadStandings()]);
 }
 function openParticipantModal(){

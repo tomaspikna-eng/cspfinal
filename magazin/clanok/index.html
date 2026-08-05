@@ -6,6 +6,7 @@
 <title>Načítavam… · Connect Sports Pro Magazine</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js"></script>
 <style>
 :root{
   --bg:#0a0a0e;--bg-2:#0f0f15;--card:#14141b;--card-2:#191921;
@@ -53,6 +54,7 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 .article-foot{margin-top:50px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
 .article-foot a{font-size:.88rem;font-weight:600;color:var(--gold)}
 .article-foot a:hover{text-decoration:underline}
+.social-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.social-btn{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--card-2);font-weight:800}.social-btn:hover,.social-btn.liked{border-color:rgba(38,208,125,.5);color:var(--green)}.social-btn:disabled{opacity:.55;cursor:wait}
 </style>
 </head>
 <body>
@@ -143,8 +145,21 @@ function renderArticle(article){
     <div class="content">${contentHtml}</div>
     <div class="article-foot">
       <a href="/magazin/">← Ďalšie články</a>
+      <div class="social-actions">
+        <button class="social-btn" id="articleLikeBtn" type="button" aria-pressed="false">♥ <span data-like-label>Páči sa mi</span> · <span id="articleLikeCount">0</span></button>
+        <button class="social-btn" id="articleShareBtn" type="button">📤 Zdieľať</button>
+      </div>
     </div>
   `;
+  cspSocial.bind({
+    entityType:'article',entityId:article.id,
+    likeButton:'articleLikeBtn',likeCount:'articleLikeCount',shareButton:'articleShareBtn',
+    title:`${article.title} · Connect Sports Pro Magazine`,
+    text:article.excerpt||'Pozri si tento článok na Connect Sports Pro.',
+    url:window.location.origin+'/magazin/clanok/?slug='+encodeURIComponent(article.slug),
+    onCopied:()=>window.alert('Odkaz na článok bol skopírovaný.'),
+    onError:()=>window.alert('Akciu sa nepodarilo dokončiť. Skús to znova.')
+  }).catch(error=>console.error('[clanok] social init failed:',error));
 }
 
 async function loadArticle(){
@@ -154,7 +169,7 @@ async function loadArticle(){
   try{
     const { data, error } = await cspAuth.withTimeout(
       cspAuth.client.from('articles')
-        .select('title, excerpt, content, cover_image_url, published_at, status')
+        .select('id, slug, title, excerpt, content, cover_image_url, published_at, status')
         .eq('slug', slug)
         .eq('status', 'published')
         .maybeSingle(),

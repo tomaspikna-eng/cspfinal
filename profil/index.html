@@ -738,6 +738,7 @@ a{color:inherit;text-decoration:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js"></script>
 </head>
 <body>
 
@@ -1686,8 +1687,8 @@ async function shareProfile(){
   const url=profileUrl(viewedProfileId||currentSession.user.id);
   const payload={title:`${name} · Connect Sports Pro`,text:`Pozri si profil ${name} na Connect Sports Pro.`,url};
   try{
-    if(navigator.share){await navigator.share(payload)}
-    else{await navigator.clipboard.writeText(url);toast('Odkaz na profil bol skopírovaný.')}
+    const result=await cspSocial.share(payload);
+    if(result.copied)toast('Odkaz na profil bol skopírovaný.');
   }catch(err){
     if(err?.name!=='AbortError'){console.error(err);toast('Profil sa nepodarilo zdieľať.','error')}
   }
