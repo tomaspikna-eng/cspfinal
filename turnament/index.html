@@ -686,6 +686,7 @@ const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný l
 
 let currentSession = null;
 let currentProfile = null;
+let isPublicReadOnly = false;
 let realMatchesByKey = new Map();
 let tournamentMatchesChannel = null;
 let realtimeRefreshTimer = null;
@@ -713,48 +714,58 @@ function saveBracketState(id,state){
 }
 
 (async function initAuth(){
+  const launchParams = new URLSearchParams(location.search);
+  const launchTournamentId = launchParams.get('tournament_id') || launchParams.get('id');
+  const launchMode = launchParams.get('mode');
+
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(!session){ window.location.href = '/login/'; return; }
-    currentSession = session;
+    currentSession = session || null;
 
-    const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
-    if(profileError){ console.error('[turnament] Could not load profile, falling back to email-derived name:', profileError); }
-    currentProfile = profile;
+    if(session){
+      const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
+      if(profileError){ console.error('[turnament] Could not load profile:', profileError); }
+      currentProfile = profile;
 
-    // Browsing/creating-the-page itself is a free-tier action (feature_gates
-    // .tournament_browse) -- shown to any logged-in user regardless of
-    // plan. Only *creating* a new tournament is gated, in startNewTournament().
-    const displayName = (profile && profile.full_name) || session.user.email;
-    const initials = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
-    document.getElementById('tbUserAv').textContent = initials;
-    document.getElementById('tbUserNameText').textContent = displayName;
-    document.getElementById('tbUser').style.display = 'flex';
-    document.getElementById('signOutBtn').style.display = 'inline-flex';
-
-    const launchParams = new URLSearchParams(location.search);
-    const launchTournamentId = launchParams.get('tournament_id');
-    const launchMode = launchParams.get('mode');
+      const displayName = (profile && profile.full_name) || session.user.email;
+      const initials = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
+      document.getElementById('tbUserAv').textContent = initials;
+      document.getElementById('tbUserNameText').textContent = displayName;
+      document.getElementById('tbUser').style.display = 'flex';
+      document.getElementById('signOutBtn').style.display = 'inline-flex';
+    }else{
+      document.getElementById('tbUser').style.display = 'none';
+      const signOutBtn=document.getElementById('signOutBtn');
+      signOutBtn.textContent='Prihlásiť sa';
+      signOutBtn.style.display='inline-flex';
+      signOutBtn.onclick=()=>{ location.href='/login/?next='+encodeURIComponent(location.pathname+location.search); };
+    }
 
     if(launchTournamentId){
       if(launchMode === 'settings'){
+        if(!session){ location.href='/login/?next='+encodeURIComponent(location.pathname+location.search); return; }
         await editTournament(launchTournamentId);
       }else{
         await openTournament(launchTournamentId);
       }
-      history.replaceState({}, '', location.pathname);
     }else{
+      if(!session){ location.href='/login/'; return; }
       go('dashboard');
     }
   } catch(err) {
-    console.error('[turnament] Auth check failed or timed out:', err);
-    window.location.href = '/login/';
+    console.error('[turnament] Initialisation failed:', err);
+    if(launchTournamentId){
+      document.getElementById('app').innerHTML='<div class="wrap"><div class="empty">Turnaj sa nepodarilo načítať.</div></div>';
+    }else{
+      location.href='/login/';
+    }
   }
 })();
 
 document.getElementById('signOutBtn').addEventListener('click', async () => {
+  if(!currentSession){ window.location.href='/login/?next='+encodeURIComponent(location.pathname+location.search); return; }
   try { await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()'); }
-  catch(err){ console.error('[turnament] signOut failed or timed out, redirecting to /login/ anyway:', err); }
+  catch(err){ console.error('[turnament] signOut failed or timed out:', err); }
   window.location.href = '/login/';
 });
 
@@ -764,6 +775,7 @@ document.getElementById('signOutBtn').addEventListener('click', async () => {
    tournament. Editing an existing one (editTournament()) does not go
    through this gate. */
 async function startNewTournament(){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   try {
     const { data: canCreate, error } = await cspAuth.withTimeout(
       cspAuth.client.rpc('can_create_tournament', { uid: currentSession.user.id }),
@@ -896,16 +908,19 @@ function openTableGen(t){
 }
 
 async function completeTournament(id){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   if(!confirm('Ukončiť turnaj a uzamknúť výsledky?')) return;
   try{const {error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:id,p_results:null});if(error)throw error;toast('Turnaj ukončený ✓');await openTournament(id);}catch(err){console.error('[turnament] complete:',err);toast(cspAuth.formatError?cspAuth.formatError(err):('Turnaj sa nepodarilo ukončiť: '+(err.message||err)),true);}
 }
 async function archiveTournament(id){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   if(!confirm('Archivovať ukončený turnaj?')) return;
   try{const {error}=await cspAuth.client.rpc('archive_tournament',{p_tournament_id:id});if(error)throw error;toast('Turnaj archivovaný ✓');go('dashboard');}catch(err){console.error('[turnament] archive:',err);toast('Turnaj sa nepodarilo archivovať: '+(err.message||err),true);}
 }
 
 
 async function setTournamentWorkflowStatus(id,status){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   // Tournament workflow is intentionally independent from Club Manager,
   // calendar reservations and club-table occupancy.
   const allowed=new Set(['ready','active']);
@@ -932,6 +947,7 @@ async function setTournamentWorkflowStatus(id,status){
   }
 }
 async function deleteTournament(id){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   if(!confirm(`Zmazať tento turnaj? Túto akciu nemožno vrátiť.`)) return;
   try {
     const { error } = await cspAuth.client.from('tournaments').delete().eq('id', id);
@@ -1168,7 +1184,7 @@ async function syncComboPhaseTransition(t){
    objects. Core tournament/player/group data is the real DB rows,
    loaded fresh in viewDetail() below, never written here. */
 function persistT(){
-  if(!curT) return;
+  if(!curT || isPublicReadOnly) return;
   saveBracketState(curT.id, {
     bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp,
     phase2:curT.phase2, protectedSeeds:curT.protectedSeeds,
@@ -1184,6 +1200,7 @@ async function viewDetail(id){
       8000, 'load tournament'
     );
     if(tErr) throw tErr;
+    isPublicReadOnly = !(currentSession && tournament.owner_id === currentSession.user.id);
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
       8000, 'load tournament players'
@@ -1259,28 +1276,28 @@ async function viewDetail(id){
     finalizeAppliedMatches(matchRows);
   }
   persistT();
-  await loadTournamentOperations(curT.id);
+  if(!isPublicReadOnly) await loadTournamentOperations(curT.id); else tournamentOperations=[];
   const players=Array.isArray(curT.players)?curT.players:[];
   const isCmb = curT.format==='rr_sko'||curT.format==='rr_dko';
 
   return `<div class="wrap">
-    <button class="link-btn" onclick="go('dashboard')" style="margin-bottom:14px">← Späť na turnaje</button>
+    <button class="link-btn" onclick="${isPublicReadOnly?"location.href='/'":"go('dashboard')"}" style="margin-bottom:14px">← ${isPublicReadOnly?'Späť':'Späť na turnaje'}</button>
     <div class="page-head">
       <div>
         <span class="fmt" style="display:inline-block;margin-bottom:8px">${FMT_LABEL[curT.format]||curT.format}</span>
         <h1>${esc(curT.name)}</h1>
         <p>${esc(curT.sport)}${curT.discipline?' · '+esc(curT.discipline):''} · ${pcount(curT)} hráčov${curT.date?' · '+esc(curT.date):''}${curT.venue?' · '+esc(curT.venue):''} · <span class="status-chip ${esc(curT.status)}">${statusLabel(curT.status)}</span></p>
       </div>
-      <div style="display:flex;gap:10px">
+      ${isPublicReadOnly?'':`<div style="display:flex;gap:10px">
         ${curT.status==='draft'?`<button class="btn btn-primary" onclick="setTournamentWorkflowStatus('${curT.id}','ready')">Označiť ako pripravený</button>`:''}
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
         ${['draft','ready'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
-      </div>
+      </div>`}
     </div>
-    ${renderOperationsPanel()}
+    ${isPublicReadOnly?'':renderOperationsPanel()}
     <div class="detail-grid">
       <div>
         <div class="detail-card">
@@ -1292,14 +1309,14 @@ async function viewDetail(id){
           ${curT.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${curT.date}</span></div>`:''}
         </div>
         <div class="detail-card" style="margin-top:16px">
-          <div class="dc-head"><h3>Hráči (${players.length})</h3><button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button></div>
+          <div class="dc-head"><h3>Hráči (${players.length})</h3>${isPublicReadOnly?'':`<button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button>`}</div>
           <div class="player-list" style="max-height:240px">
             ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
           </div>
         </div>
       </div>
       <div class="detail-card">
-        <div class="dc-head"><h3>Zoznam zápasov</h3><span class="mono" style="font-size:.7rem;color:var(--muted)">klikni na zápas → zadaj výsledok</span></div>
+        <div class="dc-head"><h3>Zoznam zápasov</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.7rem;color:var(--muted)">klikni na zápas → zadaj výsledok</span>`}</div>
         <div id="matchArea">${renderMatchArea(curT)}</div>
       </div>
     </div>
@@ -1307,6 +1324,7 @@ async function viewDetail(id){
   <div id="matchModalArea"></div>`;
 }
 async function editTournament(id){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   try {
     const { data: t, error: tErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
@@ -1542,6 +1560,7 @@ async function reloadRealMatches(){
   return data||[];
 }
 async function startLiveMatch(loc){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const m=getMatchByLoc(loc);if(!m)return;
   try{
     const row=await ensureRealMatch(loc,m),now=new Date().toISOString();
@@ -1552,6 +1571,7 @@ async function startLiveMatch(loc){
   }catch(err){console.error('[turnament] start match:',err);toast('Zápas sa nepodarilo spustiť.',true);}
 }
 async function pauseLiveMatch(loc){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
@@ -1560,6 +1580,7 @@ async function pauseLiveMatch(loc){
   }catch(err){console.error('[turnament] pause match:',err);toast('Zápas sa nepodarilo pozastaviť.',true);}
 }
 async function resumeLiveMatch(loc){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
   try{
     const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
@@ -1567,6 +1588,7 @@ async function resumeLiveMatch(loc){
   }catch(err){console.error('[turnament] resume match:',err);toast('Zápas sa nepodarilo obnoviť.',true);}
 }
 async function stopLiveMatch(loc){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
@@ -1614,7 +1636,7 @@ function renderOperationsPanel(){
   </section>`;
 }
 async function refreshOperationsPanel(){
-  await loadTournamentOperations(curT.id);
+  if(!isPublicReadOnly) await loadTournamentOperations(curT.id); else tournamentOperations=[];
   const old=document.querySelector('.ops-panel');
   if(old)old.outerHTML=renderOperationsPanel();
   const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
@@ -1715,7 +1737,7 @@ function matchRow(m, loc){
   const done = m.winner!=null && !bye;
   const w1=m.winner===1, w2=m.winner===2;
   const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
-  const clickable = !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
+  const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const row=realMatchesByKey.get(loc);
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}">
@@ -1726,7 +1748,7 @@ function matchRow(m, loc){
       <span class="mt-side right ${w2?'win':''}">${name(m.p2)}</span>
       ${done?'<span class="mt-check">✓</span>':(clickable?'<span class="mt-edit">›</span>':'')}
     </div>
-    ${clickable?liveMatchControls(m,loc):''}
+    ${clickable && !isPublicReadOnly?liveMatchControls(m,loc):''}
   </div>`;
 }
 
@@ -1868,6 +1890,7 @@ async function clearMatchInDB(loc){
   if(error) throw error;
 }
 function openMatch(loc){
+  if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const m=getMatchByLoc(loc);
   if(!m || !m.p1 || !m.p2 || m.p1.bye || m.p2.bye) return;
   editLoc=loc;
