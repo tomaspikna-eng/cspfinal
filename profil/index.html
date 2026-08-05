@@ -709,6 +709,20 @@ a{color:inherit;text-decoration:none}
 .club-public-card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:18px}
 .club-public-card h3{font-size:1rem;margin-bottom:8px;color:var(--gold)}
 .club-public-card p{line-height:1.6;color:var(--text-soft);white-space:pre-line}
+.membership-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:700px){.membership-grid{grid-template-columns:1fr}}
+.membership-card{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:14px}
+.membership-card.clickable:hover{border-color:var(--gold-b);background:var(--bg3)}
+.membership-avatar{width:46px;height:46px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);display:grid;place-items:center;flex:0 0 46px;background-size:cover;background-position:center;font-weight:800}
+.membership-copy{min-width:0;flex:1}.membership-copy strong{display:block;font-size:.88rem}.membership-meta{font-family:var(--mono);font-size:.67rem;color:var(--muted2);margin-top:4px}
+.membership-status{font-family:var(--mono);font-size:.64rem;color:var(--gold);text-transform:uppercase;letter-spacing:.06em}
+.membership-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.membership-section{display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
+.membership-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.membership-section-head h3{font-size:.92rem}
+.membership-request{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px}
+.membership-request select{min-width:0;background:var(--bg3);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit}
+.bio-text{color:var(--text-soft);line-height:1.75;white-space:pre-line}
 .club-photo{width:100%;max-height:360px;object-fit:cover;border-radius:12px;border:1px solid var(--line);margin-bottom:14px}
 .rep-editor-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .rep-editor-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg3)}
@@ -899,11 +913,17 @@ a{color:inherit;text-decoration:none}
         <div class="content-main">
 
           <div class="content-tabs">
-            <button class="content-tab active" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
-            <button class="content-tab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
-            <button class="content-tab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
-            <button class="content-tab" onclick="setContentTab(this, 'zapasy')">Zápasy</button>
+            <button class="content-tab active" id="playerAboutTab" onclick="setContentTab(this, 'omne')">O mne</button>
+            <button class="content-tab" id="activityTab" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
+            <button class="content-tab" id="clubMembersTab" style="display:none" onclick="setContentTab(this, 'clenovia')">Členovia</button>
+            <button class="content-tab" id="statisticsTab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
+            <button class="content-tab" id="tournamentsTab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
+            <button class="content-tab" id="matchesTab" onclick="setContentTab(this, 'zapasy')">Zápasy</button>
             <button class="content-tab" id="clubGalleryTab" style="display:none" onclick="setContentTab(this, 'fotogaleria')">Fotogaléria</button>
+          </div>
+
+          <div class="tab-panel active" id="tabPanel-omne">
+            <div class="empty-state"><div class="empty-sub">Načítavam verejný profil…</div></div>
           </div>
 
           <!-- AKTIVITY — genuine empty state: there is no posts/activity-feed
@@ -912,7 +932,7 @@ a{color:inherit;text-decoration:none}
                tournament results. This replaces what was previously 5
                hardcoded fake posts for a fictional "Ján Novák". Unchanged
                by this task other than being moved into its own panel. -->
-          <div class="tab-panel active" id="tabPanel-aktivity">
+          <div class="tab-panel" id="tabPanel-aktivity">
             <div class="feed">
               <div class="empty-state">
                 <div class="empty-icon">🎯</div>
@@ -920,6 +940,10 @@ a{color:inherit;text-decoration:none}
                 <div class="empty-sub">Tvoje zápasy, turnaje a míľniky sa tu zobrazia, hneď ako začneš hrať na CSP.</div>
               </div>
             </div>
+          </div>
+
+          <div class="tab-panel" id="tabPanel-clenovia">
+            <div class="empty-state"><div class="empty-sub">Načítavam členov…</div></div>
           </div>
 
           <!-- ŠTATISTIKY — genuine "not built yet" empty state. Real
@@ -1071,6 +1095,12 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <div class="settings-field">
+        <label>O mne</label>
+        <textarea id="settingsBio" maxlength="1200" placeholder="Napíš niečo o sebe, svojom športe alebo cieľoch…"></textarea>
+        <div class="settings-hint">Verejná časť hráčskeho profilu.</div>
+      </div>
+
+      <div class="settings-field">
         <label>Rola</label>
         <select id="settingsRole">
           <option value="player">Hráč</option>
@@ -1209,6 +1239,7 @@ function setContentTab(btn, tabKey){
 
   const role = String(currentProfile?.role || 'player').toLowerCase();
   if(role === 'player'){
+    if(tabKey === 'omne') renderPlayerAbout().catch(err=>console.error('[profil] about:',err));
     if(tabKey === 'zapasy') loadZapasyTab();
     if(tabKey === 'turnaje') loadTurnajeTab();
     if(tabKey === 'statistiky') loadStatistikyTab();
@@ -1328,8 +1359,8 @@ function computeInitials(name){
   return (name && name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
 }
 function renderIdentity(){
-  if(!currentSession) return;
-  const displayName = (currentProfile && currentProfile.full_name) || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč');
+  if(!currentProfile && !currentSession) return;
+  const displayName = (currentProfile && currentProfile.full_name) || (currentSession?.user?.email ? currentSession.user.email.split('@')[0] : 'Hráč');
   const initials = computeInitials(displayName);
 
   document.title = displayName + ' · Connect Sports Pro';
@@ -1615,12 +1646,13 @@ function profileUrl(profileId){
 async function loadViewedProfile(authLoadedProfile){
   authProfile=authLoadedProfile;
   const requested=new URLSearchParams(location.search).get('id');
-  viewedProfileId=requested||currentSession.user.id;
-  isOwnProfile=viewedProfileId===currentSession.user.id;
+  viewedProfileId=requested||currentSession?.user?.id||null;
+  if(!viewedProfileId) throw new Error('Chýba ID verejného profilu.');
+  isOwnProfile=!!currentSession && viewedProfileId===currentSession.user.id;
   if(isOwnProfile) return authLoadedProfile;
 
   const {data,error}=await cspAuth.withTimeout(
-    cspAuth.client.from('profiles').select('*').eq('id',viewedProfileId).maybeSingle(),
+    cspAuth.client.from('profiles').select('id,full_name,role,avatar_url,cover_url,bio,created_at').eq('id',viewedProfileId).maybeSingle(),
     8000,'load viewed profile'
   );
   if(error) throw error;
@@ -1642,13 +1674,13 @@ async function loadSocialState(){
   const edit=document.getElementById('editProfileBtn');
   if(edit) edit.style.display=isOwnProfile?'':'none';
   if(follow){
-    follow.style.display=isOwnProfile?'none':'';
+    follow.style.display=(isOwnProfile||!currentSession)?'none':'';
     follow.textContent=row?.viewer_follows?'Sledujem':'Sledovať';
     follow.classList.toggle('btn-secondary',!!row?.viewer_follows);
     follow.classList.toggle('btn-primary',!row?.viewer_follows);
   }
   if(respect){
-    respect.style.display=isOwnProfile?'none':'';
+    respect.style.display=(isOwnProfile||!currentSession)?'none':'';
     respect.classList.toggle('given',!!row?.viewer_respected);
     respect.textContent=row?.viewer_respected?'⭐ Rešpekt udelený':'⭐ Rešpekt';
   }
@@ -1702,19 +1734,37 @@ function notificationRelative(iso){
 async function loadNotifications(){
   if(!currentSession)return;
   const {data,error}=await cspAuth.client.from('notifications')
-    .select('id,notification_type,title,body,is_read,created_at,actor_id')
+    .select('id,notification_type,title,body,is_read,created_at,actor_id,action_url')
     .eq('recipient_id',currentSession.user.id).order('created_at',{ascending:false}).limit(30);
   if(error)throw error;
   const rows=data||[], unread=rows.some(x=>!x.is_read);
   document.getElementById('notificationDot').style.display=unread?'':'none';
+  const notificationIcon=(type)=>{
+    if(type==='new_follower')return'👤';
+    if(type==='profile_respect')return'⭐';
+    if(String(type).startsWith('club_membership_'))return'🏠';
+    if(String(type).startsWith('federation_registration_'))return'🏛️';
+    return'🔔';
+  };
   document.getElementById('notificationList').innerHTML=rows.length?rows.map(n=>`
-    <div class="notification-item ${n.is_read?'':'unread'}">
-      <div class="notification-icon">${n.notification_type==='new_follower'?'👤':'⭐'}</div>
+    <div class="notification-item ${n.is_read?'':'unread'}" ${n.action_url?`data-notification-url="${escapeHtml(n.action_url)}" style="cursor:pointer"`:''}>
+      <div class="notification-icon">${notificationIcon(n.notification_type)}</div>
       <div class="notification-copy"><div class="notification-title">${escapeHtml(n.title)}</div>
       <div class="notification-body">${escapeHtml(n.body||'')}</div>
       <div class="notification-time">${notificationRelative(n.created_at)}</div></div>
     </div>`).join(''):
     '<div class="empty-state small"><div class="empty-sub">Zatiaľ nemáš žiadne notifikácie.</div></div>';
+}
+let notificationRealtimeChannel=null;
+function startNotificationRealtime(){
+  if(!currentSession||notificationRealtimeChannel)return;
+  notificationRealtimeChannel=cspAuth.client
+    .channel('profile-notifications-'+currentSession.user.id)
+    .on('postgres_changes',{
+      event:'INSERT',schema:'public',table:'notifications',
+      filter:`recipient_id=eq.${currentSession.user.id}`
+    },()=>loadNotifications().catch(err=>console.error('[profil] realtime notifications:',err)))
+    .subscribe();
 }
 async function markNotificationsRead(){
   const {error}=await cspAuth.client.rpc('mark_all_notifications_read');
@@ -1732,12 +1782,133 @@ document.getElementById('notificationsBtn')?.addEventListener('click',async e=>{
   if(menu.classList.contains('show')) await loadNotifications().catch(console.error);
 });
 document.getElementById('markNotificationsReadBtn')?.addEventListener('click',()=>markNotificationsRead().catch(err=>{console.error(err);toast('Notifikácie sa nepodarilo označiť.','error')}));
+document.getElementById('notificationList')?.addEventListener('click',e=>{
+  const item=e.target.closest('[data-notification-url]');
+  if(item?.dataset.notificationUrl) location.href=item.dataset.notificationUrl;
+});
+window.addEventListener('beforeunload',()=>{
+  if(notificationRealtimeChannel)cspAuth.client.removeChannel(notificationRealtimeChannel);
+});
 document.addEventListener('click',e=>{
   if(!e.target.closest('#notificationsBtn')&&!e.target.closest('#notificationMenu')){
     document.getElementById('notificationMenu')?.classList.remove('show');
   }
 });
 
+
+// ── MEMBERSHIPS: player ↔ club / federation ─────────────────────────
+function membershipProfileCard(profile,meta,href){
+  const name=profile?.full_name||'Hráč';
+  const avatar=profile?.avatar_url
+    ? `style="background-image:url('${escapeHtml(profile.avatar_url)}')"`
+    : '';
+  return `<a class="membership-card clickable" href="${href}">
+    <div class="membership-avatar" ${avatar}>${profile?.avatar_url?'':escapeHtml(computeInitials(name))}</div>
+    <div class="membership-copy"><strong>${escapeHtml(name)}</strong><div class="membership-meta">${escapeHtml(meta||'')}</div></div>
+  </a>`;
+}
+async function changeMembershipStatus(table,id,status){
+  if(!currentSession)return;
+  const {error}=await cspAuth.client.from(table).update({status}).eq('id',id);
+  if(error)throw error;
+  toast(status==='active'?'Potvrdené.':status==='rejected'?'Zamietnuté.':'Stav bol aktualizovaný.');
+  if(table==='club_memberships'){
+    if(String(currentProfile?.role||'')==='club') await renderClubMembers();
+    else await renderPlayerAbout();
+  }else{
+    if(String(currentProfile?.role||'')==='organization') await renderFederationPlayers();
+    else await renderPlayerAbout();
+  }
+  await loadNotifications().catch(()=>{});
+}
+async function renderPlayerAbout(){
+  const panel=document.getElementById('tabPanel-omne');
+  if(!panel||!viewedProfileId)return;
+  panel.innerHTML='<div class="empty-state"><div class="empty-sub">Načítavam profil…</div></div>';
+  try{
+    const membershipFields=currentSession?'id,club_id,player_id,member_role,request_source,status,created_at':'id,club_id,player_id,member_role,status,created_at';
+    const registrationFields=currentSession?'id,organization_id,player_id,request_source,status,created_at':'id,organization_id,player_id,status,created_at';
+    const [{data:memberships,error:mErr},{data:registrations,error:rErr}] = await Promise.all([
+      cspAuth.client.from('club_memberships').select(membershipFields).eq('player_id',viewedProfileId).order('created_at',{ascending:false}),
+      cspAuth.client.from('organization_player_registrations').select(registrationFields).eq('player_id',viewedProfileId).order('created_at',{ascending:false})
+    ]);
+    if(mErr)throw mErr;if(rErr)throw rErr;
+    const clubIds=[...new Set((memberships||[]).map(x=>x.club_id))];
+    const orgIds=[...new Set((registrations||[]).map(x=>x.organization_id))];
+    const [clubsRes,orgsRes]=await Promise.all([
+      clubIds.length?cspAuth.client.from('clubs').select('id,name,owner_id').in('id',clubIds):Promise.resolve({data:[],error:null}),
+      orgIds.length?cspAuth.client.from('organizations').select('id,name,owner_id,organization_type').in('id',orgIds):Promise.resolve({data:[],error:null})
+    ]);
+    if(clubsRes.error)throw clubsRes.error;if(orgsRes.error)throw orgsRes.error;
+    const clubs=new Map((clubsRes.data||[]).map(x=>[x.id,x]));
+    const orgs=new Map((orgsRes.data||[]).map(x=>[x.id,x]));
+    const activeMemberships=(memberships||[]).filter(x=>x.status==='active');
+    const activeRegs=(registrations||[]).filter(x=>x.status==='active');
+    const pendingMemberships=isOwnProfile?(memberships||[]).filter(x=>x.status==='pending'):[];
+    const pendingRegs=isOwnProfile?(registrations||[]).filter(x=>x.status==='pending'):[];
+    let html=`<div class="membership-section"><div class="club-public-card"><h3>O mne</h3><div class="bio-text">${currentProfile?.bio?escapeHtml(currentProfile.bio):'Bio zatiaľ nie je vyplnené.'}</div></div></div>`;
+    html+=`<div class="membership-section"><div class="membership-section-head"><h3>Kluby</h3></div>`;
+    html+=activeMemberships.length?'<div class="membership-grid">'+activeMemberships.map(m=>{
+      const c=clubs.get(m.club_id);if(!c)return'';
+      return `<a class="membership-card clickable" href="/profil/?id=${encodeURIComponent(c.owner_id)}"><div class="membership-avatar">🏠</div><div class="membership-copy"><strong>${escapeHtml(c.name)}</strong><div class="membership-meta">${escapeHtml(m.member_role==='player'?'Člen klubu':m.member_role)}</div></div></a>`;
+    }).join('')+'</div>':'<div class="empty-state small"><div class="empty-sub">Zatiaľ žiadne potvrdené klubové členstvo.</div></div>';
+    if(isOwnProfile){
+      html+=`<div class="membership-request"><select id="clubJoinSelect"><option value="">Vyber klub…</option></select><button class="btn btn-primary btn-sm" id="requestClubMembershipBtn">Požiadať</button></div>`;
+      if(pendingMemberships.length)html+='<div class="club-list-view">'+pendingMemberships.map(m=>{
+        const c=clubs.get(m.club_id);const invite=m.request_source==='club_invite';
+        return `<div class="membership-card"><div class="membership-avatar">🏠</div><div class="membership-copy"><strong>${escapeHtml(c?.name||'Klub')}</strong><div class="membership-meta">${invite?'Pozvánka klubu':'Čaká na schválenie klubu'}</div><div class="membership-actions">${invite?`<button class="btn btn-primary btn-sm" data-membership-action="active" data-membership-id="${m.id}">Prijať</button><button class="btn btn-secondary btn-sm" data-membership-action="rejected" data-membership-id="${m.id}">Odmietnuť</button>`:`<button class="btn btn-secondary btn-sm" data-membership-action="cancelled" data-membership-id="${m.id}">Zrušiť žiadosť</button>`}</div></div></div>`;
+      }).join('')+'</div>';
+    }
+    html+='</div>';
+    html+=`<div class="membership-section"><div class="membership-section-head"><h3>Zväzy</h3></div>`;
+    html+=activeRegs.length?'<div class="membership-grid">'+activeRegs.map(r=>{
+      const o=orgs.get(r.organization_id);if(!o)return'';
+      return `<a class="membership-card clickable" href="/profil/?id=${encodeURIComponent(o.owner_id)}"><div class="membership-avatar">🏛️</div><div class="membership-copy"><strong>${escapeHtml(o.name)}</strong><div class="membership-meta">Registrovaný hráč</div></div></a>`;
+    }).join('')+'</div>':'<div class="empty-state small"><div class="empty-sub">Zatiaľ žiadna potvrdená zväzová registrácia.</div></div>';
+    if(isOwnProfile){
+      html+=`<div class="membership-request"><select id="federationJoinSelect"><option value="">Vyber zväz…</option></select><button class="btn btn-primary btn-sm" id="requestFederationBtn">Požiadať</button></div>`;
+      if(pendingRegs.length)html+='<div class="club-list-view">'+pendingRegs.map(r=>{
+        const o=orgs.get(r.organization_id);const invite=r.request_source==='organization_invite';
+        return `<div class="membership-card"><div class="membership-avatar">🏛️</div><div class="membership-copy"><strong>${escapeHtml(o?.name||'Zväz')}</strong><div class="membership-meta">${invite?'Pozvánka zväzu':'Čaká na schválenie zväzu'}</div><div class="membership-actions">${invite?`<button class="btn btn-primary btn-sm" data-registration-action="active" data-registration-id="${r.id}">Prijať</button><button class="btn btn-secondary btn-sm" data-registration-action="rejected" data-registration-id="${r.id}">Odmietnuť</button>`:`<button class="btn btn-secondary btn-sm" data-registration-action="cancelled" data-registration-id="${r.id}">Zrušiť žiadosť</button>`}</div></div></div>`;
+      }).join('')+'</div>';
+    }
+    html+='</div>';
+    panel.innerHTML=html;
+    if(isOwnProfile){
+      const [{data:allClubs},{data:allOrgs}]=await Promise.all([
+        cspAuth.client.from('clubs').select('id,name').order('name'),
+        cspAuth.client.from('organizations').select('id,name,organization_type').in('organization_type',['federation','association']).order('name')
+      ]);
+      const usedClubs=new Set((memberships||[]).filter(x=>['pending','active'].includes(x.status)).map(x=>x.club_id));
+      const usedOrgs=new Set((registrations||[]).filter(x=>['pending','active'].includes(x.status)).map(x=>x.organization_id));
+      const clubSelect=document.getElementById('clubJoinSelect');
+      (allClubs||[]).filter(x=>!usedClubs.has(x.id)).forEach(c=>clubSelect?.insertAdjacentHTML('beforeend',`<option value="${c.id}">${escapeHtml(c.name)}</option>`));
+      const orgSelect=document.getElementById('federationJoinSelect');
+      (allOrgs||[]).filter(x=>!usedOrgs.has(x.id)).forEach(o=>orgSelect?.insertAdjacentHTML('beforeend',`<option value="${o.id}">${escapeHtml(o.name)}</option>`));
+    }
+  }catch(err){
+    console.error('[profil] player memberships:',err);
+    panel.innerHTML='<div class="empty-state"><div class="empty-sub">Členstvá sa nepodarilo načítať.</div></div>';
+  }
+}
+document.getElementById('tabPanel-omne')?.addEventListener('click',async e=>{
+  try{
+    const m=e.target.closest('[data-membership-action]');
+    const r=e.target.closest('[data-registration-action]');
+    if(m)await changeMembershipStatus('club_memberships',m.dataset.membershipId,m.dataset.membershipAction);
+    if(r)await changeMembershipStatus('organization_player_registrations',r.dataset.registrationId,r.dataset.registrationAction);
+    if(e.target.closest('#requestClubMembershipBtn')){
+      const clubId=document.getElementById('clubJoinSelect')?.value;if(!clubId){toast('Vyber klub.','error');return;}
+      const {error}=await cspAuth.client.from('club_memberships').insert({club_id:clubId,player_id:currentSession.user.id,request_source:'player_request',initiated_by:currentSession.user.id});
+      if(error)throw error;toast('Žiadosť bola odoslaná.');await renderPlayerAbout();
+    }
+    if(e.target.closest('#requestFederationBtn')){
+      const organizationId=document.getElementById('federationJoinSelect')?.value;if(!organizationId){toast('Vyber zväz.','error');return;}
+      const {error}=await cspAuth.client.from('organization_player_registrations').insert({organization_id:organizationId,player_id:currentSession.user.id,request_source:'player_request',initiated_by:currentSession.user.id});
+      if(error)throw error;toast('Žiadosť bola odoslaná.');await renderPlayerAbout();
+    }
+  }catch(err){console.error(err);toast('Zmena členstva sa nepodarila.','error')}
+});
 
 // ── CLUB ROLE: public profile tabs + editor ─────────────────────────
 let currentClub = null;
@@ -1748,9 +1919,11 @@ function clubText(value){
   return value && String(value).trim() ? escapeHtml(value) : '';
 }
 async function loadCurrentClub(){
-  if(currentClub || !currentSession) return currentClub;
+  if(currentClub) return currentClub;
+  const ownerId=viewedProfileId||currentSession?.user?.id;
+  if(!ownerId)return null;
   const {data,error}=await cspAuth.withTimeout(
-    cspAuth.client.from('clubs').select('id,name,owner_id').eq('owner_id',viewedProfileId||currentSession.user.id).maybeSingle(),
+    cspAuth.client.from('clubs').select('id,name,owner_id').eq('owner_id',ownerId).maybeSingle(),
     8000,'load current club'
   );
   if(error) throw error;
@@ -1771,20 +1944,22 @@ async function loadClubPublicProfile(){
   return clubPublicProfile;
 }
 function renameClubTabs(){
-  const tabs=[...document.querySelectorAll('.content-tab')];
-  if(tabs[0]) tabs[0].textContent='O nás';
-  if(tabs[1]) tabs[1].textContent='Rezervácie';
-  if(tabs[2]) tabs[2].textContent='Udalosti';
-  if(tabs[3]) tabs[3].textContent='Naši reprezentanti / Naše tímy';
+  document.getElementById('playerAboutTab').style.display='none';
+  const activity=document.getElementById('activityTab');activity.textContent='O nás';activity.style.display='';
+  const members=document.getElementById('clubMembersTab');members.textContent='Členovia';members.style.display='';
+  document.getElementById('statisticsTab').textContent='Rezervácie';
+  document.getElementById('tournamentsTab').textContent='Udalosti';
+  document.getElementById('matchesTab').textContent='Naši reprezentanti / Naše tímy';
   const galleryTab=document.getElementById('clubGalleryTab');
   if(galleryTab) galleryTab.style.display='';
 }
 function restorePlayerTabLabels(){
-  const tabs=[...document.querySelectorAll('.content-tab')];
-  if(tabs[0]) tabs[0].textContent='Aktivity';
-  if(tabs[1]) tabs[1].textContent='Štatistiky';
-  if(tabs[2]) tabs[2].textContent='Turnaje';
-  if(tabs[3]) tabs[3].textContent='Zápasy';
+  const about=document.getElementById('playerAboutTab');about.style.display='';about.textContent='O mne';
+  const activity=document.getElementById('activityTab');activity.textContent='Aktivity';activity.style.display='';
+  document.getElementById('clubMembersTab').style.display='none';
+  const statistics=document.getElementById('statisticsTab');statistics.textContent='Štatistiky';statistics.style.display='';
+  const tournaments=document.getElementById('tournamentsTab');tournaments.textContent='Turnaje';tournaments.style.display='';
+  const matches=document.getElementById('matchesTab');matches.textContent='Zápasy';matches.style.display='';
   const galleryTab=document.getElementById('clubGalleryTab');
   if(galleryTab) galleryTab.style.display='none';
 }
@@ -1807,6 +1982,62 @@ function renderClubAbout(){
     ${blocks.join('')||'<div class="empty-state"><div class="empty-sub">Obsah sekcie O nás zatiaľ nie je vyplnený.</div></div>'}
   </div>`;
 }
+async function renderClubMembers(){
+  const panel=document.getElementById('tabPanel-clenovia');
+  const club=await loadCurrentClub();
+  if(!panel||!club)return;
+  panel.innerHTML='<div class="empty-state"><div class="empty-sub">Načítavam členov…</div></div>';
+  try{
+    const clubMemberFields=currentSession?'id,club_id,player_id,member_role,request_source,status,created_at':'id,club_id,player_id,member_role,status,created_at';
+    const {data:memberships,error}=await cspAuth.client.from('club_memberships')
+      .select(clubMemberFields).eq('club_id',club.id).order('created_at',{ascending:false});
+    if(error)throw error;
+    const ids=[...new Set((memberships||[]).map(x=>x.player_id))];
+    const {data:profiles,error:pErr}=ids.length
+      ? await cspAuth.client.from('profiles').select('id,full_name,avatar_url').in('id',ids)
+      : {data:[],error:null};
+    if(pErr)throw pErr;
+    const profileMap=new Map((profiles||[]).map(x=>[x.id,x]));
+    const active=(memberships||[]).filter(x=>x.status==='active');
+    const pending=(memberships||[]).filter(x=>x.status==='pending');
+    const canManage=!!currentSession&&club.owner_id===currentSession.user.id&&isOwnProfile;
+    let html='<div class="membership-section"><div class="membership-section-head"><h3>Členovia klubu</h3><span class="membership-status">'+active.length+' členov</span></div>';
+    html+=active.length?'<div class="membership-grid">'+active.map(m=>membershipProfileCard(profileMap.get(m.player_id),m.member_role==='player'?'Člen klubu':m.member_role,`/profil/?id=${encodeURIComponent(m.player_id)}`)).join('')+'</div>':'<div class="empty-state"><div class="empty-sub">Klub zatiaľ nemá potvrdených členov.</div></div>';
+    if(canManage){
+      html+='<div class="membership-section"><div class="membership-section-head"><h3>Žiadosti o členstvo</h3></div>';
+      const requests=pending.filter(x=>x.request_source==='player_request');
+      html+=requests.length?'<div class="club-list-view">'+requests.map(m=>{
+        const pr=profileMap.get(m.player_id);
+        return `<div class="membership-card"><div class="membership-avatar">${escapeHtml(computeInitials(pr?.full_name||'Hráč'))}</div><div class="membership-copy"><strong>${escapeHtml(pr?.full_name||'Hráč')}</strong><div class="membership-meta">Žiada o členstvo</div><div class="membership-actions"><button class="btn btn-primary btn-sm" data-club-admin-status="active" data-club-membership-id="${m.id}">Schváliť</button><button class="btn btn-secondary btn-sm" data-club-admin-status="rejected" data-club-membership-id="${m.id}">Zamietnuť</button></div></div></div>`;
+      }).join('')+'</div>':'<div class="empty-state small"><div class="empty-sub">Žiadne čakajúce žiadosti.</div></div>';
+      html+='</div><div class="membership-section"><div class="membership-section-head"><h3>Pozvať hráča</h3></div><div class="membership-request"><select id="clubInvitePlayerSelect"><option value="">Vyber hráča…</option></select><button class="btn btn-primary btn-sm" id="clubInvitePlayerBtn">Pozvať</button></div></div>';
+    }
+    html+='</div>';panel.innerHTML=html;
+    if(canManage){
+      const {data:players,error:playersErr}=await cspAuth.client.from('profiles').select('id,full_name').eq('role','player').order('full_name');
+      if(playersErr)throw playersErr;
+      const blocked=new Set((memberships||[]).filter(x=>['pending','active'].includes(x.status)).map(x=>x.player_id));
+      const sel=document.getElementById('clubInvitePlayerSelect');
+      (players||[]).filter(x=>!blocked.has(x.id)).forEach(x=>sel?.insertAdjacentHTML('beforeend',`<option value="${x.id}">${escapeHtml(x.full_name||'Hráč')}</option>`));
+    }
+  }catch(err){
+    console.error('[profil] club members:',err);
+    panel.innerHTML='<div class="empty-state"><div class="empty-sub">Členov sa nepodarilo načítať.</div></div>';
+  }
+}
+document.getElementById('tabPanel-clenovia')?.addEventListener('click',async e=>{
+  try{
+    const action=e.target.closest('[data-club-admin-status]');
+    if(action)await changeMembershipStatus('club_memberships',action.dataset.clubMembershipId,action.dataset.clubAdminStatus);
+    if(e.target.closest('#clubInvitePlayerBtn')){
+      const playerId=document.getElementById('clubInvitePlayerSelect')?.value;
+      if(!playerId){toast('Vyber hráča.','error');return;}
+      const club=await loadCurrentClub();
+      const {error}=await cspAuth.client.from('club_memberships').insert({club_id:club.id,player_id:playerId,request_source:'club_invite',initiated_by:currentSession.user.id});
+      if(error)throw error;toast('Pozvánka bola odoslaná.');await renderClubMembers();
+    }
+  }catch(err){console.error(err);toast('Zmena členstva sa nepodarila.','error')}
+});
 async function renderClubReservations(){
   const panel=document.getElementById('tabPanel-statistiky');
   if(!panel) return;
@@ -1828,7 +2059,7 @@ async function renderClubEvents(){
   }
   const {data,error}=await cspAuth.client.from('events')
     .select('id,title,event_type,sport,discipline,starts_at,location_text,city,status')
-    .or(`owner_id.eq.${currentSession.user.id},club_id.eq.${currentClub.id}`)
+    .or(`owner_id.eq.${currentClub.owner_id},club_id.eq.${currentClub.id}`)
     .gte('starts_at',new Date().toISOString())
     .order('starts_at',{ascending:true});
   if(error) throw error;
@@ -1892,20 +2123,112 @@ async function renderClubGallery(){
 }
 async function renderDashboardByRole(){
   const role=String(currentProfile?.role||'player').toLowerCase();
-  if(role!=='club'){
+  if(role==='player'){
     restorePlayerTabLabels();
     const sports=document.getElementById('roleSportTabs');if(sports)sports.style.display='';
+    document.querySelectorAll('.content-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    document.getElementById('playerAboutTab')?.classList.add('active');
+    document.getElementById('tabPanel-omne')?.classList.add('active');
+    await renderPlayerAbout();
     return;
   }
-  renameClubTabs();
   document.getElementById('roleSportTabs')?.style && (document.getElementById('roleSportTabs').style.display='none');
-  await loadClubPublicProfile();
-  renderClubAbout();
-  renderClubReservations();
-  await renderClubEvents();
-  renderClubRepresentatives();
-  await renderClubGallery();
+  if(role==='club'){
+    renameClubTabs();
+    document.querySelectorAll('.content-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    document.getElementById('activityTab')?.classList.add('active');
+    document.getElementById('tabPanel-aktivity')?.classList.add('active');
+    await loadClubPublicProfile();
+    renderClubAbout();
+    await renderClubMembers();
+    renderClubReservations();
+    await renderClubEvents();
+    renderClubRepresentatives();
+    await renderClubGallery();
+    return;
+  }
+  if(role==='organization'){
+    await renderFederationDashboard();
+  }
 }
+
+// ── FEDERATION / ORGANIZATION ROLE ──────────────────────────────────
+let currentOrganization=null;
+async function loadCurrentOrganization(){
+  if(currentOrganization)return currentOrganization;
+  const ownerId=viewedProfileId||currentSession?.user?.id;if(!ownerId)return null;
+  const {data,error}=await cspAuth.client.from('organizations')
+    .select('id,name,owner_id,organization_type').eq('owner_id',ownerId).maybeSingle();
+  if(error)throw error;currentOrganization=data||null;return currentOrganization;
+}
+function renameFederationTabs(){
+  document.getElementById('playerAboutTab').style.display='none';
+  const activity=document.getElementById('activityTab');activity.style.display='';activity.textContent='Registrovaní hráči';
+  ['clubMembersTab','statisticsTab','tournamentsTab','matchesTab','clubGalleryTab'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none'});
+}
+async function renderFederationPlayers(){
+  const panel=document.getElementById('tabPanel-aktivity');
+  const org=await loadCurrentOrganization();
+  if(!panel)return;
+  if(!org){
+    panel.innerHTML='<div class="empty-state"><div class="empty-icon">🏛️</div><div class="empty-title">Zväz ešte nemá vytvorený organizačný profil</div></div>';return;
+  }
+  try{
+    const federationFields=currentSession?'id,organization_id,player_id,request_source,status,created_at':'id,organization_id,player_id,status,created_at';
+    const {data:regs,error}=await cspAuth.client.from('organization_player_registrations')
+      .select(federationFields).eq('organization_id',org.id).order('created_at',{ascending:false});
+    if(error)throw error;
+    const ids=[...new Set((regs||[]).map(x=>x.player_id))];
+    const {data:profiles,error:pErr}=ids.length?await cspAuth.client.from('profiles').select('id,full_name,avatar_url').in('id',ids):{data:[],error:null};
+    if(pErr)throw pErr;
+    const profileMap=new Map((profiles||[]).map(x=>[x.id,x]));
+    const active=(regs||[]).filter(x=>x.status==='active');
+    const pending=(regs||[]).filter(x=>x.status==='pending');
+    const canManage=!!currentSession&&org.owner_id===currentSession.user.id&&isOwnProfile;
+    let html='<div class="membership-section"><div class="membership-section-head"><h3>Registrovaní hráči</h3><span class="membership-status">'+active.length+' hráčov</span></div>';
+    html+=active.length?'<div class="membership-grid">'+active.map(r=>membershipProfileCard(profileMap.get(r.player_id),'Registrovaný hráč',`/profil/?id=${encodeURIComponent(r.player_id)}`)).join('')+'</div>':'<div class="empty-state"><div class="empty-sub">Zatiaľ žiadni potvrdení registrovaní hráči.</div></div>';
+    if(canManage){
+      const requests=pending.filter(x=>x.request_source==='player_request');
+      html+='<div class="membership-section"><div class="membership-section-head"><h3>Žiadosti o registráciu</h3></div>';
+      html+=requests.length?'<div class="club-list-view">'+requests.map(r=>{
+        const pr=profileMap.get(r.player_id);
+        return `<div class="membership-card"><div class="membership-avatar">${escapeHtml(computeInitials(pr?.full_name||'Hráč'))}</div><div class="membership-copy"><strong>${escapeHtml(pr?.full_name||'Hráč')}</strong><div class="membership-meta">Žiada o registráciu</div><div class="membership-actions"><button class="btn btn-primary btn-sm" data-fed-admin-status="active" data-fed-registration-id="${r.id}">Schváliť</button><button class="btn btn-secondary btn-sm" data-fed-admin-status="rejected" data-fed-registration-id="${r.id}">Zamietnuť</button></div></div></div>`;
+      }).join('')+'</div>':'<div class="empty-state small"><div class="empty-sub">Žiadne čakajúce žiadosti.</div></div>';
+      html+='</div><div class="membership-section"><div class="membership-section-head"><h3>Pozvať hráča</h3></div><div class="membership-request"><select id="federationInvitePlayerSelect"><option value="">Vyber hráča…</option></select><button class="btn btn-primary btn-sm" id="federationInvitePlayerBtn">Pozvať</button></div></div>';
+    }
+    html+='</div>';panel.innerHTML=html;
+    if(canManage){
+      const {data:players,error:playersErr}=await cspAuth.client.from('profiles').select('id,full_name').eq('role','player').order('full_name');
+      if(playersErr)throw playersErr;
+      const blocked=new Set((regs||[]).filter(x=>['pending','active'].includes(x.status)).map(x=>x.player_id));
+      const sel=document.getElementById('federationInvitePlayerSelect');
+      (players||[]).filter(x=>!blocked.has(x.id)).forEach(x=>sel?.insertAdjacentHTML('beforeend',`<option value="${x.id}">${escapeHtml(x.full_name||'Hráč')}</option>`));
+    }
+  }catch(err){console.error('[profil] federation players:',err);panel.innerHTML='<div class="empty-state"><div class="empty-sub">Registrovaných hráčov sa nepodarilo načítať.</div></div>'}
+}
+async function renderFederationDashboard(){
+  renameFederationTabs();
+  document.querySelectorAll('.content-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('activityTab')?.classList.add('active');
+  document.getElementById('tabPanel-aktivity')?.classList.add('active');
+  await renderFederationPlayers();
+}
+document.getElementById('tabPanel-aktivity')?.addEventListener('click',async e=>{
+  if(String(currentProfile?.role||'')!=='organization')return;
+  try{
+    const action=e.target.closest('[data-fed-admin-status]');
+    if(action)await changeMembershipStatus('organization_player_registrations',action.dataset.fedRegistrationId,action.dataset.fedAdminStatus);
+    if(e.target.closest('#federationInvitePlayerBtn')){
+      const playerId=document.getElementById('federationInvitePlayerSelect')?.value;if(!playerId){toast('Vyber hráča.','error');return;}
+      const org=await loadCurrentOrganization();
+      const {error}=await cspAuth.client.from('organization_player_registrations').insert({organization_id:org.id,player_id:playerId,request_source:'organization_invite',initiated_by:currentSession.user.id});
+      if(error)throw error;toast('Pozvánka bola odoslaná.');await renderFederationPlayers();
+    }
+  }catch(err){console.error(err);toast('Zmena registrácie sa nepodarila.','error')}
+});
 function fillClubEditor(){
   const p=clubPublicProfile||{};
   document.getElementById('clubAboutTitle').value=p.about_title||'';
@@ -1994,6 +2317,7 @@ function openSettings(){
     return;
   }
   document.getElementById('settingsFullName').value = (authProfile && authProfile.full_name) || '';
+  document.getElementById('settingsBio').value = (authProfile && authProfile.bio) || '';
   document.getElementById('settingsRole').value = (authProfile && authProfile.role) || 'player';
 
   const plan = (authProfile && authProfile.plan) || 'free';
@@ -2220,21 +2544,23 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
   if(!currentSession) return;
   const btn = document.getElementById('saveSettingsBtn');
   const fullName = document.getElementById('settingsFullName').value.trim();
+  const bio = document.getElementById('settingsBio').value.trim();
   const role = document.getElementById('settingsRole').value;
 
   btn.disabled = true;
   btn.textContent = 'Ukladám...';
   try {
     const { data: updated, error } = await cspAuth.withTimeout(
-      cspAuth.client.from('profiles').update({ full_name: fullName || null, role: role }).eq('id', currentSession.user.id).select().single(),
+      cspAuth.client.from('profiles').update({ full_name: fullName || null, bio: bio || null, role: role }).eq('id', currentSession.user.id).select().single(),
       8000, 'profile update'
     );
     if(error) throw error;
 
+    authProfile = updated;
     currentProfile = updated;
     renderPlanCtas();
     renderIdentity();
-    currentClub=null;clubPublicProfile=null;clubRepresentatives=[];
+    currentClub=null;clubPublicProfile=null;clubRepresentatives=[];currentOrganization=null;
     await renderDashboardByRole();
     await loadProfileEvents(true);
     closeSettings();
@@ -2273,28 +2599,34 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
 const authGateReady = (async function initAuthGate(){
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(!session){
-      window.location.href = '/login/';
+    currentSession = session||null;
+    const requestedProfileId=new URLSearchParams(location.search).get('id');
+    if(!session && !requestedProfileId){
+      window.location.href='/login/';
       return;
     }
-    currentSession = session;
-
-    // Pass session.user through so getCurrentProfile() doesn't need to
-    // call getSession() again internally — see its definition in
-    // csp-auth.js for why that redundant second call mattered.
-    const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
-    if(profileError){
-      console.error('[profil] Could not load profile row, falling back to email-derived name:', profileError);
+    let profile=null;
+    if(session){
+      const loaded=await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user),8000,'getCurrentProfile()');
+      profile=loaded.data||null;
+      if(loaded.error)console.error('[profil] Could not load own profile row:',loaded.error);
     }
     currentProfile = await loadViewedProfile(profile);
 
     renderPlanCtas();
     renderIdentity();
     renderMemberSince();
-    await loadSocialState();
-    await loadNotifications();
+    await loadSocialState().catch(err=>console.error('[profil] social state:',err));
+    if(currentSession){
+      await loadNotifications();
+      startNotificationRealtime();
+    }else{
+      document.getElementById('notificationsBtn')?.style && (document.getElementById('notificationsBtn').style.display='none');
+      document.querySelector('.user-pill')?.style && (document.querySelector('.user-pill').style.display='none');
+      document.getElementById('avatarEditBtn')?.style && (document.getElementById('avatarEditBtn').style.display='none');
+    }
     await renderDashboardByRole();
-    loadProfileEvents();
+    if(currentSession&&isOwnProfile)loadProfileEvents();
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }
