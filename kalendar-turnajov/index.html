@@ -55,7 +55,7 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
     <select id="cityFilter"><option value="">MESTO — VŠETKY</option></select>
     <select id="sportFilter"><option value="">ŠPORT — VŠETKY</option></select>
     <input id="searchFilter" type="search" placeholder="HĽADAŤ turnaj, disciplínu, miesto…">
-    <button id="clearBtn" type="button">Vymazať</button>
+    <button id="searchBtn" type="button">Hľadať</button>
   </div>
 
   <div class="summary" id="summary">Načítavam turnaje…</div>
@@ -162,11 +162,7 @@ function render(){
 
 ['countryFilter','cityFilter','sportFilter'].forEach(id=>document.getElementById(id).addEventListener('change',render));
 document.getElementById('searchFilter').addEventListener('input',render);
-document.getElementById('clearBtn').addEventListener('click',()=>{
-  ['countryFilter','cityFilter','sportFilter'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('searchFilter').value='';
-  render();
-});
+document.getElementById('searchBtn').addEventListener('click',render);
 </script>
   <script src="/assets/csp-translate.js" defer></script>
 </body>
