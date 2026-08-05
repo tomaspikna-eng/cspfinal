@@ -9,6 +9,17 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script>
+/* Spätná kompatibilita: staré turnajové QR/linky smerovali na /scoreboard/.
+   Ak URL obsahuje turnajový alebo tabletový token, presuň ju do TE a
+   zachovaj celý query string. Bežný tréning/Live ostáva na tejto stránke. */
+(function routeTournamentLinksToTE(){
+  var params=new URLSearchParams(window.location.search);
+  if(params.has('device_token')||params.has('match_id')||params.has('match_token')){
+    window.location.replace('/scoreboard-te/'+window.location.search+window.location.hash);
+  }
+})();
+</script>
 <style>
 :root{
   --bg:#050505;--panel:#101010;--panel2:#161616;--gold:#d4a843;--green:#18c964;
