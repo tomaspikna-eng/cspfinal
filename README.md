@@ -1,39 +1,22 @@
-# Connect Sports Pro — Frontend (deploy balík)
+# Connect Sports Pro — Scoreboards
 
-Statický frontend CSP ekosystému. Čistý HTML/CSS/JS, žiadny build.
-Priečinková štruktúra (`priečinok/index.html`) + `cleanUrls` vo Verceli.
+Statický deploy balík s dvoma oddelenými edíciami scoreboardu.
 
-## Nasadenie (Vercel)
-1. Nahraj obsah tohto priečinka do ROOTA GitHub repa.
-2. Vercel: Import repo → Framework Preset: **Other** → Build Command: *prázdne* → Output: *prázdne*.
-3. Deploy. `vercel.json` zapne čisté URL.
+## Cesty
 
-## Architektúra profilu a plánov
-- **Jeden profil** (`/profil`) — žiadne oddelené varianty. Rola (hráč / klub / organizácia)
-  sa nastavuje v Nastaveniach podľa zvoleného plánu.
-- **Pluginy/moduly sa odomykajú podľa plánu**:
-  - **Free**: tréningový scoreboard + prihlasovanie do turnajov
-  - **Pro / Ultra**: postupne odomyká Club Manager, Tournament Manager, generátor stolov atď.
+- `/scoreboard/` — tréning a Live prevádzka klubu. Funguje aj anonymne a nečíta turnajové tokeny.
+- `/scoreboard-te/` — Tournament Edition. Načíta turnajový zápas cez `match_id` + `match_token`, prípadne pevný tablet cez `device_token`.
 
-## Štruktúra
-```
-/                         landing
-/login /registracia       prihlásenie, registrácia
-/profil                   JEDEN profil (rola podľa plánu, vrátane nastavení)
-/search /upgrade          vyhľadávanie turnajov, predplatné
-/ochrana-osobnych-udajov /vymazanie-dat   GDPR
+## Smart výsledok v TE
 
-/magazin                  verejný magazín (klasický portál)
-/magazin/clanok           detail článku
-/cms  /cms/editor         CMS (admin) + blokový editor
+Smart režim je predvolene zapnutý. Po dosiahnutí víťazného skóre TE automaticky zavolá RPC `complete_scoreboard_match`. Pri dočasnej chybe vykoná tri kontrolované pokusy a potom ponechá tlačidlo na ručné zopakovanie.
 
-/scoreboard               zlúčený scoreboard
-/stanice                  launcher staníc (QR)
-/manager                  Club Manager dashboard
-/manager/rezervacie       rezervácie
-```
+- Smart zapnutý: `/scoreboard-te/?match_id=...&match_token=...`
+- Smart vypnutý: `/scoreboard-te/?match_id=...&match_token=...&smart=0`
+- Pevné stanovisko: `/scoreboard-te/?device_token=...`
 
-## Stav
-- Frontend-first: dáta v localStorage. Backend (Supabase) sa napája postupne — najprv magazín.
-- CMS (`/cms`) je len pre admin.
-- Plugin-gating podľa plánu (odomykanie modulov) = logika do ďalšej fázy.
+Balík je pripravený na statický deploy z koreňa repozitára. `assets/csp-auth.js` obsahuje verejnú konfiguráciu Supabase klienta; oprávnenia zápisu musia zostať chránené RLS/RPC na serveri.
+
+## TE pripravenosť a time-out
+
+Pred nasadením nových ovládačov aplikujte migráciu `supabase/migrations/0017_scoreboard_te_ready_timeout.sql`. Pripravenosť sa zapisuje do existujúcich polí `player1_ready_at` a `player2_ready_at`; po potvrdení oboch hráčov sa zápas prepne na `in_progress`. Time-out sa zapisuje do `player1_timeout_active` a `player2_timeout_active`, takže zoznam zápasov môže stav zobraziť ako živý badge.

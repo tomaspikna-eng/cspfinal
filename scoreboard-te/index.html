@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Scoreboard Live & Training — Connect Sports Pro</title>
+<title>Scoreboard TE — Connect Sports Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -116,6 +116,14 @@ summary b{color:var(--gold)}
 .pm button{flex:1;max-width:120px;min-height:48px;font-size:18px;font-weight:700}
 .pm .plus{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.4);color:var(--green)}
 .pm .set-btn{background:rgba(212,168,67,.12);border-color:var(--gold);color:var(--gold);max-width:none}
+.te-player-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.te-trigger{min-height:46px;font-weight:800;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}
+.te-trigger i{position:relative;width:38px;height:22px;flex:0 0 38px;border-radius:99px;background:#333}
+.te-trigger i::after{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.18s}
+.te-trigger.ready i,.te-trigger.timeout i{background:currentColor}
+.te-trigger.ready i::after,.te-trigger.timeout i::after{transform:translateX(16px)}
+.te-trigger.ready{background:rgba(24,201,100,.14);border-color:var(--green);color:var(--green)}
+.te-trigger.timeout{background:rgba(212,168,67,.14);border-color:var(--gold);color:var(--gold)}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:8px;margin-top:14px}
 .stat{background:var(--panel2);border-radius:10px;padding:8px;text-align:center}
 .stat span{display:block;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
@@ -205,6 +213,15 @@ summary b{color:var(--gold)}
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="manualEndOverlay">
+  <div class="modal-card">
+    <div class="modal-title">Ukončiť zápas</div>
+    <div class="modal-sets">Potvrďte víťaza zápasu</div>
+    <div class="modal-actions" id="winnerChoiceButtons"></div>
+    <button class="modal-btn" id="cancelManualEndBtn" style="margin-top:10px;width:100%">Späť</button>
+  </div>
+</div>
+
 <div class="station-gate hidden" id="stationGate">
   <section class="station-card">
     <div class="station-kicker">CONNECT SPORTS PRO · TOURNAMENT TABLET</div>
@@ -235,9 +252,11 @@ summary b{color:var(--gold)}
 <main class="app" id="scoreboardApp">
   <header>
     <div class="brand">
-      <div class="kicker">CONNECT SPORTS PRO · LIVE &amp; TRAINING</div>
-      <h1 id="pageTitle">Scoreboard</h1>
+      <div class="kicker">CONNECT SPORTS PRO · TOURNAMENT EDITION</div>
+      <h1 id="pageTitle">Scoreboard TE</h1>
       <div class="meta">
+        <div class="pill gold">TE</div>
+        <div class="pill green" id="smartPill">SMART AUTO</div>
         <div class="pill gold" id="disciplinePill">8-ball</div>
         <div class="pill green" id="formatPill">Race to 5</div>
       </div>
@@ -365,16 +384,21 @@ const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100,"14.1 continuous"
 const START_SCORE={"501":501,"301":301};
 
 /* ════════════════════ URL (Club Manager) ════════════════════ */
-const SCOREBOARD_EDITION="LIVE_TRAINING";
+const SCOREBOARD_EDITION="TOURNAMENT_EDITION";
 const URL_PARAMS=new URLSearchParams(location.search);
 const STATION_NAME=URL_PARAMS.get("station")||"";
-let MATCH_ID="";
-let MATCH_TOKEN="";
-const DEVICE_TOKEN="";
+let MATCH_ID=URL_PARAMS.get("match_id")||"";
+let MATCH_TOKEN=URL_PARAMS.get("match_token")||"";
+const DEVICE_TOKEN=URL_PARAMS.get("device_token")||"";
 const STATION_SLUG=STATION_NAME?"_"+STATION_NAME.replace(/\W+/g,"_"):"";
 const STORAGE_KEY="csp_scoreboard_v1"+STATION_SLUG;
 let tournamentMatch=null;
 let tournamentResultSubmitting=false;
+const SMART_MODE=URL_PARAMS.get("smart")!=="0";
+const RESULT_RETRY_DELAYS=[0,1200,3000];
+let tePlayerReady=[false,false,false];
+let tePlayerTimeout=[false,false,false];
+let teMatchStarted=false;
 
 /* ════════════════════ AUTH (optional, silent — never gates anything) ════════
    This page is used two ways: a logged-in individual doing personal
@@ -524,6 +548,10 @@ function showMatchWonDialog(winnerIndex,mode){
   $("nextSetRaceLabel").textContent = mode==="darts" ? "Race to (legy) pre ďalší set" : "Race to (frames) pre ďalší set";
   $("nextSetRaceTo").value=state.raceTo;
   $("matchWonOverlay").classList.remove("hidden");
+  if(SMART_MODE && MATCH_ID && MATCH_TOKEN){
+    $("endMatchBtn").textContent="Smart: odosielam výsledok…";
+    setTimeout(()=>endMatchDialog(true),150);
+  }
 }
 function finalTournamentScore(){
   const players=activePlayers();
@@ -534,7 +562,8 @@ function finalTournamentScore(){
   return players.map(p=>Number(p.sets||0));
 }
 
-async function endMatchDialog(){
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function endMatchDialog(automatic=false){
   if(tournamentResultSubmitting)return;
 
   // Standalone/training scoreboard keeps its original behaviour.
@@ -564,14 +593,23 @@ async function endMatchDialog(){
   button.textContent="Odosielam výsledok…";
 
   try{
-    const {data,error}=await cspAuth.client.rpc("complete_scoreboard_match",{
-      p_match_id:MATCH_ID,
-      p_match_token:MATCH_TOKEN,
-      p_score1:scores[0],
-      p_score2:scores[1],
-      p_winner_id:winner
-    });
-    if(error)throw error;
+    let data=null,lastError=null;
+    for(let attempt=0;attempt<RESULT_RETRY_DELAYS.length;attempt++){
+      if(RESULT_RETRY_DELAYS[attempt]){
+        button.textContent=`Smart: opakujem odoslanie ${attempt+1}/${RESULT_RETRY_DELAYS.length}…`;
+        await wait(RESULT_RETRY_DELAYS[attempt]);
+      }
+      const result=await cspAuth.client.rpc("complete_scoreboard_match",{
+        p_match_id:MATCH_ID,
+        p_match_token:MATCH_TOKEN,
+        p_score1:scores[0],
+        p_score2:scores[1],
+        p_winner_id:winner
+      });
+      if(!result.error){data=result.data;lastError=null;break;}
+      lastError=result.error;
+    }
+    if(lastError)throw lastError;
 
     tournamentMatch=Array.isArray(data)?data[0]:data;
     $("matchWonOverlay").classList.add("hidden");
@@ -589,10 +627,12 @@ async function endMatchDialog(){
     }
   }catch(err){
     console.error("[scoreboard] Tournament result submission failed:",err);
-    alert(err?.message||"Výsledok sa nepodarilo odoslať.");
+    if(!automatic) alert(err?.message||"Výsledok sa nepodarilo odoslať.");
+    else addLog(`⚠ Smart odoslanie zlyhalo: ${err?.message||"skontrolujte pripojenie"}`);
     button.disabled=false;
-    button.textContent="Ukončiť zápas";
+    button.textContent="Odoslať výsledok znova";
     tournamentResultSubmitting=false;
+    render();
   }
 }
 function startNextSet(){
@@ -615,7 +655,7 @@ function startNextSet(){
   render();
 }
 $("playNextSetBtn").onclick=startNextSet;
-$("endMatchBtn").onclick=endMatchDialog;
+$("endMatchBtn").onclick=()=>endMatchDialog(false);
 
 function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSeconds()); }
 tickMatchTimer();
@@ -675,7 +715,7 @@ function render(){
   $("formatPill").textContent=fmt;
   $("periodLabel").textContent=periodWord;
   $("periodText").textContent=`${periodWord} ${state.period}`;
-  $("newPeriodBtn").textContent=newBtn;
+  $("newPeriodBtn").textContent="Ukončiť zápas";
 
   // keypad visibility
   const keypad = (m==="points"||m==="darts");
@@ -754,7 +794,11 @@ function playerCard(p,i,m){
     <div class="head"><div class="name">${p.name}</div>${starterBadge}</div>
     <div class="${bigClass}">${bigVal}</div>
     ${bigSub?`<div class="big-sub">${bigSub}</div>`:""}
-    ${controls}${stats}`;
+    ${controls}${stats}
+    <div class="te-player-actions">
+      <button class="te-trigger ${tePlayerReady[i]?'ready':''}" data-te-ready="${i}"><span>${tePlayerReady[i]?'PRIPRAVENÝ ✓':'PRIPRAVENÝ'}</span><i></i></button>
+      <button class="te-trigger ${tePlayerTimeout[i]?'timeout':''}" data-te-timeout="${i}"><span>${tePlayerTimeout[i]?'TIME-OUT AKTÍVNY':'TIME-OUT'}</span><i></i></button>
+    </div>`;
   return card;
 }
 
@@ -766,6 +810,8 @@ function wireCardButtons(m){
       else if(m==="universal"){ if(act==="plus")uniAdd(i); if(act==="minus")uniSub(i); if(act==="set")uniWinSet(i); }
     };
   });
+  document.querySelectorAll("[data-te-ready]").forEach(b=>b.onclick=()=>toggleTeReady(+b.dataset.teReady));
+  document.querySelectorAll("[data-te-timeout]").forEach(b=>b.onclick=()=>toggleTeTimeout(+b.dataset.teTimeout));
 }
 
 function renderFrameActions(m){
@@ -877,6 +923,59 @@ function submitRun(){ mode()==="darts"?submitRunDarts():submitRunPoints(); }
 function quickScore(v){state.runInput=String(v);submitRun();}
 
 /* ════════════════════ AKCIE ════════════════════ */
+async function syncTePlayerState(action,i,value){
+  if(!MATCH_ID||!MATCH_TOKEN||!tournamentMatch)return;
+  const playerId=tournamentMatch[i===0?"player1_id":"player2_id"];
+  if(!playerId)return;
+  try{
+    const rpc=action==="ready"?"scoreboard_set_player_ready":"scoreboard_set_player_timeout";
+    const args={p_match_id:MATCH_ID,p_match_token:MATCH_TOKEN,p_player_id:playerId,p_active:value};
+    const {error}=await cspAuth.client.rpc(rpc,args);
+    if(error)throw error;
+  }catch(err){
+    console.warn(`[scoreboard-te] ${action} sync failed:`,err);
+    addLog(`⚠ Stav ${action==="ready"?"pripravenosti":"time-outu"} sa nepodarilo synchronizovať`);
+  }
+}
+async function toggleTeReady(i){
+  if(teMatchStarted)return;
+  tePlayerReady[i]=!tePlayerReady[i];
+  addLog(`${activePlayers()[i].name}: ${tePlayerReady[i]?"pripravený":"pripravenosť zrušená"}`);
+  render();
+  await syncTePlayerState("ready",i,tePlayerReady[i]);
+  if(tePlayerReady.slice(0,state.playerCount).every(Boolean)){
+    teMatchStarted=true;
+    addLog("▶ Obaja hráči pripravení — zápas automaticky začal");
+    startTimer();
+    render();
+  }
+}
+async function toggleTeTimeout(i){
+  if(!teMatchStarted)return;
+  tePlayerTimeout[i]=!tePlayerTimeout[i];
+  addLog(`${activePlayers()[i].name}: time-out ${tePlayerTimeout[i]?"spustený":"ukončený"}`);
+  if(tePlayerTimeout.some(Boolean))pauseTimer(); else startTimer();
+  render();
+  await syncTePlayerState("timeout",i,tePlayerTimeout[i]);
+}
+function openManualEndDialog(){
+  if(!MATCH_ID||!MATCH_TOKEN){
+    alert("TE nemá načítaný turnajový zápas.");
+    return;
+  }
+  const wrap=$("winnerChoiceButtons");
+  wrap.innerHTML=activePlayers().slice(0,2).map((p,i)=>`<button class="modal-btn primary" data-winner="${i}">Vyhral ${p.name}</button>`).join("");
+  wrap.querySelectorAll("[data-winner]").forEach(b=>b.onclick=()=>confirmManualWinner(+b.dataset.winner));
+  $("manualEndOverlay").classList.remove("hidden");
+}
+function confirmManualWinner(i){
+  pendingWinnerIndex=i;
+  pendingSetMode=mode();
+  $("manualEndOverlay").classList.add("hidden");
+  $("matchWonTitle").textContent=`🏆 Vyhral ${activePlayers()[i].name}`;
+  $("matchWonOverlay").classList.remove("hidden");
+  endMatchDialog(false);
+}
 function newPeriod(){
   const m=mode();
   state.period++;
@@ -973,7 +1072,8 @@ $("playerCount").onchange=()=>$("p3Wrap").classList.toggle("hidden",$("playerCou
 $("doubleOutSwitch").onchange=()=>{state.doubleOut=$("doubleOutSwitch").checked;$("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";};
 $("altBreakSwitch").onchange=()=>{state.alternateBreak=$("altBreakSwitch").checked;$("altBreakText").textContent=state.alternateBreak?"Zapnutý":"Vypnutý";};
 $("applyBtn").onclick=applySettings;
-$("newPeriodBtn").onclick=newPeriod;
+$("newPeriodBtn").onclick=openManualEndDialog;
+$("cancelManualEndBtn").onclick=()=>$("manualEndOverlay").classList.add("hidden");
 $("resetBtn").onclick=resetAll;
 $("submitRunBtn").onclick=submitRun;
 $("clearRunBtn").onclick=clearRun;
@@ -1000,6 +1100,9 @@ async function loadTournamentMatch(){
     if(!row)throw new Error("Zápas neexistuje alebo token nie je platný.");
 
     tournamentMatch=row;
+    tePlayerReady=[!!row.player1_ready_at,!!row.player2_ready_at,false];
+    tePlayerTimeout=[!!row.player1_timeout_active,!!row.player2_timeout_active,false];
+    teMatchStarted=["in_progress","live","completed"].includes(row.match_status)||!!row.started_at;
     state.playerCount=2;
     state.players[0].name=row.player1_name||"Hráč 1";
     state.players[1].name=row.player2_name||"Hráč 2";
@@ -1014,8 +1117,13 @@ async function loadTournamentMatch(){
         }
       }
     }
+    const configuredRace=Number(row.race_to||row.raceTo||row.target_score||0);
+    if(configuredRace>0)state.raceTo=Math.min(30,configuredRace);
 
     $("pageTitle").textContent=row.tournament_name||"Turnajový scoreboard";
+    $("smartPill").textContent=SMART_MODE?"SMART AUTO":"MANUÁLNE ODOSLANIE";
+    $("sportTabs").classList.add("hidden");
+    document.querySelector(".settings").classList.add("hidden");
     syncSettingsUI();
     render();
 
@@ -1128,12 +1236,15 @@ async function openAssignedStationMatch(row){
   stationActiveMatchId=row.match_id;
   MATCH_ID=row.match_id;
   MATCH_TOKEN=row.match_token;
-  state=structuredClone(defaultState);
+    state=structuredClone(defaultState);
   resetScoresForMode();
   tournamentMatch=null;
   pendingWinnerIndex=null;
   pendingSetMode=null;
   tournamentResultSubmitting=false;
+  tePlayerReady=[false,false,false];
+  tePlayerTimeout=[false,false,false];
+  teMatchStarted=false;
   $("endMatchBtn").disabled=false;
   $("endMatchBtn").textContent="Ukončiť zápas";
   await loadTournamentMatch();
@@ -1178,6 +1289,7 @@ if(DEVICE_TOKEN){
   applyUrlParams();
   syncSettingsUI();
   render();
+  loadTournamentMatch();
   if(!state.log.length){addLog("Scoreboard pripravený");render();}
 }
 
