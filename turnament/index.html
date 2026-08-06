@@ -323,6 +323,13 @@ input:focus,select:focus{border-color:var(--gold)}
 .pl-seed{font-family:var(--mono);font-size:.68rem;font-weight:700;color:var(--gold);min-width:62px}
 .pl-seed.unseeded{color:var(--muted)}
 .pl-name{flex:1;font-size:.88rem;font-weight:600}
+.presence-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+.presence-toggle input{position:absolute;opacity:0;pointer-events:none}
+.presence-switch{width:36px;height:20px;border-radius:99px;background:var(--line);border:1px solid var(--line-2);position:relative;transition:.15s}
+.presence-switch:after{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;border-radius:50%;background:var(--muted);transition:.15s}
+.presence-toggle input:checked + .presence-switch{background:rgba(38,208,125,.18);border-color:var(--green)}
+.presence-toggle input:checked + .presence-switch:after{left:18px;background:var(--green)}
+.presence-toggle input:checked ~ .presence-label{color:var(--green)}
 .pl-move{display:flex;gap:3px}.pl-move button{width:24px;height:24px;border-radius:6px;color:var(--muted);font-size:.72rem}.pl-move button:hover{background:var(--gold-dim);color:var(--gold)}
 .seed-control{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:14px;align-items:end;margin:14px 0}
 .seed-control .field{margin:0}.seed-info{font-size:.78rem;color:var(--muted);line-height:1.45}
@@ -1378,12 +1385,13 @@ async function editTournament(id){
     );
     if(pErr) throw pErr;
     const bracketState=await loadBracketState(id);
+    const presentNames=new Set(Array.isArray(t.config?.present_player_names)?t.config.present_player_names:[]);
     go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
                    raceTo: t.config?.race_to || 5,
                    protectedSeeds: bracketState.protectedSeeds || 0,
                    seedCount: Number(t.config?.seed_count ?? (players||[]).length),
                    source_event_id: t.source_event_id || null,
-                   players: (players||[]).map(p=>({ name: p.name, seed: p.seed })) });
+                   players: (players||[]).map(p=>({ name: p.name, seed: p.seed, present:presentNames.has(p.name) })) });
   } catch(err){
     console.error('[turnament] Failed to load tournament for editing:', err);
     toast('Nepodarilo sa načítať turnaj na úpravu.', true);
@@ -2102,13 +2110,13 @@ const FORMATS={
   rr_sko:{ic:'🏆',t:'Skupiny → Single KO',d:'Najprv skupiny (RR), postupujúci do Single KO pavúka.',struct:['Skupiny','Single KO']},
   rr_dko:{ic:'🏆',t:'Skupiny → Double KO',d:'Najprv skupiny (RR), postupujúci do Double KO pavúka.',struct:['Skupiny','Double KO']},
 };
-const STEPS=[['Info','📋'],['Formát','🏆'],['Hráči','👥'],['Skupiny','🔢'],['Súhrn','✓']];
+const STEPS=[['Info','📋'],['Hráči','👥'],['Formát','🏆'],['Súhrn','✓']];
 
 let wiz={};
 function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
-function activeSteps(){ return isKarty()? [0,2,4] : (isCombo()? [0,1,2,3,4] : [0,1,2,4]); }
+function activeSteps(){ return [0,1,2,3]; }
 
 function viewWizard(){
   return `<div class="wrap"><div class="wiz">
@@ -2161,22 +2169,10 @@ function renderWiz(){
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="go('dashboard')">Zrušiť</button><button class="btn btn-primary" onclick="saveInfo()">Ďalej →</button></div>`;
   }
   else if(wiz.step===1){
-    const card=(k)=>{const f=FORMATS[k]; return `<div class="fmt-card ${wiz.format===k?'sel':''}" onclick="wiz.format='${k}';renderWiz()">
-      <div class="fic">${f.ic}</div>
-      <div class="ftxt"><div class="ft">${f.t}</div><div class="fd">${f.d}</div>
-        <div class="fstruct">${f.struct.map((s,i)=>`${i>0?'<span class="arr">→</span>':''}<span class="ph">${s}</span>`).join('')}</div></div></div>`;};
-    p.innerHTML=`
-      <h2>Formát súťaže</h2><div class="sub">Jedna fáza, alebo kombinácia skupín a vyraďováka.</div>
-      <div class="fmt-section">Jedna fáza</div>
-      <div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
-      <div class="fmt-section">Kombinácia — skupiny → vyraďovák</div>
-      <div class="fmt-list">${card('rr_sko')}${card('rr_dko')}</div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
-  }
-  else if(wiz.step===2){
     const N=TM.nextPow2(Math.max(2,wiz.players.length));
+    const presentCount=wiz.players.filter(pl=>pl.present).length;
     p.innerHTML=`
-      <h2>Hráči a seedovanie</h2><div class="sub">Pridaj hráčov, nastav počet seedov a ručne uprav ich poradie potiahnutím.</div>
+      <h2>Hráči · prezenčná listina</h2><div class="sub">Pridaj hráčov a pri príchode potvrď ich fyzickú prítomnosť prepínačom Prítomný.</div>
       <div class="player-add">
         <input id="wPlayerName" placeholder="Meno a priezvisko hráča" onkeydown="if(event.key==='Enter')addPlayer()"/>
         <button class="btn btn-primary" onclick="addPlayer()">＋ Pridať</button></div>
@@ -2185,7 +2181,7 @@ function renderWiz(){
         <textarea id="wBulk" placeholder="Ján Novák&#10;Peter Horváth&#10;Mária Kováčová&#10;…"></textarea>
         <button class="btn btn-ghost" style="margin-top:8px" onclick="addBulk()">Pridať všetkých zo zoznamu</button></div>`:''}
       <div class="player-stats">
-        <span class="player-count"><b>${wiz.players.length}</b> hráčov</span>
+        <span class="player-count"><b>${presentCount}/${wiz.players.length}</b> prítomných</span>
         ${wiz.players.length?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
       </div>
       ${wiz.players.length?`<div class="seed-control">
@@ -2196,6 +2192,7 @@ function renderWiz(){
         <span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
         <span class="pl-name">${esc(pl.name)}</span>
+        <label class="presence-toggle" title="Potvrdiť prítomnosť hráča"><input type="checkbox" ${pl.present?'checked':''} onchange="setPlayerPresent(${i},this.checked)"><span class="presence-switch"></span><span class="presence-label">Prítomný</span></label>
         <span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
         <button class="pl-del" onclick="removePlayer(${i})">✕</button>
       </div>`).join('')}</div>`
@@ -2203,22 +2200,26 @@ function renderWiz(){
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
     setTimeout(()=>{const e=document.getElementById('wPlayerName'); if(e&&!wiz.showBulk) e.focus();},30);
   }
-  else if(wiz.step===3){
+  else if(wiz.step===2){
+    if(isKarty()) wiz.format='karty';
+    const card=(k)=>{const f=FORMATS[k]; return `<div class="fmt-card ${wiz.format===k?'sel':''}" onclick="wiz.format='${k}';renderWiz()">
+      <div class="fic">${f.ic}</div><div class="ftxt"><div class="ft">${f.t}</div><div class="fd">${f.d}</div><div class="fstruct">${f.struct.map((s,i)=>`${i>0?'<span class="arr">→</span>':''}<span class="ph">${s}</span>`).join('')}</div></div></div>`;};
     const perGroup=Math.ceil(wiz.players.length/Math.max(1,wiz.groups));
-    p.innerHTML=`
-      <h2>Skupiny a postup</h2><div class="sub">Rozdelenie ${wiz.players.length} hráčov do skupín a koľko postupuje do pavúka.</div>
-      <div class="row2">
-        <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/>
-          <div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
-        <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div>
-      </div>
-      ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/><div class="hint">0 = štandardný krížový pavúk. Pri K &gt; 0 top K postupujúcich čaká priamo na hlavný pavúk; ochrana platí len pre Skupiny → Single KO.</div></div>`:''}
-      <div class="note-box" id="groupNote"></div>
+    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">Nastav formát až po kontrole prezenčnej listiny.</div>
+      ${isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
+      <div class="fmt-section">Jedna fáza</div><div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
+      <div class="fmt-section">Kombinácia — skupiny → vyraďovák</div><div class="fmt-list">${card('rr_sko')}${card('rr_dko')}</div>
+      ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
+        <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/><div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
+        <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div></div>
+        ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/></div>`:''}
+        <div class="note-box" id="groupNote"></div>`:''}`}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
-    refreshGroupNote();
+    if(isCombo()) refreshGroupNote();
   }
-  else if(wiz.step===4){
+  else if(wiz.step===3){
     const f=FORMATS[wiz.format];
+    const presentCount=wiz.players.filter(pl=>pl.present).length;
     p.innerHTML=`
       <h2>Súhrn a generovanie</h2><div class="sub">${isKarty()?'Skontroluj a vytvor turnaj — otvoríme Generátor stolov.':'Skontroluj a vytvor turnaj — vygenerujeme prvé kolo.'}</div>
       <div class="sumbox">
@@ -2226,6 +2227,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${wiz.sport} · ${wiz.discipline}</span></div>
         <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
+        <div class="sumrow"><span class="k">Prítomní</span><span class="v">${presentCount}/${wiz.players.length}</span></div>
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         <div class="sumrow"><span class="k">Race to</span><span class="v">${wiz.raceTo||5}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
@@ -2245,15 +2247,16 @@ function saveInfo(){
 }
 function addPlayer(){
   const inp=document.getElementById('wPlayerName'); const name=(inp.value||'').trim();
-  if(!name) return; wiz.players.push({name}); inp.value=''; renderWiz();
+  if(!name) return; wiz.players.push({name,present:false}); inp.value=''; renderWiz();
 }
 function addBulk(){
   const ta=document.getElementById('wBulk'); if(!ta) return;
   const names=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!names.length){ toast('Vlož aspoň jedno meno.',true); return; }
-  names.forEach(n=>wiz.players.push({name:n}));
+  names.forEach(n=>wiz.players.push({name:n,present:false}));
   wiz.showBulk=false; renderWiz(); toast(`Pridaných ${names.length} hráčov`);
 }
+function setPlayerPresent(index,present){ if(wiz.players[index]) wiz.players[index].present=!!present; renderWiz(); }
 function setSeedCount(value){
   wiz.seedCount=Math.max(0,Math.min(wiz.players.length,Number(value)||0));
   renderWiz();
@@ -2357,7 +2360,7 @@ async function createTournament(){
       venue: wiz.venue || null,
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
-      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)) },
+      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
