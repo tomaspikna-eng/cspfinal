@@ -562,6 +562,24 @@ function finalTournamentScore(){
   return players.map(p=>Number(p.sets||0));
 }
 
+let lastTournamentLiveScore="";
+async function syncTournamentLiveScore(){
+  if(!MATCH_ID||!MATCH_TOKEN||!teMatchStarted||tournamentResultSubmitting)return;
+  const scores=finalTournamentScore();
+  if(scores.length<2)return;
+  const key=`${scores[0]}:${scores[1]}`;
+  if(key===lastTournamentLiveScore)return;
+  try{
+    const {error}=await cspAuth.client.rpc("update_scoreboard_match_live",{
+      p_match_id:MATCH_ID,p_match_token:MATCH_TOKEN,p_score1:scores[0],p_score2:scores[1]
+    });
+    if(error)throw error;
+    lastTournamentLiveScore=key;
+  }catch(err){
+    console.warn("[scoreboard-te] Live score sync failed:",err);
+  }
+}
+
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function endMatchDialog(automatic=false){
   if(tournamentResultSubmitting)return;
@@ -830,9 +848,9 @@ function frameAdd(i){
     saveTrainingSession({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name,elapsedSeconds());
     render();showMatchWonDialog(i,"frame");return;
   }
-  render();
+  render();syncTournamentLiveScore();
 }
-function frameSub(i){const p=activePlayers()[i];if(p.score>0)p.score--;render();}
+function frameSub(i){const p=activePlayers()[i];if(p.score>0){p.score--;render();syncTournamentLiveScore();}else render();}
 
 /* ════════════════════ POINTS engine (snooker/pyramída/karambol) ════════════════════ */
 function submitRunPoints(){
@@ -856,7 +874,7 @@ function awardFrame(i){
     saveTrainingSession({mode:'points',players:activePlayers().map((p,idx)=>({name:p.name,frames:p.frames,framePoints:finalFramePoints[idx]}))},w.name,elapsedSeconds());
     render();showMatchWonDialog(i,"points");return;
   }
-  render();
+  render();syncTournamentLiveScore();
 }
 
 /* ════════════════════ DARTS engine (501/301) ════════════════════ */
@@ -884,6 +902,7 @@ function dartsWinLeg(i){
   }
   state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;state.runInput="";
   activePlayers().forEach(p=>p.remaining=startScore());render();
+  syncTournamentLiveScore();
 }
 
 /* ════════════════════ UNIVERSAL engine (ostatné športy) ════════════════════ */
@@ -905,7 +924,7 @@ function uniWinSet(i){
     saveTrainingSession({mode:'universal',players:activePlayers().map((p,idx)=>({name:p.name,sets:p.sets,points:finalPoints[idx]}))},w.name,elapsedSeconds());
     render();showMatchWonDialog(i,"universal");return;
   }
-  render();
+  render();syncTournamentLiveScore();
 }
 
 /* ════════════════════ KEYPAD ════════════════════ */
@@ -1120,6 +1139,18 @@ async function loadTournamentMatch(){
     const configuredRace=Number(row.race_to||row.raceTo||row.target_score||0);
     if(configuredRace>0)state.raceTo=Math.min(30,configuredRace);
 
+    const loadedScore1=Number(row.score1||0),loadedScore2=Number(row.score2||0);
+    if(mode()==="frame"){
+      state.players[0].score=loadedScore1;state.players[1].score=loadedScore2;
+    }else if(mode()==="points"){
+      state.players[0].frames=loadedScore1;state.players[1].frames=loadedScore2;
+    }else if(mode()==="darts"){
+      state.players[0].legs=loadedScore1;state.players[1].legs=loadedScore2;
+    }else{
+      state.players[0].sets=loadedScore1;state.players[1].sets=loadedScore2;
+    }
+    lastTournamentLiveScore=`${loadedScore1}:${loadedScore2}`;
+
     $("pageTitle").textContent=row.tournament_name||"Turnajový scoreboard";
     $("smartPill").textContent=SMART_MODE?"SMART AUTO":"MANUÁLNE ODOSLANIE";
     $("sportTabs").classList.add("hidden");
@@ -1242,6 +1273,7 @@ async function openAssignedStationMatch(row){
   pendingWinnerIndex=null;
   pendingSetMode=null;
   tournamentResultSubmitting=false;
+  lastTournamentLiveScore="";
   tePlayerReady=[false,false,false];
   tePlayerTimeout=[false,false,false];
   teMatchStarted=false;
