@@ -736,9 +736,13 @@ async function loadBracketState(id){
     return {};
   }
 }
-function saveBracketState(id,state){
-  cspAuth.client.rpc('save_tournament_bracket_state',{p_tournament_id:id,p_state:state||{}})
-    .then(({error})=>{if(error)console.error('[turnament] bracket state save:',error)});
+async function saveBracketState(id,state){
+  const {error}=await cspAuth.client.rpc('save_tournament_bracket_state',{p_tournament_id:id,p_state:state||{}});
+  if(error){
+    console.error('[turnament] bracket state save:',error);
+    return false;
+  }
+  return true;
 }
 
 (async function initAuth(){
@@ -1229,8 +1233,8 @@ async function syncComboPhaseTransition(t){
    objects. Core tournament/player/group data is the real DB rows,
    loaded fresh in viewDetail() below, never written here. */
 function persistT(){
-  if(!curT || isPublicReadOnly) return;
-  saveBracketState(curT.id, {
+  if(!curT || isPublicReadOnly) return Promise.resolve(true);
+  return saveBracketState(curT.id, {
     bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp,
     phase2:curT.phase2, protectedSeeds:curT.protectedSeeds,
     groupPhaseId:curT.groupPhaseId, knockoutPhaseId:curT.knockoutPhaseId
@@ -1663,12 +1667,23 @@ async function ensureRealMatch(loc,m){
   const phaseSide=prefix==='p2W'?'W':prefix==='p2L'?'L':prefix==='p2F'?'GF':prefix==='W'?'W':prefix==='L'?'L':prefix==='F'?'GF':null;
   const roundNumber=(prefix==='grp'||prefix==='rr')?(m.round||null):((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
   const matchNumber=(parts.length>2&&Number.isFinite(+parts[2]))?+parts[2]+1:((parts.length>1&&Number.isFinite(+parts[1]))?+parts[1]+1:null);
-  const {data,error}=await cspAuth.client.from('matches').upsert({
+  const payload={
     tournament_id:curT.id,phase_id:phaseId||null,round_key:loc,round_number:roundNumber,match_number:matchNumber,
     bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending'
-  },{onConflict:'tournament_id,round_key'}).select('*').single();
-  if(error)throw error;
-  row=data;realMatchesByKey.set(loc,row);return row;
+  };
+  // Never use an UPSERT here. A stale browser can be missing a match that
+  // already exists in Postgres; upserting status:'pending' would then reopen
+  // a completed match. Insert first and, on the unique round_key conflict,
+  // fetch the already-authoritative row instead.
+  const {data,error}=await cspAuth.client.from('matches').insert(payload).select('*').single();
+  if(error){
+    if(error.code!=='23505')throw error;
+    const existing=await cspAuth.client.from('matches').select('*')
+      .eq('tournament_id',curT.id).eq('round_key',loc).single();
+    if(existing.error)throw existing.error;
+    row=existing.data;
+  }else row=data;
+  realMatchesByKey.set(loc,row);return row;
 }
 async function refreshRealMatch(loc){
   const {data,error}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id).eq('round_key',loc).single();
@@ -1688,15 +1703,19 @@ async function startLiveMatch(loc){
   const m=getMatchByLoc(loc);if(!m)return;
   try{
     const row=await ensureRealMatch(loc,m),now=new Date().toISOString();
+    if(row.status==='completed'||row.status==='forfeited'||row.winner_id||row.completed_at){
+      toast('Ukončený zápas už nie je možné znovu spustiť.',true);return;
+    }
     const payload={status:'live',match_clock_started_at:now,match_clock_paused_at:null,match_clock_stopped_at:null};
     if(!row.started_at)payload.started_at=now;
-    const {error}=await cspAuth.client.from('matches').update(payload).eq('id',row.id);
+    const {error}=await cspAuth.client.from('matches').update(payload).eq('id',row.id).is('winner_id',null);
     if(error)throw error;await refreshRealMatch(loc);
   }catch(err){console.error('[turnament] start match:',err);toast('Zápas sa nepodarilo spustiť.',true);}
 }
 async function pauseLiveMatch(loc){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
+  if(row.status!=='live'&&row.status!=='in_progress')return;
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
     const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:now}).eq('id',row.id);
@@ -1706,6 +1725,7 @@ async function pauseLiveMatch(loc){
 async function resumeLiveMatch(loc){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
+  if((row.status!=='live'&&row.status!=='in_progress')||row.winner_id||row.completed_at)return;
   try{
     const {error}=await cspAuth.client.from('matches').update({status:'live',match_clock_started_at:new Date().toISOString(),match_clock_paused_at:null,match_clock_stopped_at:null}).eq('id',row.id);
     if(error)throw error;await refreshRealMatch(loc);
@@ -1714,9 +1734,15 @@ async function resumeLiveMatch(loc){
 async function stopLiveMatch(loc){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const row=realMatchesByKey.get(loc);if(!row)return;
+  // A delayed click from stale UI must never reopen a match that was already
+  // completed by the organizer or Scoreboard TE.
+  if((row.status!=='live'&&row.status!=='in_progress')||row.winner_id||row.completed_at){
+    await refreshRealMatch(loc);return;
+  }
   try{
     const elapsed=liveMatchElapsed(row),now=new Date().toISOString();
-    const {error}=await cspAuth.client.from('matches').update({status:'ready',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:null,match_clock_stopped_at:now}).eq('id',row.id);
+    const {error}=await cspAuth.client.from('matches').update({status:'ready',match_clock_elapsed_seconds:elapsed,match_clock_started_at:null,match_clock_paused_at:null,match_clock_stopped_at:now})
+      .eq('id',row.id).in('status',['live','in_progress']).is('winner_id',null).is('completed_at',null);
     if(error)throw error;await refreshRealMatch(loc);
   }catch(err){console.error('[turnament] stop match:',err);toast('Zápas sa nepodarilo zastaviť.',true);}
 }
@@ -1837,17 +1863,18 @@ matchQrCopyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(matchQr
 function liveMatchControls(m,loc){
   const row=realMatchesByKey.get(loc);
   const status=row?.status||'pending';
+  const isClosed=status==='completed'||status==='forfeited'||!!row?.winner_id||!!row?.completed_at;
   const isLive=status==='live'||status==='in_progress';
   const isPaused=isLive && !!row?.match_clock_paused_at;
-  const wasStopped=!!row?.match_clock_stopped_at && !isLive;
-  const state=isPaused?'paused':isLive?'running':wasStopped?'stopped':'pending';
-  const statusLabel=state==='running'?'PREBIEHA':state==='paused'?'PAUZA':state==='stopped'?'ZASTAVENÝ':'NEZAČAL';
+  const wasStopped=!isClosed&&!!row?.match_clock_stopped_at&&!isLive;
+  const state=isClosed?'closed':isPaused?'paused':isLive?'running':wasStopped?'stopped':'pending';
+  const statusLabel=state==='closed'?'UKONČENÝ':state==='running'?'PREBIEHA':state==='paused'?'PAUZA':state==='stopped'?'ZASTAVENÝ':'NEZAČAL';
   const elapsed=liveMatchElapsed(row);
   let buttons='';
   if(state==='pending'||state==='stopped')buttons+=`<button class="match-op start" onclick="event.stopPropagation();startLiveMatch('${loc}')">▶ Štart</button>`;
   if(state==='running')buttons+=`<button class="match-op" onclick="event.stopPropagation();pauseLiveMatch('${loc}')">⏸ Pauza</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
   if(state==='paused')buttons+=`<button class="match-op start" onclick="event.stopPropagation();resumeLiveMatch('${loc}')">▶ Pokračovať</button><button class="match-op stop" onclick="event.stopPropagation();stopLiveMatch('${loc}')">⏹ Stop</button>`;
-  buttons+=`<button class="match-op qr" onclick="event.stopPropagation();showMatchQr('${loc}')">▦ Tablet</button>`;
+  if(!isClosed)buttons+=`<button class="match-op qr" onclick="event.stopPropagation();showMatchQr('${loc}')">▦ Tablet</button>`;
   const resourceOptions=tournamentOperations.map(r=>`<option value="${r.resource_id}" ${row?.tournament_resource_id===r.resource_id?'selected':''} ${r.match_id&&r.match_id!==row?.id?'disabled':''}>${esc(r.resource_label)} · ${r.operating_mode==='smart'?'SMART':'MANUAL'}</option>`).join('');
   return `<div class="match-livebar" onclick="event.stopPropagation()">
     <select class="match-resource-select" onchange="assignMatchResource('${loc}',this.value)"><option value="">Nepridelené</option>${resourceOptions}</select>
@@ -2081,7 +2108,6 @@ async function saveMatch(){
   // protected preliminary round may have produced its required survivors.
   // This is deliberately automatic: no separate \"generate\" click.
   maybeGenerateComboPhase(curT);
-  persistT();
   const savedLoc=editLoc, savedM=m;
   closeMatch();
   document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
@@ -2089,6 +2115,15 @@ async function saveMatch(){
 
   try {
     await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
+    // Persist advancement only after the authoritative match write succeeded.
+    // This prevents bracket_state from getting ahead of `matches` when a DB
+    // write is rejected. Then reload both sources that drive station selects,
+    // so a released table is immediately usable in the next round.
+    const bracketSaved=await cspAuth.withTimeout(persistT(),8000,'save bracket state');
+    if(!bracketSaved)throw new Error('Bracket state was not saved');
+    await reloadRealMatches();
+    await loadTournamentOperations(curT.id);
+    document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
     if(savedLoc.split(':')[0]==='grp' && comboAllGroupsDone(curT)){
       await cspAuth.withTimeout(syncComboPhaseTransition(curT), 10000, 'complete group phase');
       document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
