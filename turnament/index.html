@@ -853,6 +853,13 @@ async function go(view, data){
   const app=document.getElementById('app');
   if(view==='dashboard'){
     stopTournamentMatchesRealtime();
+    // The dashboard must not keep a previously opened tournament in the
+    // address bar. Otherwise F5 would reopen that tournament again.
+    const url=new URL(location.href);
+    url.searchParams.delete('id');
+    url.searchParams.delete('tournament_id');
+    url.searchParams.delete('mode');
+    history.replaceState({view:'dashboard'},'',url.pathname+(url.search?url.search:'')+url.hash);
     app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
     app.innerHTML=await viewDashboard();
   }
@@ -861,6 +868,14 @@ async function go(view, data){
     app.innerHTML=viewWizard(); initWizard(data);
   }
   else if(view==='detail') {
+    // Persist the opened tournament in the URL. The tournament flow is a
+    // client-side view, so without this F5 loses its id and falls back to
+    // the dashboard/summary even though the tournament is still active.
+    const url=new URL(location.href);
+    url.searchParams.set('id',data);
+    url.searchParams.delete('tournament_id');
+    url.searchParams.delete('mode');
+    history.replaceState({view:'detail',tournamentId:data},'',url.pathname+'?'+url.searchParams.toString()+url.hash);
     app.innerHTML=`<div class="wrap"><div class="empty">Načítavam…</div></div>`;
     app.innerHTML=await viewDetail(data);
     bindTournamentSocial();
