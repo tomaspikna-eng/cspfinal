@@ -723,6 +723,11 @@ function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 function statusLabel(status){return ({draft:'NÁVRH',ready:'PRIPRAVENÝ',active:'PREBIEHA',completed:'UKONČENÝ',archived:'ARCHÍV'})[status]||String(status||'').toUpperCase();}
+function cspErrorMessage(err){
+  if(window.cspAuth && typeof cspAuth.formatError==='function') return cspAuth.formatError(err);
+  if(window.cspAuth && typeof cspAuth.friendlyError==='function') return cspAuth.friendlyError(err);
+  return err?.message||String(err||'Nastala neočakávaná chyba.');
+}
 
 
 function bracketStorageKey(id){ return 'deprecated_csp_tournament_bracket_'+id; }
@@ -1219,7 +1224,7 @@ async function syncComboPhaseTransition(t){
       return nextPhaseId;
     }catch(err){
       console.error('[turnament] Phase transition failed:',err);
-      toast('Skupiny sú dohrané, ale prechod do ďalšej fázy sa nepodaril: '+cspAuth.formatError(err),true);
+      toast('Skupiny sú dohrané, ale prechod do ďalšej fázy sa nepodaril: '+cspErrorMessage(err),true);
       throw err;
     }finally{
       comboTransitionPromise=null;
@@ -1362,7 +1367,7 @@ async function viewDetail(id){
           ${curT.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${curT.date}</span></div>`:''}
         </div>
         <div class="detail-card" style="margin-top:16px">
-          <div class="dc-head"><h3>Hráči (${players.length})</h3>${isPublicReadOnly?'':`<button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button>`}</div>
+          <div class="dc-head"><h3>Hráči (${players.length})</h3>${!isPublicReadOnly&&['draft','ready'].includes(curT.status)?`<button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button>`:''}</div>
           <div class="player-list" style="max-height:240px">
             ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}${p.user_id?'<span class="csp-player-badge linked">CSP ✓</span>':''}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
           </div>
@@ -1401,6 +1406,11 @@ async function editTournament(id){
       8000, 'load tournament'
     );
     if(tErr) throw tErr;
+    if(!['draft','ready'].includes(t.status)){
+      toast(t.status==='active'?'Turnaj už prebieha. Prezenčná listina je uzamknutá.':'Ukončený turnaj už nie je možné upravovať.',true);
+      await go('detail',id);
+      return;
+    }
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
       8000, 'load tournament players'
@@ -2343,7 +2353,7 @@ function renderWiz(){
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
       <div id="genPreview"></div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${isKarty()?(wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly'):'▶ Spustiť turnaj'}</button></div>`;
+      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${isKarty()?(wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly'):(wiz.editId&&wiz.status==='active'?'▶ Pokračovať v turnaji':'▶ Spustiť turnaj')}</button></div>`;
     renderPreview();
   }
 }
@@ -2483,14 +2493,37 @@ async function createTournament(){
 
     let tournamentId, tournamentRow;
     if(wiz.editId){
+      const {data:existing,error:existingErr}=await cspAuth.client
+        .from('tournaments').select('id,status,owner_id,started_at').eq('id',wiz.editId).single();
+      if(existingErr)throw existingErr;
+      const {count:matchCount,error:matchCountErr}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',wiz.editId);
+      if(matchCountErr)throw matchCountErr;
+      if((matchCount||0)>0){
+        // A settings URL may survive after matches have already been
+        // created. Never re-sync the roster in that state: the database
+        // match rows are already authoritative. Continue/start the same
+        // tournament instead of treating its locked roster as an error.
+        if(existing.status==='completed'||existing.status==='archived'){
+          toast('Ukončený turnaj už nie je možné znovu spustiť.',true);
+          await go('detail',wiz.editId);
+          return;
+        }
+        if(existing.status!=='active'){
+          const {error:startExistingErr}=await cspAuth.client.from('tournaments')
+            .update({status:'active',started_at:existing.started_at||new Date().toISOString()})
+            .eq('id',wiz.editId).eq('owner_id',currentSession.user.id);
+          if(startExistingErr)throw startExistingErr;
+          toast('Turnaj bol spustený ✓');
+        }else{
+          toast('Turnaj už prebieha — pokračujem ✓');
+        }
+        await go('detail',wiz.editId);
+        return;
+      }
       const { data: updated, error: uErr } = await cspAuth.client
         .from('tournaments').update(payload).eq('id', wiz.editId).select().single();
       if(uErr) throw uErr;
       tournamentId = wiz.editId; tournamentRow = updated;
-
-      const {count:matchCount,error:matchCountErr}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',tournamentId);
-      if(matchCountErr)throw matchCountErr;
-      if((matchCount||0)>0)throw new Error('Zoznam hráčov je po vytvorení zápasov uzamknutý. Upravovať možno už iba údaje turnaja.');
     } else {
       const { data: created, error: cErr } = await cspAuth.client
         .from('tournaments')
@@ -2553,7 +2586,7 @@ async function createTournament(){
       const {error:rollbackErr}=await cspAuth.client.from('tournaments').delete().eq('id',createdTournamentId);
       if(rollbackErr) console.error('[turnament] Failed to rollback incomplete tournament:',rollbackErr);
     }
-    toast('Nepodarilo sa uložiť turnaj: '+cspAuth.formatError(err), true);
+    toast('Nepodarilo sa uložiť turnaj: '+cspErrorMessage(err), true);
     if(btn){ btn.disabled = false; btn.textContent = isKarty() ? (wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly') : '▶ Spustiť turnaj'; }
   }
 }
