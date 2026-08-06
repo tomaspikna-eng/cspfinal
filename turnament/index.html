@@ -1301,7 +1301,7 @@ async function viewDetail(id){
       if(area) area.innerHTML=renderMatchArea(curT);
     }).catch(()=>{});
   }
-  if(!hadLocalBracket && matchRows.length){
+  if(matchRows.length){
     applyRealMatches(matchRows);
     if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
     else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
@@ -1859,9 +1859,11 @@ function matchRow(m, loc){
   const name=(p)=> p? (p.bye?'<span class="mt-bye">(VO)</span>':esc(p.name)) : '<span class="mt-wait">čaká na postup</span>';
   const done = m.winner!=null && !bye;
   const w1=m.winner===1, w2=m.winner===2;
-  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
-  const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const row=realMatchesByKey.get(loc);
+  const running=row?.status==='live'||row?.status==='in_progress';
+  const hasLiveScore=running&&(row?.score1!=null||row?.score2!=null);
+  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : hasLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
+  const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}">
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
@@ -1981,6 +1983,24 @@ async function saveMatchToDB(loc, m){
   const parts=loc.split(':');
   const roundNumber=(prefix==='grp'||prefix==='rr') ? (m.round||null) : ((parts.length>1 && Number.isFinite(+parts[1])) ? +parts[1]+1 : null);
   const matchNumber=(parts.length>2 && Number.isFinite(+parts[2])) ? +parts[2]+1 : ((parts.length>1 && Number.isFinite(+parts[1])) ? +parts[1]+1 : null);
+
+  // A match assigned to a Tournament Edition resource already has a real
+  // `matches` row. Complete it through one database transaction so saving
+  // the result also releases the table/station immediately. The scoreboard
+  // TE uses the equivalent complete_scoreboard_match() flow.
+  const assignedRow=realMatchesByKey.get(loc);
+  if(assignedRow?.id && assignedRow.tournament_resource_id){
+    const {data,error}=await cspAuth.client.rpc('complete_organizer_match',{
+      p_match_id:assignedRow.id,
+      p_score1:m.s1,
+      p_score2:m.s2,
+      p_winner_id:m.winner===1 ? p1Id : p2Id
+    });
+    if(error)throw error;
+    if(data)realMatchesByKey.set(loc,data);
+    return;
+  }
+
   const { error } = await cspAuth.client.from('matches').upsert({
     tournament_id: curT.id,
     phase_id: phaseId||null,
