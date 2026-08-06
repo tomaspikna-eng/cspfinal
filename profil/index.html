@@ -582,6 +582,15 @@ a{color:inherit;text-decoration:none}
 .profile-event-status.draft{background:var(--gold-dim);color:var(--gold)}
 .profile-event-status.cancelled{background:rgba(217,79,79,.10);color:#ff8a8a}
 .profile-event-status.completed{background:rgba(74,130,204,.12);color:#8db9f3}
+.profile-subtabs{display:flex;gap:8px;margin-bottom:14px}
+.profile-subtab{border:1px solid var(--line);background:var(--field);color:var(--muted);border-radius:999px;padding:8px 14px;font:700 .72rem var(--mono);cursor:pointer}
+.profile-subtab.active{border-color:var(--gold-b);background:var(--gold-dim);color:var(--gold)}
+.profile-tournament-list{display:flex;flex-direction:column;gap:9px}
+.profile-tournament-card{display:block;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--field);color:inherit;text-decoration:none;transition:.18s}
+.profile-tournament-card:hover{border-color:var(--gold-b);background:rgba(212,168,67,.04)}
+.profile-tournament-card h3{font-size:.92rem;margin:0 0 5px;color:var(--text)}
+.profile-tournament-meta{font:600 .68rem var(--mono);color:var(--muted2)}
+.profile-tournament-status{display:inline-flex;margin-top:9px;padding:4px 8px;border-radius:999px;background:var(--gold-dim);color:var(--gold);font:800 .61rem var(--mono);letter-spacing:.05em;text-transform:uppercase}
 
 /* ════════════════════════════════════
    SHARE FAB
@@ -917,6 +926,7 @@ a{color:inherit;text-decoration:none}
             <button class="content-tab" id="activityTab" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
             <button class="content-tab" id="clubMembersTab" style="display:none" onclick="setContentTab(this, 'clenovia')">Členovia</button>
             <button class="content-tab" id="statisticsTab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
+            <button class="content-tab" id="eventsTab" style="display:none" onclick="setContentTab(this, 'udalosti')">Udalosti</button>
             <button class="content-tab" id="tournamentsTab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
             <button class="content-tab" id="matchesTab" onclick="setContentTab(this, 'zapasy')">Zápasy</button>
             <button class="content-tab" id="clubGalleryTab" style="display:none" onclick="setContentTab(this, 'fotogaleria')">Fotogaléria</button>
@@ -955,6 +965,10 @@ a{color:inherit;text-decoration:none}
             <div class="empty-state" id="statistikyLoading"><div class="empty-sub">Načítavam štatistiky…</div></div>
             <div class="empty-state" id="statistikyEmpty" style="display:none"><div class="empty-icon">📊</div><div class="empty-title">Zatiaľ žiadne turnajové štatistiky</div><div class="empty-sub">Štatistiky sa vytvoria po ukončení prvého turnaja.</div></div>
             <div class="feed" id="statistikyList" style="display:none"></div>
+          </div>
+
+          <div class="tab-panel" id="tabPanel-udalosti">
+            <div class="empty-state"><div class="empty-sub">Načítavam udalosti…</div></div>
           </div>
 
           <!-- TURNAJE — genuine "not built yet" empty state. Tournaments do
@@ -1244,6 +1258,13 @@ function setContentTab(btn, tabKey){
     if(tabKey === 'turnaje') loadTurnajeTab();
     if(tabKey === 'statistiky') loadStatistikyTab();
   }
+  if(role === 'club'){
+    if(tabKey === 'udalosti') renderClubEvents().catch(err=>console.error('[profil] club events:',err));
+    if(tabKey === 'turnaje') renderEntityTournaments('club').catch(err=>console.error('[profil] club tournaments:',err));
+  }
+  if(role === 'organization'){
+    if(tabKey === 'turnaje') renderEntityTournaments('organization').catch(err=>console.error('[profil] organization tournaments:',err));
+  }
 }
 function toggleUserMenu(e){
   e.stopPropagation();
@@ -1413,17 +1434,55 @@ function profileTournamentCard(t, played){
   return `<div class="feed-item"><div class="feed-icon">🏆</div><div class="feed-body"><div class="feed-title">${escapeHtml(t.name||'Turnaj')}</div><div class="feed-meta">${escapeHtml(t.sport||'')} ${t.discipline?'· '+escapeHtml(t.discipline):''} · ${escapeHtml(t.status||'')}${pos}</div><div class="feed-text">${played?'Odohraný turnaj':'Organizovaný turnaj'}${t.date?' · '+escapeHtml(t.date):''}</div></div></div>`;
 }
 async function loadTurnajeTab(){
-  if(turnajeLoaded||!currentSession) return; turnajeLoaded=true;
+  if(turnajeLoaded||!viewedProfileId) return; turnajeLoaded=true;
   const loading=document.getElementById('turnajeLoading'),empty=document.getElementById('turnajeEmpty'),list=document.getElementById('turnajeList');
   try{
-    const [{data:owned,error:e1},{data:played,error:e2}] = await Promise.all([
-      cspAuth.client.from('tournaments').select('*').eq('owner_id',currentSession.user.id).order('created_at',{ascending:false}),
-      cspAuth.client.from('user_tournament_history').select('*').eq('user_id',currentSession.user.id).order('created_at',{ascending:false})
+    const [{data:owned,error:e1},{data:entries,error:e2}] = await Promise.all([
+      cspAuth.client.from('tournaments').select('id,name,sport,discipline,date,venue,status,created_at').eq('owner_id',viewedProfileId).order('created_at',{ascending:false}),
+      cspAuth.client.from('tournament_players').select('tournament_id').eq('user_id',viewedProfileId)
     ]); if(e1) throw e1;if(e2) throw e2;
-    const rows=[...(owned||[]).map(x=>({x,played:false})),...(played||[]).map(x=>({x,played:true}))];
-    loading.style.display='none'; if(!rows.length){empty.style.display='block';return;} list.innerHTML=rows.map(r=>profileTournamentCard(r.x,r.played)).join('');list.style.display='block';
+    const participantIds=[...new Set((entries||[]).map(x=>x.tournament_id))];
+    const {data:participated,error:e3}=participantIds.length
+      ? await cspAuth.client.from('tournaments').select('id,name,sport,discipline,date,venue,status,created_at').in('id',participantIds).order('created_at',{ascending:false})
+      : {data:[],error:null};
+    if(e3)throw e3;
+    const byId=new Map();
+    (owned||[]).forEach(x=>byId.set(x.id,{...x,relation:'Organizátor'}));
+    (participated||[]).forEach(x=>{if(!byId.has(x.id))byId.set(x.id,{...x,relation:'Hráč'})});
+    loading.style.display='none';
+    renderTournamentBuckets([...byId.values()],list,empty);
   }catch(err){console.error('[profil] tournaments:',err);loading.innerHTML='<div class="empty-sub">Turnaje sa nepodarilo načítať.</div>';}
 }
+
+function tournamentStatusLabel(status){
+  return ({draft:'Koncept',ready:'Pripravený',active:'Prebieha',completed:'Ukončený',archived:'Archív'})[status]||status||'—';
+}
+function tournamentPublicCard(t){
+  const meta=[t.sport,t.discipline,t.date,t.venue,t.relation].filter(Boolean).join(' · ');
+  return `<a class="profile-tournament-card" href="/turnament/?id=${encodeURIComponent(t.id)}">
+    <h3>${escapeHtml(t.name||'Turnaj')}</h3>
+    <div class="profile-tournament-meta">${escapeHtml(meta)}</div>
+    <span class="profile-tournament-status">${escapeHtml(tournamentStatusLabel(t.status))}</span>
+  </a>`;
+}
+function renderTournamentBuckets(rows,list,empty){
+  if(!rows.length){empty.style.display='block';list.style.display='none';return;}
+  empty.style.display='none';list.style.display='block';
+  const active=rows.filter(x=>x.status!=='archived');
+  const archived=rows.filter(x=>x.status==='archived');
+  list.innerHTML=`<div class="profile-subtabs">
+      <button class="profile-subtab active" type="button" data-tournament-bucket="active">Aktívne · ${active.length}</button>
+      <button class="profile-subtab" type="button" data-tournament-bucket="archive">Archív · ${archived.length}</button>
+    </div>
+    <div class="profile-tournament-list" data-tournament-list="active">${active.length?active.map(tournamentPublicCard).join(''):'<div class="empty-state small"><div class="empty-sub">Žiadne aktívne turnaje.</div></div>'}</div>
+    <div class="profile-tournament-list" data-tournament-list="archive" style="display:none">${archived.length?archived.map(tournamentPublicCard).join(''):'<div class="empty-state small"><div class="empty-sub">Archív je zatiaľ prázdny.</div></div>'}</div>`;
+}
+document.getElementById('tabPanel-turnaje')?.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-tournament-bucket]');if(!btn)return;
+  const panel=e.currentTarget,key=btn.dataset.tournamentBucket;
+  panel.querySelectorAll('[data-tournament-bucket]').forEach(x=>x.classList.toggle('active',x===btn));
+  panel.querySelectorAll('[data-tournament-list]').forEach(x=>x.style.display=x.dataset.tournamentList===key?'':'none');
+});
 async function loadStatistikyTab(){
   if(statistikyLoaded||!currentSession)return;statistikyLoaded=true;
   const loading=document.getElementById('statistikyLoading'),empty=document.getElementById('statistikyEmpty'),list=document.getElementById('statistikyList');
@@ -1948,7 +2007,8 @@ function renameClubTabs(){
   const activity=document.getElementById('activityTab');activity.textContent='O nás';activity.style.display='';
   const members=document.getElementById('clubMembersTab');members.textContent='Členovia';members.style.display='';
   document.getElementById('statisticsTab').textContent='Rezervácie';
-  document.getElementById('tournamentsTab').textContent='Udalosti';
+  const events=document.getElementById('eventsTab');events.textContent='Udalosti';events.style.display='';
+  const tournaments=document.getElementById('tournamentsTab');tournaments.textContent='Turnaje';tournaments.style.display='';
   document.getElementById('matchesTab').textContent='Naši reprezentanti / Naše tímy';
   const galleryTab=document.getElementById('clubGalleryTab');
   if(galleryTab) galleryTab.style.display='';
@@ -1958,6 +2018,7 @@ function restorePlayerTabLabels(){
   const activity=document.getElementById('activityTab');activity.textContent='Aktivity';activity.style.display='';
   document.getElementById('clubMembersTab').style.display='none';
   const statistics=document.getElementById('statisticsTab');statistics.textContent='Štatistiky';statistics.style.display='';
+  document.getElementById('eventsTab').style.display='none';
   const tournaments=document.getElementById('tournamentsTab');tournaments.textContent='Turnaje';tournaments.style.display='';
   const matches=document.getElementById('matchesTab');matches.textContent='Zápasy';matches.style.display='';
   const galleryTab=document.getElementById('clubGalleryTab');
@@ -2051,9 +2112,9 @@ async function renderClubReservations(){
   </div>`;
 }
 async function renderClubEvents(){
-  const panel=document.getElementById('tabPanel-turnaje');
+  const panel=document.getElementById('tabPanel-udalosti');
   if(!panel) return;
-  if(!clubPublicProfile?.events_visible){
+  if(clubPublicProfile?.events_visible===false){
     panel.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Udalosti sú skryté</div></div>';
     return;
   }
@@ -2075,6 +2136,19 @@ async function renderClubEvents(){
       <p>${escapeHtml((ev.event_type||ev.sport||'Udalosť')+(ev.discipline?' · '+ev.discipline:'')+' · '+d.toLocaleString('sk-SK'))}${loc?'<br>'+escapeHtml(loc):''}</p>
     </a>`;
   }).join('')}</div>`;
+}
+async function renderEntityTournaments(entityRole){
+  const panel=document.getElementById('tabPanel-turnaje');if(!panel)return;
+  panel.innerHTML='<div class="empty-state"><div class="empty-sub">Načítavam turnaje…</div></div>';
+  const ownerId=entityRole==='club'?(await loadCurrentClub())?.owner_id:(await loadCurrentOrganization())?.owner_id;
+  if(!ownerId){panel.innerHTML='<div class="empty-state"><div class="empty-sub">Profil nemá priradeného organizátora.</div></div>';return;}
+  const {data,error}=await cspAuth.client.from('tournaments')
+    .select('id,name,sport,discipline,date,venue,status,created_at')
+    .eq('owner_id',ownerId).order('created_at',{ascending:false});
+  if(error)throw error;
+  const rows=(data||[]).map(x=>({...x,relation:'Organizátor'}));
+  panel.innerHTML='<div id="entityTournamentEmpty" class="empty-state" style="display:none"><div class="empty-icon">🏆</div><div class="empty-title">Zatiaľ žiadne turnaje</div></div><div id="entityTournamentList"></div>';
+  renderTournamentBuckets(rows,panel.querySelector('#entityTournamentList'),panel.querySelector('#entityTournamentEmpty'));
 }
 function renderClubRepresentatives(){
   const panel=document.getElementById('tabPanel-zapasy');
@@ -2166,7 +2240,8 @@ async function loadCurrentOrganization(){
 function renameFederationTabs(){
   document.getElementById('playerAboutTab').style.display='none';
   const activity=document.getElementById('activityTab');activity.style.display='';activity.textContent='Registrovaní hráči';
-  ['clubMembersTab','statisticsTab','tournamentsTab','matchesTab','clubGalleryTab'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none'});
+  ['clubMembersTab','statisticsTab','matchesTab','clubGalleryTab','eventsTab'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none'});
+  const tournaments=document.getElementById('tournamentsTab');if(tournaments){tournaments.textContent='Turnaje';tournaments.style.display=''}
 }
 async function renderFederationPlayers(){
   const panel=document.getElementById('tabPanel-aktivity');
