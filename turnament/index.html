@@ -323,6 +323,9 @@ input:focus,select:focus{border-color:var(--gold)}
 .pl-seed{font-family:var(--mono);font-size:.68rem;font-weight:700;color:var(--gold);min-width:62px}
 .pl-seed.unseeded{color:var(--muted)}
 .pl-name{flex:1;font-size:.88rem;font-weight:600}
+.csp-player-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:99px;font-family:var(--mono);font-size:.58rem;font-weight:800;line-height:1.35;vertical-align:middle;white-space:nowrap}
+.csp-player-badge.linked{color:var(--green);background:var(--green-dim);border:1px solid rgba(38,208,125,.28)}
+.csp-player-badge.match{color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-b)}
 .presence-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
 .presence-toggle input{position:absolute;opacity:0;pointer-events:none}
 .presence-switch{width:36px;height:20px;border-radius:99px;background:var(--line);border:1px solid var(--line-2);position:relative;transition:.15s}
@@ -1251,7 +1254,7 @@ async function viewDetail(id){
     // id carried through so the bracket engine's player objects can
     // reference their real tournament_players row when a match is saved.
     t = { ...tournament, groups: tournament.groups_count, advance: tournament.advance_count,
-          players: (players||[]).map(p=>({ id: p.id, name: p.name, seed: p.seed })) };
+          players: (players||[]).map(p=>({ id: p.id, name: p.name, user_id:p.user_id||null, seed: p.seed })) };
 
     const { data: matches, error: mErr } = await cspAuth.withTimeout(
       cspAuth.client.from('matches').select('*').eq('tournament_id', id),
@@ -1357,7 +1360,7 @@ async function viewDetail(id){
         <div class="detail-card" style="margin-top:16px">
           <div class="dc-head"><h3>Hráči (${players.length})</h3>${isPublicReadOnly?'':`<button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button>`}</div>
           <div class="player-list" style="max-height:240px">
-            ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
+            ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}${p.user_id?'<span class="csp-player-badge linked">CSP ✓</span>':''}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
           </div>
         </div>
       </div>
@@ -1406,7 +1409,7 @@ async function editTournament(id){
                    protectedSeeds: bracketState.protectedSeeds || 0,
                    seedCount: Number(t.config?.seed_count ?? (players||[]).length),
                    source_event_id: t.source_event_id || null,
-                   players: (players||[]).map(p=>({ name: p.name, seed: p.seed, present:presentNames.has(p.name) })) });
+                   players: (players||[]).map(p=>({ name: p.name, user_id:p.user_id||null, seed: p.seed, present:presentNames.has(p.name) })) });
   } catch(err){
     console.error('[turnament] Failed to load tournament for editing:', err);
     toast('Nepodarilo sa načítať turnaj na úpravu.', true);
@@ -1732,7 +1735,7 @@ function operationStateClass(r){
 }
 function renderOperationsPanel(){
   const cards=tournamentOperations.map(r=>{
-    const players=r.match_id?`${esc(r.player1_name||'Čaká')} ${r.player1_present?'✓':''}<br>${esc(r.player2_name||'Čaká')} ${r.player2_present?'✓':''}`:'Voľné — čaká na zápas';
+    const players=r.match_id?`${esc(r.player1_name||'Čaká')}${cspBadgeForTournamentName(r.player1_name)} ${r.player1_present?'✓':''}<br>${esc(r.player2_name||'Čaká')}${cspBadgeForTournamentName(r.player2_name)} ${r.player2_present?'✓':''}`:'Voľné — čaká na zápas';
     return `<article class="ops-card ${operationStateClass(r)}">
       <div class="ops-card-top"><span class="ops-label">${esc(r.resource_label)}</span><span class="ops-badges">
         <span class="ops-badge ${esc(r.operating_mode)}">${r.operating_mode==='smart'?'SMART':'MANUAL'}</span>
@@ -1856,7 +1859,7 @@ function liveMatchControls(m,loc){
 
 function matchRow(m, loc){
   const bye = (m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
-  const name=(p)=> p? (p.bye?'<span class="mt-bye">(VO)</span>':esc(p.name)) : '<span class="mt-wait">čaká na postup</span>';
+  const name=(p)=> p? (p.bye?'<span class="mt-bye">(VO)</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : '<span class="mt-wait">čaká na postup</span>';
   const done = m.winner!=null && !bye;
   const w1=m.winner===1, w2=m.winner===2;
   const row=realMatchesByKey.get(loc);
@@ -2148,6 +2151,40 @@ const FORMATS={
 const STEPS=[['Info','📋'],['Hráči','👥'],['Formát','🏆'],['Súhrn','✓']];
 
 let wiz={};
+let cspPlayerDirectory=null;
+const normalizePlayerName=value=>String(value||'').trim().toLocaleLowerCase('sk-SK').replace(/\s+/g,' ');
+
+async function loadCspPlayerDirectory(){
+  if(cspPlayerDirectory) return cspPlayerDirectory;
+  if(!currentSession) return [];
+  const {data,error}=await cspAuth.client.from('profiles').select('id,full_name,avatar_url').eq('role','player').not('full_name','is',null).order('full_name');
+  if(error){ console.error('[turnament] CSP player directory:',error); return []; }
+  cspPlayerDirectory=data||[];
+  return cspPlayerDirectory;
+}
+function cspCandidatesForName(name){
+  if(!cspPlayerDirectory)return[];
+  const key=normalizePlayerName(name);
+  return key?cspPlayerDirectory.filter(p=>normalizePlayerName(p.full_name)===key):[];
+}
+function cspWizardBadge(player){
+  if(player?.user_id)return '<span class="csp-player-badge linked" title="Prepojený CSP hráč">CSP ✓</span>';
+  const matches=cspCandidatesForName(player?.name);
+  return matches.length?'<span class="csp-player-badge match" title="Meno existuje v CSP, ale hráč ešte nie je overene prepojený">CSP ?</span>':'';
+}
+function isLinkedCspPlayer(player){
+  if(!player)return false;
+  if(player.user_id)return true;
+  const byId=player.id&&(curT?.players||[]).find(p=>p.id===player.id);
+  if(byId?.user_id)return true;
+  const exact=(curT?.players||[]).filter(p=>normalizePlayerName(p.name)===normalizePlayerName(player.name));
+  return exact.length===1&&!!exact[0].user_id;
+}
+function cspBadgeForTournamentName(playerName){
+  if(!playerName||!curT)return'';
+  const exact=(curT.players||[]).filter(p=>normalizePlayerName(p.name)===normalizePlayerName(playerName));
+  return exact.length===1&&exact[0].user_id?'<span class="csp-player-badge linked">CSP ✓</span>':'';
+}
 function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
@@ -2165,6 +2202,7 @@ function initWizard(existing){
     wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
   }
   renderWiz();
+  loadCspPlayerDirectory().then(()=>renderWiz());
 }
 
 function renderRail(){
@@ -2226,7 +2264,7 @@ function renderWiz(){
       <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" draggable="true" data-player-index="${i}" ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)">
         <span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
-        <span class="pl-name">${esc(pl.name)}</span>
+        <span class="pl-name">${esc(pl.name)}${cspWizardBadge(pl)}</span>
         <label class="presence-toggle" title="Potvrdiť prítomnosť hráča"><input type="checkbox" ${pl.present?'checked':''} onchange="setPlayerPresent(${i},this.checked)"><span class="presence-switch"></span><span class="presence-label">Prítomný</span></label>
         <span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
         <button class="pl-del" onclick="removePlayer(${i})">✕</button>
@@ -2280,15 +2318,25 @@ function saveInfo(){
   if(!wiz.name){ toast('Doplň názov turnaja.',true); return; }
   nextStep();
 }
-function addPlayer(){
+async function addPlayer(){
   const inp=document.getElementById('wPlayerName'); const name=(inp.value||'').trim();
-  if(!name) return; wiz.players.push({name,present:false}); inp.value=''; renderWiz();
+  if(!name) return;
+  await loadCspPlayerDirectory();
+  const matches=cspCandidatesForName(name);
+  wiz.players.push({name,user_id:matches.length===1?matches[0].id:null,present:false});
+  inp.value=''; renderWiz();
+  if(matches.length===1)toast('Hráč prepojený s CSP profilom ✓');
+  else if(matches.length>1)toast('V CSP je viac hráčov s rovnakým menom — profil nebol automaticky prepojený.',true);
 }
-function addBulk(){
+async function addBulk(){
   const ta=document.getElementById('wBulk'); if(!ta) return;
   const names=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!names.length){ toast('Vlož aspoň jedno meno.',true); return; }
-  names.forEach(n=>wiz.players.push({name:n,present:false}));
+  await loadCspPlayerDirectory();
+  names.forEach(n=>{
+    const matches=cspCandidatesForName(n);
+    wiz.players.push({name:n,user_id:matches.length===1?matches[0].id:null,present:false});
+  });
   wiz.showBulk=false; renderWiz(); toast(`Pridaných ${names.length} hráčov`);
 }
 function setPlayerPresent(index,present){ if(wiz.players[index]) wiz.players[index].present=!!present; renderWiz(); }
@@ -2422,7 +2470,7 @@ async function createTournament(){
       await cspAuth.client.from('tournaments').update({current_phase_id:phase.id}).eq('id',tournamentId);
     }
 
-    const playerRows = wiz.players.map((p,i)=>({name:p.name,seed:i+1}));
+    const playerRows = wiz.players.map((p,i)=>({name:p.name,user_id:p.user_id||null,seed:i+1}));
     let insertedPlayers;
     if(wiz.editId){
       const {data,error}=await cspAuth.client.rpc('sync_draft_tournament_players',{p_tournament_id:tournamentId,p_players:playerRows});
