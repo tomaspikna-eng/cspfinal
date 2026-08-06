@@ -24,6 +24,10 @@ h1,h2{margin:0 0 10px}.sub{color:var(--soft);line-height:1.55}
 .event-head{display:grid;gap:8px}
 .event-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .badge{padding:6px 10px;border-radius:99px;background:rgba(212,168,67,.10);border:1px solid rgba(212,168,67,.25);color:var(--gold);font-size:12px;font-weight:800}
+.csp-state{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:99px;font-size:11px;font-weight:900;white-space:nowrap}
+.csp-state.linked{color:#9df2bf;background:rgba(30,200,106,.10);border:1px solid rgba(30,200,106,.28)}
+.csp-state.match{color:var(--gold);background:rgba(212,168,67,.10);border:1px solid rgba(212,168,67,.25)}
+.identity-hint{min-height:22px;margin-top:7px;color:var(--soft);font-size:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 label{display:block;color:var(--soft);font-weight:700;font-size:12px;margin-bottom:6px}
 input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--text)}
@@ -89,6 +93,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
         <div>
           <label>Meno a priezvisko</label>
           <input id="fullName" maxlength="120" autocomplete="name" required placeholder="Ján Novák">
+          <div class="identity-hint" id="cspIdentityHint"></div>
         </div>
         <div>
           <label>Nickname</label>
@@ -148,6 +153,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   let currentEvent = null;
   let ownerRows = [];
   let linkedTournamentId = null;
+  let playerDirectory = null;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -168,6 +174,33 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   async function loadSession(){
     const result = await db.auth.getSession();
     currentSession = result.data.session;
+    if(currentSession){
+      const profileResult = await db.from('profiles')
+        .select('id,full_name,role')
+        .eq('id', currentSession.user.id)
+        .maybeSingle();
+      const profile = profileResult.data;
+      if(profile?.role === 'player' && profile.full_name){
+        $('fullName').value = profile.full_name;
+        $('fullName').readOnly = true;
+        $('cspIdentityHint').innerHTML = `<span class="csp-state linked">CSP ✓</span> Prihlásený hráč · predregistrácia sa prepojí s tvojím profilom.`;
+      }
+    }
+  }
+
+  const normalizedName = value => String(value||'').trim().toLocaleLowerCase('sk-SK').replace(/\s+/g,' ');
+
+  async function loadPlayerDirectory(){
+    if(playerDirectory) return playerDirectory;
+    const result = await db.from('profiles').select('id,full_name').eq('role','player').not('full_name','is',null);
+    if(result.error) throw result.error;
+    playerDirectory = result.data || [];
+    return playerDirectory;
+  }
+
+  function matchingProfiles(name){
+    const key=normalizedName(name);
+    return key && playerDirectory ? playerDirectory.filter(p=>normalizedName(p.full_name)===key) : [];
   }
 
   async function loadEvent(){
@@ -252,9 +285,13 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   async function loadOwnerList(){
     if(!currentSession || !currentEvent || currentSession.user.id !== currentEvent.owner_id) return;
 
-    const result = await db.rpc('get_owner_event_preregistrations',{
-      p_event_id:eventId
-    });
+    const [result] = await Promise.all([
+      db.from('event_preregistrations')
+        .select('id,full_name,nickname,user_id,created_at')
+        .eq('event_id',eventId)
+        .order('created_at',{ascending:true}),
+      loadPlayerDirectory()
+    ]);
 
     if(result.error) throw result.error;
 
@@ -273,20 +310,29 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
               <th>#</th>
               <th>Meno a priezvisko</th>
               <th>Nickname</th>
+              <th>CSP</th>
               <th>Dátum</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            ${ownerRows.map((row,index)=>`
+            ${ownerRows.map((row,index)=>{
+              const matches=matchingProfiles(row.full_name);
+              const state=row.user_id
+                ? '<span class="csp-state linked">CSP ✓</span>'
+                : matches.length
+                  ? '<span class="csp-state match" title="Meno existuje v CSP, ale táto registrácia nie je overene prepojená s účtom">CSP ? zhoda mena</span>'
+                  : '<span style="color:var(--muted)">—</span>';
+              return `
               <tr>
                 <td>${index + 1}</td>
                 <td>${esc(row.full_name)}</td>
                 <td>${esc(row.nickname)}</td>
+                <td>${state}</td>
                 <td>${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</td>
                 <td><button class="btn btn-red" data-delete-id="${esc(row.id)}" style="padding:7px 10px">Zmazať</button></td>
               </tr>
-            `).join('')}
+            `}).join('')}
           </tbody>
         </table>`
       : '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
