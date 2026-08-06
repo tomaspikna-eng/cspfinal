@@ -205,22 +205,12 @@ const loginLink=document.getElementById('loginLink');
 if(loginLink&&RETURN_TO!='/profil/') loginLink.href='/login/?returnTo='+encodeURIComponent(RETURN_TO);
 
 cspAuth.client.auth.onAuthStateChange(async (event, session) => {
-  if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
+  // Existing stored sessions must not open the profile automatically.
+  // Redirect only after a fresh sign-in event.
+  if(event === 'SIGNED_IN' && session){
     window.location.href = RETURN_TO;
   }
 });
-
-(async function init(){
-  try {
-    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    if(session) window.location.href = RETURN_TO;
-  } catch(err){
-    // Not fatal here: worst case the user just sees the signup form even
-    // though they may already have a session. Logged so it isn't a
-    // silent unhandled rejection.
-    console.error('[registracia] initial session check failed or timed out:', err);
-  }
-})();
 
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
