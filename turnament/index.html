@@ -717,9 +717,8 @@ let currentProfile = null;
 let isPublicReadOnly = false;
 let realMatchesByKey = new Map();
 let tournamentMatchesChannel = null;
-let realtimeRefreshTimer = null;
-let realtimeRefreshInFlight = false;
-let realtimeRefreshQueued = false;
+let realtimeFallbackTimer = null;
+let resourceRefreshTimer = null;
 let tournamentOperations=[];
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -731,11 +730,34 @@ function cspErrorMessage(err){
   return err?.message||String(err||'Nastala neočakávaná chyba.');
 }
 
+function isTournamentAccessError(err){
+  const msg=String(err?.message||'').toLowerCase();
+  return msg.includes('tournament not found or access denied') || msg.includes('jwt expired');
+}
+async function tournamentRpc(name,args){
+  let result=await cspAuth.client.rpc(name,args);
+  if(result.error && currentSession && isTournamentAccessError(result.error)){
+    // A manager tab may stay open for hours. If its access token expired,
+    // refresh it once and retry the owner-only RPC instead of replacing
+    // real tournament data with an empty UI state.
+    try{
+      const refreshed=await cspAuth.client.auth.refreshSession();
+      if(refreshed?.data?.session){
+        currentSession=refreshed.data.session;
+        result=await cspAuth.client.rpc(name,args);
+      }
+    }catch(refreshErr){
+      console.warn('[turnament] auth refresh before RPC failed:',refreshErr);
+    }
+  }
+  return result;
+}
+
 
 function bracketStorageKey(id){ return 'deprecated_csp_tournament_bracket_'+id; }
 async function loadBracketState(id){
   try{
-    const {data,error}=await cspAuth.client.rpc('get_tournament_bracket_state',{p_tournament_id:id});
+    const {data,error}=await tournamentRpc('get_tournament_bracket_state',{p_tournament_id:id});
     if(error)throw error;
     return data||{};
   }catch(err){
@@ -744,7 +766,7 @@ async function loadBracketState(id){
   }
 }
 async function saveBracketState(id,state){
-  const {error}=await cspAuth.client.rpc('save_tournament_bracket_state',{p_tournament_id:id,p_state:state||{}});
+  const {error}=await tournamentRpc('save_tournament_bracket_state',{p_tournament_id:id,p_state:state||{}});
   if(error){
     console.error('[turnament] bracket state save:',error);
     return false;
@@ -834,55 +856,119 @@ function stopTournamentMatchesRealtime(){
     cspAuth.client.removeChannel(tournamentMatchesChannel);
     tournamentMatchesChannel=null;
   }
-  if(realtimeRefreshTimer){
-    clearTimeout(realtimeRefreshTimer);
-    realtimeRefreshTimer=null;
+  if(realtimeFallbackTimer){
+    clearInterval(realtimeFallbackTimer);
+    realtimeFallbackTimer=null;
   }
-  realtimeRefreshQueued=false;
+  if(resourceRefreshTimer){
+    clearTimeout(resourceRefreshTimer);
+    resourceRefreshTimer=null;
+  }
 }
 
-async function refreshTournamentLiveState(tournamentId){
+function matchElement(loc){
+  return [...document.querySelectorAll('.match-wrap[data-match-loc]')]
+    .find(el=>el.dataset.matchLoc===loc)||null;
+}
+function htmlElement(html){
+  const tpl=document.createElement('template');
+  tpl.innerHTML=String(html||'').trim();
+  return tpl.content.firstElementChild;
+}
+function patchVisibleMatch(loc){
+  const old=matchElement(loc),m=getMatchByLoc(loc);
+  if(!old||!m)return;
+  const next=htmlElement(matchRow(m,loc));
+  if(next&&!old.isEqualNode(next))old.replaceWith(next);
+}
+function patchAllVisibleMatches(){
+  [...document.querySelectorAll('.match-wrap[data-match-loc]')].forEach(el=>{
+    const loc=el.dataset.matchLoc,m=getMatchByLoc(loc);
+    if(!m)return;
+    const next=htmlElement(matchRow(m,loc));
+    if(next&&!el.isEqualNode(next))el.replaceWith(next);
+  });
+}
+function applyMatchRowsToBracket(matchRows){
+  applyRealMatches(matchRows);
+  if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
+  else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
+  else if(curT.format==='rr_sko'||curT.format==='rr_dko'){
+    maybeGenerateComboPhase(curT);
+    applyRealMatches(matchRows);
+    maybeGenerateComboPhase(curT);
+  }
+  finalizeAppliedMatches(matchRows);
+}
+async function silentSyncMatches(tournamentId){
   if(!curT || curT.id!==tournamentId)return;
-  if(realtimeRefreshInFlight){
-    realtimeRefreshQueued=true;
+  try{
+    const matchRows=await reloadRealMatches();
+    applyMatchRowsToBracket(matchRows);
+    patchAllVisibleMatches();
+  }catch(err){
+    console.error('[turnament] silent match sync:',err);
+  }
+}
+
+async function handleRealtimeMatch(payload,tournamentId){
+  if(!curT || curT.id!==tournamentId)return;
+  const incoming=payload?.new;
+  if(!incoming?.id || incoming.tournament_id!==tournamentId){
+    await silentSyncMatches(tournamentId);
     return;
   }
-  realtimeRefreshInFlight=true;
-  try{
-    // Keep the open Tournament Manager view alive. A scoreboard update must
-    // refresh only its live data; re-running go('detail') would tear down and
-    // recreate the Realtime channel on every point scored.
-    const matchRows=await reloadRealMatches();
-    applyRealMatches(matchRows);
-    if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
-    else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
-    else if(curT.format==='rr_sko'||curT.format==='rr_dko'){
-      maybeGenerateComboPhase(curT);
-      applyRealMatches(matchRows);
-      maybeGenerateComboPhase(curT);
+  const previous=[...realMatchesByKey.values()].find(row=>row.id===incoming.id);
+  const row={...(previous||{}),...incoming};
+  if(!row.round_key){ await silentSyncMatches(tournamentId); return; }
+  realMatchesByKey.set(row.round_key,row);
+
+  const justCompleted=row.status==='completed' && previous?.status!=='completed';
+  if(justCompleted){
+    // Only a finished match changes advancement/bracket structure.
+    // Live points must never rebuild the whole match list.
+    applyMatchRowsToBracket([row]);
+    patchAllVisibleMatches();
+    if(!isPublicReadOnly){
+      const ok=await persistT();
+      if(!ok)console.warn('[turnament] completed match is safe in matches; bracket snapshot retry will happen on next manager action.');
     }
-    finalizeAppliedMatches(matchRows);
-
-    if(!isPublicReadOnly) await loadTournamentOperations(tournamentId);
-
-    const operationsPanel=document.querySelector('.ops-panel');
-    if(operationsPanel && !isPublicReadOnly) operationsPanel.outerHTML=renderOperationsPanel();
-    const matchArea=document.getElementById('matchArea');
-    if(matchArea) matchArea.innerHTML=renderMatchArea(curT);
-
-    // A result completed on Scoreboard TE also advances the organizer's
-    // bracket. Persist that derived bracket state after the authoritative
-    // `matches` row has arrived from Postgres.
-    if(!isPublicReadOnly) await persistT();
-  }catch(err){
-    console.error('[turnament] realtime match refresh:',err);
-  }finally{
-    realtimeRefreshInFlight=false;
-    if(realtimeRefreshQueued){
-      realtimeRefreshQueued=false;
-      refreshTournamentLiveState(tournamentId);
-    }
+  }else{
+    // Score/status/time update: patch one row in place. Scroll position,
+    // open page state and all other matches stay untouched.
+    patchVisibleMatch(row.round_key);
   }
+}
+
+function scheduleOperationsReload(){
+  clearTimeout(resourceRefreshTimer);
+  resourceRefreshTimer=setTimeout(async()=>{
+    resourceRefreshTimer=null;
+    if(!curT||isPublicReadOnly)return;
+    await loadTournamentOperations(curT.id);
+    const panel=document.querySelector('.ops-panel');
+    if(panel)panel.outerHTML=renderOperationsPanel();
+    patchAllVisibleMatches();
+  },80);
+}
+
+function handleRealtimeResource(payload,tournamentId){
+  if(!curT || curT.id!==tournamentId)return;
+  const row=payload?.new;
+  if(!row?.id){scheduleOperationsReload();return;}
+  const cached=tournamentOperations.find(r=>r.resource_id===row.id);
+  // Assignment/release changes which match occupies the station and must
+  // refresh the joined player data. Heartbeats and online timestamps do not.
+  if(!cached || cached.match_id!==(row.current_match_id||null)){
+    scheduleOperationsReload();
+    return;
+  }
+  cached.resource_status=row.status;
+  cached.operating_mode=row.operating_mode;
+  cached.automation_enabled=row.automation_enabled;
+  cached.tablet_last_seen_at=row.tablet_last_seen_at;
+  cached.tablet_online=!!row.tablet_last_seen_at && (Date.now()-new Date(row.tablet_last_seen_at).getTime())<20000;
+  patchOperationCard(cached);
 }
 
 function startTournamentMatchesRealtime(tournamentId){
@@ -896,16 +982,25 @@ function startTournamentMatchesRealtime(tournamentId){
       schema:"public",
       table:"matches",
       filter:`tournament_id=eq.${tournamentId}`
-    },()=>{
-      clearTimeout(realtimeRefreshTimer);
-      realtimeRefreshTimer=setTimeout(()=>{
-        realtimeRefreshTimer=null;
-        refreshTournamentLiveState(tournamentId);
-      },100);
-    })
+    },payload=>handleRealtimeMatch(payload,tournamentId))
+    .on("postgres_changes",{
+      event:"*",
+      schema:"public",
+      table:"tournament_resources",
+      filter:`tournament_id=eq.${tournamentId}`
+    },payload=>handleRealtimeResource(payload,tournamentId))
     .subscribe(status=>{
+      if(status==='SUBSCRIBED' && realtimeFallbackTimer){
+        clearInterval(realtimeFallbackTimer);
+        realtimeFallbackTimer=null;
+      }
       if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
         console.error('[turnament] matches realtime subscription:',status);
+        // Silent fallback only if Realtime itself is unavailable. It patches
+        // changed rows in place and never reloads/navigates the page.
+        if(!realtimeFallbackTimer){
+          realtimeFallbackTimer=setInterval(()=>silentSyncMatches(tournamentId),3000);
+        }
       }
     });
 }
@@ -1350,7 +1445,9 @@ async function viewDetail(id){
   // show up correctly on another. If database state already exists, it's
   // trusted as-is (it's already the union of every local + synced save),
   // matching the app's existing database-first behavior.
-  const localState = await loadBracketState(t.id);
+  // Public spectators rebuild progress from the public `matches` rows and
+  // must not call owner-only bracket RPCs (that only creates noisy 400s).
+  const localState = isPublicReadOnly ? {} : await loadBracketState(t.id);
   const hadLocalBracket = Object.keys(localState).length > 0;
   curT = { ...t, ...localState };
   ensureBracket(curT);
@@ -1811,20 +1908,57 @@ async function stopLiveMatch(loc){
 
 async function loadTournamentOperations(tournamentId){
   try{
-    const {data,error}=await cspAuth.client.rpc('get_tournament_operations',{p_tournament_id:tournamentId});
+    const {data,error}=await tournamentRpc('get_tournament_operations',{p_tournament_id:tournamentId});
     if(error)throw error;
     tournamentOperations=data||[];
-  }catch(err){console.error('[turnament] operations load:',err);tournamentOperations=[]}
+    return tournamentOperations;
+  }catch(err){
+    console.error('[turnament] operations RPC load:',err);
+    // Never turn a transient owner-RPC/auth error into "0 stations". The
+    // active tournament resource rows are already public-readable under the
+    // existing RLS policy, so use them as a read-only fallback.
+    try{
+      const {data,error}=await cspAuth.client.from('tournament_resources')
+        .select('*').eq('tournament_id',tournamentId).eq('is_active',true)
+        .order('resource_number',{ascending:true});
+      if(error)throw error;
+      const players=new Map((curT?.players||[]).map(p=>[p.id,p]));
+      const matchesById=new Map([...realMatchesByKey.values()].map(m=>[m.id,m]));
+      tournamentOperations=(data||[]).map(r=>{
+        const m=r.current_match_id?matchesById.get(r.current_match_id):null;
+        return {
+          resource_id:r.id,resource_number:r.resource_number,resource_label:r.label,
+          resource_type:r.resource_type,resource_status:r.status,
+          operating_mode:r.operating_mode,automation_enabled:r.automation_enabled,
+          tablet_name:r.tablet_name,tablet_last_seen_at:r.tablet_last_seen_at,
+          tablet_online:!!r.tablet_last_seen_at&&(Date.now()-new Date(r.tablet_last_seen_at).getTime())<20000,
+          device_token:r.device_token,match_id:m?.id||null,round_key:m?.round_key||null,
+          match_status:m?.status||null,player1_id:m?.player1_id||null,
+          player1_name:m?.player1_id?players.get(m.player1_id)?.name||null:null,
+          player1_present:!!m?.player1_ready_at,player2_id:m?.player2_id||null,
+          player2_name:m?.player2_id?players.get(m.player2_id)?.name||null:null,
+          player2_present:!!m?.player2_ready_at,
+          both_players_present:!!m?.player1_ready_at&&!!m?.player2_ready_at,
+          started_at:m?.started_at||null
+        };
+      });
+      return tournamentOperations;
+    }catch(fallbackErr){
+      console.error('[turnament] operations fallback load:',fallbackErr);
+      // Preserve the last known-good station list. Losing connectivity must
+      // not visually delete configured stations during a live tournament.
+      return tournamentOperations;
+    }
+  }
 }
 function operationStateClass(r){
   if(!r.tablet_online&&r.operating_mode==='smart')return 'offline';
   if(r.both_players_present)return 'ready';
   return '';
 }
-function renderOperationsPanel(){
-  const cards=tournamentOperations.map(r=>{
-    const players=r.match_id?`${esc(r.player1_name||'Čaká')}${cspBadgeForTournamentName(r.player1_name)} ${r.player1_present?'✓':''}<br>${esc(r.player2_name||'Čaká')}${cspBadgeForTournamentName(r.player2_name)} ${r.player2_present?'✓':''}`:'Voľné — čaká na zápas';
-    return `<article class="ops-card ${operationStateClass(r)}">
+function renderOperationCard(r){
+  const players=r.match_id?`${esc(r.player1_name||'Čaká')}${cspBadgeForTournamentName(r.player1_name)} ${r.player1_present?'✓':''}<br>${esc(r.player2_name||'Čaká')}${cspBadgeForTournamentName(r.player2_name)} ${r.player2_present?'✓':''}`:'Voľné — čaká na zápas';
+  return `<article class="ops-card ${operationStateClass(r)}" data-resource-id="${esc(r.resource_id)}">
       <div class="ops-card-top"><span class="ops-label">${esc(r.resource_label)}</span><span class="ops-badges">
         <span class="ops-badge ${esc(r.operating_mode)}">${r.operating_mode==='smart'?'SMART':'MANUAL'}</span>
         ${r.operating_mode==='smart'?`<span class="ops-badge ${r.tablet_online?'online':'offline'}">${r.tablet_online?'ONLINE':'OFFLINE'}</span>`:''}
@@ -1835,7 +1969,15 @@ function renderOperationsPanel(){
         ${r.operating_mode==='smart'?`<button class="match-op qr" onclick="showResourceQr('${r.resource_id}')">▦ QR tabletu</button>`:''}
       </div>
     </article>`;
-  }).join('');
+}
+function patchOperationCard(r){
+  const old=[...document.querySelectorAll('.ops-card[data-resource-id]')].find(el=>el.dataset.resourceId===r.resource_id);
+  if(!old)return;
+  const next=htmlElement(renderOperationCard(r));
+  if(next&&!old.isEqualNode(next))old.replaceWith(next);
+}
+function renderOperationsPanel(){
+  const cards=tournamentOperations.map(renderOperationCard).join('');
   return `<section class="ops-panel">
     <div class="ops-head"><div><h3>Prevádzka turnaja</h3><p>Stanoviská, tablety, prítomnosť hráčov a aktuálne zápasy.</p></div>
       <div class="ops-create">
@@ -1953,11 +2095,16 @@ function matchRow(m, loc){
   const w1=m.winner===1, w2=m.winner===2;
   const row=realMatchesByKey.get(loc);
   const running=row?.status==='live'||row?.status==='in_progress';
-  const hasLiveScore=running&&(row?.score1!=null||row?.score2!=null);
-  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : hasLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
+  const assignedResource=row?.tournament_resource_id?tournamentOperations.find(r=>r.resource_id===row.tournament_resource_id):null;
+  const smartAssigned=assignedResource?.operating_mode==='smart';
+  const hasDbScore=row&&(row.score1!=null||row.score2!=null);
+  // SMART matches always expose their score in the organizer list, even at
+  // 0:0. Manual/unassigned matches keep the old "vs" until a score exists.
+  const showLiveScore=!bye&&(running||smartAssigned||hasDbScore);
+  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
   const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
-  return `<div class="match-wrap ${liveClass}">
+  return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}">
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
       <span class="mt-key mono">${m.key}</span>
       <span class="mt-side ${w1?'win':''}">${name(m.p1)}</span>
