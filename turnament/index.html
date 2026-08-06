@@ -718,6 +718,8 @@ let isPublicReadOnly = false;
 let realMatchesByKey = new Map();
 let tournamentMatchesChannel = null;
 let realtimeRefreshTimer = null;
+let realtimeRefreshInFlight = false;
+let realtimeRefreshQueued = false;
 let tournamentOperations=[];
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -836,6 +838,51 @@ function stopTournamentMatchesRealtime(){
     clearTimeout(realtimeRefreshTimer);
     realtimeRefreshTimer=null;
   }
+  realtimeRefreshQueued=false;
+}
+
+async function refreshTournamentLiveState(tournamentId){
+  if(!curT || curT.id!==tournamentId)return;
+  if(realtimeRefreshInFlight){
+    realtimeRefreshQueued=true;
+    return;
+  }
+  realtimeRefreshInFlight=true;
+  try{
+    // Keep the open Tournament Manager view alive. A scoreboard update must
+    // refresh only its live data; re-running go('detail') would tear down and
+    // recreate the Realtime channel on every point scored.
+    const matchRows=await reloadRealMatches();
+    applyRealMatches(matchRows);
+    if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
+    else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
+    else if(curT.format==='rr_sko'||curT.format==='rr_dko'){
+      maybeGenerateComboPhase(curT);
+      applyRealMatches(matchRows);
+      maybeGenerateComboPhase(curT);
+    }
+    finalizeAppliedMatches(matchRows);
+
+    if(!isPublicReadOnly) await loadTournamentOperations(tournamentId);
+
+    const operationsPanel=document.querySelector('.ops-panel');
+    if(operationsPanel && !isPublicReadOnly) operationsPanel.outerHTML=renderOperationsPanel();
+    const matchArea=document.getElementById('matchArea');
+    if(matchArea) matchArea.innerHTML=renderMatchArea(curT);
+
+    // A result completed on Scoreboard TE also advances the organizer's
+    // bracket. Persist that derived bracket state after the authoritative
+    // `matches` row has arrived from Postgres.
+    if(!isPublicReadOnly) await persistT();
+  }catch(err){
+    console.error('[turnament] realtime match refresh:',err);
+  }finally{
+    realtimeRefreshInFlight=false;
+    if(realtimeRefreshQueued){
+      realtimeRefreshQueued=false;
+      refreshTournamentLiveState(tournamentId);
+    }
+  }
 }
 
 function startTournamentMatchesRealtime(tournamentId){
@@ -852,10 +899,15 @@ function startTournamentMatchesRealtime(tournamentId){
     },()=>{
       clearTimeout(realtimeRefreshTimer);
       realtimeRefreshTimer=setTimeout(()=>{
-        go("detail",tournamentId);
-      },250);
+        realtimeRefreshTimer=null;
+        refreshTournamentLiveState(tournamentId);
+      },100);
     })
-    .subscribe();
+    .subscribe(status=>{
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        console.error('[turnament] matches realtime subscription:',status);
+      }
+    });
 }
 
 /* ════════════════════════════════════════════════════════════
