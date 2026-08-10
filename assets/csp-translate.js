@@ -4,7 +4,7 @@
   'use strict';
 
   const SOURCE_LANGUAGE='sk';
-  const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl']);
+  const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl','ru']);
   const LANGUAGE_STORAGE_KEY='csp_language';
   const CACHE_STORAGE_KEY='csp_translation_cache_v2';
   const API_ENDPOINT='/api/translate';
@@ -12,7 +12,8 @@
     cs:'/assets/csp-locale-cs.json',
     en:'/assets/csp-locale-en.json',
     de:'/assets/csp-locale-de.json',
-    pl:'/assets/csp-locale-pl.json'
+    pl:'/assets/csp-locale-pl.json',
+    ru:'/assets/csp-locale-ru.json'
   };
   const MAX_BATCH_SIZE=100;
   const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
@@ -84,7 +85,7 @@
 
   function isTranslatableText(value){
     const text=String(value||'').trim();
-    if(!text||!/[A-Za-zÀ-ž]/.test(text)) return false;
+    if(!text||!/[\p{L}]/u.test(text)) return false;
     if(/^(https?:\/\/|mailto:|tel:|www\.)/i.test(text)) return false;
     if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return false;
     if(/^(#[0-9a-f]{3,8}|[A-Z0-9_-]{12,}|[a-f0-9-]{24,})$/i.test(text)) return false;

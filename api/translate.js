@@ -5,7 +5,7 @@ const PROVIDER_ID = 'vercel';
 const SERVICE_ACCOUNT = 'csp-translation@connectsportpro.iam.gserviceaccount.com';
 const CLOUD_SCOPE = 'https://www.googleapis.com/auth/cloud-platform';
 
-const ALLOWED_LANGS = new Set(['sk', 'cs', 'en', 'de', 'pl']);
+const ALLOWED_LANGS = new Set(['sk', 'cs', 'en', 'de', 'pl', 'ru']);
 
 function sendJson(res, status, body) {
   res.statusCode = status;
