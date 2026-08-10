@@ -43,7 +43,16 @@
     return;
   }
 
-  var client = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var client = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      // Keep one CSP login shared by every tab on this origin. Navigation
+      // is intentionally handled by the page that performed the explicit
+      // sign-in; restoring/refreshing a session must never redirect a tab.
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   /** Wraps supabase.auth.signUp(). A `profiles` row is auto-created by the
    * existing on_auth_user_created DB trigger (migration 0001) — nothing

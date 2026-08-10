@@ -1437,20 +1437,18 @@ async function loadTurnajeTab(){
   if(turnajeLoaded||!viewedProfileId) return; turnajeLoaded=true;
   const loading=document.getElementById('turnajeLoading'),empty=document.getElementById('turnajeEmpty'),list=document.getElementById('turnajeList');
   try{
-    const [{data:owned,error:e1},{data:entries,error:e2}] = await Promise.all([
-      cspAuth.client.from('tournaments').select('id,name,sport,discipline,date,venue,status,created_at').eq('owner_id',viewedProfileId).order('created_at',{ascending:false}),
-      cspAuth.client.from('tournament_players').select('tournament_id').eq('user_id',viewedProfileId)
-    ]); if(e1) throw e1;if(e2) throw e2;
+    const {data:entries,error:e1}=await cspAuth.client
+      .from('tournament_players')
+      .select('tournament_id')
+      .eq('user_id',viewedProfileId);
+    if(e1)throw e1;
     const participantIds=[...new Set((entries||[]).map(x=>x.tournament_id))];
-    const {data:participated,error:e3}=participantIds.length
+    const {data:participated,error:e2}=participantIds.length
       ? await cspAuth.client.from('tournaments').select('id,name,sport,discipline,date,venue,status,created_at').in('id',participantIds).order('created_at',{ascending:false})
       : {data:[],error:null};
-    if(e3)throw e3;
-    const byId=new Map();
-    (owned||[]).forEach(x=>byId.set(x.id,{...x,relation:'Organizátor'}));
-    (participated||[]).forEach(x=>{if(!byId.has(x.id))byId.set(x.id,{...x,relation:'Hráč'})});
+    if(e2)throw e2;
     loading.style.display='none';
-    renderTournamentBuckets([...byId.values()],list,empty);
+    renderTournamentBuckets((participated||[]).map(x=>({...x,relation:'Hráč'})),list,empty,'player');
   }catch(err){console.error('[profil] tournaments:',err);loading.innerHTML='<div class="empty-sub">Turnaje sa nepodarilo načítať.</div>';}
 }
 
@@ -1465,16 +1463,22 @@ function tournamentPublicCard(t){
     <span class="profile-tournament-status">${escapeHtml(tournamentStatusLabel(t.status))}</span>
   </a>`;
 }
-function renderTournamentBuckets(rows,list,empty){
+function renderTournamentBuckets(rows,list,empty,context='entity'){
   if(!rows.length){empty.style.display='block';list.style.display='none';return;}
   empty.style.display='none';list.style.display='block';
-  const active=rows.filter(x=>x.status!=='archived');
-  const archived=rows.filter(x=>x.status==='archived');
+  const byDateAsc=(a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31'));
+  const byDateDesc=(a,b)=>String(b.date||'0000-00-00').localeCompare(String(a.date||'0000-00-00'));
+  const live=rows.filter(x=>x.status==='active').sort(byDateAsc);
+  const upcoming=rows.filter(x=>x.status==='draft'||x.status==='ready').sort(byDateAsc);
+  const archived=rows.filter(x=>x.status==='completed'||x.status==='archived').sort(byDateDesc);
+  const liveLabel=context==='player'?'Práve hrám':'Aktívne';
   list.innerHTML=`<div class="profile-subtabs">
-      <button class="profile-subtab active" type="button" data-tournament-bucket="active">Aktívne · ${active.length}</button>
+      <button class="profile-subtab active" type="button" data-tournament-bucket="live">${liveLabel} · ${live.length}</button>
+      <button class="profile-subtab" type="button" data-tournament-bucket="upcoming">Nadchádzajúce · ${upcoming.length}</button>
       <button class="profile-subtab" type="button" data-tournament-bucket="archive">Archív · ${archived.length}</button>
     </div>
-    <div class="profile-tournament-list" data-tournament-list="active">${active.length?active.map(tournamentPublicCard).join(''):'<div class="empty-state small"><div class="empty-sub">Žiadne aktívne turnaje.</div></div>'}</div>
+    <div class="profile-tournament-list" data-tournament-list="live">${live.length?live.map(tournamentPublicCard).join(''):`<div class="empty-state small"><div class="empty-sub">${context==='player'?'Momentálne nehráš žiadny turnaj.':'Žiadny turnaj práve neprebieha.'}</div></div>`}</div>
+    <div class="profile-tournament-list" data-tournament-list="upcoming" style="display:none">${upcoming.length?upcoming.map(tournamentPublicCard).join(''):'<div class="empty-state small"><div class="empty-sub">Žiadne nadchádzajúce turnaje.</div></div>'}</div>
     <div class="profile-tournament-list" data-tournament-list="archive" style="display:none">${archived.length?archived.map(tournamentPublicCard).join(''):'<div class="empty-state small"><div class="empty-sub">Archív je zatiaľ prázdny.</div></div>'}</div>`;
 }
 document.getElementById('tabPanel-turnaje')?.addEventListener('click',e=>{

@@ -8,9 +8,10 @@
   const LANGUAGE_STORAGE_KEY='csp_language';
   const CACHE_STORAGE_KEY='csp_translation_cache_v2';
   const API_ENDPOINT='/api/translate';
+  const NATIVE_EN_ENDPOINT='/assets/csp-locale-en.json';
   const MAX_BATCH_SIZE=100;
-  const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','OPTION','SVG','PATH','CANVAS','VIDEO','AUDIO']);
-  const TRANSLATABLE_ATTRIBUTES=['title','aria-label','placeholder'];
+  const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
+  const TRANSLATABLE_ATTRIBUTES=['title','aria-label','placeholder','alt'];
 
   const originalTextNodes=new WeakMap();
   const originalAttributes=new WeakMap();
@@ -18,6 +19,35 @@
   let translating=false;
   let mutationObserver=null;
   let mutationTimer=null;
+  let nativeEnglishPromise=null;
+  const originalDocumentTitle=document.title;
+  const descriptionMeta=document.querySelector('meta[name="description"]');
+  const originalDocumentDescription=descriptionMeta?.getAttribute('content')||'';
+
+  function loadNativeEnglish(){
+    if(nativeEnglishPromise) return nativeEnglishPromise;
+    nativeEnglishPromise=fetch(NATIVE_EN_ENDPOINT,{cache:'no-cache'})
+      .then(async response=>{
+        if(!response.ok) throw new Error(`English locale request failed with status ${response.status}.`);
+        const payload=await response.json();
+        if(!payload||typeof payload.translations!=='object') throw new Error('Invalid English locale.');
+        return payload;
+      });
+    return nativeEnglishPromise;
+  }
+
+  function applyNativePattern(value,patterns=[]){
+    for(const item of patterns){
+      if(!item||!item.source) continue;
+      try{
+        const expression=new RegExp(item.source,item.flags||'');
+        if(expression.test(value)) return value.replace(expression,item.target||'');
+      }catch(error){
+        console.warn('[CSP translate] Invalid English locale pattern.',item,error);
+      }
+    }
+    return null;
+  }
 
   function normalizeLanguage(value){
     const lang=String(value||'').trim().toLowerCase();
@@ -53,10 +83,17 @@
     return true;
   }
 
+  function looksSlovak(value){
+    const text=String(value||'').trim();
+    return /[áäčďéíĺľňóôŕšťúýž]/i.test(text)||
+      /\b(?:aj|ako|alebo|bez|bude|cez|čo|ďalšie|hráč|je|kde|ktorý|môže|načítavam|nepodarilo|nie|od|pod|pre|pri|skóre|turnaj|udalosť|uložiť|všetky|zápas|zrušiť)\b/i.test(text);
+  }
+
   function shouldSkipElement(element){
     if(!element||SKIP_TAGS.has(element.tagName)) return true;
     if(element.closest("[data-no-translate],.notranslate,[translate='no']")) return true;
     if(element.closest('.brand,.brand-title,.brand-mark,.brand-mark-img,.csp-logo')) return true;
+    if(element.closest('#cspLanguageSelect,[data-csp-language-select],.lang-select')) return true;
     if(element.closest("[data-player-name],[data-team-name],[data-club-name],[data-venue-name],[data-event-name],[data-tournament-name],[data-user-content],[contenteditable='true']")) return true;
     return false;
   }
@@ -82,13 +119,17 @@
     const items=[];
     if(!root||!root.querySelectorAll) return items;
     const selector=TRANSLATABLE_ATTRIBUTES.map(a=>`[${a}]`).join(',');
-    root.querySelectorAll(selector).forEach(element=>{
+    const elements=[];
+    if(root.nodeType===Node.ELEMENT_NODE&&root.matches?.(selector)) elements.push(root);
+    elements.push(...root.querySelectorAll(selector));
+    elements.forEach(element=>{
       if(shouldSkipElement(element)) return;
       if(!originalAttributes.has(element)){
         originalAttributes.set(element,{
           title:element.getAttribute('title'),
           'aria-label':element.getAttribute('aria-label'),
-          placeholder:element.getAttribute('placeholder')
+          placeholder:element.getAttribute('placeholder'),
+          alt:element.getAttribute('alt')
         });
       }
       TRANSLATABLE_ATTRIBUTES.forEach(attribute=>{
@@ -109,6 +150,8 @@
       if(original===null||original===undefined) item.element.removeAttribute(item.attribute);
       else item.element.setAttribute(item.attribute,original);
     });
+    document.title=originalDocumentTitle;
+    if(descriptionMeta) descriptionMeta.setAttribute('content',originalDocumentDescription);
     document.documentElement.lang=SOURCE_LANGUAGE;
   }
 
@@ -121,6 +164,27 @@
   }
 
   async function translateValues(values,targetLanguage){
+    if(targetLanguage==='en'){
+      const locale=await loadNativeEnglish();
+      const missing=[];
+      const translated=values.map(value=>{
+        const exact=locale.translations[value];
+        if(typeof exact==='string') return exact;
+        const patterned=applyNativePattern(value,locale.patterns);
+        if(typeof patterned==='string') return patterned;
+        missing.push(value);
+        return value;
+      });
+      if(missing.length){
+        const missingSlovak=missing.filter(looksSlovak);
+        if(missingSlovak.length){
+          window.CSPTranslateMissingEN=[...new Set([...(window.CSPTranslateMissingEN||[]),...missingSlovak])];
+          console.warn('[CSP translate] Missing exact EN strings:',[...new Set(missingSlovak)]);
+        }
+      }
+      return translated;
+    }
+
     const cache=loadCache();
     cache[targetLanguage]=cache[targetLanguage]||{};
     const uniqueValues=[...new Set(values)];
@@ -161,7 +225,8 @@
       const attributeItems=collectAttributeItems();
       const textValues=textNodes.map(node=>String(originalTextNodes.get(node)||'').trim());
       const attributeValues=attributeItems.map(item=>String(originalAttributes.get(item.element)?.[item.attribute]||'').trim());
-      const allValues=[...textValues,...attributeValues];
+      const documentValues=[originalDocumentTitle,originalDocumentDescription].filter(isTranslatableText);
+      const allValues=[...textValues,...attributeValues,...documentValues];
       if(allValues.length){
         const translated=await translateValues(allValues,target);
         textNodes.forEach((node,index)=>{
@@ -174,6 +239,9 @@
           const value=translated[textValues.length+index];
           if(value) item.element.setAttribute(item.attribute,value);
         });
+        let documentIndex=textValues.length+attributeValues.length;
+        if(isTranslatableText(originalDocumentTitle)) document.title=translated[documentIndex++]||originalDocumentTitle;
+        if(descriptionMeta&&isTranslatableText(originalDocumentDescription)) descriptionMeta.setAttribute('content',translated[documentIndex]||originalDocumentDescription);
       }
       document.documentElement.lang=target;
       saveLanguage(target);
@@ -268,6 +336,10 @@
 
       const roots=[];
       mutations.forEach(mutation=>{
+        if(mutation.type==='attributes'&&mutation.target?.nodeType===Node.ELEMENT_NODE){
+          roots.push(mutation.target);
+        }
+
         if(mutation.type==='characterData' && mutation.target?.parentElement){
           roots.push(mutation.target.parentElement);
         }
@@ -295,7 +367,9 @@
     mutationObserver.observe(document.body,{
       childList:true,
       subtree:true,
-      characterData:true
+      characterData:true,
+      attributes:true,
+      attributeFilter:TRANSLATABLE_ATTRIBUTES
     });
   }
 

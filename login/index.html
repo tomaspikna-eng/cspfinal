@@ -116,14 +116,6 @@ const RETURN_TO=safeReturnTo();
 const registrationLink=document.getElementById('registrationLink');
 if(registrationLink&&RETURN_TO!='/profil/') registrationLink.href='/registracia/?returnTo='+encodeURIComponent(RETURN_TO);
 
-cspAuth.client.auth.onAuthStateChange(async (event, session) => {
-  // Existing stored sessions must not open the profile automatically.
-  // Redirect only after a fresh, explicit sign-in.
-  if(event === 'SIGNED_IN' && session){
-    window.location.href = RETURN_TO;
-  }
-});
-
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
@@ -140,11 +132,15 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const btn = document.getElementById('btnLogin');
   btn.disabled = true; btn.textContent = 'Prihlasujem...';
 
-  const { error } = await cspAuth.signIn(email, password);
+  const { data, error } = await cspAuth.signIn(email, password);
   btn.disabled = false; btn.textContent = 'Prihlásiť sa →';
 
   if(error){
     showMsg(cspAuth.friendlyError(error));
+  }else if(data && data.session){
+    // Redirect only because the user explicitly submitted this login form.
+    // A restored/refreshed Supabase session must never navigate other tabs.
+    window.location.href = RETURN_TO;
   }
 });
 

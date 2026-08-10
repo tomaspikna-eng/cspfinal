@@ -204,14 +204,6 @@ const RETURN_TO=safeReturnTo();
 const loginLink=document.getElementById('loginLink');
 if(loginLink&&RETURN_TO!='/profil/') loginLink.href='/login/?returnTo='+encodeURIComponent(RETURN_TO);
 
-cspAuth.client.auth.onAuthStateChange(async (event, session) => {
-  // Existing stored sessions must not open the profile automatically.
-  // Redirect only after a fresh sign-in event.
-  if(event === 'SIGNED_IN' && session){
-    window.location.href = RETURN_TO;
-  }
-});
-
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
