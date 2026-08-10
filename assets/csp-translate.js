@@ -11,7 +11,8 @@
   const NATIVE_LOCALE_ENDPOINTS={
     cs:'/assets/csp-locale-cs.json',
     en:'/assets/csp-locale-en.json',
-    de:'/assets/csp-locale-de.json'
+    de:'/assets/csp-locale-de.json',
+    pl:'/assets/csp-locale-pl.json'
   };
   const MAX_BATCH_SIZE=100;
   const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
