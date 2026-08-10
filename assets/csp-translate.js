@@ -9,6 +9,7 @@
   const CACHE_STORAGE_KEY='csp_translation_cache_v2';
   const API_ENDPOINT='/api/translate';
   const NATIVE_LOCALE_ENDPOINTS={
+    cs:'/assets/csp-locale-cs.json',
     en:'/assets/csp-locale-en.json',
     de:'/assets/csp-locale-de.json'
   };
