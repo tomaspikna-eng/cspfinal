@@ -8,7 +8,10 @@
   const LANGUAGE_STORAGE_KEY='csp_language';
   const CACHE_STORAGE_KEY='csp_translation_cache_v2';
   const API_ENDPOINT='/api/translate';
-  const NATIVE_EN_ENDPOINT='/assets/csp-locale-en.json';
+  const NATIVE_LOCALE_ENDPOINTS={
+    en:'/assets/csp-locale-en.json',
+    de:'/assets/csp-locale-de.json'
+  };
   const MAX_BATCH_SIZE=100;
   const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
   const TRANSLATABLE_ATTRIBUTES=['title','aria-label','placeholder','alt'];
@@ -19,21 +22,24 @@
   let translating=false;
   let mutationObserver=null;
   let mutationTimer=null;
-  let nativeEnglishPromise=null;
+  const nativeLocalePromises=new Map();
   const originalDocumentTitle=document.title;
   const descriptionMeta=document.querySelector('meta[name="description"]');
   const originalDocumentDescription=descriptionMeta?.getAttribute('content')||'';
 
-  function loadNativeEnglish(){
-    if(nativeEnglishPromise) return nativeEnglishPromise;
-    nativeEnglishPromise=fetch(NATIVE_EN_ENDPOINT,{cache:'no-cache'})
+  function loadNativeLocale(language){
+    const endpoint=NATIVE_LOCALE_ENDPOINTS[language];
+    if(!endpoint) return Promise.reject(new Error(`No native locale configured for ${language}.`));
+    if(nativeLocalePromises.has(language)) return nativeLocalePromises.get(language);
+    const localePromise=fetch(endpoint,{cache:'no-cache'})
       .then(async response=>{
-        if(!response.ok) throw new Error(`English locale request failed with status ${response.status}.`);
+        if(!response.ok) throw new Error(`${language.toUpperCase()} locale request failed with status ${response.status}.`);
         const payload=await response.json();
-        if(!payload||typeof payload.translations!=='object') throw new Error('Invalid English locale.');
+        if(!payload||typeof payload.translations!=='object') throw new Error(`Invalid ${language.toUpperCase()} locale.`);
         return payload;
       });
-    return nativeEnglishPromise;
+    nativeLocalePromises.set(language,localePromise);
+    return localePromise;
   }
 
   function applyNativePattern(value,patterns=[]){
@@ -43,7 +49,7 @@
         const expression=new RegExp(item.source,item.flags||'');
         if(expression.test(value)) return value.replace(expression,item.target||'');
       }catch(error){
-        console.warn('[CSP translate] Invalid English locale pattern.',item,error);
+        console.warn('[CSP translate] Invalid native locale pattern.',item,error);
       }
     }
     return null;
@@ -164,8 +170,8 @@
   }
 
   async function translateValues(values,targetLanguage){
-    if(targetLanguage==='en'){
-      const locale=await loadNativeEnglish();
+    if(NATIVE_LOCALE_ENDPOINTS[targetLanguage]){
+      const locale=await loadNativeLocale(targetLanguage);
       const missing=[];
       const translated=values.map(value=>{
         const exact=locale.translations[value];
@@ -178,8 +184,9 @@
       if(missing.length){
         const missingSlovak=missing.filter(looksSlovak);
         if(missingSlovak.length){
-          window.CSPTranslateMissingEN=[...new Set([...(window.CSPTranslateMissingEN||[]),...missingSlovak])];
-          console.warn('[CSP translate] Missing exact EN strings:',[...new Set(missingSlovak)]);
+          const missingKey=`CSPTranslateMissing${targetLanguage.toUpperCase()}`;
+          window[missingKey]=[...new Set([...(window[missingKey]||[]),...missingSlovak])];
+          console.warn(`[CSP translate] Missing exact ${targetLanguage.toUpperCase()} strings:`,[...new Set(missingSlovak)]);
         }
       }
       return translated;
