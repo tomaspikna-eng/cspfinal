@@ -1,0 +1,26 @@
+CONNECT SPORTS PRO — GITHUB OVERLAY
+
+Tento ZIP rozbaľ priamo do koreňa existujúceho CSP repozitára.
+Neobsahuje nadradený obalový priečinok a neprepíše hlavnú landing page.
+
+Súbory sa uložia takto:
+
+assets/
+  csp-player-profile.css
+  csp-player-profile.js
+  csp-player-logo.png
+
+profil/
+  index.html                 Prehľad a výkonnostný denník
+  moj-profil/index.html      Verejný profil, fotografia a bio
+  turnaje/index.html         Kalendár a história turnajov
+  treningy/index.html        Tréningové štatistiky a plán
+  rebricky/index.html        Moje rebríčky
+  priatelia/index.html       Priatelia a verejné profily
+
+Existujúci scoreboard sa nemení. Odkaz „Spustiť tréning“ smeruje na:
+  /scoreboard/
+
+Existujúce priečinky login/, scoreboard/, assets/ a ostatné CSP moduly
+zostanú zachované. Do assets/ sa iba pridajú tri nové súbory s unikátnymi
+názvami.
