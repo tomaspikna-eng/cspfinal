@@ -29,32 +29,25 @@ body{
 .logo-dot{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#a8862e);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:1.2rem;color:#1a1000;letter-spacing:.04em}
 .logo-text{font-size:1.15rem;font-weight:800;letter-spacing:-.02em}
 .logo-text .gold{color:var(--gold)}
-
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;gap:18px}
 .hello{text-align:center}
 .hello h1{font-family:var(--display);font-size:1.9rem;color:var(--gold);letter-spacing:.05em;line-height:1.1;margin-bottom:6px}
 .hello p{font-size:.82rem;color:var(--muted2)}
-
 .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text);font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s}
 .google-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.18)}
 .google-btn:disabled{opacity:.5;cursor:not-allowed}
-
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.7rem;letter-spacing:.06em}
 .or::before,.or::after{content:'';flex:1;height:1px;background:var(--line)}
-
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2)}
 .field input{background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--font);font-size:.92rem;padding:11px 13px;outline:none;transition:.12s}
 .field input:focus{border-color:var(--gold-b);background:rgba(212,168,67,.03)}
-
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:13px 20px;border-radius:10px;font:700 .92rem/1 var(--font);cursor:pointer;border:none;width:100%;transition:.15s}
 .btn-gold{background:var(--gold);color:#1a1000}
 .btn-gold:hover{background:var(--gold-bright)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-
 .msg{padding:9px 12px;border-radius:8px;font-size:.78rem;font-weight:600;display:none;text-align:center}
 .msg.err{background:rgba(217,79,79,.1);border:1px solid rgba(217,79,79,.25);color:#ffd0d0;display:block;text-align:left}
-
 .foot{text-align:center;font-size:.78rem;color:var(--muted2);margin-top:20px}
 .foot a{color:var(--gold);text-decoration:none;font-weight:700}
 .foot a:hover{text-decoration:underline}
@@ -102,7 +95,6 @@ body{
     history.replaceState(null,'',window.location.pathname);
 })();
 
-
 function safeReturnTo(){
   const raw=new URLSearchParams(window.location.search).get('returnTo');
   if(!raw)return '/profil/';
@@ -116,10 +108,40 @@ const RETURN_TO=safeReturnTo();
 const registrationLink=document.getElementById('registrationLink');
 if(registrationLink&&RETURN_TO!='/profil/') registrationLink.href='/registracia/?returnTo='+encodeURIComponent(RETURN_TO);
 
+function profileHome(profile){
+  const role=String(profile?.role||'player').toLowerCase();
+  if(profile?.is_admin || role==='admin' || role==='club' || role==='organization'){
+    return '/profil-ul/';
+  }
+  return '/profil/';
+}
+
+async function resolveDestination(user){
+  try{
+    const {data:profile,error}=await cspAuth.getCurrentProfile(user);
+    if(error) throw error;
+
+    const roleHome=profileHome(profile);
+
+    // Explicit returnTo to a non-profile route is preserved.
+    // Profile destinations are always resolved by role.
+    if(RETURN_TO && RETURN_TO!=='/profil/' && RETURN_TO!=='/profil-ul/'){
+      return RETURN_TO;
+    }
+    return roleHome;
+  }catch(err){
+    console.error('[login] role routing failed:',err);
+    return '/profil/';
+  }
+}
+
 document.getElementById('btnGoogle').addEventListener('click', async () => {
   const btn = document.getElementById('btnGoogle');
   btn.disabled = true;
-  const { error } = await cspAuth.signInWithGoogle(window.location.origin + RETURN_TO);
+
+  // OAuth returns to /profil/. The role guard in /profil/ performs
+  // the final redirect for club / organization / admin accounts.
+  const { error } = await cspAuth.signInWithGoogle(window.location.origin + '/profil/');
   if(error){ showMsg('Chyba: ' + cspAuth.friendlyError(error)); btn.disabled = false; }
 });
 
@@ -138,9 +160,8 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   if(error){
     showMsg(cspAuth.friendlyError(error));
   }else if(data && data.session){
-    // Redirect only because the user explicitly submitted this login form.
-    // A restored/refreshed Supabase session must never navigate other tabs.
-    window.location.href = RETURN_TO;
+    const destination=await resolveDestination(data.session.user);
+    window.location.href = destination;
   }
 });
 
@@ -150,6 +171,6 @@ function showMsg(text){
   el.className = 'msg err';
 }
 </script>
-  <script src="/assets/csp-translate.js" defer></script>
+<script src="/assets/csp-translate.js" defer></script>
 </body>
 </html>

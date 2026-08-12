@@ -1,3 +1,73 @@
 <!doctype html>
-<html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#070807"><title>Prehľad | Connect Sports Pro</title><link rel="stylesheet" href="/assets/csp-player-profile.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" defer></script><script src="/assets/csp-player-profile.js" defer></script></head>
-<body data-page="overview"><div id="root"><div class="boot"><span></span><b>Načítavam prehľad</b></div></div></body></html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070807">
+<title>Prehľad | Connect Sports Pro</title>
+<link rel="stylesheet" href="/assets/csp-player-profile.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script>
+(async function(){
+  const SUPABASE_URL="https://lcmoykaqvvfybtobhtqg.supabase.co";
+  const SUPABASE_KEY="sb_publishable_h3_yK3K_GUahLdz13dDWDg_PzxGE6xR";
+
+  function loadPlayerProfile(){
+    const s=document.createElement("script");
+    s.src="/assets/csp-player-profile.js";
+    s.defer=true;
+    document.head.appendChild(s);
+  }
+
+  try{
+    if(!window.supabase){
+      loadPlayerProfile();
+      return;
+    }
+
+    const client=window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY,
+      {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+    );
+
+    const {data:{user},error:userError}=await client.auth.getUser();
+
+    if(userError || !user){
+      loadPlayerProfile();
+      return;
+    }
+
+    const {data:profile,error:profileError}=await client
+      .from("profiles")
+      .select("role,is_admin")
+      .eq("id",user.id)
+      .single();
+
+    if(profileError){
+      console.error("[profil] role guard profile error:",profileError);
+      loadPlayerProfile();
+      return;
+    }
+
+    const role=String(profile?.role||"player").toLowerCase();
+
+    if(profile?.is_admin || role==="admin" || role==="club" || role==="organization"){
+      window.location.replace("/profil-ul/");
+      return;
+    }
+
+    loadPlayerProfile();
+  }catch(err){
+    console.error("[profil] routing guard failed:",err);
+    loadPlayerProfile();
+  }
+})();
+</script>
+</head>
+<body data-page="overview">
+<div id="root">
+  <div class="boot"><span></span><b>Načítavam prehľad</b></div>
+</div>
+</body>
+</html>

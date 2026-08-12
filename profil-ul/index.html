@@ -1442,6 +1442,14 @@ const authGateReady = (async function initAuthGate(){
     }
     currentProfile = profile;
 
+    // ROLE ROUTING GUARD: /profil-ul/ is only for club, organization and admin.
+    const resolvedRole = String((profile && profile.role) || 'player').toLowerCase();
+    const resolvedAdmin = !!(profile && profile.is_admin) || resolvedRole === 'admin';
+    if(!resolvedAdmin && resolvedRole === 'player'){
+      window.location.replace('/profil/');
+      return;
+    }
+
     renderIdentity();
     renderMemberSince();
   } catch(err) {
