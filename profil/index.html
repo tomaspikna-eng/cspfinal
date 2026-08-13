@@ -57,7 +57,11 @@
     <aside class="sidebar">
       <a class="brand" href="/" aria-label="Connect Sports Pro"><img class="csp-brand-logo full" src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
       <nav class="nav" aria-label="Hlavná navigácia">
-        <a href="/"><span class="nav-icon">⌂</span>Prehľad</a><a class="active" href="/profil/"><span class="nav-icon">●</span>Môj profil</a><a href="/turnaje/"><span class="nav-icon">▦</span>Turnaje</a><a href="/zapasy/"><span class="nav-icon">▶</span>Zápasy</a><a href="/treningy/"><span class="nav-icon">◎</span>Tréningy <small id="nav-plan">PRO</small></a><a href="/rebricky/"><span class="nav-icon">≋</span>Rebríčky</a><a href="/komunita/"><span class="nav-icon">◇</span>Komunita</a>
+        <a id="public-profile-link" href="/profil/"><span class="nav-icon">○</span>O mne</a>
+        <a class="active" href="/profil/"><span class="nav-icon">●</span>Môj profil</a>
+        <a href="/turnaje/"><span class="nav-icon">▦</span>Turnaje</a>
+        <a href="/treningy/"><span class="nav-icon">◎</span>Tréningy <small id="nav-plan">PRO</small></a>
+        <a href="/rebricky/"><span class="nav-icon">≋</span>Rebríčky</a>
       </nav>
       <div class="sidebar-spacer"></div><div class="smart-card"><span>SMART SYSTEM</span><p>Tvoj šport. Tvoje dáta. Tvoj progres.</p></div>
       <div class="side-user"><div id="mini-avatar" class="mini-avatar">–</div><div><b id="side-name">Hráč</b><span id="side-plan">Účet</span></div></div>
@@ -187,6 +191,13 @@
     }
 
 
+
+    function updatePublicProfileLink(){
+      const link = $("public-profile-link");
+      if(!link || !currentUser?.id) return;
+      link.href = `/profil/?id=${encodeURIComponent(currentUser.id)}&view=public`;
+    }
+
     function openSettings(){
       if(!currentProfile) return;
       $("settings-name").value = currentProfile.full_name || currentProfile.display_name || "";
@@ -281,6 +292,66 @@
       });
     }
 
+
+    function renderPublicProfile(profile){
+      currentProfile = profile || {};
+      const name = currentProfile.full_name || currentProfile.display_name || "Hráč";
+      const short = initials(name);
+
+      text("player-name", name);
+      text("avatar-initials", short);
+      text("plan-badge", "");
+      $("plan-badge")?.classList.add("hidden");
+      text("role-label", "HRÁČ");
+      text("sport-label", "Verejný profil");
+
+      if(currentProfile.avatar_url){
+        const img = new Image();
+        img.alt = `Profilová fotografia: ${name}`;
+        img.src = currentProfile.avatar_url;
+        $("avatar")?.prepend(img);
+        $("avatar-initials")?.classList.add("hidden");
+      }
+
+      const joined = dateValue(currentProfile.created_at);
+      text("member-since", joined ? `Člen od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}` : "");
+
+      // Public view shows only identity + BIO, not private dashboard/controls.
+      document.querySelector(".metrics")?.classList.add("hidden");
+      document.querySelector(".profile-grid")?.classList.add("hidden");
+      document.querySelector(".lower-grid")?.classList.add("hidden");
+      document.querySelector(".header-actions")?.classList.add("hidden");
+      document.querySelector(".sidebar")?.classList.add("hidden");
+      document.querySelector(".shell")?.style.setProperty("grid-template-columns", "1fr");
+
+      const topTitle = document.querySelector(".topbar-title");
+      if(topTitle) topTitle.innerHTML = "<span>VEREJNÝ PROFIL</span><b>O mne</b>";
+      document.querySelector(".topbar-actions")?.classList.add("hidden");
+
+      const stage = document.querySelector(".stage");
+      if(stage){
+        const bio = document.createElement("section");
+        bio.className = "panel";
+        bio.style.marginTop = "8px";
+        bio.style.padding = "20px";
+        bio.innerHTML = `
+          <span class="panel-label">O MNE</span>
+          <div style="margin-top:10px;font-size:13px;line-height:1.7;color:#d7dad7;white-space:pre-wrap">
+            ${escapePublicHtml(currentProfile.bio || "Používateľ zatiaľ nepridal BIO.")}
+          </div>`;
+        stage.appendChild(bio);
+      }
+
+      $("loading")?.classList.add("hidden");
+      $("app")?.classList.remove("hidden");
+    }
+
+    function escapePublicHtml(value){
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[ch]));
+    }
+
     async function init(){
       try{
         if(!window.supabase) throw new Error("Knižnicu Supabase sa nepodarilo načítať.");
@@ -300,6 +371,27 @@
         );
 
         currentUser = userData?.user || null;
+        updatePublicProfileLink();
+
+        const params = new URLSearchParams(location.search);
+        const requestedProfileId = params.get("id");
+        const publicView = params.get("view") === "public";
+
+        if((userError || !userData?.user) && requestedProfileId && publicView){
+          const publicResult = await withTimeout(
+            client
+              .from("profiles")
+              .select("id,full_name,role,avatar_url,cover_url,bio,created_at")
+              .eq("id", requestedProfileId)
+              .maybeSingle(),
+            8000,
+            "Načítanie verejného profilu"
+          );
+          if(publicResult.error) throw publicResult.error;
+          if(!publicResult.data) throw new Error("Verejný profil sa nenašiel.");
+          renderPublicProfile(publicResult.data);
+          return;
+        }
 
         if(userError || !userData?.user){
           showState(
@@ -307,6 +399,22 @@
             "Profil zobrazuje dáta aktuálne prihláseného hráča.",
             true
           );
+          return;
+        }
+
+        if(requestedProfileId && publicView){
+          const publicResult = await withTimeout(
+            client
+              .from("profiles")
+              .select("id,full_name,role,avatar_url,cover_url,bio,created_at")
+              .eq("id", requestedProfileId)
+              .maybeSingle(),
+            8000,
+            "Načítanie verejného profilu"
+          );
+          if(publicResult.error) throw publicResult.error;
+          if(!publicResult.data) throw new Error("Verejný profil sa nenašiel.");
+          renderPublicProfile(publicResult.data);
           return;
         }
 
