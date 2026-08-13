@@ -40,11 +40,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:16p
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 
 /* SPORT SWITCHER */
-.sport-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.sport-tab{display:flex;align-items:center;gap:9px;padding:11px 18px;border-radius:14px;border:1px solid var(--border);background:var(--panel);font-weight:700;font-size:.95rem;color:var(--muted);transition:.13s}
-.sport-tab .ic{font-size:1.2rem}
-.sport-tab:hover{color:var(--white)}
-.sport-tab.active{background:rgba(212,168,67,.12);border-color:var(--gold);color:var(--gold)}
+.sport-picker{margin-bottom:14px;max-width:360px}
+.sport-picker label{display:block;font-size:.68rem;color:var(--muted);font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.sport-select{appearance:auto;width:100%;min-height:48px;padding:0 14px;border:1px solid var(--gold);border-radius:14px;background:rgba(212,168,67,.08);color:var(--white);font-weight:800;font-size:.95rem}
 
 .settings{margin-bottom:14px}
 details>summary{cursor:pointer;font-weight:600;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;list-style:none}
@@ -284,10 +282,16 @@ summary b{color:var(--gold)}
   </header>
 
   <!-- SPORT SWITCHER -->
-  <div class="sport-tabs" id="sportTabs">
-    <button class="sport-tab active" data-sport="billiard"><span class="ic">🎱</span> Biliard</button>
-    <button class="sport-tab" data-sport="darts"><span class="ic">🎯</span> Šípky</button>
-    <button class="sport-tab" data-sport="other"><span class="ic">🏓</span> Ostatné športy</button>
+  <div class="sport-picker">
+    <label for="sportSelect">Šport</label>
+    <select id="sportSelect" class="sport-select">
+      <option value="billiard">🎱 Biliard</option>
+      <option value="darts">🎯 Šípky</option>
+      <option value="tabletennis">🏓 Stolný tenis</option>
+      <option value="tennis">🎾 Tenis</option>
+      <option value="padel">🎾 Padel</option>
+      <option value="other">＋ Ostatné športy</option>
+    </select>
   </div>
 
   <div class="settings">
@@ -393,7 +397,10 @@ summary b{color:var(--gold)}
 const SPORTS={
   billiard:{label:"Biliard",icon:"🎱",disciplines:["8-ball","9-ball","10-ball","14.1 continuous","Snooker","Pyramída","Karambol","Tréning"]},
   darts:{label:"Šípky",icon:"🎯",disciplines:["501","301"]},
-  other:{label:"Ostatné",icon:"🏓",disciplines:["Univerzál"]},
+  tabletennis:{label:"Stolný tenis",icon:"🏓",disciplines:["Singles"]},
+  tennis:{label:"Tenis",icon:"🎾",disciplines:["Singles"]},
+  padel:{label:"Padel",icon:"🎾",disciplines:["Doubles"]},
+  other:{label:"Ostatné",icon:"＋",disciplines:["Univerzál"]},
 };
 const POINT_DISCIPLINES=["Snooker","Pyramída","Karambol","14.1 continuous"];
 const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100,"14.1 continuous":100};
@@ -448,9 +455,9 @@ const defaultState={
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,metrics:{}},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,metrics:{}},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,metrics:{}},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
   ],
   log:[],
 };
@@ -460,9 +467,11 @@ const activePlayers=()=>state.players.slice(0,state.playerCount);
 
 /* ════════════════════ REŽIM ════════════════════ */
 function mode(){
-  if(state.sport==="darts") return "darts";       // x01 countdown + keypad
-  if(state.sport==="other") return "universal";    // +/- body + sety
-  return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame"; // biliard
+  if(state.sport==="darts") return "darts";
+  if(state.sport==="tabletennis") return "tabletennis";
+  if(state.sport==="tennis"||state.sport==="padel") return "racket";
+  if(state.sport==="other") return "universal";
+  return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame";
 }
 const startScore=()=>START_SCORE[state.discipline]||501;
 const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;
@@ -501,13 +510,17 @@ function applyUrlParams(){
 
 /* nastav počiatočné skóre podľa režimu */
 function resetScoresForMode(){
-  state.players.forEach(p=>{ p.remaining=startScore(); });
+  state.players.forEach(p=>{
+    p.remaining=startScore();
+    if(mode()==="tabletennis"){p.points=0;p.sets=0;}
+    if(mode()==="racket"){p.points=0;p.games=0;p.sets=0;p.tiePoints=0;}
+  });
 }
 
 /* Rule already used by the discipline pill in render() below — pulled
    out into one shared function so saveTrainingSession() reuses the exact
    same label instead of a second, possibly-drifting copy of the rule. */
-function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : state.discipline; }
+function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : (["tabletennis","tennis","padel"].includes(state.sport)?SPORTS[state.sport].label:state.discipline); }
 
 /* ════════════════════ DYNAMIC SPORT EVENT CTA ════════════════════ */
 const SCORE_EVENT_FALLBACK={
@@ -515,6 +528,8 @@ const SCORE_EVENT_FALLBACK={
   points:{event_key:"frame_win",label:"+1 FRAME",score_delta:1,metric_key:"frame_win",value_required:false,button_style:"primary",sort_order:10},
   darts:{event_key:"leg_win",label:"+1 LEG",score_delta:1,metric_key:"leg_win",value_required:false,button_style:"primary",sort_order:10},
   universal:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+  tabletennis:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+  racket:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
 };
 const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN?"tournament":"training";
 const scoreActions=()=>scoreActionDefinitions.length?scoreActionDefinitions:[SCORE_EVENT_FALLBACK[mode()]];
@@ -572,6 +587,7 @@ function currentMainScores(){
   if(m==="frame")return activePlayers().map(p=>Number(p.score||0));
   if(m==="points")return activePlayers().map(p=>Number(p.frames||0));
   if(m==="darts")return activePlayers().map(p=>Number(p.legs||0));
+  if(m==="tabletennis"||m==="racket")return activePlayers().map(p=>Number(p.sets||0));
   return activePlayers().map(p=>Number(p.points||0));
 }
 
@@ -959,6 +975,8 @@ function render(){
   let periodWord="Frame", fmt=`Race to ${state.raceTo}`, newBtn="Nový frame";
   if(m==="darts"){periodWord="Leg";fmt=`Race to ${state.raceTo} ${state.raceTo===1?'leg':'legy'}`;newBtn="Nový leg";}
   else if(m==="universal"){periodWord="Set";fmt=`Race to ${state.raceTo} ${state.raceTo===1?'set':'setov'}`;newBtn="Nový set";}
+  else if(m==="tabletennis"){periodWord="Set";fmt=`Do 11 · rozdiel 2 · ${state.raceTo} set(y) na výhru`;newBtn="Nový set";}
+  else if(m==="racket"){periodWord="Set";fmt=`${state.raceTo} set(y) na výhru · tiebreak 6:6`;newBtn="Nový set";}
   else if(m==="points"){fmt = state.pointsTarget>0?`Cieľ ${state.pointsTarget} b. · Race to ${state.raceTo}`:`Race to ${state.raceTo}`;}
   $("formatPill").textContent=fmt;
   $("periodLabel").textContent=periodWord;
@@ -1030,6 +1048,38 @@ function playerCard(p,i,m){
       <div class="stat"><span>Priemer</span><strong>${avg}</strong></div>
       <div class="stat"><span>Najviac</span><strong>${p.high}</strong></div>
     </div>`;
+  } else if(m==="tabletennis"){
+    bigVal=p.points;
+    controls=`<div class="pm">
+      <button class="plus" data-act="plus" data-i="${i}">+1</button>
+      <button data-act="minus" data-i="${i}">−1</button>
+    </div>`;
+    stats=`<div class="stat-grid">
+      <div class="stat"><span>Sety</span><strong>${p.sets}</strong></div>
+    </div>`;
+  } else if(m==="racket"){
+    const opponent=activePlayers()[i===0?1:0];
+    const tieBreak=(p.games===6&&opponent&&opponent.games===6);
+    const tennisPointLabel=()=>{
+      if(tieBreak)return String(p.tiePoints||0);
+      const a=p.points||0,b=opponent?.points||0;
+      if(a>=3&&b>=3){
+        if(a===b)return "40";
+        if(a===b+1)return "AD";
+        return "40";
+      }
+      return ["0","15","30","40"][Math.min(a,3)]||"40";
+    };
+    bigVal=tennisPointLabel();
+    bigSub=tieBreak?"TIEBREAK":"body v game";
+    controls=`<div class="pm">
+      <button class="plus" data-act="plus" data-i="${i}">+ bod</button>
+      <button data-act="minus" data-i="${i}">− bod</button>
+    </div>`;
+    stats=`<div class="stat-grid">
+      <div class="stat"><span>Sety</span><strong>${p.sets}</strong></div>
+      <div class="stat"><span>Gamy</span><strong>${p.games}</strong></div>
+    </div>`;
   } else { // universal
     bigVal=p.points;
     controls=`<div class="pm">
@@ -1061,6 +1111,8 @@ function wireCardButtons(m){
     const i=+b.dataset.i, act=b.dataset.act;
     b.onclick=()=>{
       if(m==="frame"){ if(act==="plus")frameAdd(i); if(act==="minus")frameSub(i); }
+      else if(m==="tabletennis"){ if(act==="plus")ttAdd(i); if(act==="minus")ttSub(i); }
+      else if(m==="racket"){ if(act==="plus")racketAdd(i); if(act==="minus")racketSub(i); }
       else if(m==="universal"){ if(act==="plus")uniAdd(i); if(act==="minus")uniSub(i); if(act==="set")uniWinSet(i); }
     };
   });
@@ -1146,6 +1198,98 @@ function dartsWinLeg(i){
   state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;state.runInput="";
   activePlayers().forEach(p=>p.remaining=startScore());render();
   syncTournamentLiveScore();
+}
+
+/* ════════════════════ STOLNÝ TENIS ════════════════════ */
+function ttAdd(i){
+  invalidateScoreEventUndo();
+  const players=activePlayers(),p=players[i],o=players[i===0?1:0];
+  p.points++;
+  state.currentIndex=i===0?1:0;
+  if(p.points>=11 && p.points-o.points>=2){
+    p.sets++;
+    addLog(`🏓 ${p.name} vyhral set ${state.period} (${p.points}:${o.points})`);
+    state.period++;
+    players.forEach(x=>x.points=0);
+    state.starter=(state.starter+1)%2;
+    state.currentIndex=state.starter;
+    if(p.sets>=state.raceTo){
+      addLog(`🏆 ${p.name} vyhral zápas v stolnom tenise`);
+      saveTrainingSession({mode:"tabletennis",players:players.map(x=>({name:x.name,sets:x.sets}))},p.name,elapsedSeconds());
+    }
+  }
+  render();
+}
+function ttSub(i){
+  invalidateScoreEventUndo();
+  const p=activePlayers()[i];
+  if(p.points>0)p.points--;
+  render();
+}
+
+/* ════════════════════ TENIS / PADEL ════════════════════ */
+function racketIsTiebreak(){
+  const p=activePlayers();
+  return p.length===2 && p[0].games===6 && p[1].games===6;
+}
+function racketResetGame(){
+  activePlayers().forEach(p=>{p.points=0;p.tiePoints=0;});
+}
+function racketWinSet(i){
+  const players=activePlayers(),w=players[i],o=players[i===0?1:0];
+  w.sets++;
+  addLog(`🎾 ${w.name} vyhral set ${state.period} (${w.games}:${o.games})`);
+  state.period++;
+  players.forEach(p=>{p.games=0;p.points=0;p.tiePoints=0;});
+  state.starter=(state.starter+1)%2;
+  state.currentIndex=state.starter;
+  if(w.sets>=state.raceTo){
+    addLog(`🏆 ${w.name} vyhral zápas`);
+    saveTrainingSession({mode:"racket",players:players.map(p=>({name:p.name,sets:p.sets}))},w.name,elapsedSeconds());
+  }
+}
+function racketWinGame(i){
+  const players=activePlayers(),w=players[i],o=players[i===0?1:0];
+  w.games++;
+  addLog(`🎾 Game pre ${w.name} (${w.games}:${o.games})`);
+  racketResetGame();
+  if((w.games>=6 && w.games-o.games>=2) || w.games>=7){
+    racketWinSet(i);
+    return;
+  }
+  state.currentIndex=i===0?1:0;
+}
+function racketAdd(i){
+  invalidateScoreEventUndo();
+  const players=activePlayers(),p=players[i],o=players[i===0?1:0];
+  if(racketIsTiebreak()){
+    p.tiePoints++;
+    state.currentIndex=i===0?1:0;
+    if(p.tiePoints>=7 && p.tiePoints-o.tiePoints>=2){
+      p.games=7;
+      racketWinSet(i);
+      render();
+      return;
+    }
+    render();
+    return;
+  }
+  p.points++;
+  state.currentIndex=i===0?1:0;
+  if(p.points>=4 && p.points-o.points>=2){
+    racketWinGame(i);
+  }
+  render();
+}
+function racketSub(i){
+  invalidateScoreEventUndo();
+  const p=activePlayers()[i];
+  if(racketIsTiebreak()){
+    if(p.tiePoints>0)p.tiePoints--;
+  }else if(p.points>0){
+    p.points--;
+  }
+  render();
 }
 
 /* ════════════════════ UNIVERSAL engine (ostatné športy) ════════════════════ */
@@ -1244,13 +1388,14 @@ function confirmManualWinner(i){
 function newPeriod(){
   const m=mode();
   state.period++;
-  if(m==="darts"||m==="universal"){state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;}
+  if(["darts","universal","tabletennis","racket"].includes(m)){state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;}
   else state.currentIndex=breakerIndex();
   state.runInput="";
   if(m==="darts")activePlayers().forEach(p=>p.remaining=startScore());
   if(m==="points")activePlayers().forEach(p=>p.framePoints=0);
-  if(m==="universal")activePlayers().forEach(p=>p.points=0);
-  addLog(`Nový ${m==="darts"?"leg":m==="universal"?"set":"frame"} ${state.period}`);
+  if(m==="universal"||m==="tabletennis")activePlayers().forEach(p=>p.points=0);
+  if(m==="racket")activePlayers().forEach(p=>{p.points=0;p.games=0;p.tiePoints=0;});
+  addLog(`Nový ${m==="darts"?"leg":["universal","tabletennis","racket"].includes(m)?"set":"frame"} ${state.period}`);
   render();
 }
 function resetAll(){
@@ -1273,7 +1418,7 @@ function fillDisciplines(){
 }
 function applySettings(){
   invalidateScoreEventUndo();releaseTrainingEventSession();
-  state.sport=document.querySelector(".sport-tab.active").dataset.sport;
+  state.sport=$("sportSelect").value;
   state.discipline=$("discipline").value;
   state.customLabel=$("customLabel").value.trim()||"Univerzál";
   state.playerCount=Number($("playerCount").value);
@@ -1291,8 +1436,7 @@ function applySettings(){
   syncSettingsUI();render();loadScoreActionDefinitions();
 }
 function syncSettingsUI(){
-  // sport tabs
-  document.querySelectorAll(".sport-tab").forEach(t=>t.classList.toggle("active",t.dataset.sport===state.sport));
+  $("sportSelect").value=state.sport;
   fillDisciplines();
   $("playerCount").value=String(state.playerCount);
   $("raceTo").value=state.raceTo;
@@ -1312,23 +1456,22 @@ function syncSettingsUI(){
   $("setTargetWrap").classList.toggle("hidden",m!=="universal");
   $("doubleOutWrap").classList.toggle("hidden",m!=="darts");
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
-  $("raceLabel").textContent = m==="darts"?"Race to (legy)" : m==="universal"?"Race to (sety)" : "Race to (frames)";
+  $("playerCount").disabled=["tabletennis","racket"].includes(m);
+  $("raceLabel").textContent = m==="darts"?"Race to (legy)" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
 }
 
 /* ════════════════════ WIRING ════════════════════ */
-$("sportTabs").querySelectorAll(".sport-tab").forEach(tab=>{
-  tab.onclick=()=>{
-    document.querySelectorAll(".sport-tab").forEach(t=>t.classList.remove("active"));
-    tab.classList.add("active");
-    state.sport=tab.dataset.sport;
-    state.discipline=SPORTS[state.sport].disciplines[0];
-    // default ciele
-    if(mode()==="points")state.pointsTarget=DEFAULT_TARGET[state.discipline]??0;
-    state.period=1;state.currentIndex=0;state.starter=0;state.runInput="";
-    resetScoresForMode();
-    syncSettingsUI();render();loadScoreActionDefinitions();
-  };
-});
+$("sportSelect").onchange=()=>{
+  state.sport=$("sportSelect").value;
+  state.discipline=SPORTS[state.sport].disciplines[0];
+  state.playerCount=["tabletennis","tennis","padel"].includes(state.sport)?2:state.playerCount;
+  if(state.sport==="tabletennis")state.raceTo=3;
+  if(state.sport==="tennis"||state.sport==="padel")state.raceTo=2;
+  if(mode()==="points")state.pointsTarget=DEFAULT_TARGET[state.discipline]??0;
+  state.period=1;state.currentIndex=0;state.starter=0;state.runInput="";
+  resetScoresForMode();
+  syncSettingsUI();render();loadScoreActionDefinitions();
+};
 $("discipline").onchange=()=>{
   state.discipline=$("discipline").value;
   if(mode()==="points"){state.pointsTarget=DEFAULT_TARGET[state.discipline]??0;}
