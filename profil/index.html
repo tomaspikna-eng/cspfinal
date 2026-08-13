@@ -21,7 +21,10 @@
     .button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line2);border-radius:7px;padding:10px 14px;font-size:11px;font-weight:800;background:var(--surface3);color:#eee}.button.gold{background:var(--gold);border-color:var(--gold);color:#211806}.button.green{background:var(--green);border-color:var(--green);color:#06170d}.button.disabled{cursor:default;color:var(--muted);background:#1b1e1b}.button small{color:var(--gold);font-size:7px;letter-spacing:.1em}
     .shell{min-height:100vh;display:grid;grid-template-columns:230px minmax(0,1fr)}
     .sidebar{position:sticky;top:0;height:100vh;background:#080a09;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:24px 18px 16px;z-index:20}.brand{display:flex;align-items:center;gap:10px;padding:0 5px 28px}.brand-copy{display:flex;flex-direction:column;font-size:14px;line-height:1.05}.brand-copy b{color:var(--gold)}.brand-copy strong{color:#fff}.nav{display:grid;gap:5px}.nav a{display:flex;align-items:center;gap:11px;color:var(--muted);padding:11px 12px;border-radius:8px;font-size:13px;font-weight:650}.nav a:hover{color:#fff;background:#121512}.nav a.active{color:#fff;background:linear-gradient(90deg,rgba(212,168,67,.15),rgba(212,168,67,.03));border-left:2px solid var(--gold)}.nav-icon{width:19px;color:var(--gold);text-align:center}.nav small{margin-left:auto;color:var(--gold);font-size:8px;border:1px solid rgba(212,168,67,.35);padding:2px 4px;border-radius:3px;letter-spacing:.08em}.sidebar-spacer{flex:1}.smart-card{border:1px solid rgba(212,168,67,.22);background:linear-gradient(135deg,rgba(212,168,67,.09),rgba(212,168,67,.01));border-radius:10px;padding:14px;margin:15px 2px}.smart-card span,.eyebrow,.panel-label{font-size:8px;letter-spacing:.18em;color:var(--gold);font-weight:800}.smart-card p{font-size:11px;line-height:1.5;color:#c6c9c6;margin:7px 0 0}.side-user{display:flex;align-items:center;gap:9px;border-top:1px solid var(--line);padding-top:14px}.mini-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#262923;border:1px solid rgba(212,168,67,.5);font-weight:800;font-size:11px;color:var(--gold2)}.side-user div:nth-child(2){display:flex;flex-direction:column;min-width:0}.side-user b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}.side-user span{font-size:9px;color:var(--muted);margin-top:2px}
-    .workspace{min-width:0}.topbar{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:15;background:rgba(7,8,7,.92);backdrop-filter:blur(14px)}.topbar-title{display:flex;flex-direction:column}.topbar-title span{font-size:8px;letter-spacing:.18em;color:var(--gold)}.topbar-title b{font-size:14px;margin-top:4px}.status-pill{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:9px}.status-pill i{width:6px;height:6px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green)}
+    .workspace{min-width:0}.topbar{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:15;background:rgba(7,8,7,.92);backdrop-filter:blur(14px)}.topbar-title{display:flex;flex-direction:column}.topbar-title span{font-size:8px;letter-spacing:.18em;color:var(--gold)}.topbar-title b{font-size:14px;margin-top:4px}
+    .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .logout-btn{border:1px solid var(--line2);background:transparent;color:#d7dad7;border-radius:7px;padding:9px 12px;font-size:10px;font-weight:800}
+    .logout-btn:hover{border-color:rgba(255,91,100,.55);color:#fff;background:rgba(255,91,100,.08)}
     .stage{max-width:1440px;margin:0 auto;padding:24px 30px 45px}.player-header{min-height:184px;position:relative;display:flex;align-items:flex-end;padding:30px 25px 21px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#111410}.cover{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,7,6,.18),rgba(6,7,6,.78)),radial-gradient(circle at 83% 22%,rgba(212,168,67,.22),transparent 20%),linear-gradient(130deg,transparent 40%,rgba(212,168,67,.08)),repeating-linear-gradient(90deg,transparent 0 69px,rgba(255,255,255,.028) 70px),repeating-linear-gradient(0deg,transparent 0 69px,rgba(255,255,255,.028) 70px)}.cover:after{content:"09";position:absolute;right:48px;top:-34px;font-size:176px;line-height:1;font-weight:900;color:rgba(255,255,255,.025)}.avatar{position:relative;z-index:1;width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#363a34,#171917);border:4px solid #111410;box-shadow:0 0 0 1px rgba(212,168,67,.55);font-size:25px;font-weight:850;color:var(--gold2);flex:0 0 92px;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.avatar:after{content:"";position:absolute;width:13px;height:13px;right:3px;bottom:8px;background:var(--green);border:3px solid #111;border-radius:50%}.identity{position:relative;z-index:1;margin-left:18px;min-width:0}.identity .eyebrow{color:#aab0aa}.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;box-shadow:0 0 7px var(--green)}.name-line{display:flex;align-items:center;gap:9px;margin-top:5px}.name-line h1{font-size:28px;letter-spacing:-.04em;margin:0;overflow:hidden;text-overflow:ellipsis}.plan-badge{font-size:8px;letter-spacing:.1em;border-radius:4px;padding:4px 6px;background:var(--gold);color:#211806;font-weight:900}.plan-badge.free{background:#2a2d29;color:#c4c8c4}.identity p{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:10px;margin:8px 0 0}.identity p b{color:#d7dad7}.identity p i{width:3px;height:3px;border-radius:50%;background:#515651}.header-actions{position:relative;z-index:1;margin-left:auto;display:flex;gap:7px}
     .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}.metric{position:relative;overflow:hidden;min-height:101px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:15px;display:flex;flex-direction:column}.metric:before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--line2)}.metric>span{font-size:8px;letter-spacing:.14em;color:var(--muted)}.metric strong{font-size:27px;letter-spacing:-.04em;margin-top:auto}.metric small{font-size:9px;color:var(--muted);margin-top:3px}.metric.gold{background:linear-gradient(145deg,rgba(212,168,67,.1),var(--surface) 55%);border-color:rgba(212,168,67,.28)}.metric.gold:before{background:var(--gold)}.metric.gold strong,.gold-text{color:var(--gold2)}.metric.green{background:linear-gradient(145deg,rgba(34,211,107,.08),var(--surface) 55%);border-color:rgba(34,211,107,.24)}.metric.green:before{background:var(--green)}.metric.green strong,.green-text{color:var(--green)}.metric.red{background:linear-gradient(145deg,rgba(255,91,100,.075),var(--surface) 55%);border-color:rgba(255,91,100,.22)}.metric.red:before{background:var(--red)}.metric.red strong,.red-text{color:var(--red)}
     .profile-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,.72fr);gap:8px;margin-top:8px}.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}.diary{padding:18px}.panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.panel-heading h2{font-size:15px;margin:5px 0 0;letter-spacing:-.025em}.diary-actions{display:flex;gap:6px}.legend{display:flex;justify-content:flex-end;gap:13px;margin-top:11px}.legend span{font-size:7px;color:var(--muted);display:flex;align-items:center;gap:5px}.legend span:before{content:"";width:6px;height:6px;border-radius:50%}.legend .completed:before{background:var(--green)}.legend .planned:before{background:var(--gold)}.legend .missed:before{background:var(--red)}
@@ -33,6 +36,18 @@
     @media(max-width:1100px){.profile-grid{grid-template-columns:1fr}.side-column{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr 1fr}.matches{grid-column:1/-1}}
     @media(max-width:780px){.shell{display:block}.sidebar{display:none}.topbar{padding:0 15px}.stage{padding:14px 14px 35px}.player-header{min-height:220px;align-items:flex-start;padding-top:45px;flex-wrap:wrap}.avatar{width:70px;height:70px;flex-basis:70px}.identity{margin-left:12px;max-width:calc(100% - 84px)}.name-line h1{font-size:20px}.identity p{flex-wrap:wrap}.header-actions{width:100%;margin:12px 0 0 82px}.metrics{grid-template-columns:repeat(2,1fr)}.side-column,.lower-grid{grid-template-columns:1fr}.matches{grid-column:auto}.legend{justify-content:flex-start;flex-wrap:wrap}}
     @media(max-width:520px){.topbar .status-pill span{display:none}.player-header{padding-left:17px;padding-right:17px}.identity p i{display:none}.header-actions{margin-left:0}.header-actions .button{flex:1}.metrics{grid-template-columns:1fr 1fr}.metric{min-height:88px}.metric strong{font-size:22px}.diary{padding:13px}.week span{min-height:52px}.diary-actions .button:first-child{display:none}}
+
+    .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px}
+    .settings-modal{width:min(560px,100%);background:var(--surface);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+    .settings-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+    .settings-head h2{font-size:16px;margin:0}.settings-close{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;padding:4px 6px}
+    .settings-body{padding:20px;display:grid;gap:15px}
+    .field{display:grid;gap:7px}.field label{font-size:9px;letter-spacing:.12em;color:var(--muted);font-weight:800;text-transform:uppercase}
+    .field input,.field textarea{width:100%;border:1px solid var(--line2);background:#0a0c0b;color:var(--text);border-radius:8px;padding:11px 12px;font:inherit;font-size:12px;outline:none}
+    .field textarea{min-height:110px;resize:vertical}.field input:focus,.field textarea:focus{border-color:rgba(212,168,67,.7)}
+    .settings-meta{display:flex;gap:8px;flex-wrap:wrap}.settings-chip{font-size:9px;border:1px solid var(--line2);border-radius:999px;padding:5px 9px;color:var(--muted)}
+    .settings-actions{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 20px}
+
   </style>
 </head>
 <body>
@@ -48,9 +63,9 @@
       <div class="side-user"><div id="mini-avatar" class="mini-avatar">–</div><div><b id="side-name">Hráč</b><span id="side-plan">Účet</span></div></div>
     </aside>
     <main class="workspace">
-      <header class="topbar"><div class="topbar-title"><span>MÔJ PROFIL</span><b>Výkonnostný denník</b></div><div class="status-pill"><i></i><span>Dáta zo Supabase</span></div></header>
+      <header class="topbar"><div class="topbar-title"><span>MÔJ PROFIL</span><b>Výkonnostný denník</b></div><div class="topbar-actions"><button id="logout-button" class="logout-btn" type="button">Odhlásiť</button></div></header>
       <div class="stage">
-        <section class="player-header"><div class="cover"></div><div id="avatar" class="avatar"><span id="avatar-initials">–</span></div><div class="identity"><div class="eyebrow"><span class="live-dot"></span> HRÁČSKY PROFIL</div><div class="name-line"><h1 id="player-name">Hráč</h1><span id="plan-badge" class="plan-badge">PRO</span></div><p><b id="role-label">HRÁČ</b><i></i><span id="sport-label">Športový profil</span><i></i><span id="member-since"></span></p></div><div class="header-actions"><button id="share-button" class="button">Zdieľať</button><a class="button gold" href="/profil/upravit/">Upraviť profil</a></div></section>
+        <section class="player-header"><div class="cover"></div><div id="avatar" class="avatar"><span id="avatar-initials">–</span></div><div class="identity"><div class="eyebrow"><span class="live-dot"></span> HRÁČSKY PROFIL</div><div class="name-line"><h1 id="player-name">Hráč</h1><span id="plan-badge" class="plan-badge">PRO</span></div><p><b id="role-label">HRÁČ</b><i></i><span id="sport-label">Športový profil</span><i></i><span id="member-since"></span></p></div><div class="header-actions"><button id="share-button" class="button">Zdieľať</button><button id="edit-profile-button" class="button gold" type="button">Upraviť profil</button></div></section>
         <section class="metrics"><div class="metric gold"><span>ČAS V HRE</span><strong id="metric-time">0 h</strong><small>posledných 30 dní</small></div><div class="metric green"><span>TRÉNINGY</span><strong id="metric-trainings">0</strong><small id="training-sub">dokončené</small></div><div class="metric red"><span>VYNECHANÉ</span><strong id="metric-missed">0</strong><small id="missed-sub">z naplánovaných</small></div><div class="metric green"><span>ÚSPEŠNOSŤ</span><strong id="metric-winrate">0 %</strong><small id="winrate-sub">bez odohraných zápasov</small></div></section>
         <div class="profile-grid">
           <section class="panel diary"><div class="panel-heading"><div><span class="panel-label">ŠPORTOVÝ DENNÍK</span><h2 id="month-label">Aktivity</h2></div><div class="diary-actions"><a class="button" href="/treningy/">Kalendár</a><a id="plan-training" class="button green" href="/treningy/novy/">+ Tréning</a></div></div><div class="legend"><span class="completed">Aktivita prebehla</span><span class="planned">Naplánovaný tréning</span><span class="missed">Tréning neprebehol</span></div><div id="week" class="week"></div><div id="timeline" class="timeline"></div></section>
@@ -67,6 +82,34 @@
       </div>
     </main>
   </div>
+
+  <div id="settings-modal" class="modal-backdrop hidden" aria-hidden="true">
+    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <h2 id="settings-title">Nastavenie profilu</h2>
+        <button id="settings-close" class="settings-close" type="button" aria-label="Zavrieť">×</button>
+      </div>
+      <div class="settings-body">
+        <div class="field">
+          <label for="settings-name">Meno / názov profilu</label>
+          <input id="settings-name" type="text" maxlength="120" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="settings-bio">O mne</label>
+          <textarea id="settings-bio" maxlength="1200" placeholder="Krátko o sebe, športe alebo cieľoch…"></textarea>
+        </div>
+        <div class="settings-meta">
+          <span id="settings-role" class="settings-chip">Rola</span>
+          <span id="settings-plan" class="settings-chip">Plán</span>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button id="settings-cancel" class="button" type="button">Zrušiť</button>
+        <button id="settings-save" class="button gold" type="button">Uložiť</button>
+      </div>
+    </section>
+  </div>
+
   <div id="toast" class="toast hidden" role="status"></div>
   <script>
     "use strict";
@@ -76,6 +119,9 @@
     const monthNames = ["január","február","marec","apríl","máj","jún","júl","august","september","október","november","december"];
     const monthShort = ["JAN","FEB","MAR","APR","MÁJ","JÚN","JÚL","AUG","SEP","OKT","NOV","DEC"];
     const dayNames = ["NE","PO","UT","ST","ŠT","PI","SO"];
+    let currentClient = null;
+    let currentUser = null;
+    let currentProfile = null;
 
     function text(id, value){ const node=$(id); if(node) node.textContent=value ?? ""; }
     function initials(name){ return String(name || "Hráč").trim().split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase(); }
@@ -114,7 +160,7 @@
     }
     function applyCapabilities(summary){ const analytics=Boolean(summary.analytics_unlocked); const planner=Boolean(summary.training_planner_unlocked); $("analytics-lock").classList.toggle("hidden",analytics); const planButton=$("plan-training"); if(!planner){ planButton.className="button disabled"; planButton.href="#"; planButton.textContent=""; planButton.append(element("small","","PRO"),document.createTextNode(" + Tréning")); } return {analytics,planner}; }
     function render(data, plans){
-      const profile=data.profile || {}; const summary=data.summary || {}; const disciplines=Array.isArray(data.disciplines)?data.disciplines:[]; const trainings=[...(Array.isArray(data.recent_trainings)?data.recent_trainings:[]),...(Array.isArray(data.upcoming_trainings)?data.upcoming_trainings:[]),...plans].map(item=>({...item,kind:"training"})); const matches=(Array.isArray(data.recent_matches)?data.recent_matches:[]).map(item=>({...item,kind:"match"})); const unique=new Map(); [...trainings,...matches].forEach(item=>unique.set(`${item.kind}:${item.id || activityTime(item)}`,item)); const activities=[...unique.values()];
+      const profile=data.profile || {}; currentProfile = profile; const summary=data.summary || {}; const disciplines=Array.isArray(data.disciplines)?data.disciplines:[]; const trainings=[...(Array.isArray(data.recent_trainings)?data.recent_trainings:[]),...(Array.isArray(data.upcoming_trainings)?data.upcoming_trainings:[]),...plans].map(item=>({...item,kind:"training"})); const matches=(Array.isArray(data.recent_matches)?data.recent_matches:[]).map(item=>({...item,kind:"match"})); const unique=new Map(); [...trainings,...matches].forEach(item=>unique.set(`${item.kind}:${item.id || activityTime(item)}`,item)); const activities=[...unique.values()];
       const name=profile.full_name || profile.display_name || "Hráč"; const short=initials(name); const plan=planName(profile.plan); const winRate=Math.round(Number(summary.win_rate)||0); text("player-name",name); text("side-name",name); text("avatar-initials",short); text("mini-avatar",short); text("plan-badge",plan); text("side-plan",`${plan} účet`); text("nav-plan",plan); $("plan-badge").classList.toggle("free",plan==="FREE"); text("role-label",String(profile.role||"hráč").toUpperCase()); const primary=disciplines.find(item=>item.is_primary)||disciplines[0]; text("sport-label",primary?[primary.sport,primary.discipline].filter(Boolean).join(" · "):"Športový profil"); const joined=dateValue(profile.created_at); text("member-since",joined?`Člen od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}`:""); if(profile.avatar_url){ const img=new Image(); img.alt=`Profilová fotografia: ${name}`; img.src=profile.avatar_url; $("avatar").prepend(img); $("avatar-initials").classList.add("hidden"); }
       const completed=Number(summary.trainings_completed)||0; const missed=Number(summary.trainings_missed)||0; const planned=Number(summary.trainings_planned)||0; const wins=Number(summary.wins)||0; const losses=Number(summary.losses)||0; const duration=formatDuration(summary.time_in_game_seconds); text("metric-time",duration); text("metric-trainings",completed); text("training-sub",`${planned} naplánovaných`); text("metric-missed",missed); text("missed-sub",`z ${planned} naplánovaných`); text("metric-winrate",`${winRate} %`); text("winrate-sub",`${wins} výhier · ${losses} prehier`); text("summary-time",duration); text("summary-trainings",completed); text("summary-missed",missed); text("analytics-winrate",`${winRate} %`); const now=new Date(); text("month-label",`${monthNames[now.getMonth()][0].toUpperCase()+monthNames[now.getMonth()].slice(1)} ${now.getFullYear()}`);
       const capabilities=applyCapabilities(summary); buildWeek(activities); buildTimeline(activities); buildMatches(matches); buildDisciplines(disciplines,winRate); buildNext(activities,capabilities.planner); $("loading").classList.add("hidden"); $("app").classList.remove("hidden");
@@ -140,6 +186,101 @@
       return "/profil/";
     }
 
+
+    function openSettings(){
+      if(!currentProfile) return;
+      $("settings-name").value = currentProfile.full_name || currentProfile.display_name || "";
+      $("settings-bio").value = currentProfile.bio || "";
+      $("settings-role").textContent = `Rola: ${String(currentProfile.role || "player").toUpperCase()}`;
+      $("settings-plan").textContent = `Plán: ${planName(currentProfile.plan)}`;
+      $("settings-modal").classList.remove("hidden");
+      $("settings-modal").setAttribute("aria-hidden","false");
+      setTimeout(() => $("settings-name")?.focus(), 0);
+    }
+
+    function closeSettings(){
+      $("settings-modal").classList.add("hidden");
+      $("settings-modal").setAttribute("aria-hidden","true");
+    }
+
+    async function saveSettings(){
+      if(!currentClient || !currentUser) return;
+      const btn = $("settings-save");
+      const fullName = $("settings-name").value.trim();
+      const bio = $("settings-bio").value.trim();
+
+      btn.disabled = true;
+      btn.textContent = "Ukladám…";
+
+      try{
+        const result = await withTimeout(
+          currentClient
+            .from("profiles")
+            .update({
+              full_name: fullName || null,
+              bio: bio || null
+            })
+            .eq("id", currentUser.id)
+            .select("id,full_name,role,plan,is_admin,avatar_url,cover_url,bio,created_at")
+            .single(),
+          8000,
+          "Uloženie profilu"
+        );
+
+        if(result.error) throw result.error;
+
+        currentProfile = {...currentProfile, ...result.data};
+        text("player-name", currentProfile.full_name || "Hráč");
+        text("side-name", currentProfile.full_name || "Hráč");
+
+        const short = initials(currentProfile.full_name || "Hráč");
+        text("avatar-initials", short);
+        text("mini-avatar", short);
+
+        closeSettings();
+        toast("Profil bol uložený.");
+      }catch(error){
+        console.error("[profil] settings save failed:", error);
+        toast(error.message || "Profil sa nepodarilo uložiť.");
+      }finally{
+        btn.disabled = false;
+        btn.textContent = "Uložiť";
+      }
+    }
+
+    async function logout(){
+      const btn = $("logout-button");
+      btn.disabled = true;
+      btn.textContent = "Odhlasujem…";
+      try{
+        if(currentClient){
+          await withTimeout(currentClient.auth.signOut(), 8000, "Odhlásenie");
+        }
+      }catch(error){
+        console.error("[profil] logout failed:", error);
+      }finally{
+        window.location.replace("/login/");
+      }
+    }
+
+    function wireProfileControls(){
+      $("edit-profile-button")?.addEventListener("click", openSettings);
+      $("settings-close")?.addEventListener("click", closeSettings);
+      $("settings-cancel")?.addEventListener("click", closeSettings);
+      $("settings-save")?.addEventListener("click", saveSettings);
+      $("logout-button")?.addEventListener("click", logout);
+
+      $("settings-modal")?.addEventListener("click", event => {
+        if(event.target === $("settings-modal")) closeSettings();
+      });
+
+      document.addEventListener("keydown", event => {
+        if(event.key === "Escape" && !$("settings-modal").classList.contains("hidden")){
+          closeSettings();
+        }
+      });
+    }
+
     async function init(){
       try{
         if(!window.supabase) throw new Error("Knižnicu Supabase sa nepodarilo načítať.");
@@ -149,12 +290,16 @@
           SUPABASE_KEY,
           {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
         );
+        currentClient = client;
+        wireProfileControls();
 
         const {data:userData,error:userError} = await withTimeout(
           client.auth.getUser(),
           8000,
           "Overenie prihlásenia"
         );
+
+        currentUser = userData?.user || null;
 
         if(userError || !userData?.user){
           showState(
@@ -165,7 +310,6 @@
           return;
         }
 
-        // Najprv načítaj iba rolu/plán. Tým zabránime tomu, aby admin/club/org
         // vôbec vstúpili do hráčskeho dashboard RPC.
         const {data:profileRow,error:profileError} = await withTimeout(
           client
@@ -179,6 +323,7 @@
 
         if(profileError) throw profileError;
         if(!profileRow) throw new Error("Profil používateľa sa nenašiel.");
+        currentProfile = profileRow;
 
         const target = routeForProfile(profileRow);
         if(target !== "/profil/"){
@@ -186,7 +331,6 @@
           return;
         }
 
-        // Hráč FREE/PRO pokračuje na hráčsky profil.
         const {data,error} = await withTimeout(
           client.rpc("get_my_player_profile_dashboard"),
           10000,
@@ -218,7 +362,6 @@
             plans = plansResult.data || [];
           }
         }catch(plansTimeoutError){
-          // Tréningový plán nesmie zablokovať celý profil.
           console.warn("Training plans:", plansTimeoutError);
         }
 
