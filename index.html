@@ -50,9 +50,27 @@ button,input,select{font:inherit}
 
 .hero{padding:clamp(24px,4vw,54px);display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.86fr);gap:clamp(28px,5vw,72px);align-items:center;min-height:650px}
 .eyebrow{font-family:var(--mono);font-size:.76rem;letter-spacing:.19em;color:var(--gold);font-weight:700;margin-bottom:18px}
-.hero h1{margin:0;max-width:850px;font-size:clamp(3rem,6.2vw,6.8rem);line-height:.92;letter-spacing:-.065em;font-weight:900}
-.hero h1 .brandline{display:block;color:#fff;font-size:.34em;letter-spacing:.02em;line-height:1.15;margin-bottom:14px}
-.hero h1 .gold{color:var(--gold)}
+.hero h1{
+  margin:0;
+  max-width:760px;
+  font-size:clamp(2.35rem,4.25vw,4.8rem);
+  line-height:1.02;
+  letter-spacing:-.045em;
+  font-weight:500;
+}
+.hero h1 .brandline{
+  display:block;
+  color:#fff;
+  font-size:.46em;
+  font-weight:800;
+  letter-spacing:.01em;
+  line-height:1.15;
+  margin-bottom:16px;
+}
+.hero h1 .gold{
+  color:var(--gold);
+  font-weight:600;
+}
 .hero-copy p{max-width:720px;margin:24px 0 0;color:#adb2b8;font-size:clamp(1rem,1.35vw,1.18rem);line-height:1.65}
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .btn{min-height:50px;padding:0 18px;border-radius:13px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:850}
@@ -135,7 +153,7 @@ button,input,select{font:inherit}
 .footer{padding:26px}.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:24px}.footer h3{margin:0 0 10px;color:var(--gold)}.footer p,.footer li{font-size:.82rem;color:var(--muted);line-height:1.6}.footer ul{list-style:none;padding:0;margin:0;display:grid;gap:5px}.copy{border-top:1px solid var(--line2);margin-top:22px;padding-top:16px;color:#62666c;font-size:.75rem}
 
 @media(max-width:1050px){.hero{grid-template-columns:1fr;min-height:auto}.product-stage{min-height:470px}.grid-3,.pricing-grid{grid-template-columns:1fr}}
-@media(max-width:720px){.page{width:min(100% - 16px,1440px);margin:8px auto 24px}.topbar{align-items:flex-start}.brand-logo{width:190px}.nav{width:100%;justify-content:flex-start}.hero{padding:26px 20px}.hero h1{font-size:clamp(2.65rem,14vw,4.4rem)}.device{transform:none}.product-stage{min-height:440px}.sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}.landing-tournament-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.page{width:min(100% - 16px,1440px);margin:8px auto 24px}.topbar{align-items:flex-start}.brand-logo{width:190px}.nav{width:100%;justify-content:flex-start}.hero{padding:26px 20px}.hero h1{font-size:clamp(2.2rem,10vw,3.5rem)}.device{transform:none}.product-stage{min-height:440px}.sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}.landing-tournament-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.product-view:first-child{opacity:1}}
 </style>
 </head>
@@ -400,16 +418,8 @@ function cspFmtDate(value){
 </script>
 
 <script src="/assets/cookie-consent.js"></script>
-  <script>
-(function(){
-  try{
-    const key="csp_language";
-    const allowed=new Set(["sk","cs","en","de","pl","ru"]);
-    const saved=(localStorage.getItem(key)||"sk").toLowerCase();
-    if(!allowed.has(saved)) localStorage.setItem(key,"sk");
-  }catch(e){}
-})();
-</script>
-<script src="/assets/csp-translate.js?v=20260814-3" defer></script>
+<script src="/assets/csp-translate.js" defer></script>
+
+
 </body>
 </html>
