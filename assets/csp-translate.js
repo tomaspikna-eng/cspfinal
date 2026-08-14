@@ -173,30 +173,57 @@
   }
 
   async function translateValues(values,targetLanguage){
+    const cache=loadCache();
+    cache[targetLanguage]=cache[targetLanguage]||{};
+
     if(NATIVE_LOCALE_ENDPOINTS[targetLanguage]){
       const locale=await loadNativeLocale(targetLanguage);
-      const missing=[];
+      const unresolved=[];
       const translated=values.map(value=>{
         const exact=locale.translations[value];
         if(typeof exact==='string') return exact;
+
         const patterned=applyNativePattern(value,locale.patterns);
         if(typeof patterned==='string') return patterned;
-        missing.push(value);
-        return value;
+
+        const cached=cache[targetLanguage][value];
+        if(typeof cached==='string'&&cached) return cached;
+
+        unresolved.push(value);
+        return null;
       });
-      if(missing.length){
-        const missingSlovak=missing.filter(looksSlovak);
+
+      const uniqueMissing=[...new Set(unresolved)];
+      if(uniqueMissing.length){
+        const missingSlovak=uniqueMissing.filter(looksSlovak);
         if(missingSlovak.length){
           const missingKey=`CSPTranslateMissing${targetLanguage.toUpperCase()}`;
           window[missingKey]=[...new Set([...(window[missingKey]||[]),...missingSlovak])];
-          console.warn(`[CSP translate] Missing exact ${targetLanguage.toUpperCase()} strings:`,[...new Set(missingSlovak)]);
+        }
+
+        // New UI strings are translated through the already configured
+        // Google Cloud Translation endpoint. Curated locale JSON remains
+        // the first priority; API results are only a fallback and are cached
+        // locally so the same browser does not request them repeatedly.
+        try{
+          for(let i=0;i<uniqueMissing.length;i+=MAX_BATCH_SIZE){
+            const batch=uniqueMissing.slice(i,i+MAX_BATCH_SIZE);
+            const batchTranslations=await requestTranslations(batch,targetLanguage);
+            batch.forEach((source,index)=>{
+              cache[targetLanguage][source]=batchTranslations[index]||source;
+            });
+          }
+          saveCache(cache);
+        }catch(error){
+          console.warn(`[CSP translate] API fallback failed for ${targetLanguage.toUpperCase()}; keeping source text for missing strings.`,error);
         }
       }
-      return translated;
+
+      return values.map((value,index)=>
+        translated[index] || cache[targetLanguage][value] || value
+      );
     }
 
-    const cache=loadCache();
-    cache[targetLanguage]=cache[targetLanguage]||{};
     const uniqueValues=[...new Set(values)];
     const missing=uniqueValues.filter(value=>!cache[targetLanguage][value]);
     for(let i=0;i<missing.length;i+=MAX_BATCH_SIZE){
