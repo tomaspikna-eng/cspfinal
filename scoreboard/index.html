@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
-<script src="/assets/csp-translate.js" defer></script>
 <script>
 /* Spätná kompatibilita: staré turnajové QR/linky smerovali na /scoreboard/.
    Ak URL obsahuje turnajový alebo tabletový token, presuň ju do TE a
@@ -1562,5 +1561,6 @@ if(URL_PARAMS.get("lock")==="1"){
   document.querySelector(".settings").classList.add("hidden");
 }
 </script>
+  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>

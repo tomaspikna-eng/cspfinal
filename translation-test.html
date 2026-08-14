@@ -16,11 +16,11 @@ pre{white-space:pre-wrap;background:#16161c;padding:16px;border-radius:10px}
 <textarea id="text">Nový turnaj</textarea>
 
 <select id="target">
-  <option value="en">English</option>
-  <option value="cs">Čeština</option>
-  <option value="de">Deutsch</option>
-  <option value="pl">Polski</option>
-  <option value="ru">Русский</option>
+  <option value="en" translate="no" data-no-translate="true">EN</option>
+  <option value="cs" translate="no" data-no-translate="true">CZ</option>
+  <option value="de" translate="no" data-no-translate="true">DE</option>
+  <option value="pl" translate="no" data-no-translate="true">PL</option>
+  <option value="ru" translate="no" data-no-translate="true">RU</option>
 </select>
 
 <button id="go">Preložiť</button>
@@ -55,6 +55,6 @@ goEl.onclick = async () => {
   }
 };
 </script>
-  <script src="/assets/csp-translate.js" defer></script>
+  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>

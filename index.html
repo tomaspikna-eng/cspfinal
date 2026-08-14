@@ -159,7 +159,7 @@ button,input,select{font:inherit}
     </div>
     <a href="/login/">Prihlásiť</a>
     <a class="primary" href="/registracia/">Pridaj sa zadarmo</a>
-    <div class="lang-wrap"><span>🌐</span><select id="cspLangSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
+    <div class="lang-wrap"><span>🌐</span><select id="cspLanguageSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
   <option value="sk" translate="no" data-no-translate="true">SK</option>
   <option value="en" translate="no" data-no-translate="true">EN</option>
   <option value="de" translate="no" data-no-translate="true">DE</option>
@@ -400,24 +400,16 @@ function cspFmtDate(value){
 </script>
 
 <script src="/assets/cookie-consent.js"></script>
-<script src="/assets/csp-translate.js" defer></script>
-
-<script>
-(function protectLanguageLabels(){
-  const labels={sk:"SK",en:"EN",de:"DE",cs:"CZ",pl:"PL",ru:"RU"};
-  const restore=()=>{
-    const select=document.getElementById("cspLangSelect");
-    if(!select)return;
-    [...select.options].forEach(opt=>{
-      if(labels[opt.value]) opt.textContent=labels[opt.value];
-    });
-  };
-  document.addEventListener("DOMContentLoaded",restore);
-  window.addEventListener("load",restore);
-  setTimeout(restore,250);
-  setTimeout(restore,1000);
+  <script>
+(function(){
+  try{
+    const key="csp_language";
+    const allowed=new Set(["sk","cs","en","de","pl","ru"]);
+    const saved=(localStorage.getItem(key)||"sk").toLowerCase();
+    if(!allowed.has(saved)) localStorage.setItem(key,"sk");
+  }catch(e){}
 })();
 </script>
-
+<script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>

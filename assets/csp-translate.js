@@ -102,7 +102,7 @@
     if(!element||SKIP_TAGS.has(element.tagName)) return true;
     if(element.closest("[data-no-translate],.notranslate,[translate='no']")) return true;
     if(element.closest('.brand,.brand-title,.brand-mark,.brand-mark-img,.csp-logo')) return true;
-    if(element.closest('#cspLanguageSelect,[data-csp-language-select],.lang-select')) return true;
+    if(element.closest('#cspLanguageSelect,#cspLangSelect,[data-csp-language-select],.lang-select')) return true;
     if(element.closest("[data-player-name],[data-team-name],[data-club-name],[data-venue-name],[data-event-name],[data-tournament-name],[data-user-content],[contenteditable='true']")) return true;
     return false;
   }
@@ -236,7 +236,7 @@
   }
 
   function setSelectorValue(language){
-    document.querySelectorAll('#cspLanguageSelect,[data-csp-language-select],.lang-select').forEach(select=>{
+    document.querySelectorAll('#cspLanguageSelect,#cspLangSelect,[data-csp-language-select],.lang-select').forEach(select=>{
       if(select.tagName!=='SELECT') return;
       const match=Array.from(select.options).find(option=>normalizeLanguage(option.value)===language);
       if(match) select.value=match.value;
@@ -352,7 +352,7 @@
   }
 
   function bindLanguageSelectors(){
-    document.querySelectorAll('#cspLanguageSelect,[data-csp-language-select],.lang-select').forEach(select=>{
+    document.querySelectorAll('#cspLanguageSelect,#cspLangSelect,[data-csp-language-select],.lang-select').forEach(select=>{
       if(select.tagName!=='SELECT'||select.dataset.cspTranslationBound==='1') return;
       select.dataset.cspTranslationBound='1';
       select.addEventListener('change',event=>applyLanguage(event.target.value));
