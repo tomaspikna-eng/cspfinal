@@ -167,14 +167,7 @@ button,input,select{font:inherit}
   <nav class="nav">
     <a href="/" aria-label="Domov">⌂</a>
     <a href="/kalendar-turnajov/">Turnaje</a>
-    <div class="dropdown" id="newsDropdown">
-      <button id="newsTrigger" type="button">Novinky ▾</button>
-      <div class="dropdown-menu">
-        <a href="/magazin/">Magazín</a>
-        <a href="/ligy/">Ligy</a>
-        <a href="/search/">Hľadať</a>
-      </div>
-    </div>
+    <a href="/magazin/">Novinky</a>
     <a href="/login/">Prihlásiť</a>
     <a class="primary" href="/registracia/">Pridaj sa zadarmo</a>
     <div class="lang-wrap"><span>🌐</span><select id="cspLanguageSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
@@ -246,16 +239,16 @@ button,input,select{font:inherit}
       <div class="sport-chip"><strong>04</strong> STOLNÝ TENIS</div>
       <div class="sport-chip"><strong>05</strong> MINIGOLF</div>
     </div>
-    <div class="sport-identity-claim">∞ ALL SPORTS. ONE IDENTITY.</div>
+    <div class="sport-identity-claim">∞ VŠETKY ŠPORTY. JEDNA IDENTITA.</div>
   </div>
 </section>
 
 <section class="panel pillars">
-  <div class="section-head"><div><h2 class="section-title">Play. Compete. Connect.</h2><p>Tri vrstvy jedného systému namiesto množstva oddelených aplikácií.</p></div></div>
+  <div class="section-head"><div><h2 class="section-title">Hraj. Súťaž. Prepájaj sa.</h2><p>Tri vrstvy jedného systému namiesto množstva oddelených aplikácií.</p></div></div>
   <div class="grid-3">
-    <article class="pillar"><div><div class="pillar-code">01 / PLAY</div><h3>PLAY</h3><p>Tréning, scoreboard a výsledky. Zaznamenaj hru tam, kde skutočne vzniká.</p></div><div class="pillar-bottom">TRAINING · SCOREBOARD · RESULTS</div></article>
-    <article class="pillar"><div><div class="pillar-code">02 / COMPETE</div><h3>COMPETE</h3><p>Turnaje, ligy a rebríčky. Od registrácie cez live zápas až po výsledok.</p></div><div class="pillar-bottom">TOURNAMENTS · LEAGUES · RANKINGS</div></article>
-    <article class="pillar"><div><div class="pillar-code">03 / CONNECT</div><h3>CONNECT</h3><p>Profil, klub a komunita. To, čo odohráš, sa stáva súčasťou tvojej športovej identity.</p></div><div class="pillar-bottom">PROFILE · CLUB · COMMUNITY</div></article>
+    <article class="pillar"><div><div class="pillar-code">01 / HRAJ</div><h3>HRAJ</h3><p>Tréning, scoreboard a výsledky. Zaznamenaj hru tam, kde skutočne vzniká.</p></div><div class="pillar-bottom">TRAINING · SCOREBOARD · RESULTS</div></article>
+    <article class="pillar"><div><div class="pillar-code">02 / SÚŤAŽ</div><h3>SÚŤAŽ</h3><p>Turnaje, ligy a rebríčky. Od registrácie cez live zápas až po výsledok.</p></div><div class="pillar-bottom">TOURNAMENTS · LEAGUES · RANKINGS</div></article>
+    <article class="pillar"><div><div class="pillar-code">03 / PREPÁJAJ SA</div><h3>PREPÁJAJ SA</h3><p>Profil, klub a komunita. To, čo odohráš, sa stáva súčasťou tvojej športovej identity.</p></div><div class="pillar-bottom">PROFILE · CLUB · COMMUNITY</div></article>
   </div>
 </section>
 
@@ -303,15 +296,6 @@ button,input,select{font:inherit}
   <div class="copy">© 2026 Connect Sports Pro</div>
 </footer>
 </div>
-
-<script>
-(function(){
-  const dd=document.getElementById('newsDropdown');
-  const tr=document.getElementById('newsTrigger');
-  tr?.addEventListener('click',e=>{e.stopPropagation();dd?.classList.toggle('open')});
-  document.addEventListener('click',()=>dd?.classList.remove('open'));
-})();
-</script>
 
 <script>
 function cspEsc(v){
