@@ -639,6 +639,7 @@ a{color:inherit;text-decoration:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-notifications.js"></script>
 </head>
 <body>
 
@@ -690,7 +691,7 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" title="Notifikácie">🔔</button>
+        <button class="icon-btn" id="notificationsBtn" data-csp-notifications-button title="Notifikácie">🔔</button>
         <button class="user-pill" onclick="toggleUserMenu(event)">
           <span class="av-mini" id="topbarAvatarInitials">JN</span>
           <span id="topbarUserName">Ján Novák</span>
@@ -748,11 +749,11 @@ a{color:inherit;text-decoration:none}
            leftover demo numbers. -->
       <div class="stats-bar">
         <div class="stat">
-          <div class="stat-num">0</div>
+          <div class="stat-num" id="followingCount">0</div>
           <div class="stat-label">Sledujú</div>
         </div>
         <div class="stat">
-          <div class="stat-num">0</div>
+          <div class="stat-num" id="followersCount">0</div>
           <div class="stat-label">Sledovatelia</div>
         </div>
         <div class="stat">
@@ -1399,6 +1400,25 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
   }
 });
 
+
+async function loadFollowCounts(){
+  if(!currentSession) return;
+  try{
+    const [following,followers]=await Promise.all([
+      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',currentSession.user.id),
+      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',currentSession.user.id)
+    ]);
+    if(following.error) throw following.error;
+    if(followers.error) throw followers.error;
+    const followingEl=document.getElementById('followingCount');
+    const followersEl=document.getElementById('followersCount');
+    if(followingEl)followingEl.textContent=String(following.count||0);
+    if(followersEl)followersEl.textContent=String(followers.count||0);
+  }catch(err){
+    console.error('[profil-ul] Follow counts failed:',err);
+  }
+}
+
 // ── Real Supabase Auth gate ──────────────────────────────────────────
 // Identity (name/avatar/title/member-since), the settings modal above,
 // and auth (session gate + logout) are all wired to the real
@@ -1449,6 +1469,11 @@ const authGateReady = (async function initAuthGate(){
 
     renderIdentity();
     renderMemberSince();
+    loadFollowCounts();
+    window.cspNotifications?.bind({
+      client:cspAuth.client,
+      button:document.getElementById('notificationsBtn')
+    }).catch(err=>console.error('[profil-ul] notifications:',err));
   } catch(err) {
     console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
   }

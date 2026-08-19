@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#070807">
   <title>Hráčsky profil | Connect Sports Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" defer></script>
+  <script src="/assets/csp-social.js" defer></script>
   <style>
     :root{--bg:#070807;--surface:#0d0f0e;--surface2:#121513;--surface3:#171a18;--line:#252925;--line2:#323732;--text:#f4f4f2;--muted:#8f958f;--muted2:#656b66;--gold:#d4a843;--gold2:#f0c966;--green:#22d36b;--red:#ff5b64;--shadow:0 22px 70px rgba(0,0,0,.28)}
     *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;min-width:320px;background:radial-gradient(circle at 76% -10%,rgba(212,168,67,.08),transparent 30%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,a{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}.hidden{display:none!important}
@@ -18,7 +19,7 @@
 
     .loading-screen,.auth-screen{min-height:100vh;display:grid;place-items:center;padding:28px}.state-card{width:min(440px,100%);border:1px solid var(--line);border-radius:18px;padding:32px;background:linear-gradient(145deg,rgba(212,168,67,.08),var(--surface) 46%);box-shadow:var(--shadow);text-align:center}.state-card .mark{margin:0 auto 20px}.state-card h1{margin:0;font-size:25px}.state-card p{margin:10px auto 22px;color:var(--muted);font-size:13px;line-height:1.6;max-width:330px}.spinner{width:30px;height:30px;margin:0 auto 18px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--gold);animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
     .mark{position:relative;width:42px;height:42px;flex:0 0 42px;border:1px solid rgba(212,168,67,.7);border-radius:50%;display:grid;place-items:center;color:var(--gold2);font-weight:900;font-size:11px;letter-spacing:-.05em;box-shadow:inset 0 0 14px rgba(212,168,67,.12)}.mark:before,.mark:after{content:"";position:absolute;border:1px solid var(--gold);border-radius:50%}.mark:before{width:31px;height:31px;opacity:.45}.mark:after{width:3px;height:3px;right:5px;bottom:6px;background:var(--gold);box-shadow:-25px -21px 0 -1px var(--gold)}
-    .button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line2);border-radius:7px;padding:10px 14px;font-size:11px;font-weight:800;background:var(--surface3);color:#eee}.button.gold{background:var(--gold);border-color:var(--gold);color:#211806}.button.green{background:var(--green);border-color:var(--green);color:#06170d}.button.disabled{cursor:default;color:var(--muted);background:#1b1e1b}.button small{color:var(--gold);font-size:7px;letter-spacing:.1em}
+    .button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line2);border-radius:7px;padding:10px 14px;font-size:11px;font-weight:800;background:var(--surface3);color:#eee}.button.gold{background:var(--gold);border-color:var(--gold);color:#211806}.button.following{background:rgba(34,211,107,.10);border-color:rgba(34,211,107,.45);color:var(--green)}.button.green{background:var(--green);border-color:var(--green);color:#06170d}.button.disabled{cursor:default;color:var(--muted);background:#1b1e1b}.button small{color:var(--gold);font-size:7px;letter-spacing:.1em}
     .shell{min-height:100vh;display:grid;grid-template-columns:230px minmax(0,1fr)}
     .sidebar{position:sticky;top:0;height:100vh;background:#080a09;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:24px 18px 16px;z-index:20}.brand{display:flex;align-items:center;gap:10px;padding:0 5px 28px}.brand-copy{display:flex;flex-direction:column;font-size:14px;line-height:1.05}.brand-copy b{color:var(--gold)}.brand-copy strong{color:#fff}.nav{display:grid;gap:5px}.nav a{display:flex;align-items:center;gap:11px;color:var(--muted);padding:11px 12px;border-radius:8px;font-size:13px;font-weight:650}.nav a:hover{color:#fff;background:#121512}.nav a.active{color:#fff;background:linear-gradient(90deg,rgba(212,168,67,.15),rgba(212,168,67,.03));border-left:2px solid var(--gold)}.nav-icon{width:19px;color:var(--gold);text-align:center}.nav small{margin-left:auto;color:var(--gold);font-size:8px;border:1px solid rgba(212,168,67,.35);padding:2px 4px;border-radius:3px;letter-spacing:.08em}.sidebar-spacer{flex:1}.smart-card{border:1px solid rgba(212,168,67,.22);background:linear-gradient(135deg,rgba(212,168,67,.09),rgba(212,168,67,.01));border-radius:10px;padding:14px;margin:15px 2px}.smart-card span,.eyebrow,.panel-label{font-size:8px;letter-spacing:.18em;color:var(--gold);font-weight:800}.smart-card p{font-size:11px;line-height:1.5;color:#c6c9c6;margin:7px 0 0}.side-user{display:flex;align-items:center;gap:9px;border-top:1px solid var(--line);padding-top:14px}.mini-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#262923;border:1px solid rgba(212,168,67,.5);font-weight:800;font-size:11px;color:var(--gold2)}.side-user div:nth-child(2){display:flex;flex-direction:column;min-width:0}.side-user b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}.side-user span{font-size:9px;color:var(--muted);margin-top:2px}
     .workspace{min-width:0}.topbar{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:15;background:rgba(7,8,7,.92);backdrop-filter:blur(14px)}.topbar-title{display:flex;flex-direction:column}.topbar-title span{font-size:8px;letter-spacing:.18em;color:var(--gold)}.topbar-title b{font-size:14px;margin-top:4px}
@@ -315,12 +316,26 @@
 
       const joined = dateValue(currentProfile.created_at);
       text("member-since", joined ? `Člen od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}` : "");
+      const identityMeta = document.querySelector(".identity p");
+      if(identityMeta && !$("public-followers")){
+        const dot = document.createElement("i");
+        const followers = document.createElement("span");
+        followers.id = "public-followers";
+        followers.innerHTML = `<b id="public-follower-count">0</b> sledovateľov`;
+        identityMeta.append(dot, followers);
+      }
 
       // Public view shows only identity + BIO, not private dashboard/controls.
       document.querySelector(".metrics")?.classList.add("hidden");
       document.querySelector(".profile-grid")?.classList.add("hidden");
       document.querySelector(".lower-grid")?.classList.add("hidden");
-      document.querySelector(".header-actions")?.classList.add("hidden");
+      const publicActions = document.querySelector(".header-actions");
+      if(publicActions){
+        publicActions.classList.remove("hidden");
+        publicActions.innerHTML = `
+          <button id="public-follow-button" class="button gold" type="button"><span data-follow-label>+ Sledovať</span></button>
+          <button id="public-share-button" class="button" type="button">Zdieľať</button>`;
+      }
       document.querySelector(".sidebar")?.classList.add("hidden");
       document.querySelector(".shell")?.style.setProperty("grid-template-columns", "1fr");
 
@@ -344,6 +359,28 @@
 
       $("loading")?.classList.add("hidden");
       $("app")?.classList.remove("hidden");
+
+      const followButton = $("public-follow-button");
+      if(followButton && window.cspSocial?.bindFollow){
+        window.cspSocial.bindFollow({
+          client: currentClient,
+          profileId: currentProfile.id,
+          button: followButton,
+          count: $("public-follower-count")
+        }).catch(error => console.error("[profil] follow init:", error));
+      }
+
+      $("public-share-button")?.addEventListener("click", async () => {
+        try{
+          if(window.cspSocial?.share){
+            await window.cspSocial.share({title:document.title,url:location.href});
+          }else if(navigator.share){
+            await navigator.share({title:document.title,url:location.href});
+          }
+        }catch(error){
+          if(error?.name!=="AbortError") console.warn(error);
+        }
+      });
     }
 
     function escapePublicHtml(value){
@@ -501,6 +538,5 @@
     }
     window.addEventListener("DOMContentLoaded",()=>window.setTimeout(init,0));
   </script>
-  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>

@@ -154,5 +154,113 @@
     return { reload: load, toggleLike: toggle };
   }
 
-  global.cspSocial = { bind, share, copy };
+
+  async function bindFollow(options) {
+    const db = options?.client || global.cspAuth?.client;
+    const button = element(options?.button);
+    const countEl = element(options?.count);
+    const profileId = String(options?.profileId || '');
+    if (!db || !profileId) return null;
+
+    let session = null;
+    let following = false;
+    let busy = false;
+
+    async function getClientSession() {
+      const { data } = await db.auth.getSession();
+      return data?.session || null;
+    }
+
+    function renderButton() {
+      if (!button) return;
+      const ownProfile = !!session && session.user.id === profileId;
+      button.classList.toggle('hidden', ownProfile);
+      button.classList.toggle('following', following);
+      button.setAttribute('aria-pressed', String(following));
+      const label = button.querySelector('[data-follow-label]') || button;
+      label.textContent = following ? '✓ Sledované' : '+ Sledovať';
+    }
+
+    async function load() {
+      session = await getClientSession();
+
+      const countQuery = db.from('profile_follows')
+        .select('following_profile_id', { count: 'exact', head: true })
+        .eq('following_profile_id', profileId);
+
+      const ownQuery = session && session.user.id !== profileId
+        ? db.from('profile_follows')
+            .select('following_profile_id')
+            .eq('follower_id', session.user.id)
+            .eq('following_profile_id', profileId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
+
+      const [countResult, ownResult] = await Promise.all([countQuery, ownQuery]);
+      if (countResult.error) throw countResult.error;
+      if (ownResult.error) throw ownResult.error;
+
+      following = !!ownResult.data;
+      if (countEl) countEl.textContent = String(countResult.count || 0);
+      renderButton();
+
+      return { following, count: countResult.count || 0 };
+    }
+
+    async function toggle() {
+      if (busy) return;
+
+      session = session || await getClientSession();
+      if (!session) {
+        loginRedirect();
+        return;
+      }
+      if (session.user.id === profileId) return;
+
+      busy = true;
+      if (button) button.disabled = true;
+
+      try {
+        let result;
+        if (following) {
+          result = await db.from('profile_follows').delete()
+            .eq('follower_id', session.user.id)
+            .eq('following_profile_id', profileId);
+        } else {
+          result = await db.from('profile_follows').insert({
+            follower_id: session.user.id,
+            following_profile_id: profileId
+          });
+        }
+        if (result.error) throw result.error;
+        await load();
+        options?.onFollow?.({ following });
+      } catch (error) {
+        console.error('[csp-social] follow failed:', error);
+        options?.onError?.(error);
+      } finally {
+        busy = false;
+        if (button) button.disabled = false;
+      }
+    }
+
+    if (button) button.addEventListener('click', toggle);
+    await load();
+    return { reload: load, toggleFollow: toggle };
+  }
+
+  async function bindFollowButtons(options = {}) {
+    const db = options.client || global.cspAuth?.client;
+    if (!db) return [];
+    const nodes = [...document.querySelectorAll('[data-follow-profile]')];
+    return Promise.all(nodes.map(node => bindFollow({
+      client: db,
+      profileId: node.dataset.followProfile,
+      button: node,
+      count: node.dataset.followCountTarget || null,
+      onError: options.onError
+    })));
+  }
+
+  global.cspSocial = { bind, share, copy, bindFollow, bindFollowButtons };
 })(window);
