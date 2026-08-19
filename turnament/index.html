@@ -933,6 +933,9 @@ async function handleRealtimeMatch(payload,tournamentId){
     if(!isPublicReadOnly){
       const ok=await persistT();
       if(!ok)console.warn('[turnament] completed match is safe in matches; bracket snapshot retry will happen on next manager action.');
+      await maybeAutoCompleteTournament(curT);
+      const area=document.getElementById('matchArea');
+      if(area)area.innerHTML=renderMatchArea(curT);
     }
   }else{
     // Score/status/time update: patch one row in place. Scroll position,
@@ -1111,7 +1114,16 @@ function openTableGen(t){
 async function completeTournament(id){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   if(!confirm('Ukončiť turnaj a uzamknúť výsledky?')) return;
-  try{const {error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:id,p_results:null});if(error)throw error;toast('Turnaj ukončený ✓');await openTournament(id);}catch(err){console.error('[turnament] complete:',err);toast(cspAuth.formatError?cspAuth.formatError(err):('Turnaj sa nepodarilo ukončiť: '+(err.message||err)),true);}
+  try{
+    const results=(curT&&curT.id===id&&tournamentFlowFinished(curT))?finalResultsPayload(curT):[];
+    const {error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:id,p_results:results});
+    if(error)throw error;
+    toast('Turnaj ukončený ✓');
+    await openTournament(id);
+  }catch(err){
+    console.error('[turnament] complete:',err);
+    toast(cspAuth.formatError?cspAuth.formatError(err):('Turnaj sa nepodarilo ukončiť: '+(err.message||err)),true);
+  }
 }
 async function archiveTournament(id){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
@@ -1481,7 +1493,10 @@ async function viewDetail(id){
     finalizeAppliedMatches(matchRows);
   }
   persistT();
-  if(!isPublicReadOnly) await loadTournamentOperations(curT.id); else tournamentOperations=[];
+  if(!isPublicReadOnly){
+    await maybeAutoCompleteTournament(curT);
+    await loadTournamentOperations(curT.id);
+  }else tournamentOperations=[];
   const players=Array.isArray(curT.players)?curT.players:[];
   const isCmb = curT.format==='rr_sko'||curT.format==='rr_dko';
 
@@ -1496,7 +1511,7 @@ async function viewDetail(id){
       ${isPublicReadOnly?'':`<div style="display:flex;gap:10px">
         ${curT.status==='draft'?`<button class="btn btn-primary" onclick="setTournamentWorkflowStatus('${curT.id}','ready')">Označiť ako pripravený</button>`:''}
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
-        ${curT.status==='active'?`<button class="btn btn-primary" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
+        ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
         ${['draft','ready'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
@@ -1590,7 +1605,8 @@ function setMatchView(view){
   document.getElementById('matchBracketViewBtn')?.classList.toggle('active',matchViewMode==='bracket');
 }
 function renderMatchArea(t){
-  return matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  return body + renderTournamentEvaluation(t);
 }
 
 function bracketPlayerLine(player,score,isWinner){
@@ -1651,7 +1667,7 @@ function renderMatchList(t){
       html+=`</div>`;
     });
     const rank=TM.skoRanking(br);
-    if(rank.some(r=>r.gp>0)) html+=renderRankTable(rank);
+    if(rank.some(r=>r.gp>0) && !tournamentFlowFinished(t)) html+=renderRankTable(rank);
     return html;
   }
   else if(t.format==='dko'){
@@ -1673,7 +1689,7 @@ function renderMatchList(t){
     html+=sect('◆ Grand Final','conv',[dko.GF],['Grand Final · GF1 + prípadný reset GF2'],'F');
     const champ=TM.dkoChampion(dko);if(champ) html=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${champ.name}</b></div>`+html;
     html+=`<div class="note-box" style="margin-top:14px"><b>Štandardný Double Elimination:</b> hráč vypadáva až po druhej prehre. Ak víťaz Loser vetvy vyhrá GF1, automaticky sa otvorí reset GF2.</div>`;
-    if(played) html+=renderRankTable(rank);
+    if(played && !tournamentFlowFinished(t)) html+=renderRankTable(rank);
     return html;
   }
   else if(t.format==='rr'){
@@ -1780,6 +1796,172 @@ function renderRankTable(rank){
       <span class="mono rank-pct">${s.pct}%</span></div>`;
   });
   return html+`</div>`;
+}
+
+/* ── FINÁLNE VYHODNOTENIE TURNAJA ─────────────────────────────────── */
+function dkoFlowFinished(dko){
+  const gf1=dko?.GF?.[0], gf2=dko?.GF?.[1];
+  if(!gf1?.winner) return false;
+  return gf1.winner===1 || !!gf2?.winner;
+}
+function comboPhase2Finished(phase){
+  if(!phase) return false;
+  if(phase.kind==='standard-sko') return !!TM.champion(phase.bracket);
+  if(phase.kind==='standard-dko') return dkoFlowFinished(phase.dko);
+  if(phase.kind==='protected-sko') return !!(phase.main && TM.champion(phase.main));
+  return false;
+}
+function tournamentFlowFinished(t){
+  if(!t) return false;
+  if(t.format==='sko') return !!TM.champion(t.bracket);
+  if(t.format==='dko') return dkoFlowFinished(t.dko);
+  if(t.format==='rr') return !!(t.rr?.matches?.length && t.rr.matches.every(m=>m.winner!=null));
+  if(t.format==='rr_sko'||t.format==='rr_dko') return comboAllGroupsDone(t) && comboPhase2Finished(t.phase2);
+  return false;
+}
+function phase2Ranking(t){
+  const phase=t?.phase2;
+  if(!phase) return [];
+  if(phase.kind==='standard-sko') return TM.skoRanking(phase.bracket);
+  if(phase.kind==='standard-dko') return TM.dkoRanking(phase.dko);
+  if(phase.kind==='protected-sko'){
+    if(!phase.main) return [];
+    const mainRank=TM.skoRanking(phase.main);
+    const mainNames=new Set(mainRank.map(r=>r.name));
+    const prelimRank=TM.skoRanking(phase.prelim).filter(r=>!mainNames.has(r.name));
+    const survivorCount=Number(phase.survivorCount||0);
+    const normalizedPrelim=prelimRank.map(r=>({
+      ...r,
+      place:mainRank.length + Math.max(1,Number(r.place||1)-survivorCount)
+    }));
+    return [...mainRank,...normalizedPrelim].sort((a,b)=>a.place-b.place||a.seed-b.seed);
+  }
+  return [];
+}
+function collectPhase2Matches(phase){
+  if(!phase) return [];
+  if(phase.kind==='standard-sko') return phase.bracket.rounds.flat();
+  if(phase.kind==='standard-dko') return [...phase.dko.W.flat(),...phase.dko.L.flat(),...phase.dko.GF];
+  if(phase.kind==='protected-sko') return [...(phase.prelim?.rounds?.flat()||[]),...(phase.main?.rounds?.flat()||[])];
+  return [];
+}
+function addFinalStatMatch(stat,m){
+  if(!m?.winner||!m.p1||!m.p2||m.p1.bye||m.p2.bye) return;
+  const win=m.winner===1?m.p1:m.p2, lose=m.winner===1?m.p2:m.p1;
+  if(!stat[win.name]||!stat[lose.name]) return;
+  const s1=Number(m.s1||0),s2=Number(m.s2||0),wg=Math.max(s1,s2),lg=Math.min(s1,s2);
+  stat[win.name].wins++;stat[win.name].gw+=wg;stat[win.name].gl+=lg;
+  stat[lose.name].losses++;stat[lose.name].gw+=lg;stat[lose.name].gl+=wg;
+}
+function comboTotalStats(t){
+  const stat={};
+  (t.players||[]).forEach(p=>stat[p.name]={wins:0,losses:0,gw:0,gl:0});
+  (t.grp?.groups||[]).forEach(g=>(g.matches||[]).forEach(m=>addFinalStatMatch(stat,m)));
+  collectPhase2Matches(t.phase2).forEach(m=>addFinalStatMatch(stat,m));
+  Object.values(stat).forEach(s=>{
+    s.gp=s.wins+s.losses;
+    s.pct=(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0;
+  });
+  return stat;
+}
+function comboFinalRanking(t){
+  if(!tournamentFlowFinished(t)) return [];
+  const koRank=phase2Ranking(t), totalStats=comboTotalStats(t);
+  const playerByName=new Map((t.players||[]).map(p=>[p.name,p]));
+  const rankedNames=new Set(koRank.map(r=>r.name));
+  const result=koRank.map(r=>{
+    const p=playerByName.get(r.name)||{},s=totalStats[r.name]||r;
+    return {id:p.id||null,name:r.name,seed:p.seed||r.seed,place:r.place,wins:s.wins||0,losses:s.losses||0,gw:s.gw||0,gl:s.gl||0,pct:s.pct||0,stage:'knockout'};
+  });
+  const eliminated=[];
+  (t.grp?.groups||[]).forEach((g,gi)=>{
+    rrTable(g.players,g.matches).forEach((s,idx)=>{
+      if(rankedNames.has(s.name)) return;
+      const p=playerByName.get(s.name)||{},all=totalStats[s.name]||{};
+      eliminated.push({
+        id:p.id||null,name:s.name,seed:p.seed||s.seed,group:g.name,groupIndex:gi,groupRank:idx+1,
+        points:s.p,w:s.w,diff:s.gw-s.gl,pct:s.pct,
+        wins:all.wins||0,losses:all.losses||0,gw:all.gw||0,gl:all.gl||0,totalPct:all.pct||0,stage:'group'
+      });
+    });
+  });
+  eliminated.sort((a,b)=>a.groupRank-b.groupRank||b.points-a.points||b.w-a.w||b.diff-a.diff||b.pct-a.pct||a.seed-b.seed);
+  const base=result.length;
+  let previousRank=null,currentPlace=base;
+  eliminated.forEach((e,idx)=>{
+    if(e.groupRank!==previousRank){currentPlace=base+idx+1;previousRank=e.groupRank;}
+    result.push({...e,place:currentPlace,pct:e.totalPct});
+  });
+  return result;
+}
+function finalTournamentRanking(t){
+  if(!tournamentFlowFinished(t)) return [];
+  const playerByName=new Map((t.players||[]).map(p=>[p.name,p]));
+  if(t.format==='rr_sko'||t.format==='rr_dko') return comboFinalRanking(t);
+  if(t.format==='sko') return TM.skoRanking(t.bracket).map(r=>({...r,id:playerByName.get(r.name)?.id||null,stage:'knockout'}));
+  if(t.format==='dko') return TM.dkoRanking(t.dko).map(r=>({...r,id:playerByName.get(r.name)?.id||null,stage:'knockout'}));
+  if(t.format==='rr'){
+    const rows=rrTable(t.players||[],t.rr?.matches||[]);
+    return rows.map((r,i)=>({id:playerByName.get(r.name)?.id||null,name:r.name,seed:r.seed,place:i+1,wins:r.w,losses:r.l,gw:r.gw,gl:r.gl,pct:r.pct,stage:'round_robin'}));
+  }
+  return [];
+}
+function renderTournamentEvaluation(t){
+  if(!tournamentFlowFinished(t) || t.format==='rr') return '';
+  const rank=finalTournamentRanking(t);
+  if(!rank.length) return '';
+  let html=`<div class="final-standings" style="margin-top:22px">
+    <div class="fs-title">KONEČNÉ PORADIE · ${rank.length} HRÁČOV</div>
+    <div class="rank-head"><span>#</span><span>Hráč</span><span>V/P</span><span>Hry</span><span>%</span></div>`;
+  rank.forEach(s=>{
+    const medal=s.place===1?'🥇':s.place===2?'🥈':s.place===3?'🥉':'';
+    const top=s.place<=3?`top top${s.place}`:'';
+    const stage=s.stage==='group'&&s.group?` <span style="font-size:.67rem;color:var(--muted)">· skupina ${esc(s.group)}</span>`:'';
+    html+=`<div class="rank-row ${top}">
+      <span class="rank-pl mono">${medal||s.place+'.'}</span>
+      <span class="rank-name">${esc(s.name)}${stage}</span>
+      <span class="mono">${Number(s.wins||0)}/${Number(s.losses||0)}</span>
+      <span class="mono rank-games">${Number(s.gw||0)}:${Number(s.gl||0)}</span>
+      <span class="mono rank-pct">${Number(s.pct||0)}%</span>
+    </div>`;
+  });
+  return html+`</div>`;
+}
+let tournamentAutoCompletePromise=null;
+function finalResultsPayload(t){
+  return finalTournamentRanking(t).filter(r=>r.id&&Number(r.place)>0).map(r=>({
+    tournament_player_id:r.id,
+    final_position:Number(r.place),
+    metadata:{stage:r.stage||null,source_group:r.group||null,source_group_position:r.groupRank||null}
+  }));
+}
+function patchTournamentCompletedUI(t){
+  const chip=document.querySelector('.status-chip');
+  if(chip){chip.className='status-chip completed';chip.textContent=statusLabel('completed');}
+  const btn=document.getElementById('completeTournamentBtn');
+  if(btn)btn.outerHTML=`<button class="btn btn-primary" onclick="archiveTournament('${t.id}')">Archivovať</button>`;
+  const area=document.getElementById('matchArea');
+  if(area)area.innerHTML=renderMatchArea(t);
+}
+async function maybeAutoCompleteTournament(t){
+  if(!t||isPublicReadOnly||t.status==='completed'||!tournamentFlowFinished(t)) return false;
+  if(tournamentAutoCompletePromise) return tournamentAutoCompletePromise;
+  tournamentAutoCompletePromise=(async()=>{
+    try{
+      const {data,error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:t.id,p_results:finalResultsPayload(t)});
+      if(error)throw error;
+      if(data)Object.assign(t,data);
+      t.status='completed';
+      if(Array.isArray(t.phases))t.phases=t.phases.map(p=>({...p,status:'completed',completed_at:p.completed_at||new Date().toISOString()}));
+      patchTournamentCompletedUI(t);
+      toast('Turnaj ukončený — konečné poradie je pripravené ✓');
+      return true;
+    }catch(err){
+      console.error('[turnament] Automatic tournament completion failed:',err);
+      return false;
+    }finally{tournamentAutoCompletePromise=null;}
+  })();
+  return tournamentAutoCompletePromise;
 }
 
 /* Pomocná: tabuľka skupiny/RR z hráčov + zápasov */
@@ -2343,6 +2525,8 @@ async function saveMatch(){
         if(phaseBanner) phaseBanner.scrollIntoView({behavior:'smooth',block:'start'});
       },80);
     }
+    await maybeAutoCompleteTournament(curT);
+    document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
   } catch(err){
     console.error('[turnament] Failed to save match/transition:', err);
     toast('Výsledok alebo prechod fázy sa neuložil do databázy.', true);
