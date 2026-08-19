@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-translate.js" defer></script>
 <style>
 :root{
   --bg:#050505;--panel:#101010;--panel2:#161616;--gold:#d4a843;--green:#18c964;
@@ -1543,8 +1544,8 @@ async function loadTournamentMatch(){
 
     $("pageTitle").textContent=row.tournament_name||"Turnajový scoreboard";
     $("smartPill").textContent=SMART_MODE?"SMART AUTO":"MANUÁLNE ODOSLANIE";
-    $("sportTabs").classList.add("hidden");
-    document.querySelector(".settings").classList.add("hidden");
+    document.querySelector(".sport-picker")?.classList.add("hidden");
+    document.querySelector(".settings")?.classList.add("hidden");
     syncSettingsUI();
     render();
     await loadScoreActionDefinitions();
@@ -1720,10 +1721,9 @@ if(DEVICE_TOKEN){
 
 /* ── Lock mód pre tablety (?lock=1) — skryje prepínač športu + nastavenia ── */
 if(URL_PARAMS.get("lock")==="1"){
-  $("sportTabs").classList.add("hidden");
-  document.querySelector(".settings").classList.add("hidden");
+  document.querySelector(".sport-picker")?.classList.add("hidden");
+  document.querySelector(".settings")?.classList.add("hidden");
 }
 </script>
-  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
