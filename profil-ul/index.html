@@ -1128,10 +1128,10 @@ function renderIdentity(){
     const clubManagerShortcut = document.getElementById('clubManagerShortcut');
     const cmsShortcut = document.getElementById('cmsShortcut');
     const adminToolsSection = document.getElementById('adminToolsSection');
-    const canUseClubManager = isAdmin || role === 'club' || role === 'organization';
-    clubManagerShortcut?.classList.toggle('hidden', !canUseClubManager);
-    cmsShortcut?.classList.toggle('hidden', !isAdmin);
-    adminToolsSection?.classList.toggle('hidden', !canUseClubManager && !isAdmin);
+    const canUseAdminShortcuts = isAdmin;
+    clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
+    cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
+    adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
