@@ -14,16 +14,87 @@ html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Aria
 a{color:inherit;text-decoration:none}
 .page{width:min(1400px,calc(100% - 32px));margin:22px auto 60px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0 24px}
-.brand{font-size:1.15rem;font-weight:900} .brand .g{color:var(--gold)}
+.brand{display:inline-flex;align-items:center;min-width:64px}
+.brand img{display:block;width:58px;height:58px;object-fit:contain}
 .back{border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-weight:800}
-.hero{padding:28px 0 22px}
-.kicker{font-size:.72rem;color:var(--gold);font-weight:900;letter-spacing:.12em;text-transform:uppercase}
-h1{font-size:clamp(2rem,5vw,4rem);letter-spacing:-.05em;margin:8px 0 8px}
+.hero{padding:16px 0 18px}
+.hero-copy{min-width:0}
+h1{font-size:clamp(1.25rem,2.6vw,2rem);letter-spacing:-.035em;margin:0 0 8px;font-weight:900}
 .lead{color:var(--muted);max-width:720px;line-height:1.55}
+
+/* MINI CALENDAR */
+.mini-calendar{
+  border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;
+  background:
+    radial-gradient(circle at 85% 0%,rgba(216,176,75,.11),transparent 34%),
+    linear-gradient(180deg,#111116,#0b0b0f);
+  box-shadow:0 24px 70px rgba(0,0,0,.28)
+}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.calendar-title{min-width:0}
+.calendar-title span{display:block;color:var(--gold);font-size:.64rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+.calendar-title strong{display:block;font-size:1.08rem;text-transform:capitalize}
+.calendar-nav{display:flex;gap:7px}
+.calendar-nav button{
+  width:36px;height:36px;min-height:36px;padding:0;border-radius:10px;
+  background:var(--card2);color:var(--text);border:1px solid var(--line);font-weight:900
+}
+.calendar-nav button:hover{border-color:rgba(216,176,75,.55);color:var(--gold)}
+.calendar-weekdays,.calendar-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.calendar-weekdays{margin-bottom:7px}
+.calendar-weekdays span{
+  text-align:center;color:#777781;font-size:.62rem;font-weight:900;letter-spacing:.06em
+}
+.calendar-day{
+  position:relative;display:grid;place-items:center;min-height:42px;border-radius:11px;
+  color:#d8d8dd;font-size:.8rem;font-weight:800;border:1px solid transparent;user-select:none
+}
+.calendar-day.muted{color:#4d4d55}
+.calendar-day.today{border-color:rgba(216,176,75,.45);color:var(--gold)}
+.calendar-day.has-tournament{background:rgba(34,211,107,.09);color:#f4fff7;cursor:pointer}
+.calendar-day.has-tournament::after{
+  content:'';position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--green)
+}
+.calendar-day.has-tournament:hover{border-color:rgba(34,211,107,.55)}
+.calendar-day.selected{
+  background:var(--gold);color:#121212;border-color:var(--gold);box-shadow:0 7px 20px rgba(216,176,75,.18)
+}
+.calendar-day.selected::after{background:#121212}
+.calendar-legend{
+  display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--muted);font-size:.7rem
+}
+.calendar-legend i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+.calendar-tooltip{
+  position:fixed;z-index:1200;width:min(340px,calc(100vw - 24px));
+  padding:12px 13px;border:1px solid rgba(216,176,75,.28);border-radius:14px;
+  background:#111116;box-shadow:0 18px 55px rgba(0,0,0,.48);
+  color:var(--text);pointer-events:none;opacity:0;transform:translateY(4px);
+  transition:opacity .12s ease,transform .12s ease
+}
+.calendar-tooltip.visible{opacity:1;transform:translateY(0)}
+.calendar-tooltip-date{
+  font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:8px
+}
+.calendar-tooltip-list{display:flex;flex-direction:column;gap:8px}
+.calendar-tooltip-item{
+  padding:9px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--line)
+}
+.calendar-tooltip-item strong{display:block;font-size:.82rem;margin-bottom:3px}
+.calendar-tooltip-item span{display:block;font-size:.7rem;color:var(--muted);line-height:1.35}
+.calendar-tooltip-more{
+  margin-top:7px;font-size:.68rem;color:var(--muted);text-align:right
+}
+@media(hover:none),(pointer:coarse){.calendar-tooltip{display:none!important}}
+
 .filters{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:10px;margin:18px 0 22px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
 select,input,button{min-height:48px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--text);padding:0 13px;font:inherit}
 button{background:var(--green);color:var(--greenText);font-weight:900;border-color:transparent;cursor:pointer}
 .summary{color:var(--muted);font-size:.86rem;margin:0 0 12px}
+.content-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+.content-main{min-width:0}
+.calendar-sidebar{position:sticky;top:18px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{display:grid;grid-template-columns:90px 1fr auto;gap:16px;align-items:center;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01))}
 .card:hover{border-color:rgba(216,176,75,.32)}
@@ -33,21 +104,41 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
 .badge{padding:5px 8px;border-radius:999px;border:1px solid var(--line);font-size:.7rem;font-weight:800}
 .open{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
 .empty{padding:35px;border:1px solid var(--line);border-radius:16px;color:var(--muted);text-align:center;grid-column:1/-1}
-@media(max-width:900px){.filters{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr}}
-@media(max-width:560px){.filters{grid-template-columns:1fr} .card{grid-template-columns:1fr} .open{justify-self:start}}
+@media(max-width:1000px){
+  .content-layout{grid-template-columns:1fr}
+  .calendar-sidebar{position:static}
+  .mini-calendar{max-width:620px}
+}
+@media(max-width:900px){
+  .filters{grid-template-columns:1fr 1fr}
+  .grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .page{width:min(100% - 20px,1400px)}
+  .top{padding-top:8px}
+  .brand img{width:48px;height:48px}
+  .filters{grid-template-columns:1fr}
+  .card{grid-template-columns:1fr}
+  .open{justify-self:start}
+  .mini-calendar{padding:14px}
+  .calendar-day{min-height:38px}
+}
 </style>
 </head>
 <body>
 <div class="page">
   <header class="top">
-    <div class="brand"><span class="g">Connect</span> Sports <span class="g">Pro</span></div>
+    <a class="brand" href="/" aria-label="Connect Sports Pro">
+      <img src="/assets/csp-logo-mark.png" alt="Connect Sports Pro">
+    </a>
     <a class="back" href="/">Domov</a>
   </header>
 
   <section class="hero">
-    <div class="kicker">Connect Sports Pro</div>
-    <h1>Kalendár turnajov</h1>
-    <div class="lead">Turnaje evidované v CSP naprieč organizátormi, klubmi a športmi.</div>
+    <div class="hero-copy">
+      <h1>Kalendár turnajov</h1>
+      <div class="lead">Turnaje evidované v CSP naprieč organizátormi, klubmi a športmi.</div>
+    </div>
   </section>
 
   <div class="filters">
@@ -58,8 +149,38 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
     <button id="searchBtn" type="button">Hľadať</button>
   </div>
 
-  <div class="summary" id="summary">Načítavam turnaje…</div>
-  <main class="grid" id="calendarGrid"></main>
+  <div class="content-layout">
+    <section class="content-main">
+      <div class="summary" id="summary">Načítavam turnaje…</div>
+      <main class="grid" id="calendarGrid"></main>
+    </section>
+
+    <aside class="calendar-sidebar">
+      <div class="mini-calendar" aria-label="Kalendár turnajov">
+        <div class="calendar-head">
+          <div class="calendar-title">
+            <span>KALENDÁR</span>
+            <strong id="calendarMonthLabel">—</strong>
+          </div>
+          <div class="calendar-nav">
+            <button id="calendarPrev" type="button" aria-label="Predchádzajúci mesiac">‹</button>
+            <button id="calendarNext" type="button" aria-label="Nasledujúci mesiac">›</button>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>PO</span><span>UT</span><span>ST</span><span>ŠT</span><span>PI</span><span>SO</span><span>NE</span>
+        </div>
+        <div class="calendar-days" id="calendarDays"></div>
+        <div class="calendar-legend"><i></i><span>Deň s evidovaným turnajom</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="calendar-tooltip" id="calendarTooltip" role="tooltip" aria-hidden="true">
+    <div class="calendar-tooltip-date" id="calendarTooltipDate"></div>
+    <div class="calendar-tooltip-list" id="calendarTooltipList"></div>
+    <div class="calendar-tooltip-more" id="calendarTooltipMore"></div>
+  </div>
 </div>
 <script>
 
@@ -85,6 +206,153 @@ function cspFmtDate(value){
 
 let allTournaments=[];
 
+let calendarCursor=new Date();
+calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth(),1);
+let selectedCalendarDate="";
+
+function cspDateKey(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function calendarMonthName(d){
+  return new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric'}).format(d);
+}
+function tournamentDatesForMonth(){
+  const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
+  const counts=new Map();
+  allTournaments.forEach(t=>{
+    if(!t.event_date)return;
+    const d=new Date(t.event_date+'T12:00:00');
+    if(d.getFullYear()===y&&d.getMonth()===m){
+      counts.set(t.event_date,(counts.get(t.event_date)||0)+1);
+    }
+  });
+  return counts;
+}
+
+function tournamentsForDate(dateKey){
+  return allTournaments.filter(t=>t.event_date===dateKey);
+}
+function calendarTooltipPlace(t){
+  const p=cspTournamentPlace(t);
+  return [p.city,p.country].filter(Boolean).join(', ') || t.venue || '';
+}
+function showCalendarTooltip(el,dateKey){
+  const tooltip=document.getElementById('calendarTooltip');
+  const dateEl=document.getElementById('calendarTooltipDate');
+  const listEl=document.getElementById('calendarTooltipList');
+  const moreEl=document.getElementById('calendarTooltipMore');
+  if(!tooltip||!dateEl||!listEl||!moreEl)return;
+
+  const items=tournamentsForDate(dateKey);
+  if(!items.length)return;
+
+  dateEl.textContent=cspFmtDate(dateKey);
+  const maxItems=4;
+  listEl.innerHTML=items.slice(0,maxItems).map(t=>{
+    const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
+    const place=calendarTooltipPlace(t);
+    const meta=[sport,place].filter(Boolean).join(' · ');
+    return `<div class="calendar-tooltip-item">
+      <strong>${cspEsc(t.name||'Turnaj')}</strong>
+      ${meta?`<span>${cspEsc(meta)}</span>`:''}
+    </div>`;
+  }).join('');
+  moreEl.textContent=items.length>maxItems?`+ ${items.length-maxItems} ďalšie`:'';
+
+  tooltip.classList.add('visible');
+  tooltip.setAttribute('aria-hidden','false');
+
+  const r=el.getBoundingClientRect();
+  const gap=10;
+  const tw=tooltip.offsetWidth||340;
+  const th=tooltip.offsetHeight||180;
+  let left=r.right+gap;
+  let top=r.top;
+
+  if(left+tw>window.innerWidth-10) left=r.left-tw-gap;
+  if(left<10) left=Math.max(10,window.innerWidth-tw-10);
+  if(top+th>window.innerHeight-10) top=Math.max(10,window.innerHeight-th-10);
+
+  tooltip.style.left=`${left}px`;
+  tooltip.style.top=`${top}px`;
+}
+function hideCalendarTooltip(){
+  const tooltip=document.getElementById('calendarTooltip');
+  if(!tooltip)return;
+  tooltip.classList.remove('visible');
+  tooltip.setAttribute('aria-hidden','true');
+}
+
+function renderMiniCalendar(){
+  const label=document.getElementById('calendarMonthLabel');
+  const wrap=document.getElementById('calendarDays');
+  if(!label||!wrap)return;
+
+  label.textContent=calendarMonthName(calendarCursor);
+  const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
+  const first=new Date(y,m,1);
+  const last=new Date(y,m+1,0);
+  const startOffset=(first.getDay()+6)%7; // Monday = 0
+  const prevLast=new Date(y,m,0).getDate();
+  const tournamentDates=tournamentDatesForMonth();
+  const todayKey=cspDateKey(new Date());
+
+  let html='';
+  for(let i=0;i<42;i++){
+    let d,muted=false;
+    if(i<startOffset){
+      d=new Date(y,m-1,prevLast-startOffset+i+1); muted=true;
+    }else if(i>=startOffset+last.getDate()){
+      d=new Date(y,m+1,i-(startOffset+last.getDate())+1); muted=true;
+    }else{
+      d=new Date(y,m,i-startOffset+1);
+    }
+
+    const key=cspDateKey(d);
+    const count=tournamentDates.get(key)||0;
+    const classes=['calendar-day'];
+    if(muted)classes.push('muted');
+    if(key===todayKey)classes.push('today');
+    if(count && !muted)classes.push('has-tournament');
+    if(key===selectedCalendarDate)classes.push('selected');
+
+    const attrs=(count&&!muted)
+      ? ` data-calendar-date="${key}" tabindex="0" aria-label="${cspEsc(cspFmtDate(key))}: ${count} ${count===1?'turnaj':'turnaje'}"`
+      : '';
+    html+=`<div class="${classes.join(' ')}"${attrs}>${d.getDate()}</div>`;
+  }
+  wrap.innerHTML=html;
+
+  wrap.querySelectorAll('[data-calendar-date]').forEach(el=>{
+    const key=el.dataset.calendarDate;
+
+    el.addEventListener('mouseenter',()=>showCalendarTooltip(el,key));
+    el.addEventListener('mouseleave',hideCalendarTooltip);
+    el.addEventListener('focus',()=>showCalendarTooltip(el,key));
+    el.addEventListener('blur',hideCalendarTooltip);
+
+    el.addEventListener('click',()=>{
+      hideCalendarTooltip();
+      selectedCalendarDate=selectedCalendarDate===key?'':key;
+      renderMiniCalendar();
+      render();
+    });
+  });
+}
+function setCalendarToNearestTournament(){
+  const today=cspDateKey(new Date());
+  const next=[...allTournaments]
+    .filter(t=>t.event_date && t.event_date>=today)
+    .sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date)))[0];
+  if(next?.event_date){
+    const d=new Date(next.event_date+'T12:00:00');
+    calendarCursor=new Date(d.getFullYear(),d.getMonth(),1);
+  }
+  renderMiniCalendar();
+}
+
+
 function uniqueSorted(values){
   return [...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'sk'));
 }
@@ -108,10 +376,13 @@ function render(){
     return (!country||p.country===country) &&
            (!city||p.city===city) &&
            (!sport||t.sport===sport) &&
+           (!selectedCalendarDate||t.event_date===selectedCalendarDate) &&
            (!q||hay.includes(q));
   });
 
-  document.getElementById('summary').textContent=`Nájdené turnaje: ${rows.length}`;
+  document.getElementById('summary').textContent=selectedCalendarDate
+    ? `Nájdené turnaje: ${rows.length} · ${cspFmtDate(selectedCalendarDate)}`
+    : `Nájdené turnaje: ${rows.length}`;
   const grid=document.getElementById('calendarGrid');
   if(!rows.length){
     grid.innerHTML='<div class="empty">Pre zvolený filter nie sú evidované žiadne turnaje.</div>';
@@ -152,6 +423,7 @@ function render(){
     fillSelect(document.getElementById('countryFilter'),allTournaments.map(t=>cspTournamentPlace(t).country));
     fillSelect(document.getElementById('cityFilter'),allTournaments.map(t=>cspTournamentPlace(t).city));
     fillSelect(document.getElementById('sportFilter'),allTournaments.map(t=>t.sport));
+    setCalendarToNearestTournament();
     render();
   }catch(err){
     console.error('[tournament-calendar]',err);
@@ -163,6 +435,19 @@ function render(){
 ['countryFilter','cityFilter','sportFilter'].forEach(id=>document.getElementById(id).addEventListener('change',render));
 document.getElementById('searchFilter').addEventListener('input',render);
 document.getElementById('searchBtn').addEventListener('click',render);
+document.getElementById('calendarPrev').addEventListener('click',()=>{
+  calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()-1,1);
+  selectedCalendarDate='';
+  renderMiniCalendar(); render();
+});
+document.getElementById('calendarNext').addEventListener('click',()=>{
+  calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+1,1);
+  selectedCalendarDate='';
+  renderMiniCalendar(); render();
+});
+renderMiniCalendar();
+window.addEventListener('scroll',hideCalendarTooltip,{passive:true});
+window.addEventListener('resize',hideCalendarTooltip);
 </script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
