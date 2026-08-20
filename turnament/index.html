@@ -2769,7 +2769,19 @@ async function addBulk(){
   });
   wiz.showBulk=false; renderWiz(); toast(`Pridaných ${names.length} hráčov`);
 }
-function setPlayerPresent(index,present){ if(wiz.players[index]) wiz.players[index].present=!!present; renderWiz(); }
+function setPlayerPresent(index,present){
+  if(!wiz.players[index]) return;
+  wiz.players[index].present=!!present;
+
+  // Do not rebuild the whole wizard here. Re-rendering step 2 focused
+  // the add-player input at the top of the page and forced the scroll
+  // position back to the beginning of the attendance list.
+  const countEl=document.querySelector('.player-count b');
+  if(countEl){
+    const presentCount=wiz.players.filter(pl=>pl.present).length;
+    countEl.textContent=`${presentCount}/${wiz.players.length}`;
+  }
+}
 function setSeedCount(value){
   wiz.seedCount=Math.max(0,Math.min(wiz.players.length,Number(value)||0));
   renderWiz();
