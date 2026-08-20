@@ -711,6 +711,10 @@ body.admin-dashboard-mode .content-side{display:none!important}
 .admin-tournament-status.upcoming{color:var(--gold);border-color:var(--gold-b);background:var(--gold-dim)}
 .admin-tournament-status.active{color:var(--green);border-color:rgba(30,200,106,.28);background:var(--green-dim)}
 .admin-tournament-status.archive{color:var(--muted2)}
+.admin-tournament-origin{
+  display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;
+  border:1px solid var(--line);font-size:.6rem;color:var(--muted2);vertical-align:1px
+}
 .admin-tournaments-empty{
   padding:34px 20px;text-align:center;color:var(--muted2);font-size:.82rem
 }
@@ -864,29 +868,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
           <div class="stat-num">—</div>
           <div class="stat-label">Rank SK</div>
         </div>
-      </div>
-
-      <!-- SPORT TABS -->
-      <!-- Ratings are "—" (no fake number) since there is no ratings
-           table yet — a genuinely new player has no rating until they
-           actually play. -->
-      <div class="sport-tabs">
-        <button class="sport-tab active" onclick="setSport(this)">
-          <span class="icon">🎱</span> Biliard
-          <span class="rating">—</span>
-        </button>
-        <button class="sport-tab" onclick="setSport(this)">
-          <span class="icon">🎯</span> Šípky
-          <span class="rating">—</span>
-        </button>
-        <button class="sport-tab muted" onclick="setSport(this)">
-          <span class="icon">🎳</span> Bowling
-          <span class="muted-label">+ Pridať</span>
-        </button>
-        <button class="sport-tab muted" onclick="setSport(this)">
-          <span class="icon">🃏</span> Karty
-          <span class="muted-label">+ Pridať</span>
-        </button>
       </div>
 
       <!-- ═══════════ CONTENT GRID ═══════════ -->
@@ -1563,14 +1544,31 @@ let adminTournamentFilter='upcoming';
 
 function adminTournamentBucket(t){
   const status=String(t?.status||'').toLowerCase();
+
+  if(t?._source==='event'){
+    if(status==='completed' || status==='cancelled') return 'archive';
+    const now=Date.now();
+    const start=t?.starts_at ? new Date(t.starts_at).getTime() : NaN;
+    const end=t?.ends_at ? new Date(t.ends_at).getTime() : NaN;
+
+    if(Number.isFinite(end) && end < now) return 'archive';
+    if(Number.isFinite(start) && start <= now && (!Number.isFinite(end) || end >= now)) return 'active';
+    return 'upcoming';
+  }
+
   if(status==='active') return 'active';
-  if(status==='archived' || status==='completed') return 'archive';
+  if(status==='archived' || status==='completed' || status==='cancelled') return 'archive';
   return 'upcoming';
 }
 function adminTournamentStatusLabel(t){
   const bucket=adminTournamentBucket(t);
   if(bucket==='active') return 'AKTÍVNY';
-  if(bucket==='archive') return String(t?.status||'').toLowerCase()==='archived'?'ARCHÍV':'UKONČENÝ';
+  if(bucket==='archive'){
+    const status=String(t?.status||'').toLowerCase();
+    if(status==='cancelled') return 'ZRUŠENÝ';
+    if(status==='archived') return 'ARCHÍV';
+    return 'UKONČENÝ';
+  }
   const status=String(t?.status||'').toLowerCase();
   if(status==='ready') return 'PRIPRAVENÝ';
   if(status==='draft') return 'ROZPRACOVANÝ';
@@ -1578,11 +1576,21 @@ function adminTournamentStatusLabel(t){
 }
 function adminTournamentDateLabel(value){
   if(!value) return 'Dátum neurčený';
-  const d=new Date(value+'T12:00:00');
-  return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return 'Dátum neurčený';
+  const hasTime=String(value).includes('T');
+  return new Intl.DateTimeFormat('sk-SK',{
+    day:'2-digit',month:'2-digit',year:'numeric',
+    ...(hasTime?{hour:'2-digit',minute:'2-digit'}:{})
+  }).format(d);
 }
 function escAdminTournament(v){
   return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+function adminTournamentSortValue(t){
+  const raw=t?._source==='event' ? t.starts_at : t.date;
+  const ts=raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(ts) ? ts : 0;
 }
 function renderAdminTournamentDashboard(){
   const list=document.getElementById('adminTournamentList');
@@ -1592,17 +1600,14 @@ function renderAdminTournamentDashboard(){
 
   const counts={upcoming:0,active:0,archive:0};
   adminTournamentRows.forEach(t=>counts[adminTournamentBucket(t)]++);
-  const uc=document.getElementById('adminTournamentUpcomingCount');
-  const ac=document.getElementById('adminTournamentActiveCount');
-  const rc=document.getElementById('adminTournamentArchiveCount');
-  if(uc)uc.textContent=String(counts.upcoming);
-  if(ac)ac.textContent=String(counts.active);
-  if(rc)rc.textContent=String(counts.archive);
+  document.getElementById('adminTournamentUpcomingCount').textContent=String(counts.upcoming);
+  document.getElementById('adminTournamentActiveCount').textContent=String(counts.active);
+  document.getElementById('adminTournamentArchiveCount').textContent=String(counts.archive);
 
   let rows=adminTournamentRows.filter(t=>adminTournamentBucket(t)===adminTournamentFilter);
   rows.sort((a,b)=>{
-    const ad=String(a.date||''),bd=String(b.date||'');
-    return adminTournamentFilter==='archive' ? bd.localeCompare(ad) : ad.localeCompare(bd);
+    const av=adminTournamentSortValue(a),bv=adminTournamentSortValue(b);
+    return adminTournamentFilter==='archive' ? bv-av : av-bv;
   });
 
   loading.style.display='none';
@@ -1619,13 +1624,19 @@ function renderAdminTournamentDashboard(){
   list.innerHTML=rows.map(t=>{
     const bucket=adminTournamentBucket(t);
     const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
-    const place=[t.city,t.venue].filter(Boolean).join(' · ');
-    return `<article class="admin-tournament-row" data-admin-tournament-id="${escAdminTournament(t.id)}">
+    const place=t._source==='event'
+      ? [t.city,t.location_text].filter(Boolean).join(' · ')
+      : [t.city,t.venue].filter(Boolean).join(' · ');
+    const dateValue=t._source==='event' ? t.starts_at : t.date;
+    const origin=t._source==='event' ? '<span class="admin-tournament-origin">UDALOSŤ</span>' : '';
+    return `<article class="admin-tournament-row"
+      data-admin-tournament-id="${escAdminTournament(t.id)}"
+      data-admin-tournament-source="${escAdminTournament(t._source)}">
       <div>
-        <div class="admin-tournament-name">${escAdminTournament(t.name||'Turnaj')}</div>
+        <div class="admin-tournament-name">${escAdminTournament(t.name||t.title||'Turnaj')} ${origin}</div>
         <div class="admin-tournament-meta">${escAdminTournament(sport||'')}</div>
       </div>
-      <div class="admin-tournament-date">${escAdminTournament(adminTournamentDateLabel(t.date))}</div>
+      <div class="admin-tournament-date">${escAdminTournament(adminTournamentDateLabel(dateValue))}</div>
       <div class="admin-tournament-place">${escAdminTournament(place||'')}</div>
       <div class="admin-tournament-status ${bucket}">${escAdminTournament(adminTournamentStatusLabel(t))}</div>
     </article>`;
@@ -1633,27 +1644,53 @@ function renderAdminTournamentDashboard(){
 
   list.querySelectorAll('[data-admin-tournament-id]').forEach(row=>{
     row.addEventListener('click',()=>{
-      location.href='/turnament/?id='+encodeURIComponent(row.dataset.adminTournamentId);
+      const id=encodeURIComponent(row.dataset.adminTournamentId);
+      location.href=row.dataset.adminTournamentSource==='event'
+        ? '/udalost/?id='+id
+        : '/turnament/?id='+id;
     });
   });
 }
 async function loadAdminTournaments(){
   const loading=document.getElementById('adminTournamentsLoading');
-  if(loading)loading.style.display='block';
+  if(loading){
+    loading.style.display='block';
+    loading.textContent='Načítavam turnaje…';
+  }
   try{
-    const {data,error}=await cspAuth.client
-      .from('tournaments')
-      .select('id,name,sport,discipline,date,venue,city,status,visibility,created_at,updated_at')
-      .eq('owner_id',currentSession.user.id)
-      .order('date',{ascending:true,nullsFirst:false});
-    if(error)throw error;
-    adminTournamentRows=Array.isArray(data)?data:[];
+    const [tournamentRes,eventRes]=await Promise.all([
+      cspAuth.client
+        .from('tournaments')
+        .select('id,name,sport,discipline,date,venue,city,status,visibility,source_event_id,created_at,updated_at')
+        .eq('owner_id',currentSession.user.id)
+        .order('date',{ascending:true,nullsFirst:false}),
+      cspAuth.client
+        .from('events')
+        .select('id,title,event_type,sport,discipline,starts_at,ends_at,location_text,city,status,visibility,created_at,updated_at')
+        .eq('owner_id',currentSession.user.id)
+        .ilike('event_type','turnaj')
+        .order('starts_at',{ascending:true,nullsFirst:false})
+    ]);
+
+    if(tournamentRes.error) throw tournamentRes.error;
+    if(eventRes.error) throw eventRes.error;
+
+    const tournaments=(Array.isArray(tournamentRes.data)?tournamentRes.data:[])
+      .map(t=>({...t,_source:'tournament'}));
+
+    const linkedEventIds=new Set(
+      tournaments.map(t=>t.source_event_id).filter(Boolean).map(String)
+    );
+
+    const eventTournaments=(Array.isArray(eventRes.data)?eventRes.data:[])
+      .filter(e=>!linkedEventIds.has(String(e.id)))
+      .map(e=>({...e,_source:'event'}));
+
+    adminTournamentRows=[...tournaments,...eventTournaments];
     renderAdminTournamentDashboard();
   }catch(err){
-    console.error('[profil-ul] tournaments:',err);
-    if(loading){
-      loading.textContent='Turnaje sa nepodarilo načítať.';
-    }
+    console.error('[profil-ul] tournaments/events:',err);
+    if(loading) loading.textContent='Turnaje sa nepodarilo načítať.';
   }
 }
 document.querySelectorAll('[data-admin-tournament-filter]').forEach(btn=>{
@@ -1663,7 +1700,6 @@ document.querySelectorAll('[data-admin-tournament-filter]').forEach(btn=>{
     renderAdminTournamentDashboard();
   });
 });
-
 
 // ── Real Supabase Auth gate ──────────────────────────────────────────
 // Identity (name/avatar/title/member-since), the settings modal above,
