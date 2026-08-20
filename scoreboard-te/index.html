@@ -209,6 +209,134 @@ summary b{color:var(--gold)}
 .station-state-pill{font-family:var(--mono);font-size:.72rem;padding:7px 10px;border-radius:99px;background:var(--panel2);color:var(--muted)}
 @media(max-width:650px){.station-players{grid-template-columns:1fr}.station-card{padding:20px}}
 
+
+/* ════════════════════ CSP DYNAMIC SCOREBOARD LAYOUT V1 ════════════════════
+   Sport + orientation aware layout.
+   Darts: score → keypad → score in both landscape and portrait. */
+.player-id{display:flex;align-items:center;gap:10px;min-width:0}
+.player-avatar{
+  position:relative;display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;
+  border-radius:50%;overflow:hidden;border:1px solid rgba(212,168,67,.45);
+  background:linear-gradient(145deg,rgba(212,168,67,.18),rgba(255,255,255,.04));
+  color:var(--gold);font-family:var(--mono);font-size:.72rem;font-weight:800
+}
+.player-avatar span{position:relative;z-index:0}
+.player-avatar img{
+  position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:block
+}
+.player .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* The default top status was too visually weak. */
+.top .label2{font-size:.62rem}
+.current,.period{font-size:.92rem}
+
+/* DARTS — compact match header in one line */
+body.sport-darts .app{max-width:1380px}
+body.sport-darts header{
+  align-items:center;flex-wrap:nowrap;gap:10px;margin-bottom:8px
+}
+body.sport-darts .brand{
+  min-width:0;display:flex;align-items:center;gap:8px;flex:1;white-space:nowrap;overflow:hidden
+}
+body.sport-darts .brand .kicker{display:none}
+body.sport-darts .brand h1{
+  margin:0;min-width:0;max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:.98rem;line-height:1.1;font-weight:800
+}
+body.sport-darts .brand .meta{margin:0;gap:5px;flex-wrap:nowrap}
+body.sport-darts .pill{padding:4px 8px;font-size:.58rem}
+body.sport-darts .actions{flex-wrap:nowrap;gap:6px}
+body.sport-darts .actions button{padding:8px 10px;font-size:.74rem;white-space:nowrap}
+
+/* DARTS — status line must be visible from the oche */
+body.sport-darts .top{
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px
+}
+body.sport-darts .status{padding:10px 8px;border-radius:14px}
+body.sport-darts .top .label2{font-size:.72rem;letter-spacing:.12em}
+body.sport-darts .current,
+body.sport-darts .period{
+  font-size:clamp(1.05rem,2.35vw,1.55rem);line-height:1.08;margin-top:4px
+}
+body.sport-darts .timer-controls{margin-top:5px!important}
+body.sport-darts .timer-controls button{
+  min-width:31px;min-height:27px;font-size:.72rem;padding:4px 7px
+}
+
+/* DARTS — cards and keypad are the primary working area */
+body.sport-darts .player{padding:14px}
+body.sport-darts .player .head{margin-bottom:2px}
+body.sport-darts .player-avatar{width:42px;height:42px;flex-basis:42px;font-size:.78rem}
+body.sport-darts .player .name{font-size:1rem}
+body.sport-darts .big{font-size:clamp(82px,10vw,156px);line-height:.95}
+body.sport-darts .stat-grid{margin-top:9px}
+body.sport-darts .score-event-panel{margin-top:10px;padding-top:10px}
+body.sport-darts .keypad-panel{margin:0;padding:14px}
+body.sport-darts .keypad-head{gap:8px;margin-bottom:10px}
+body.sport-darts .run-display{font-size:clamp(38px,6vw,56px)}
+body.sport-darts .keypad-submit{min-height:54px;padding:0 18px;font-size:16px}
+body.sport-darts .quick-scores{gap:6px;margin-bottom:9px}
+body.sport-darts .quick{min-width:48px;min-height:38px;padding:7px 8px}
+body.sport-darts .keypad-grid{max-width:none;gap:8px}
+body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
+
+/* DARTS landscape: player 1 | keypad | player 2 */
+@media (orientation:landscape) and (min-width:760px){
+  .stage-row.darts-keypad-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(300px,.72fr) minmax(0,1fr);
+    gap:12px;align-items:start;margin-bottom:14px
+  }
+  .stage-row.darts-keypad-layout .players{display:contents;margin:0}
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(1){order:1}
+  .stage-row.darts-keypad-layout .keypad-panel{order:2}
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(2){order:3}
+}
+
+/* DARTS portrait: player 1 / keypad / player 2 */
+@media (orientation:portrait){
+  body.sport-darts .app{padding:12px}
+  body.sport-darts header{gap:6px}
+  body.sport-darts .brand{gap:5px}
+  body.sport-darts .brand h1{max-width:31vw;font-size:.82rem}
+  body.sport-darts .pill{padding:3px 6px;font-size:.52rem}
+  body.sport-darts .actions button{padding:7px 8px;font-size:.67rem}
+  body.sport-darts .top{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body.sport-darts .status{padding:9px 5px}
+  body.sport-darts .top .label2{font-size:.62rem}
+  body.sport-darts .current,
+  body.sport-darts .period{font-size:clamp(.98rem,3.4vw,1.35rem)}
+  .stage-row.darts-keypad-layout{
+    display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px
+  }
+  .stage-row.darts-keypad-layout .players{display:contents;margin:0}
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(1){order:1}
+  .stage-row.darts-keypad-layout .keypad-panel{order:2}
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(2){order:3}
+  body.sport-darts .player{padding:12px}
+  body.sport-darts .big{font-size:clamp(78px,18vw,146px)}
+  body.sport-darts .keypad-panel{padding:12px}
+  body.sport-darts .quick-scores{display:grid;grid-template-columns:repeat(4,1fr)}
+  body.sport-darts .quick{min-width:0}
+  body.sport-darts .quick:last-child{grid-column:span 2}
+}
+
+/* Very narrow screens: keep the one-line header but drop low-priority pills first. */
+@media(max-width:560px){
+  body.sport-darts .brand h1{max-width:36vw}
+  body.sport-darts .brand .meta .pill:nth-child(n+3){display:none}
+  body.sport-darts .actions .danger{display:none}
+}
+
+
+/* TABLE TENNIS — show the real winning set score before resetting to 0:0 */
+#tableTennisSetOverlay .modal-card{max-width:430px}
+#tableTennisSetOverlay .modal-title{font-size:1.5rem}
+#tableTennisSetOverlay .modal-sets{
+  color:var(--white);font-family:var(--mono);font-size:clamp(1.7rem,8vw,3rem);
+  font-weight:800;margin:14px 0 4px
+}
+
 </style>
 </head>
 <body>
@@ -233,6 +361,17 @@ summary b{color:var(--gold)}
     <div class="modal-sets">Potvrďte víťaza zápasu</div>
     <div class="modal-actions" id="winnerChoiceButtons"></div>
     <button class="modal-btn" id="cancelManualEndBtn" style="margin-top:10px;width:100%">Späť</button>
+  </div>
+</div>
+
+
+<div class="modal-overlay hidden" id="tableTennisSetOverlay">
+  <div class="modal-card">
+    <div class="modal-title" id="tableTennisSetTitle">SET</div>
+    <div class="modal-sets" id="tableTennisSetScore"></div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" id="tableTennisNextSetBtn">Nový set</button>
+    </div>
   </div>
 </div>
 
@@ -444,6 +583,7 @@ let lastScoreEvent=null;
   try {
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
     currentUserId = session ? session.user.id : null;
+    if(currentUserId) loadProfileAvatarIntoPlayer(0,currentUserId);
   } catch(err){
     console.error('[scoreboard] Silent session check failed or timed out (page continues working anonymously):', err);
   }
@@ -455,9 +595,9 @@ const defaultState={
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{}},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
   ],
   log:[],
 };
@@ -521,6 +661,60 @@ function resetScoresForMode(){
    out into one shared function so saveTrainingSession() reuses the exact
    same label instead of a second, possibly-drifting copy of the rule. */
 function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : (["tabletennis","tennis","padel"].includes(state.sport)?SPORTS[state.sport].label:state.discipline); }
+
+/* ════════════════════ DYNAMIC UI + PLAYER AVATARS ════════════════════ */
+function playerInitials(name){
+  const parts=String(name||"").trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return "CSP";
+  return (parts[0][0]+(parts.length>1?parts[parts.length-1][0]:"")).toUpperCase().slice(0,2);
+}
+function playerIdentityMarkup(p){
+  const avatar=String(p.avatarUrl||"").trim();
+  const img=avatar?`<img src="${escapeScoreText(avatar)}" alt="" onerror="this.remove()">`:"";
+  return `<div class="player-id"><div class="player-avatar"><span>${escapeScoreText(playerInitials(p.name))}</span>${img}</div><div class="name">${escapeScoreText(p.name)}</div></div>`;
+}
+function syncScoreboardLayoutMode(){
+  const darts=mode()==="darts";
+  document.body.classList.toggle("sport-darts",darts);
+  document.body.classList.toggle("orientation-portrait",window.matchMedia("(orientation: portrait)").matches);
+  document.body.classList.toggle("orientation-landscape",window.matchMedia("(orientation: landscape)").matches);
+}
+window.addEventListener("resize",syncScoreboardLayoutMode);
+window.addEventListener("orientationchange",syncScoreboardLayoutMode);
+
+async function loadProfileAvatarIntoPlayer(playerIndex,userId){
+  if(!userId||!state?.players?.[playerIndex])return;
+  try{
+    const {data,error}=await cspAuth.client.from("profiles")
+      .select("avatar_url").eq("id",userId).maybeSingle();
+    if(error)throw error;
+    state.players[playerIndex].avatarUrl=data?.avatar_url||"";
+    render();
+  }catch(err){
+    console.warn("[scoreboard] Player avatar unavailable:",err);
+  }
+}
+async function loadTournamentPlayerAvatars(row){
+  const ids=[row?.player1_id,row?.player2_id].filter(Boolean);
+  if(!ids.length)return;
+  try{
+    const {data:tpRows,error:tpError}=await cspAuth.client.from("tournament_players")
+      .select("id,user_id").in("id",ids);
+    if(tpError)throw tpError;
+    const users=(tpRows||[]).map(r=>r.user_id).filter(Boolean);
+    if(!users.length)return;
+    const {data:profiles,error:profileError}=await cspAuth.client.from("profiles")
+      .select("id,avatar_url").in("id",users);
+    if(profileError)throw profileError;
+    const avatarByUser=new Map((profiles||[]).map(p=>[p.id,p.avatar_url||""]));
+    const userByTp=new Map((tpRows||[]).map(p=>[p.id,p.user_id]));
+    state.players[0].avatarUrl=avatarByUser.get(userByTp.get(row.player1_id))||"";
+    state.players[1].avatarUrl=avatarByUser.get(userByTp.get(row.player2_id))||"";
+  }catch(err){
+    console.warn("[scoreboard] Tournament player avatars unavailable:",err);
+  }
+}
+
 
 /* ════════════════════ DYNAMIC SPORT EVENT CTA ════════════════════ */
 const SCORE_EVENT_FALLBACK={
@@ -968,6 +1162,7 @@ function canCheckout(r){return state.doubleOut?(r<=170&&r>1&&!NOT_CHECKOUT.has(r
 /* ════════════════════ RENDER ════════════════════ */
 function render(){
   const m=mode();
+  syncScoreboardLayoutMode();
   // pills + labels
   $("disciplinePill").textContent = currentDisciplineLabel();
   $("currentPlayer").textContent=activePlayers()[state.currentIndex].name;
@@ -991,6 +1186,7 @@ function render(){
   // tablets/monitors) — darts (portrait, stacked) and universal mode
   // (no keypad at all) are untouched.
   $("stageRow").classList.toggle("split-keypad", m==="points");
+  $("stageRow").classList.toggle("darts-keypad-layout", m==="darts" && state.playerCount===2);
   if(keypad){
     $("keypadLabel").innerHTML = (m==="darts"?"Hod (súčet 3 šípok)":"Aktuálny run")+' — <span id="keypadPlayer">'+activePlayers()[state.currentIndex].name+'</span>';
     $("runDisplay").textContent=state.runInput;
@@ -1095,7 +1291,7 @@ function playerCard(p,i,m){
   const bigClass = (m==="darts"&&p.remaining===0)?"big finish":"big";
   card.classList.toggle("event-busy",scoreActionBusySlot===i);
   card.innerHTML=`
-    <div class="head"><div class="name">${p.name}</div>${starterBadge}</div>
+    <div class="head">${playerIdentityMarkup(p)}${starterBadge}</div>
     <div class="${bigClass}">${bigVal}</div>
     ${bigSub?`<div class="big-sub">${bigSub}</div>`:""}
     ${controls}${stats}${scoreEventPanel(i)}
@@ -1200,27 +1396,81 @@ function dartsWinLeg(i){
   syncTournamentLiveScore();
 }
 
+
+/* ════════════════════ TABLE TENNIS SET TRANSITION ════════════════════ */
+let pendingTableTennisSet=null;
+
+function showTableTennisSetResult(winnerIndex,scoreWinner,scoreLoser){
+  const players=activePlayers();
+  pendingTableTennisSet={
+    winnerIndex,
+    setNumber:state.period,
+    scoreWinner:Number(scoreWinner),
+    scoreLoser:Number(scoreLoser)
+  };
+  const winner=players[winnerIndex];
+  const loser=players[winnerIndex===0?1:0];
+  $("tableTennisSetTitle").textContent=`SET PRE ${winner.name}`;
+  $("tableTennisSetScore").textContent=`${winner.name} ${scoreWinner} : ${scoreLoser} ${loser?.name||""}`;
+  $("tableTennisSetOverlay").classList.remove("hidden");
+}
+
+function startNextTableTennisSet(){
+  if(!pendingTableTennisSet)return;
+  const players=activePlayers();
+  state.period++;
+  players.forEach(x=>x.points=0);
+  state.starter=(state.starter+1)%2;
+  state.currentIndex=state.starter;
+  pendingTableTennisSet=null;
+  $("tableTennisSetOverlay").classList.add("hidden");
+  render();
+}
+
+$("tableTennisNextSetBtn").onclick=startNextTableTennisSet;
+
 /* ════════════════════ STOLNÝ TENIS ════════════════════ */
 function ttAdd(i){
   invalidateScoreEventUndo();
+  if(pendingTableTennisSet)return;
+
   const players=activePlayers(),p=players[i],o=players[i===0?1:0];
   p.points++;
   state.currentIndex=i===0?1:0;
+
   if(p.points>=11 && p.points-o.points>=2){
+    const finalWinnerScore=p.points;
+    const finalLoserScore=o.points;
     p.sets++;
-    addLog(`🏓 ${p.name} vyhral set ${state.period} (${p.points}:${o.points})`);
-    state.period++;
-    players.forEach(x=>x.points=0);
-    state.starter=(state.starter+1)%2;
-    state.currentIndex=state.starter;
+
+    addLog(`🏓 ${p.name} vyhral set ${state.period} (${finalWinnerScore}:${finalLoserScore})`);
+
+    // Match-ending set: keep the winning 11:x score visible and open match result.
     if(p.sets>=state.raceTo){
       addLog(`🏆 ${p.name} vyhral zápas v stolnom tenise`);
-      saveTrainingSession({mode:"tabletennis",players:players.map(x=>({name:x.name,sets:x.sets}))},p.name,elapsedSeconds());
+      if(typeof prepareTrainingSummary==="function"){
+        prepareTrainingSummary(
+          {mode:"tabletennis",players:players.map(x=>({name:x.name,sets:x.sets,points:x.points}))},
+          p.name,
+          elapsedSeconds()
+        );
+      }
+      render();
+      showMatchWonDialog(i,"tabletennis");
+      return;
     }
+
+    // Non-final set: DO NOT reset to 0:0 immediately.
+    // Show the true final score (e.g. 11:7) and wait for explicit "Nový set".
+    render();
+    showTableTennisSetResult(i,finalWinnerScore,finalLoserScore);
+    return;
   }
+
   render();
 }
 function ttSub(i){
+  if(pendingTableTennisSet)return;
   invalidateScoreEventUndo();
   const p=activePlayers()[i];
   if(p.points>0)p.points--;
@@ -1399,6 +1649,8 @@ function newPeriod(){
   render();
 }
 function resetAll(){
+  pendingTableTennisSet=null;
+  $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();
   const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,names:state.players.map(p=>p.name)};
   state=structuredClone(defaultState);
@@ -1417,6 +1669,8 @@ function fillDisciplines(){
   sel.value=state.discipline;
 }
 function applySettings(){
+  pendingTableTennisSet=null;
+  $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();
   state.sport=$("sportSelect").value;
   state.discipline=$("discipline").value;
@@ -1516,6 +1770,7 @@ async function loadTournamentMatch(){
     state.playerCount=2;
     state.players[0].name=row.player1_name||"Hráč 1";
     state.players[1].name=row.player2_name||"Hráč 2";
+    await loadTournamentPlayerAvatars(row);
 
     if(row.discipline){
       const allSports=Object.entries(SPORTS);
