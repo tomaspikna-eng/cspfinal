@@ -679,6 +679,10 @@ a{color:inherit;text-decoration:none}
       </button>
     </div>
 
+    <div class="nav-section" id="adminToolsSection">Správa</div>
+    <a id="clubManagerShortcut" href="https://cspmanager.app/dashboard/" target="_blank" rel="noopener" class="nav-item hidden"><span class="icon">⚙</span>Club Manager</a>
+    <a id="cmsShortcut" href="/cms/" class="nav-item hidden"><span class="icon">✎</span>CMS</a>
+
     <div class="nav-section">Súťaž</div>
     <a href="/ligy/" class="nav-item"><span class="icon">🏅</span>Ligy</a>
     <a href="/turnament/" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
@@ -753,8 +757,6 @@ a{color:inherit;text-decoration:none}
         </div>
 
         <div class="profile-actions">
-          <a class="btn btn-green hidden" id="clubManagerShortcut" href="https://cspmanager.app/dashboard/" target="_blank" rel="noopener">⚙ Club Manager</a>
-          <a class="btn btn-primary hidden" id="cmsShortcut" href="/cms/">✎ CMS</a>
           <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
           <button class="btn btn-secondary">📤 Share</button>
         </div>
@@ -1125,9 +1127,11 @@ function renderIdentity(){
     // Profile shortcuts: Club Manager for club/organization/admin, CMS only for admin.
     const clubManagerShortcut = document.getElementById('clubManagerShortcut');
     const cmsShortcut = document.getElementById('cmsShortcut');
+    const adminToolsSection = document.getElementById('adminToolsSection');
     const canUseClubManager = isAdmin || role === 'club' || role === 'organization';
     clubManagerShortcut?.classList.toggle('hidden', !canUseClubManager);
     cmsShortcut?.classList.toggle('hidden', !isAdmin);
+    adminToolsSection?.classList.toggle('hidden', !canUseClubManager && !isAdmin);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
