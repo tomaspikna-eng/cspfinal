@@ -733,13 +733,9 @@ const TM = {
    "csp_tournaments" store with real writes to tournaments /
    tournament_players / tournament_groups (migrations 0003, 0011).
 
-   Scope boundary (unchanged from the task): match/bracket PROGRESS
-   (scores, winners, which rounds are done) is NOT written to the real
-   `matches` table yet -- that's separate round_key-based match-engine
-   work for a follow-up. It still lives in localStorage, but now scoped
-   per real tournament id via bracketStorageKey() below, instead of as
-   part of one big array of full tournament objects. The Karty →
-   Generátor stolov handoff (openTableGen) is completely untouched.
+   Tournament setup, match rows and bracket progress are persisted
+   against the real tournament id in Supabase. The Karty →
+   Generátor stolov handoff (openTableGen) is untouched.
 ════════════════════════════════════════════════════════════ */
 const UPGRADE_URL="/upgrade/";
 const TABLEGEN_URL="/generator-stolov/"; // Generátor stolov — kartové hry (routing z wizardu)
@@ -748,6 +744,12 @@ const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný l
 let currentSession = null;
 let currentProfile = null;
 let isPublicReadOnly = false;
+
+let wizardAutosaveTimer = null;
+let wizardAutosaveBusy = false;
+let wizardAutosaveQueued = false;
+let wizardAutosaveLastSig = '';
+let pendingTournamentWrite = false;
 let realMatchesByKey = new Map();
 let tournamentMatchesChannel = null;
 let realtimeFallbackTimer = null;
@@ -856,6 +858,13 @@ async function saveBracketState(id,state){
   }
 })();
 
+window.addEventListener('beforeunload',(event)=>{
+  if(pendingTournamentWrite || wizardAutosaveBusy){
+    event.preventDefault();
+    event.returnValue='';
+  }
+});
+
 document.getElementById('signOutBtn').addEventListener('click', async () => {
   if(!currentSession){ window.location.href='/login/?next='+encodeURIComponent(location.pathname+location.search); return; }
   try { await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()'); }
@@ -877,10 +886,44 @@ async function startNewTournament(){
     );
     if(error){ console.error('[turnament] can_create_tournament check failed:', error); }
     if(!canCreate){ window.location.href = UPGRADE_URL; return; }
-    go('wizard');
+
+    const initialWiz=blankWiz();
+    initialWiz.autoDraft=true;
+    const initialSnapshot={...initialWiz,step:0,players:[]};
+
+    const {data:draft,error:draftErr}=await cspAuth.withTimeout(
+      cspAuth.client.from('tournaments').insert({
+        owner_id:currentSession.user.id,
+        name:'Nový turnaj',
+        sport:initialWiz.sport,
+        discipline:initialWiz.discipline,
+        format:initialWiz.format,
+        status:'draft',
+        started_at:null,
+        config:{
+          race_to:initialWiz.raceTo,
+          seed_count:0,
+          present_player_names:[],
+          draft_wizard:initialSnapshot
+        }
+      }).select().single(),
+      8000,'create tournament draft'
+    );
+    if(draftErr)throw draftErr;
+
+    go('wizard',{
+      ...draft,
+      ...initialSnapshot,
+      id:draft.id,
+      editId:draft.id,
+      status:'draft',
+      config:draft.config||{},
+      autoDraft:true,
+      resumeStep:0
+    });
   } catch(err){
-    console.error('[turnament] Quota check failed or timed out:', err);
-    toast('Nepodarilo sa overiť limit turnajov. Skús to znova.', true);
+    console.error('[turnament] Could not start durable tournament draft:', err);
+    toast('Turnaj sa nepodarilo založiť. Skús to znova.', true);
   }
 }
 
@@ -1047,6 +1090,7 @@ function startTournamentMatchesRealtime(tournamentId){
 async function go(view, data){
   const app=document.getElementById('app');
   if(view==='dashboard'){
+    stopWizardAutosave();
     stopTournamentMatchesRealtime();
     // The dashboard must not keep a previously opened tournament in the
     // address bar. Otherwise F5 would reopen that tournament again.
@@ -1060,9 +1104,18 @@ async function go(view, data){
   }
   else if(view==='wizard') {
     stopTournamentMatchesRealtime();
+    if(data?.id || data?.editId){
+      const draftId=data.id||data.editId;
+      const url=new URL(location.href);
+      url.searchParams.set('id',draftId);
+      url.searchParams.set('mode','settings');
+      url.searchParams.delete('tournament_id');
+      history.replaceState({view:'wizard',tournamentId:draftId},'',url.pathname+'?'+url.searchParams.toString()+url.hash);
+    }
     app.innerHTML=viewWizard(); initWizard(data);
   }
   else if(view==='detail') {
+    stopWizardAutosave();
     // Persist the opened tournament in the URL. The tournament flow is a
     // client-side view, so without this F5 loses its id and falls back to
     // the dashboard/summary even though the tournament is still active.
@@ -1616,12 +1669,26 @@ async function editTournament(id){
     if(pErr) throw pErr;
     const bracketState=await loadBracketState(id);
     const presentNames=new Set(Array.isArray(t.config?.present_player_names)?t.config.present_player_names:[]);
-    go('wizard', { ...t, groups: t.groups_count, advance: t.advance_count,
-                   raceTo: t.config?.race_to || 5,
-                   protectedSeeds: bracketState.protectedSeeds || 0,
-                   seedCount: Number(t.config?.seed_count ?? (players||[]).length),
-                   source_event_id: t.source_event_id || null,
-                   players: (players||[]).map(p=>({ name: p.name, user_id:p.user_id||null, seed: p.seed, present:presentNames.has(p.name) })) });
+    const draftSnap=(t.config&&typeof t.config.draft_wizard==='object')?t.config.draft_wizard:null;
+    const dbPlayers=(players||[]).map(p=>({ name:p.name,user_id:p.user_id||null,seed:p.seed,present:presentNames.has(p.name) }));
+    const restoredPlayers=Array.isArray(draftSnap?.players)?draftSnap.players:dbPlayers;
+    go('wizard', {
+      ...t,
+      ...(draftSnap||{}),
+      id:t.id,
+      editId:t.id,
+      status:t.status,
+      config:t.config||{},
+      groups:draftSnap?.groups ?? t.groups_count ?? 2,
+      advance:draftSnap?.advance ?? t.advance_count ?? 1,
+      raceTo:draftSnap?.raceTo ?? t.config?.race_to ?? 5,
+      protectedSeeds:draftSnap?.protectedSeeds ?? bracketState.protectedSeeds ?? 0,
+      seedCount:Number(draftSnap?.seedCount ?? t.config?.seed_count ?? restoredPlayers.length),
+      source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
+      players:restoredPlayers,
+      autoDraft:!!draftSnap?.autoDraft,
+      resumeStep:Number.isInteger(draftSnap?.step)?draftSnap.step:0
+    });
   } catch(err){
     console.error('[turnament] Failed to load tournament for editing:', err);
     toast('Nepodarilo sa načítať turnaj na úpravu.', true);
@@ -2544,9 +2611,7 @@ async function saveMatch(){
   // This is deliberately automatic: no separate \"generate\" click.
   maybeGenerateComboPhase(curT);
   const savedLoc=editLoc, savedM=m;
-  closeMatch();
-  document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
-  toast('Výsledok uložený ✓');
+  pendingTournamentWrite=true;
 
   try {
     await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
@@ -2568,8 +2633,12 @@ async function saveMatch(){
       },80);
     }
     await maybeAutoCompleteTournament(curT);
+    pendingTournamentWrite=false;
+    closeMatch();
     document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
+    toast('Výsledok uložený ✓');
   } catch(err){
+    pendingTournamentWrite=false;
     console.error('[turnament] Failed to save match/transition:', err);
     toast('Výsledok alebo prechod fázy sa neuložil do databázy.', true);
   }
@@ -2657,6 +2726,130 @@ function cspBadgeForTournamentName(playerName){
   const exact=(curT.players||[]).filter(p=>normalizePlayerName(p.name)===normalizePlayerName(playerName));
   return exact.length===1&&exact[0].user_id?'<span class="csp-player-badge linked">CSP ✓</span>':'';
 }
+
+function captureWizardInputs(){
+  if(!wiz)return;
+  const name=document.getElementById('wName');
+  const date=document.getElementById('wDate');
+  const venue=document.getElementById('wVenue');
+  const race=document.getElementById('wRaceTo');
+  const groups=document.getElementById('wGroups');
+  const advance=document.getElementById('wAdvance');
+  const protectedSeeds=document.getElementById('wProtectedSeeds');
+  if(name)wiz.name=name.value.trim();
+  if(date)wiz.date=date.value||'';
+  if(venue)wiz.venue=venue.value||'';
+  if(race)wiz.raceTo=Math.max(1,Number(race.value)||1);
+  if(groups)wiz.groups=Math.max(1,Number(groups.value)||1);
+  if(advance)wiz.advance=Math.max(1,Number(advance.value)||1);
+  if(protectedSeeds)wiz.protectedSeeds=Math.max(0,Number(protectedSeeds.value)||0);
+}
+function wizardSnapshot(){
+  captureWizardInputs();
+  return {
+    step:Number(wiz?.step)||0,
+    name:wiz?.name||'',
+    sport:wiz?.sport||'Biliard',
+    discipline:wiz?.discipline||'8-ball',
+    date:wiz?.date||'',
+    venue:wiz?.venue||'',
+    raceTo:Number(wiz?.raceTo)||5,
+    format:wiz?.format||'sko',
+    players:Array.isArray(wiz?.players)?wiz.players.map(p=>({
+      name:p.name,user_id:p.user_id||null,present:!!p.present
+    })):[],
+    seedCount:Math.max(0,Number(wiz?.seedCount)||0),
+    groups:Math.max(1,Number(wiz?.groups)||2),
+    advance:Math.max(1,Number(wiz?.advance)||1),
+    protectedSeeds:Math.max(0,Number(wiz?.protectedSeeds)||0),
+    autoDraft:!!wiz?.autoDraft,
+    source_event_id:wiz?.source_event_id||null
+  };
+}
+async function flushWizardAutosave(force=false){
+  if(!wiz?.editId || isPublicReadOnly)return true;
+  if(wizardAutosaveBusy){
+    wizardAutosaveQueued=true;
+    return false;
+  }
+  const snap=wizardSnapshot();
+  const sig=JSON.stringify(snap);
+  if(!force && sig===wizardAutosaveLastSig)return true;
+
+  wizardAutosaveBusy=true;
+  pendingTournamentWrite=true;
+  try{
+    const existingConfig=(wiz.config&&typeof wiz.config==='object')?wiz.config:{};
+    const payload={
+      name:snap.name||'Nový turnaj',
+      sport:snap.sport,
+      discipline:snap.discipline,
+      format:snap.format,
+      date:snap.date||null,
+      venue:snap.venue||null,
+      groups_count:(snap.format==='rr_sko'||snap.format==='rr_dko')?snap.groups:null,
+      advance_count:(snap.format==='rr_sko'||snap.format==='rr_dko')?snap.advance:null,
+      config:{
+        ...existingConfig,
+        race_to:snap.raceTo,
+        seed_count:Math.min(snap.players.length,snap.seedCount),
+        present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
+        draft_wizard:snap
+      }
+    };
+    const {data,error}=await cspAuth.client
+      .from('tournaments')
+      .update(payload)
+      .eq('id',wiz.editId)
+      .eq('owner_id',currentSession.user.id)
+      .in('status',['draft','ready'])
+      .select('config,status')
+      .maybeSingle();
+    if(error)throw error;
+    if(data?.config)wiz.config=data.config;
+    if(data?.status)wiz.status=data.status;
+    wizardAutosaveLastSig=sig;
+    return true;
+  }catch(err){
+    console.error('[turnament] wizard autosave failed:',err);
+    return false;
+  }finally{
+    wizardAutosaveBusy=false;
+    pendingTournamentWrite=false;
+    if(wizardAutosaveQueued){
+      wizardAutosaveQueued=false;
+      setTimeout(()=>flushWizardAutosave(true),0);
+    }
+  }
+}
+function startWizardAutosave(){
+  stopWizardAutosave();
+  wizardAutosaveLastSig='';
+  wizardAutosaveTimer=setInterval(()=>{
+    if(document.getElementById('wizPanel') && wiz?.editId)flushWizardAutosave(false);
+  },700);
+}
+function stopWizardAutosave(){
+  if(wizardAutosaveTimer){
+    clearInterval(wizardAutosaveTimer);
+    wizardAutosaveTimer=null;
+  }
+}
+async function cancelWizard(){
+  stopWizardAutosave();
+  if(wiz?.autoDraft && wiz?.editId){
+    try{
+      const {count}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',wiz.editId);
+      if(!count){
+        await cspAuth.client.from('tournaments').delete().eq('id',wiz.editId).eq('owner_id',currentSession.user.id).eq('status','draft');
+      }
+    }catch(err){
+      console.error('[turnament] cancel draft cleanup:',err);
+    }
+  }
+  go('dashboard');
+}
+
 function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
@@ -2670,10 +2863,13 @@ function viewWizard(){
 }
 function initWizard(existing){
   wiz=blankWiz();
-  if(existing){ // editácia
-    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id, step:0, showBulk:false};
+  if(existing){ // editácia / obnovený draft
+    const restoredStep=Number.isInteger(existing.resumeStep)?existing.resumeStep:0;
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
   }
   renderWiz();
+  startWizardAutosave();
+  flushWizardAutosave(true);
   loadCspPlayerDirectory().then(()=>renderWiz());
 }
 
@@ -2711,7 +2907,7 @@ function renderWiz(){
         <div class="field"><label>Miesto (nepovinné)</label><input id="wVenue" value="${wiz.venue}" placeholder="napr. ŠK Pohoda" oninput="wiz.venue=this.value"/></div>
       </div>
       <div class="field"><label>Race to / cieľ zápasu</label><input type="number" id="wRaceTo" min="1" max="99" value="${wiz.raceTo||5}" oninput="wiz.raceTo=Math.max(1,+this.value||1)"/><div class="hint">Prenesie sa aj do QR scoreboardu konkrétneho zápasu.</div></div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="go('dashboard')">Zrušiť</button><button class="btn btn-primary" onclick="saveInfo()">Ďalej →</button></div>`;
+      <div class="wiz-nav"><button class="btn btn-ghost" onclick="cancelWizard()">Zrušiť</button><button class="btn btn-primary" onclick="saveInfo()">Ďalej →</button></div>`;
   }
   else if(wiz.step===1){
     const N=TM.nextPow2(Math.max(2,wiz.players.length));
@@ -2785,9 +2981,10 @@ function renderWiz(){
   }
 }
 
-function saveInfo(){
+async function saveInfo(){
   wiz.name=document.getElementById('wName').value.trim();
   if(!wiz.name){ toast('Doplň názov turnaja.',true); return; }
+  await flushWizardAutosave(true);
   nextStep();
 }
 async function addPlayer(){
@@ -2823,6 +3020,7 @@ function setPlayerPresent(index,present){
     const presentCount=wiz.players.filter(pl=>pl.present).length;
     countEl.textContent=`${presentCount}/${wiz.players.length}`;
   }
+  flushWizardAutosave(false);
 }
 function setSeedCount(value){
   wiz.seedCount=Math.max(0,Math.min(wiz.players.length,Number(value)||0));
@@ -2912,6 +3110,8 @@ function renderPreview(){
 
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
+  stopWizardAutosave();
+  pendingTournamentWrite=true;
   const btn = document.querySelector('#wizPanel .btn-green');
   if(btn){ btn.disabled = true; btn.textContent = isKarty()?'Ukladám...':'Spúšťam...'; }
 
@@ -2970,10 +3170,18 @@ async function createTournament(){
       if(cErr) throw cErr;
       tournamentId = created.id; tournamentRow = created;
       createdTournamentId = created.id;
+      // Phase row is ensured below for both durable drafts and legacy callers.
+    }
+
+    if(!tournamentRow?.current_phase_id){
       const phaseType = wiz.format==='rr_sko'||wiz.format==='rr_dko' ? 'rr' : wiz.format;
-      const { data: phase, error: phaseErr } = await cspAuth.client.from('tournament_phases').insert({tournament_id:tournamentId,phase_number:1,phase_type:phaseType,status:'draft',started_at:null,config:{target_format:wiz.format}}).select().single();
-      if(phaseErr) throw phaseErr;
-      await cspAuth.client.from('tournaments').update({current_phase_id:phase.id}).eq('id',tournamentId);
+      const {data:phase,error:phaseErr}=await cspAuth.client.from('tournament_phases')
+        .insert({tournament_id:tournamentId,phase_number:1,phase_type:phaseType,status:'draft',started_at:null,config:{target_format:wiz.format}})
+        .select().single();
+      if(phaseErr)throw phaseErr;
+      const {error:phaseLinkErr}=await cspAuth.client.from('tournaments').update({current_phase_id:phase.id}).eq('id',tournamentId);
+      if(phaseLinkErr)throw phaseLinkErr;
+      tournamentRow={...tournamentRow,current_phase_id:phase.id};
     }
 
     const playerRows = wiz.players.map((p,i)=>({name:p.name,user_id:p.user_id||null,seed:i+1}));
@@ -3002,6 +3210,7 @@ async function createTournament(){
     let finalTournament = { ...tournamentRow, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
 
     if(finalTournament.format === 'karty'){
+      pendingTournamentWrite=false;
       toast(wiz.editId ? 'Zmeny uložené ✓' : 'Turnaj vytvorený ✓');
       setTimeout(() => openTableGen(finalTournament), 700);
     } else {
@@ -3015,10 +3224,12 @@ async function createTournament(){
         .single();
       if(startErr) throw startErr;
       finalTournament = { ...startedTournament, players: insertedPlayers.map(p => ({ name: p.name, seed: p.seed })) };
+      pendingTournamentWrite=false;
       toast('Turnaj bol spustený ✓');
       setTimeout(() => go('detail', tournamentId), 500);
     }
   } catch(err){
+    pendingTournamentWrite=false;
     console.error('[turnament] Failed to save tournament:', err);
     if(createdTournamentId && !wiz.editId){
       const {error:rollbackErr}=await cspAuth.client.from('tournaments').delete().eq('id',createdTournamentId);
@@ -3028,6 +3239,12 @@ async function createTournament(){
     if(btn){ btn.disabled = false; btn.textContent = isKarty() ? (wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly') : '▶ Spustiť turnaj'; }
   }
 }
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden' && document.getElementById('wizPanel') && wiz?.editId){
+    flushWizardAutosave(true);
+  }
+});
 
 function toast(msg,err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast'+(err?' err':''),2200); }
 
