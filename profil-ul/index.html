@@ -651,6 +651,78 @@ a{color:inherit;text-decoration:none}
 }
 .toast.show{opacity:1}
 .toast.error{background:var(--red);color:#fff}
+
+/* ════════════════════════════════════
+   ADMIN DASHBOARD — TOURNAMENTS
+═══════════════════════════════════ */
+.admin-tournaments-panel{
+  display:none;background:var(--bg2);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;
+}
+body.admin-dashboard-mode .admin-tournaments-panel{display:block}
+body.admin-dashboard-mode .content-grid{grid-template-columns:1fr}
+body.admin-dashboard-mode .content-main > .content-tabs,
+body.admin-dashboard-mode .content-main > .tab-panel,
+body.admin-dashboard-mode .content-side{display:none!important}
+
+.admin-tournaments-head{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:18px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap
+}
+.admin-tournaments-head h2{
+  margin:0;font-family:var(--display);font-size:1.5rem;letter-spacing:.02em
+}
+.admin-tournament-filters{display:flex;gap:8px;flex-wrap:wrap}
+.admin-tournament-filter{
+  border:1px solid var(--line);background:var(--bg3);color:var(--text-soft);
+  border-radius:999px;padding:7px 12px;font-size:.74rem;font-weight:700;cursor:pointer
+}
+.admin-tournament-filter:hover{border-color:var(--gold-b);color:var(--gold)}
+.admin-tournament-filter.active{
+  border-color:var(--gold-b);background:var(--gold-dim);color:var(--gold)
+}
+.admin-tournament-filter b{
+  display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
+  margin-left:5px;padding:0 5px;border-radius:999px;background:rgba(255,255,255,.06);
+  font-family:var(--mono);font-size:.66rem
+}
+.admin-tournament-list{display:flex;flex-direction:column}
+.admin-tournament-row{
+  display:grid;grid-template-columns:minmax(0,1.4fr) minmax(120px,.7fr) minmax(120px,.7fr) auto;
+  gap:14px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line2);
+  transition:.12s;cursor:pointer
+}
+.admin-tournament-row:last-child{border-bottom:none}
+.admin-tournament-row:hover{background:rgba(255,255,255,.025)}
+.admin-tournament-name{font-size:.92rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.admin-tournament-meta{
+  font-family:var(--mono);font-size:.69rem;color:var(--muted2);letter-spacing:.03em
+}
+.admin-tournament-date{
+  font-family:var(--mono);font-size:.76rem;color:var(--text-soft)
+}
+.admin-tournament-place{
+  font-size:.76rem;color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.admin-tournament-status{
+  justify-self:end;padding:6px 9px;border-radius:999px;border:1px solid var(--line);
+  font-size:.68rem;font-weight:800;white-space:nowrap
+}
+.admin-tournament-status.upcoming{color:var(--gold);border-color:var(--gold-b);background:var(--gold-dim)}
+.admin-tournament-status.active{color:var(--green);border-color:rgba(30,200,106,.28);background:var(--green-dim)}
+.admin-tournament-status.archive{color:var(--muted2)}
+.admin-tournaments-empty{
+  padding:34px 20px;text-align:center;color:var(--muted2);font-size:.82rem
+}
+.admin-tournaments-loading{
+  padding:28px 20px;text-align:center;color:var(--muted2);font-size:.82rem
+}
+@media(max-width:760px){
+  .admin-tournament-row{grid-template-columns:1fr auto;gap:7px 12px}
+  .admin-tournament-date,.admin-tournament-place{grid-column:1/2}
+  .admin-tournament-status{grid-column:2/3;grid-row:1/3}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
@@ -690,8 +762,8 @@ a{color:inherit;text-decoration:none}
     <div class="nav-section">Klub</div>
     <a href="#" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
 
-    <div class="nav-section">Zápasy</div>
-    <a href="#" class="nav-item"><span class="icon">📋</span>Posledné</a>
+    <div class="nav-section" id="matchesNavSection">Zápasy</div>
+    <a href="#" class="nav-item" id="recentMatchesNav"><span class="icon">📋</span>Posledné</a>
     <a href="#" class="nav-item"><span class="icon">📈</span>Hodnotenie</a>
 
   </aside>
@@ -822,6 +894,20 @@ a{color:inherit;text-decoration:none}
 
         <!-- LEFT: FEED -->
         <div class="content-main">
+
+          <section class="admin-tournaments-panel" id="adminTournamentsPanel">
+            <div class="admin-tournaments-head">
+              <h2>Turnaje</h2>
+              <div class="admin-tournament-filters">
+                <button class="admin-tournament-filter active" type="button" data-admin-tournament-filter="upcoming">Nasledujúce <b id="adminTournamentUpcomingCount">0</b></button>
+                <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="active">Aktívne <b id="adminTournamentActiveCount">0</b></button>
+                <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="archive">Archív <b id="adminTournamentArchiveCount">0</b></button>
+              </div>
+            </div>
+            <div class="admin-tournaments-loading" id="adminTournamentsLoading">Načítavam turnaje…</div>
+            <div class="admin-tournament-list" id="adminTournamentList" style="display:none"></div>
+            <div class="admin-tournaments-empty" id="adminTournamentsEmpty" style="display:none">Žiadne turnaje.</div>
+          </section>
 
           <div class="content-tabs">
             <button class="content-tab active" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
@@ -1132,6 +1218,10 @@ function renderIdentity(){
     clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
+
+    document.body.classList.toggle('admin-dashboard-mode', isAdmin);
+    document.getElementById('matchesNavSection')?.classList.toggle('hidden', isAdmin);
+    document.getElementById('recentMatchesNav')?.classList.toggle('hidden', isAdmin);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
@@ -1466,6 +1556,115 @@ async function loadFollowCounts(){
   }
 }
 
+
+// ── ADMIN tournament dashboard ─────────────────────────────────────
+let adminTournamentRows=[];
+let adminTournamentFilter='upcoming';
+
+function adminTournamentBucket(t){
+  const status=String(t?.status||'').toLowerCase();
+  if(status==='active') return 'active';
+  if(status==='archived' || status==='completed') return 'archive';
+  return 'upcoming';
+}
+function adminTournamentStatusLabel(t){
+  const bucket=adminTournamentBucket(t);
+  if(bucket==='active') return 'AKTÍVNY';
+  if(bucket==='archive') return String(t?.status||'').toLowerCase()==='archived'?'ARCHÍV':'UKONČENÝ';
+  const status=String(t?.status||'').toLowerCase();
+  if(status==='ready') return 'PRIPRAVENÝ';
+  if(status==='draft') return 'ROZPRACOVANÝ';
+  return 'NASLEDUJÚCI';
+}
+function adminTournamentDateLabel(value){
+  if(!value) return 'Dátum neurčený';
+  const d=new Date(value+'T12:00:00');
+  return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+}
+function escAdminTournament(v){
+  return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+function renderAdminTournamentDashboard(){
+  const list=document.getElementById('adminTournamentList');
+  const empty=document.getElementById('adminTournamentsEmpty');
+  const loading=document.getElementById('adminTournamentsLoading');
+  if(!list||!empty||!loading)return;
+
+  const counts={upcoming:0,active:0,archive:0};
+  adminTournamentRows.forEach(t=>counts[adminTournamentBucket(t)]++);
+  const uc=document.getElementById('adminTournamentUpcomingCount');
+  const ac=document.getElementById('adminTournamentActiveCount');
+  const rc=document.getElementById('adminTournamentArchiveCount');
+  if(uc)uc.textContent=String(counts.upcoming);
+  if(ac)ac.textContent=String(counts.active);
+  if(rc)rc.textContent=String(counts.archive);
+
+  let rows=adminTournamentRows.filter(t=>adminTournamentBucket(t)===adminTournamentFilter);
+  rows.sort((a,b)=>{
+    const ad=String(a.date||''),bd=String(b.date||'');
+    return adminTournamentFilter==='archive' ? bd.localeCompare(ad) : ad.localeCompare(bd);
+  });
+
+  loading.style.display='none';
+  if(!rows.length){
+    list.style.display='none';
+    empty.style.display='block';
+    empty.textContent=adminTournamentFilter==='upcoming'?'Žiadne nasledujúce turnaje.':
+      adminTournamentFilter==='active'?'Žiadne aktívne turnaje.':'Archív je prázdny.';
+    return;
+  }
+
+  empty.style.display='none';
+  list.style.display='flex';
+  list.innerHTML=rows.map(t=>{
+    const bucket=adminTournamentBucket(t);
+    const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
+    const place=[t.city,t.venue].filter(Boolean).join(' · ');
+    return `<article class="admin-tournament-row" data-admin-tournament-id="${escAdminTournament(t.id)}">
+      <div>
+        <div class="admin-tournament-name">${escAdminTournament(t.name||'Turnaj')}</div>
+        <div class="admin-tournament-meta">${escAdminTournament(sport||'')}</div>
+      </div>
+      <div class="admin-tournament-date">${escAdminTournament(adminTournamentDateLabel(t.date))}</div>
+      <div class="admin-tournament-place">${escAdminTournament(place||'')}</div>
+      <div class="admin-tournament-status ${bucket}">${escAdminTournament(adminTournamentStatusLabel(t))}</div>
+    </article>`;
+  }).join('');
+
+  list.querySelectorAll('[data-admin-tournament-id]').forEach(row=>{
+    row.addEventListener('click',()=>{
+      location.href='/turnament/?id='+encodeURIComponent(row.dataset.adminTournamentId);
+    });
+  });
+}
+async function loadAdminTournaments(){
+  const loading=document.getElementById('adminTournamentsLoading');
+  if(loading)loading.style.display='block';
+  try{
+    const {data,error}=await cspAuth.client
+      .from('tournaments')
+      .select('id,name,sport,discipline,date,venue,city,status,visibility,created_at,updated_at')
+      .eq('owner_id',currentSession.user.id)
+      .order('date',{ascending:true,nullsFirst:false});
+    if(error)throw error;
+    adminTournamentRows=Array.isArray(data)?data:[];
+    renderAdminTournamentDashboard();
+  }catch(err){
+    console.error('[profil-ul] tournaments:',err);
+    if(loading){
+      loading.textContent='Turnaje sa nepodarilo načítať.';
+    }
+  }
+}
+document.querySelectorAll('[data-admin-tournament-filter]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    adminTournamentFilter=btn.dataset.adminTournamentFilter;
+    document.querySelectorAll('[data-admin-tournament-filter]').forEach(b=>b.classList.toggle('active',b===btn));
+    renderAdminTournamentDashboard();
+  });
+});
+
+
 // ── Real Supabase Auth gate ──────────────────────────────────────────
 // Identity (name/avatar/title/member-since), the settings modal above,
 // and auth (session gate + logout) are all wired to the real
@@ -1517,6 +1716,7 @@ const authGateReady = (async function initAuthGate(){
     renderIdentity();
     renderMemberSince();
     loadFollowCounts();
+    if(resolvedAdmin) loadAdminTournaments();
     window.cspNotifications?.bind({
       client:cspAuth.client,
       button:document.getElementById('notificationsBtn')
