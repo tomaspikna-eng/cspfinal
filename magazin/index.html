@@ -222,6 +222,7 @@ input:focus,select:focus{border-color:var(--gold)}
 </nav>
 <div class="toast" id="toast"></div>
 
+  <script src="/assets/csp-auth.js"></script>
 <script>
 const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá'};
 const SPORT_LABEL={biliard:'Biliard',sipky:'Šípky',bowling:'Bowling',padel:'Padel',tenis:'Tenis',pingpong:'Ping pong',general:'Všeobecné'};
@@ -246,14 +247,23 @@ function escHtml(value){
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[ch]));
 }
+async function waitForCspClient(timeoutMs=8000){
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    if(window.cspAuth?.client) return window.cspAuth.client;
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  throw new Error('CSP auth client unavailable');
+}
+
 async function loadArticles(){
   const wrap=document.getElementById('articles');
   if(wrap) wrap.innerHTML='<div class="empty">Načítavam články…</div>';
 
   try{
-    if(!window.cspAuth?.client) throw new Error('CSP auth client unavailable');
+    const client=await waitForCspClient();
 
-    const {data,error}=await cspAuth.client
+    const {data,error}=await client
       .from('articles')
       .select('id,title,slug,excerpt,content,cover_image_url,status,published_at,created_at,category')
       .eq('status','published')
@@ -373,7 +383,6 @@ buildMobileCats();renderTournaments();
 tickClock();setInterval(tickClock,1000);loadWeather();
 loadArticles();
 </script>
-  <script src="/assets/csp-auth.js"></script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
