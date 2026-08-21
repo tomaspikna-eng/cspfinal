@@ -28,11 +28,11 @@ input:focus,select:focus{border-color:var(--gold)}
 
 .header{position:sticky;top:0;z-index:50;background:rgba(10,10,14,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .header-in{max-width:1320px;margin:0 auto;padding:0 22px;height:64px;display:flex;align-items:center;gap:20px}
-.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
-.brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold-soft));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#1a1000}
-.brand-word{font-weight:800;font-size:1rem;letter-spacing:-.01em}
-.brand-word .g{color:var(--gold)}.brand-word .w{color:#fff}
-.brand-mag{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:block;margin-top:1px}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand-logo{
+  display:block;width:245px;max-width:30vw;height:auto;object-fit:contain
+}
+.brand-mag{font-family:var(--mono);font-size:.6rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .nav{display:flex;align-items:center;gap:4px;margin-left:8px}
 .nav a{padding:8px 13px;border-radius:8px;font-size:.88rem;font-weight:600;color:var(--muted-2);transition:.12s}
 .nav a:hover{background:rgba(255,255,255,.04);color:var(--fg)}
@@ -46,8 +46,8 @@ input:focus,select:focus{border-color:var(--gold)}
 .admin-link{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);color:var(--muted);font-size:.9rem;transition:.14s;opacity:.6}
 .admin-link:hover{opacity:1;border-color:var(--gold);color:var(--gold)}
 .menu-toggle{display:none;font-size:1.5rem;padding:4px}
-@media(max-width:1080px){.search{width:160px}}
-@media(max-width:920px){.nav,.search,.lang{display:none}.menu-toggle{display:block}}
+@media(max-width:1080px){.brand-logo{width:205px}.search{width:160px}}
+@media(max-width:920px){.brand-logo{width:185px;max-width:48vw}.brand-mag{display:none}.nav,.search,.lang{display:none}.menu-toggle{display:block}}
 
 .layout{max-width:1320px;margin:0 auto;padding:24px 22px 60px;display:grid;grid-template-columns:210px 1fr 320px;gap:26px;align-items:start}
 @media(max-width:1120px){.layout{grid-template-columns:190px 1fr}.col-right{display:none}}
@@ -146,9 +146,9 @@ input:focus,select:focus{border-color:var(--gold)}
 <body>
 <header class="header">
   <div class="header-in">
-    <a href="#" class="brand" onclick="setCat('all');return false">
-      <span class="brand-mark">C</span>
-      <span><span class="brand-word"><span class="g">Connect</span><span class="w">Sports</span><span class="g">Pro</span></span><span class="brand-mag">Magazine</span></span>
+    <a href="#" class="brand" onclick="setCat('all');return false" aria-label="Connect Sports Pro Magazine">
+      <img class="brand-logo" src="/assets/csp-logo-full.png" alt="Connect Sports Pro">
+      <span class="brand-mag">Magazine</span>
     </a>
     <nav class="nav">
       <a href="#" class="active" id="navHome" onclick="setCat('all');return false" data-i="home">Domov</a>
@@ -223,30 +223,75 @@ input:focus,select:focus{border-color:var(--gold)}
 <div class="toast" id="toast"></div>
 
 <script>
-const STORE_KEY="csp_magazine_articles";
 const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá'};
 const SPORT_LABEL={biliard:'Biliard',sipky:'Šípky',bowling:'Bowling',padel:'Padel',tenis:'Tenis',pingpong:'Ping pong',general:'Všeobecné'};
 const CAT_GRAD={novinky:'linear-gradient(135deg,#3a2f10,#1a160a)',recenzie:'linear-gradient(135deg,#0e3320,#0a1a12)',historia:'linear-gradient(135deg,#3a2418,#1c130d)',pravidla:'linear-gradient(135deg,#143049,#0c1822)'};
 
-const SEED=[]; // žiadne hardcoded — články prídu z CMS
-
-function loadStore(){
-  let arr;
-  try{const r=localStorage.getItem(STORE_KEY);if(r)arr=JSON.parse(r);}catch(e){}
-  if(!arr||!arr.length){localStorage.setItem(STORE_KEY,JSON.stringify(SEED));return SEED.slice();}
-  const OLD=['biliard','sipky','bowling','general'];let changed=false;
-  arr.forEach(a=>{
-    if(OLD.includes(a.category)){if(a.category!=='general'&&!a.sport)a.sport=a.category;a.category='novinky';changed=true;}
-    if(!a.sport)a.sport='general';
-  });
-  if(changed)localStorage.setItem(STORE_KEY,JSON.stringify(arr));
-  return arr;
-}
-let articles=loadStore();
+let articles=[];
 let curCat='all',curSport='all';
 
+function normalizeArticleCategory(value){
+  const c=String(value||'novinky').trim().toLowerCase();
+  if(['novinky','recenzie','historia','pravidla'].includes(c)) return c;
+  return 'novinky';
+}
+function articleDate(value){
+  if(!value) return '';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0,10);
+}
+function escHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]));
+}
+async function loadArticles(){
+  const wrap=document.getElementById('articles');
+  if(wrap) wrap.innerHTML='<div class="empty">Načítavam články…</div>';
+
+  try{
+    if(!window.cspAuth?.client) throw new Error('CSP auth client unavailable');
+
+    const {data,error}=await cspAuth.client
+      .from('articles')
+      .select('id,title,slug,excerpt,content,cover_image_url,status,published_at,created_at,category')
+      .eq('status','published')
+      .order('published_at',{ascending:false});
+
+    if(error) throw error;
+
+    articles=(data||[]).map(a=>({
+      id:a.id,
+      title:a.title||'',
+      slug:a.slug||'',
+      excerpt:a.excerpt||'',
+      content:a.content||'',
+      cover:a.cover_image_url||'',
+      status:'published',
+      category:normalizeArticleCategory(a.category),
+      sport:'general',
+      author:'Redakcia CSP',
+      date:articleDate(a.published_at||a.created_at)
+    }));
+
+    curSport='all';
+    buildSportFilter();
+    render();
+  }catch(err){
+    console.error('[magazin articles]',err);
+    articles=[];
+    buildSportFilter();
+    if(wrap) wrap.innerHTML='<div class="empty">Články sa nepodarilo načítať.</div>';
+  }
+}
+
 function fmtDate(d){if(!d)return'';const M=['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];const p=d.split('-');if(p.length!==3)return d;return `${+p[2]}. ${M[+p[1]-1]} ${p[0]}`;}
-function readTime(a){const w=(a.body||[]).reduce((n,b)=>n+((b.text||'').split(/\s+/).length),0);return Math.max(2,Math.round(w/180))+' min';}
+function readTime(a){
+  const raw=String(a.content||a.excerpt||'').replace(/<[^>]*>/g,' ');
+  const words=raw.trim()?raw.trim().split(/\s+/).length:0;
+  return Math.max(2,Math.round(words/180))+' min';
+}
 
 function render(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase();
@@ -258,14 +303,14 @@ function render(){
   const wrap=document.getElementById('articles');
   if(!list.length){wrap.innerHTML='<div class="empty">Zatiaľ tu nie sú žiadne články.<br><span style="font-size:.82rem;color:var(--muted)">Publikuj prvý cez CMS.</span></div>';return;}
   wrap.innerHTML=list.map(a=>{
-    const cover=a.cover?`<img src="${a.cover}" alt=""/>`:'';
+    const cover=a.cover?`<img src="${escHtml(a.cover)}" alt=""/>`:'';
     const bg=a.cover?'':`style="background:${CAT_GRAD[a.category]||CAT_GRAD.novinky}"`;
-    return `<article class="art" onclick="openArticle('${a.slug}')">
-      <div class="art-cover" ${bg}>${cover}<span class="cov-label">${SPORT_LABEL[a.sport]||a.sport||'CSP'}</span></div>
+    return `<article class="art" onclick="openArticle('${encodeURIComponent(a.slug)}')">
+      <div class="art-cover" ${bg}>${cover}<span class="cov-label">${escHtml(SPORT_LABEL[a.sport]||a.sport||'CSP')}</span></div>
       <div class="art-body">
-        <div class="art-meta"><span class="tag ${a.category}">${CAT_LABEL[a.category]||a.category}</span><span>${readTime(a)} čítania</span></div>
-        <h3>${a.title}</h3><p>${a.excerpt||''}</p>
-        <div class="art-foot"><span>${a.author||'Redakcia CSP'}</span><span class="dot"></span><span>${fmtDate(a.date)}</span></div>
+        <div class="art-meta"><span class="tag ${escHtml(a.category)}">${escHtml(CAT_LABEL[a.category]||a.category)}</span><span>${escHtml(readTime(a))} čítania</span></div>
+        <h3>${escHtml(a.title)}</h3><p>${escHtml(a.excerpt||'')}</p>
+        <div class="art-foot"><span>${escHtml(a.author||'Redakcia CSP')}</span><span class="dot"></span><span>${escHtml(fmtDate(a.date))}</span></div>
       </div>
     </article>`;
   }).join('');
@@ -291,7 +336,7 @@ function buildMobileCats(){
   const cats=[['all','Všetko'],['novinky','Novinky'],['recenzie','Recenzie'],['historia','História'],['pravidla','Pravidlá']];
   document.getElementById('mobileCats').innerHTML=cats.map(([c,l])=>`<button class="mc ${c==='all'?'active':''}" data-cat="${c}" onclick="setCat('${c}')">${l}</button>`).join('');
 }
-function openArticle(slug){location.href='/magazin/clanok/?slug='+encodeURIComponent(slug);}
+function openArticle(slug){location.href='/magazin/clanok/?slug='+slug;}
 
 const WX={0:['☀️','Jasno'],1:['🌤️','Skoro jasno'],2:['⛅','Polooblačno'],3:['☁️','Zamračené'],45:['🌫️','Hmla'],48:['🌫️','Hmla'],51:['🌦️','Mrholenie'],61:['🌧️','Dážď'],63:['🌧️','Dážď'],65:['🌧️','Silný dážď'],71:['🌨️','Sneženie'],73:['🌨️','Sneženie'],80:['🌦️','Prehánky'],95:['⛈️','Búrky']};
 function loadWeather(){
@@ -324,9 +369,11 @@ function toggleLang(){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show';setTimeout(()=>t.className='toast',2600);}
 function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('show');}
 
-buildSportFilter();buildMobileCats();render();renderTournaments();
+buildMobileCats();renderTournaments();
 tickClock();setInterval(tickClock,1000);loadWeather();
+loadArticles();
 </script>
+  <script src="/assets/csp-auth.js"></script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
