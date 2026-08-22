@@ -248,6 +248,19 @@ a{color:inherit;text-decoration:none}
 .btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
 .btn-green{background:var(--green);color:#06230f}
 .btn-green:hover{background:#2dd97a}
+.btn.following{background:transparent;border:1px solid var(--gold-b);color:var(--gold)}
+body.public-profile-mode .sidebar{display:none!important}
+body.public-profile-mode .app{grid-template-columns:1fr}
+body.public-profile-mode .content-grid,
+body.public-profile-mode .sport-tabs,
+body.public-profile-mode .nav-cta-green,
+body.public-profile-mode .avatar-edit,
+body.public-profile-mode .cover-edit{display:none!important}
+body.public-profile-mode .profile{padding-bottom:36px}
+body.public-profile-mode .profile-header{max-width:1100px;margin-left:auto;margin-right:auto}
+body.public-profile-mode .stats-bar{max-width:1100px;margin-left:auto;margin-right:auto}
+body.public-profile-mode .stats-bar .stat:nth-child(n+3){display:none}
+body.public-profile-mode .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 /* ════════════════════════════════════
    STATS BAR
@@ -834,7 +847,8 @@ body.admin-dashboard-mode .content-side{display:none!important}
 
         <div class="profile-actions">
           <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
-          <button class="btn btn-secondary">📤 Share</button>
+          <button class="btn btn-primary hidden" id="followProfileBtn">+ Sledovať</button>
+          <button class="btn btn-secondary" id="shareProfileBtn">📤 Share</button>
         </div>
       </div>
 
@@ -1157,6 +1171,9 @@ function toast(msg, type){
 // ── State shared between the auth gate and the settings modal ────────
 let currentSession = null;
 let currentProfile = null;
+let viewedProfileId = null;
+let isOwnProfile = true;
+let socialState = {};
 
 // ── Shared identity rendering (used on load AND after a settings save,
 // so the page never needs a reload to reflect a change) ──────────────
@@ -1164,8 +1181,7 @@ function computeInitials(name){
   return (name && name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
 }
 function renderIdentity(){
-  if(!currentSession) return;
-  const displayName = (currentProfile && currentProfile.full_name) || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč');
+  const displayName = (currentProfile && currentProfile.full_name) || (currentSession?.user?.email ? currentSession.user.email.split('@')[0] : 'Profil');
   const initials = computeInitials(displayName);
 
   document.title = displayName + ' · Connect Sports Pro';
@@ -1195,12 +1211,12 @@ function renderIdentity(){
     const clubManagerShortcut = document.getElementById('clubManagerShortcut');
     const cmsShortcut = document.getElementById('cmsShortcut');
     const adminToolsSection = document.getElementById('adminToolsSection');
-    const canUseAdminShortcuts = isAdmin;
+    const canUseAdminShortcuts = isOwnProfile && isAdmin;
     clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
 
-    document.body.classList.toggle('admin-dashboard-mode', isAdmin);
+    document.body.classList.toggle('admin-dashboard-mode', isOwnProfile && isAdmin);
     document.getElementById('matchesNavSection')?.classList.toggle('hidden', isAdmin);
     document.getElementById('recentMatchesNav')?.classList.toggle('hidden', isAdmin);
   }
@@ -1519,12 +1535,73 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
 });
 
 
+
+function canFollowUltraProfile(){
+  const role=String(currentProfile?.role||'').toLowerCase();
+  return role!=='admin' && ['club','organization','player'].includes(role);
+}
+async function loadFollowState(){
+  if(!viewedProfileId)return;
+  try{
+    const {data,error}=await cspAuth.client.rpc('get_profile_social_state',{p_profile_id:viewedProfileId});
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    socialState=row||{};
+
+    const followingEl=document.getElementById('followingCount');
+    const followersEl=document.getElementById('followersCount');
+    if(followingEl)followingEl.textContent=String(row?.following_count||0);
+    if(followersEl)followersEl.textContent=String(row?.followers_count||0);
+
+    const btn=document.getElementById('followProfileBtn');
+    if(!btn)return;
+    if(isOwnProfile || !canFollowUltraProfile()){
+      btn.classList.add('hidden');
+      return;
+    }
+    btn.classList.remove('hidden');
+    const following=!!row?.viewer_follows;
+    btn.textContent=following?'✓ Sledujem':'+ Sledovať';
+    btn.classList.toggle('following',following);
+    btn.classList.toggle('btn-primary',!following);
+  }catch(err){
+    console.error('[profil-ul] Follow state failed:',err);
+  }
+}
+async function toggleFollowProfile(){
+  if(!viewedProfileId || isOwnProfile || !canFollowUltraProfile())return;
+  const btn=document.getElementById('followProfileBtn');
+  if(btn)btn.disabled=true;
+  try{
+    if(socialState.viewer_follows){
+      const {error}=await cspAuth.client.from('profile_follows').delete()
+        .eq('follower_id',currentSession.user.id)
+        .eq('following_profile_id',viewedProfileId);
+      if(error)throw error;
+    }else{
+      const {error}=await cspAuth.client.from('profile_follows').insert({
+        follower_id:currentSession.user.id,
+        following_profile_id:viewedProfileId
+      });
+      if(error)throw error;
+    }
+    await loadFollowState();
+  }catch(err){
+    console.error('[profil-ul] Follow toggle failed:',err);
+    toast(err.message||'Sledovanie sa nepodarilo zmeniť.','error');
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
+document.getElementById('followProfileBtn')?.addEventListener('click',toggleFollowProfile);
+
 async function loadFollowCounts(){
   if(!currentSession) return;
+  const targetId=viewedProfileId||currentSession.user.id;
   try{
     const [following,followers]=await Promise.all([
-      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',currentSession.user.id),
-      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',currentSession.user.id)
+      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',targetId),
+      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',targetId)
     ]);
     if(following.error) throw following.error;
     if(followers.error) throw followers.error;
@@ -1537,6 +1614,22 @@ async function loadFollowCounts(){
   }
 }
 
+
+
+document.getElementById('shareProfileBtn')?.addEventListener('click',async()=>{
+  const url=new URL(location.href);
+  if(viewedProfileId)url.searchParams.set('id',viewedProfileId);
+  try{
+    if(navigator.share){
+      await navigator.share({title:(currentProfile?.full_name||'Profil')+' · Connect Sports Pro',url:url.toString()});
+    }else{
+      await navigator.clipboard.writeText(url.toString());
+      toast('Odkaz na profil bol skopírovaný.');
+    }
+  }catch(err){
+    if(err?.name!=='AbortError')toast('Profil sa nepodarilo zdieľať.','error');
+  }
+});
 
 // ── ADMIN tournament dashboard ─────────────────────────────────────
 let adminTournamentRows=[];
@@ -1741,10 +1834,40 @@ const authGateReady = (async function initAuthGate(){
     }
     currentProfile = profile;
 
-    // ROLE ROUTING GUARD: /profil-ul/ is only for club, organization and admin.
-    const resolvedRole = String((profile && profile.role) || 'player').toLowerCase();
-    const resolvedAdmin = !!(profile && profile.is_admin) || resolvedRole === 'admin';
-    if(!resolvedAdmin && resolvedRole === 'player'){
+    const requestedProfileId=new URLSearchParams(location.search).get('id');
+    viewedProfileId=requestedProfileId||session.user.id;
+    isOwnProfile=viewedProfileId===session.user.id;
+
+    if(!isOwnProfile){
+      const {data:viewed,error:viewedError}=await cspAuth.withTimeout(
+        cspAuth.client.from('profiles')
+          .select('id,full_name,role,plan,is_admin,avatar_url,cover_url,bio,created_at')
+          .eq('id',viewedProfileId)
+          .maybeSingle(),
+        8000,
+        'load viewed profile'
+      );
+      if(viewedError)throw viewedError;
+      if(!viewed)throw new Error('Profil neexistuje.');
+
+      const targetRole=String(viewed.role||'player').toLowerCase();
+      if(targetRole==='player'){
+        window.location.replace('/profil/?id='+encodeURIComponent(viewedProfileId)+'&view=public');
+        return;
+      }
+
+      currentProfile=viewed;
+      document.body.classList.add('public-profile-mode');
+      document.getElementById('editProfileBtn')?.classList.add('hidden');
+      document.getElementById('adminToolsSection')?.classList.add('hidden');
+      document.getElementById('clubManagerShortcut')?.classList.add('hidden');
+      document.getElementById('cmsShortcut')?.classList.add('hidden');
+    }
+
+    // ROLE ROUTING GUARD: own /profil-ul/ is only for club, organization and admin.
+    const resolvedRole = String((currentProfile && currentProfile.role) || 'player').toLowerCase();
+    const resolvedAdmin = !!(currentProfile && currentProfile.is_admin) || resolvedRole === 'admin';
+    if(isOwnProfile && !resolvedAdmin && resolvedRole === 'player'){
       window.location.replace('/profil/');
       return;
     }
@@ -1752,7 +1875,8 @@ const authGateReady = (async function initAuthGate(){
     renderIdentity();
     renderMemberSince();
     loadFollowCounts();
-    if(resolvedAdmin) loadAdminTournaments();
+    loadFollowState();
+    if(isOwnProfile && resolvedAdmin) loadAdminTournaments();
     window.cspNotifications?.bind({
       client:cspAuth.client,
       button:document.getElementById('notificationsBtn')
