@@ -708,7 +708,15 @@ function mode(){
   return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame";
 }
 const startScore=()=>START_SCORE[state.discipline]||501;
-const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;
+const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;
+
+function advanceBilliardRack(winnerIndex){
+  // Pri vypnutom striedaní pokračuje víťaz racku; pri zapnutom sa
+  // rozstrel určí z počiatočného hráča a čísla nasledujúceho racku.
+  if(!state.alternateBreak)state.starter=winnerIndex;
+  state.period++;
+  state.currentIndex=breakerIndex();
+}
 
 /* ════════════════════ ULOŽENIE ════════════════════ */
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){}}
@@ -832,6 +840,16 @@ function scoreEventIdempotencyKey(){
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
+function scoreEventMetadata(){
+  const metadata={scoreboard:SCOREBOARD_EDITION};
+  if(state.sport==="billiard"&&mode()==="frame"){
+    metadata.rack_number=state.period;
+    metadata.breaker_slot=breakerIndex()+1;
+    metadata.alternate_break=Boolean(state.alternateBreak);
+  }
+  return metadata;
+}
+
 async function loadScoreActionDefinitions(){
   const requestKey=`${state.sport}|${currentDisciplineLabel()}|${scoreEventContext()}`;
   scoreActionLoading=true;scoreActionLoadError="";scoreActionDefinitions=[];render();
@@ -941,7 +959,9 @@ function finishScoreEventIfNeeded(i,action){
   const main=m==="frame"?p.score:m==="points"?p.frames:m==="darts"?p.legs:p.points;
   if(m==="universal")return;
   if(action.score_delta>0&&main>=state.raceTo){addLog(`🏆 ${p.name} dosiahol cieľ ${state.raceTo}`);render();showMatchWonDialog(i,m);return;}
-  if(action.score_delta>0&&m==="points"){
+  if(action.score_delta>0&&m==="frame"){
+    advanceBilliardRack(i);
+  }else if(action.score_delta>0&&m==="points"){
     state.period++;activePlayers().forEach(pl=>pl.framePoints=0);state.currentIndex=breakerIndex();
   }else if(action.score_delta>0&&m==="darts"){
     state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;activePlayers().forEach(pl=>pl.remaining=startScore());
@@ -960,7 +980,7 @@ async function handleScoreEvent(i,eventKey){
     if(sessionId){
       const {data,error}=await cspAuth.client.rpc("record_training_score_event",{
         p_training_session_id:sessionId,p_player_slot:i+1,p_event_key:eventKey,p_value:value,p_source:"manual",
-        p_source_device_ref:null,p_idempotency_key:scoreEventIdempotencyKey(),p_confidence:null,p_metadata:{scoreboard:SCOREBOARD_EDITION}
+        p_source_device_ref:null,p_idempotency_key:scoreEventIdempotencyKey(),p_confidence:null,p_metadata:scoreEventMetadata()
       });
       if(error)throw error;payload=data;applyServerMainScores(payload);
     }else applyLocalScoreDelta(i,action);
@@ -1562,6 +1582,7 @@ function frameAdd(i){
     prepareTrainingSummary({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name,elapsedSeconds());
     render();showMatchWonDialog(i,"frame");return;
   }
+  advanceBilliardRack(i);
   render();
 }
 function frameSub(i){invalidateScoreEventUndo();const p=activePlayers()[i];if(p.score>0)p.score--;render();}
@@ -1826,9 +1847,9 @@ function resetAll(){
   pendingTableTennisSet=null;
   $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();pendingTrainingSummary=null;trainingSummarySaved=false;
-  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,names:state.players.map(p=>p.name)};
+  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,names:state.players.map(p=>p.name)};
   state=structuredClone(defaultState);
-  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});
+  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
   stopTimer(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this. Manual timer -- stays stopped until Štart is pressed.
