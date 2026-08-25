@@ -66,6 +66,7 @@ button,input,select{font:inherit}
 .global-search-state{padding:28px 16px;color:var(--muted);text-align:center;line-height:1.55}
 .global-search-result{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px;border:1px solid var(--line2);border-radius:14px;background:#101010}
 .global-search-result:hover,.global-search-result:focus-visible{border-color:rgba(212,168,67,.45);background:rgba(212,168,67,.065);outline:0}
+.global-search-result.is-static{cursor:default}.global-search-result.is-static:hover{border-color:var(--line2);background:#101010}
 .global-search-avatar{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;overflow:hidden;background:#191919;color:var(--gold);font-family:var(--mono);font-size:.72rem;font-weight:900}
 .global-search-avatar.player{border-radius:50%}.global-search-avatar img{width:100%;height:100%;object-fit:cover}
 .global-search-result-copy{min-width:0}.global-search-result-title{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.global-search-result-subtitle{margin-top:4px;color:var(--muted);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -210,13 +211,13 @@ button,input,select{font:inherit}
 <dialog class="global-search-dialog" id="globalSearchDialog" aria-labelledby="globalSearchTitle">
   <div class="global-search-shell">
     <div class="global-search-head">
-      <div class="global-search-title" id="globalSearchTitle">Hľadať v Connect Sports Pro<span>HRÁČI · KLUBY · TURNAJE · LIGY · UDALOSTI</span></div>
+      <div class="global-search-title" id="globalSearchTitle">Hľadať v Connect Sports Pro<span>HRÁČI · KLUBY · TURNAJE · LIGY · UDALOSTI · ČLÁNKY</span></div>
       <button class="global-search-close" id="globalSearchClose" type="button" aria-label="Zavrieť">×</button>
     </div>
     <form class="global-search-form" id="globalSearchForm" role="search">
       <label class="global-search-input-wrap" for="globalSearchInput">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-        <input class="global-search-input" id="globalSearchInput" type="search" placeholder="Meno hráča, klub, turnaj…" autocomplete="off" spellcheck="false"/>
+        <input class="global-search-input" id="globalSearchInput" type="search" placeholder="Meno hráča, klub, turnaj, článok…" autocomplete="off" spellcheck="false"/>
       </label>
     </form>
     <div class="global-search-results" id="globalSearchResults" aria-live="polite">
@@ -367,16 +368,18 @@ const CSP_SEARCH_TYPES={
   tournament:{label:'Turnaj',mark:'TU'},
   league:{label:'Liga',mark:'LI'},
   event:{label:'Udalosť',mark:'UD'},
+  article:{label:'Článok',mark:'ČL'},
 };
 function cspSearchHref(row){
   const id=encodeURIComponent(row.entity_id||'');
   const slug=encodeURIComponent(row.public_slug||'');
-  if(row.entity_type==='player') return `/profil/?id=${id}`;
+  if(row.entity_type==='player') return '';
   if(row.entity_type==='club') return `/profil-ul/?club_id=${id}`;
   if(row.entity_type==='tournament') return `/turnament/?id=${id}`;
   if(row.entity_type==='league') return slug?`/liga/?slug=${slug}`:`/liga/?id=${id}`;
   if(row.entity_type==='event') return `/kalendar-turnajov/?event_id=${id}`;
-  return '/';
+  if(row.entity_type==='article') return slug?`/magazin/clanok/?slug=${slug}`:'/magazin/';
+  return '';
 }
 function cspSearchInitials(value){
   const parts=String(value||'').trim().split(/\s+/).filter(Boolean);
@@ -394,14 +397,17 @@ function cspRenderSearchResults(rows){
       ?`<img src="${cspEsc(row.image_url)}" alt="" loading="lazy" onerror="this.remove()"/>`
       :cspEsc(row.entity_type==='player'?cspSearchInitials(row.title):meta.mark);
     const subtitle=row.subtitle||[row.sport,row.discipline,row.location_text].filter(Boolean).join(' · ');
-    return `<a class="global-search-result" href="${cspSearchHref(row)}">
+    const href=cspSearchHref(row);
+    const tag=href?'a':'div';
+    const hrefAttr=href?` href="${cspEsc(href)}"`:'';
+    return `<${tag} class="global-search-result${href?'':' is-static'}"${hrefAttr}>
       <span class="global-search-avatar ${cspEsc(row.entity_type)}">${avatar}</span>
       <span class="global-search-result-copy">
         <span class="global-search-result-title">${cspEsc(row.title||meta.label)}</span>
         <span class="global-search-result-subtitle">${cspEsc(subtitle||meta.label)}</span>
       </span>
       <span class="global-search-type">${cspEsc(meta.label)}</span>
-    </a>`;
+    </${tag}>`;
   }).join('');
 }
 
