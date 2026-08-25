@@ -608,6 +608,18 @@ body.public-profile-mode .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr)
 }
 .modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
 .modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+
+.training-post-open{cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+.training-post-open:hover{border-color:rgba(212,168,67,.55);background:rgba(212,168,67,.035)}
+.training-post-open:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.activity-modal-card{width:min(760px,calc(100vw - 28px))}
+.activity-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.activity-grid .settings-field.full{grid-column:1/-1}
+.activity-actions-note{font-size:.78rem;color:var(--muted);line-height:1.5}
+@media(max-width:720px){
+  .activity-grid{grid-template-columns:1fr}
+  .activity-grid .settings-field.full{grid-column:auto}
+}
 .modal-foot{
   padding:16px 22px;border-top:1px solid var(--line);
   display:flex;justify-content:flex-end;gap:10px;
@@ -1099,6 +1111,62 @@ body.admin-dashboard-mode .content-side{display:none!important}
   </div>
 </div>
 
+
+<!-- ═══════════ ACTIVITY MODAL ═══════════ -->
+<div class="modal-overlay" id="activityOverlay">
+  <div class="modal-card activity-modal-card">
+    <div class="modal-head">
+      <h2>Upraviť tréning</h2>
+      <button class="modal-close" id="closeActivityBtn" type="button" title="Zavrieť">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="activity-grid">
+        <div class="settings-field">
+          <label>Šport</label>
+          <input type="text" id="activitySport" maxlength="80"/>
+        </div>
+        <div class="settings-field">
+          <label>Disciplína</label>
+          <input type="text" id="activityDiscipline" maxlength="120"/>
+        </div>
+
+        <div class="settings-field">
+          <label>Hráč 1</label>
+          <input type="text" id="activityPlayer1" maxlength="160"/>
+        </div>
+        <div class="settings-field">
+          <label>Hráč 2</label>
+          <input type="text" id="activityPlayer2" maxlength="160"/>
+        </div>
+
+        <div class="settings-field">
+          <label>Skóre hráča 1</label>
+          <input type="number" id="activityScore1" min="0" max="999"/>
+        </div>
+        <div class="settings-field">
+          <label>Skóre hráča 2</label>
+          <input type="number" id="activityScore2" min="0" max="999"/>
+        </div>
+
+        <div class="settings-field">
+          <label>Dátum a čas</label>
+          <input type="datetime-local" id="activityOccurredAt"/>
+        </div>
+        <div class="settings-field">
+          <label>Trvanie (min)</label>
+          <input type="number" id="activityDuration" min="0" max="1440"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="cancelActivityBtn" type="button">Zrušiť</button>
+      <button class="btn btn-primary" id="saveActivityBtn" type="button">Uložiť zmeny</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="avatarFileInput" accept="image/*" style="display:none"/>
 
 <div class="toast" id="toast"></div>
@@ -1174,6 +1242,7 @@ let currentProfile = null;
 let viewedProfileId = null;
 let isOwnProfile = true;
 let socialState = {};
+let activeTrainingActivity = null;
 
 // ── Shared identity rendering (used on load AND after a settings save,
 // so the page never needs a reload to reflect a change) ──────────────
@@ -1254,6 +1323,7 @@ function renderMemberSince(){
 // reusing the session/profile already established by the auth gate
 // (authGateReady, defined further below) rather than re-fetching it.
 let zapasyLoaded = false;
+let zapasySessions = new Map();
 
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1274,6 +1344,39 @@ function zpPlayerStat(finalScore, name){
   for(const key of ZP_SCORE_KEYS){ if(entry[key] !== undefined) return entry[key]; }
   const anyNumeric = Object.entries(entry).find(([k, v]) => k !== 'name' && typeof v === 'number');
   return anyNumeric ? anyNumeric[1] : null;
+}
+function zpScoreForSlot(s, slot){
+  const names = Array.isArray(s.player_names) ? s.player_names : [];
+  const byFinal = zpPlayerStat(s.final_score, names[slot-1]);
+  if(byFinal != null) return Number(byFinal);
+  if(Array.isArray(s.live_scores) && s.live_scores[slot-1] != null) return Number(s.live_scores[slot-1]);
+  return 0;
+}
+function zpWinnerName(s){
+  if(s.winner_name) return s.winner_name;
+  const names = Array.isArray(s.player_names) ? s.player_names : [];
+  const a = zpScoreForSlot(s,1), b = zpScoreForSlot(s,2);
+  if(a>b) return names[0] || null;
+  if(b>a) return names[1] || null;
+  return null;
+}
+function zpOccurredAt(s){
+  return s.completed_at || s.archived_at || s.played_at || s.updated_at || s.created_at;
+}
+function zpEffectiveDuration(s){
+  const direct = Number(s.duration_seconds || s.elapsed_seconds || 0);
+  if(direct > 0) return direct;
+  if(s.started_at && s.archived_at){
+    return Math.max(0, Math.round((new Date(s.archived_at)-new Date(s.started_at))/1000));
+  }
+  return 0;
+}
+function zpLocalDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function zpFormatDuration(totalSeconds){
   if(totalSeconds == null) return '';
@@ -1296,47 +1399,45 @@ function zpRelativeDate(iso){
 
 function renderZapasyCard(s){
   const names = Array.isArray(s.player_names) ? s.player_names : [];
-  const winner = s.winner_name;
-  const scoreSummary = names.map(n => { const v = zpPlayerStat(s.final_score, n); return v == null ? '?' : v; }).join(' : ');
-  const durationText = zpFormatDuration(s.duration_seconds);
+  const winner = zpWinnerName(s);
+  const scoreSummary = names.slice(0,2).map((_, i) => zpScoreForSlot(s, i+1)).join(' : ');
+  const durationText = zpFormatDuration(zpEffectiveDuration(s));
+  const occurredAt = zpOccurredAt(s);
 
   let playersHtml;
   if(names.length === 2){
     const [n1, n2] = names;
-    const s1 = zpPlayerStat(s.final_score, n1), s2 = zpPlayerStat(s.final_score, n2);
+    const s1 = zpScoreForSlot(s,1), s2 = zpScoreForSlot(s,2);
     const w1 = n1 === winner, w2 = n2 === winner;
     playersHtml = `
       <div class="match-card">
         <div class="match-player">
           <div class="mp-av">${escapeHtml(computeInitials(n1))}</div>
           <div class="mp-info"><div class="mp-name ${w1 ? 'winner' : ''}">${escapeHtml(n1)}${w1 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w1 ? 'winner' : ''}">${s1 == null ? '–' : escapeHtml(s1)}</div>
+          <div class="mp-score ${w1 ? 'winner' : ''}">${escapeHtml(s1)}</div>
         </div>
         <div class="match-vs">:</div>
         <div class="match-player right">
           <div class="mp-av opp">${escapeHtml(computeInitials(n2))}</div>
           <div class="mp-info"><div class="mp-name ${w2 ? 'winner' : ''}">${escapeHtml(n2)}${w2 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w2 ? 'winner' : ''}">${s2 == null ? '–' : escapeHtml(s2)}</div>
+          <div class="mp-score ${w2 ? 'winner' : ''}">${escapeHtml(s2)}</div>
         </div>
       </div>`;
   } else {
-    // 3 players (or an unexpected count) — .match-card's grid is built for
-    // exactly two sides, so this simpler row avoids forcing a mismatched
-    // layout while still visually distinguishing the winner.
-    playersHtml = `<div class="zp-players-simple">${names.map(n => {
-      const v = zpPlayerStat(s.final_score, n);
+    playersHtml = `<div class="zp-players-simple">${names.map((n, i) => {
+      const v = zpScoreForSlot(s,i+1);
       const isWinner = n === winner;
-      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''}${v != null ? ' · ' + escapeHtml(v) : ''}</span>`;
+      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''} · ${escapeHtml(v)}</span>`;
     }).join('')}</div>`;
   }
 
   return `
-    <div class="post">
+    <div class="post training-post-open" data-training-id="${escapeHtml(s.id)}" role="button" tabindex="0">
       <div class="post-head">
         <div class="post-avatar">🏓</div>
         <div class="post-meta">
           <div class="post-name">${escapeHtml(s.sport)} · ${escapeHtml(s.discipline)}</div>
-          <div class="post-time">${zpRelativeDate(s.played_at)}</div>
+          <div class="post-time">${zpRelativeDate(occurredAt)}</div>
         </div>
       </div>
       <div class="post-body">
@@ -1348,7 +1449,6 @@ function renderZapasyCard(s){
       </div>
     </div>`;
 }
-
 async function loadZapasyTab(){
   if(zapasyLoaded) return;
   await authGateReady; // reuse the session the auth gate already established, never re-fetch it here
@@ -1368,14 +1468,98 @@ async function loadZapasyTab(){
       return;
     }
     const listEl = document.getElementById('zapasyList');
+    zapasySessions = new Map(data.map(s => [String(s.id), s]));
     listEl.innerHTML = data.map(renderZapasyCard).join('');
     listEl.style.display = '';
+    listEl.querySelectorAll('[data-training-id]').forEach(card => {
+      const open = () => openTrainingActivity(card.dataset.trainingId);
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', e => {
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          open();
+        }
+      });
+    });
   } catch(err){
     console.error('[profil] Failed to load training_sessions:', err);
     zapasyLoaded = false; // allow a retry on the next tab switch
     document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Nepodarilo sa načítať tréningy. Skús to znova.</div>';
   }
 }
+
+
+function openTrainingActivity(sessionId){
+  const s = zapasySessions.get(String(sessionId));
+  if(!s) return;
+  activeTrainingActivity = s;
+
+  const names = Array.isArray(s.player_names) ? s.player_names : [];
+  document.getElementById('activitySport').value = s.sport || '';
+  document.getElementById('activityDiscipline').value = s.discipline || '';
+  document.getElementById('activityPlayer1').value = names[0] || '';
+  document.getElementById('activityPlayer2').value = names[1] || '';
+  document.getElementById('activityScore1').value = zpScoreForSlot(s,1);
+  document.getElementById('activityScore2').value = zpScoreForSlot(s,2);
+  document.getElementById('activityOccurredAt').value = zpLocalDateTime(zpOccurredAt(s));
+  document.getElementById('activityDuration').value = Math.round(zpEffectiveDuration(s)/60);
+
+  document.getElementById('activityOverlay').classList.add('open');
+}
+function closeTrainingActivity(){
+  activeTrainingActivity = null;
+  document.getElementById('activityOverlay')?.classList.remove('open');
+}
+async function saveTrainingActivity(){
+  if(!activeTrainingActivity || !currentSession) return;
+  const btn = document.getElementById('saveActivityBtn');
+  const occurred = document.getElementById('activityOccurredAt').value;
+  btn.disabled = true;
+  btn.textContent = 'Ukladám…';
+  try{
+    const {data,error} = await cspAuth.client.rpc('edit_my_training_activity',{
+      p_session_id: activeTrainingActivity.id,
+      p_sport: document.getElementById('activitySport').value.trim(),
+      p_discipline: document.getElementById('activityDiscipline').value.trim(),
+      p_player1_name: document.getElementById('activityPlayer1').value.trim(),
+      p_player2_name: document.getElementById('activityPlayer2').value.trim(),
+      p_score1: Math.max(0, Number(document.getElementById('activityScore1').value)||0),
+      p_score2: Math.max(0, Number(document.getElementById('activityScore2').value)||0),
+      p_occurred_at: occurred ? new Date(occurred).toISOString() : null,
+      p_duration_seconds: Math.max(0, Math.round((Number(document.getElementById('activityDuration').value)||0)*60))
+    });
+    if(error) throw error;
+
+    const updated = Array.isArray(data) ? data[0] : data;
+    if(updated?.id) zapasySessions.set(String(updated.id), updated);
+
+    toast('Aktivita bola upravená.');
+    closeTrainingActivity();
+    zapasyLoaded = false;
+    document.getElementById('zapasyList').style.display = 'none';
+    document.getElementById('zapasyLoading').style.display = '';
+    document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Načítavam tréningy…</div>';
+    await loadZapasyTab();
+  }catch(err){
+    console.error('[profil-ul] Failed to edit training activity:', err);
+    toast(err.message || 'Aktivitu sa nepodarilo uložiť.', 'error');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Uložiť zmeny';
+  }
+}
+
+document.getElementById('closeActivityBtn')?.addEventListener('click', closeTrainingActivity);
+document.getElementById('cancelActivityBtn')?.addEventListener('click', closeTrainingActivity);
+document.getElementById('saveActivityBtn')?.addEventListener('click', saveTrainingActivity);
+document.getElementById('activityOverlay')?.addEventListener('click', e => {
+  if(e.target === document.getElementById('activityOverlay')) closeTrainingActivity();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('activityOverlay')?.classList.contains('open')){
+    closeTrainingActivity();
+  }
+});
 
 // ── Settings modal ─────────────────────────────────────────────────
 function openSettings(){
