@@ -59,6 +59,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:16p
 details>summary{cursor:pointer;font-weight:600;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;list-style:none}
 summary b{color:var(--gold)}
 .settings-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:16px;background:var(--panel);border:1px solid var(--border);border-top:none;border-radius:0 0 14px 14px}
+.timer-status #matchTimer{font-size:clamp(1.25rem,2.3vw,1.7rem);line-height:1.05}
 .field label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:6px;font-weight:600}
 .field .hint{color:var(--muted);font-size:11px}
 .switch-card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
@@ -193,6 +194,16 @@ summary b{color:var(--gold)}
 .score-event-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .score-event-btn{min-height:45px;padding:8px 9px;font-size:.72rem;font-weight:800;line-height:1.15;letter-spacing:.015em;touch-action:manipulation}
 .score-event-btn[data-style="primary"]{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.5);color:var(--green)}
+.score-event-btn.score-event-main{
+  background:var(--green);
+  border-color:var(--green);
+  color:#04170b;
+  box-shadow:0 0 0 1px rgba(24,201,100,.35),0 8px 24px rgba(24,201,100,.22);
+}
+.score-event-btn.score-event-main:hover{
+  filter:brightness(1.08);
+}
+
 .score-event-btn[data-style="positive"]{background:rgba(212,168,67,.14);border-color:var(--gold);color:var(--gold)}
 .score-event-btn[data-style="warning"]{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.45);color:#f87171}
 .score-event-btn[data-style="danger"]{background:rgba(239,68,68,.14);border-color:var(--danger);color:var(--danger)}
@@ -288,6 +299,36 @@ summary b{color:var(--gold)}
   position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:block
 }
 .player .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player .head{
+  position:relative;
+  min-height:42px;
+  justify-content:center;
+}
+.player .player-id{
+  position:relative;
+  width:100%;
+  justify-content:center;
+  padding:0 52px;
+}
+.player .player-avatar{
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+}
+.player .name{
+  width:100%;
+  text-align:center;
+  font-size:1.365rem;
+  font-weight:800;
+}
+.player .badge{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+}
+
 
 /* The default top status was too visually weak. */
 .top .label2{font-size:.62rem}
@@ -576,24 +617,26 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
         <div class="field"><label>Hráč 1</label><input id="p1" value="Hráč 1"/></div>
         <div class="field"><label>Hráč 2</label><input id="p2" value="Hráč 2"/></div>
         <div class="field hidden" id="p3Wrap"><label>Hráč 3</label><input id="p3" value="Hráč 3"/></div>
-        <div class="field"><label>Akcie</label><button class="goldbtn" id="applyBtn" style="width:100%">Použiť nastavenie</button></div>
+        <div class="field">
+          <label>Akcie</label>
+          <button class="goldbtn" id="applyBtn" style="width:100%;min-height:46px">Použiť nastavenie</button>
+        </div>
       </div>
     </details>
   </div>
 
   <div class="top">
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
-    <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
-    <div class="status">
+    <div class="status timer-status">
       <div class="label2">Čas zápasu</div>
       <div class="period" id="matchTimer">00:00</div>
       <div class="timer-controls" style="display:flex;gap:6px;margin-top:8px;justify-content:center">
-        <button id="timerStartBtn" title="Štart">▶</button>
         <button id="timerPauseBtn" title="Pauza">⏸</button>
         <button id="timerStopBtn" title="Stop (vynuluje čas)">⏹</button>
         <button id="endTrainingBtn" class="danger" title="Ukončiť tréning">Ukončiť tréning</button>
       </div>
     </div>
+    <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
   </div>
 
   <div class="stage-row" id="stageRow">
@@ -708,15 +751,7 @@ function mode(){
   return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame";
 }
 const startScore=()=>START_SCORE[state.discipline]||501;
-const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;
-
-function advanceBilliardRack(winnerIndex){
-  // Pri vypnutom striedaní pokračuje víťaz racku; pri zapnutom sa
-  // rozstrel určí z počiatočného hráča a čísla nasledujúceho racku.
-  if(!state.alternateBreak)state.starter=winnerIndex;
-  state.period++;
-  state.currentIndex=breakerIndex();
-}
+const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;
 
 /* ════════════════════ ULOŽENIE ════════════════════ */
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){}}
@@ -828,7 +863,16 @@ const SCORE_EVENT_FALLBACK={
   racket:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
 };
 const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN?"tournament":"training";
-const scoreActions=()=>scoreActionDefinitions.length?scoreActionDefinitions:[SCORE_EVENT_FALLBACK[mode()]];
+const scoreActions=()=>{
+  if(scoreActionDefinitions.length) return scoreActionDefinitions;
+  if(mode()==="frame"){
+    return [
+      SCORE_EVENT_FALLBACK.frame,
+      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11}
+    ];
+  }
+  return [SCORE_EVENT_FALLBACK[mode()]];
+};
 const escapeScoreText=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function scoreEventIdempotencyKey(){
   if(globalThis.crypto&&typeof crypto.randomUUID==="function")return crypto.randomUUID();
@@ -838,16 +882,6 @@ function scoreEventIdempotencyKey(){
   bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
   const hex=[...bytes].map(v=>v.toString(16).padStart(2,"0")).join("");
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
-}
-
-function scoreEventMetadata(){
-  const metadata={scoreboard:SCOREBOARD_EDITION};
-  if(state.sport==="billiard"&&mode()==="frame"){
-    metadata.rack_number=state.period;
-    metadata.breaker_slot=breakerIndex()+1;
-    metadata.alternate_break=Boolean(state.alternateBreak);
-  }
-  return metadata;
 }
 
 async function loadScoreActionDefinitions(){
@@ -867,13 +901,13 @@ async function loadScoreActionDefinitions(){
 }
 
 function scoreEventPanel(i){
-  const actions=scoreActions().filter(Boolean);
+  const actions=scoreActions().filter(action=>action && action.event_key!=="eight_on_break");
   const disabled=scoreActionBusySlot!==null;
-  const buttons=actions.map(action=>`<button class="score-event-btn" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(action.label)}${action.value_required?" · #":""}</button>`).join("");
+  const buttons=actions.map(action=>`<button class="score-event-btn${action.event_key==="standard_point"?" score-event-main":""}" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(action.label)}${action.value_required?" · #":""}</button>`).join("");
   const undo=lastScoreEvent&&lastScoreEvent.playerIndex===i
     ?`<button class="score-event-btn score-event-undo" data-score-undo="${escapeScoreText(lastScoreEvent.eventId||"local")}" data-i="${i}" ${scoreActionBusySlot!==null?"disabled":""}>↶ SPÄŤ: ${escapeScoreText(lastScoreEvent.label)}</button>`:"";
   const status=scoreActionLoading?"Načítavam…":scoreActionLoadError;
-  return `<div class="score-event-panel"><div class="score-event-head"><span class="score-event-title">Herné udalosti</span><span class="score-event-state">${escapeScoreText(status)}</span></div><div class="score-event-actions">${buttons||'<div class="score-event-empty">Pre túto disciplínu nie sú nastavené CTA.</div>'}${undo}</div></div>`;
+  return `<div class="score-event-panel">${status?`<div class="score-event-state">${escapeScoreText(status)}</div>`:""}<div class="score-event-actions">${buttons||'<div class="score-event-empty">Pre túto disciplínu nie sú nastavené CTA.</div>'}${undo}</div></div>`;
 }
 
 function invalidateScoreEventUndo(){lastScoreEvent=null;}
@@ -959,9 +993,7 @@ function finishScoreEventIfNeeded(i,action){
   const main=m==="frame"?p.score:m==="points"?p.frames:m==="darts"?p.legs:p.points;
   if(m==="universal")return;
   if(action.score_delta>0&&main>=state.raceTo){addLog(`🏆 ${p.name} dosiahol cieľ ${state.raceTo}`);render();showMatchWonDialog(i,m);return;}
-  if(action.score_delta>0&&m==="frame"){
-    advanceBilliardRack(i);
-  }else if(action.score_delta>0&&m==="points"){
+  if(action.score_delta>0&&m==="points"){
     state.period++;activePlayers().forEach(pl=>pl.framePoints=0);state.currentIndex=breakerIndex();
   }else if(action.score_delta>0&&m==="darts"){
     state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;activePlayers().forEach(pl=>pl.remaining=startScore());
@@ -980,7 +1012,7 @@ async function handleScoreEvent(i,eventKey){
     if(sessionId){
       const {data,error}=await cspAuth.client.rpc("record_training_score_event",{
         p_training_session_id:sessionId,p_player_slot:i+1,p_event_key:eventKey,p_value:value,p_source:"manual",
-        p_source_device_ref:null,p_idempotency_key:scoreEventIdempotencyKey(),p_confidence:null,p_metadata:scoreEventMetadata()
+        p_source_device_ref:null,p_idempotency_key:scoreEventIdempotencyKey(),p_confidence:null,p_metadata:{scoreboard:SCOREBOARD_EDITION}
       });
       if(error)throw error;payload=data;applyServerMainScores(payload);
     }else applyLocalScoreDelta(i,action);
@@ -1038,9 +1070,10 @@ function stopTimer(){
 }
 function syncTimerButtons(){
   const running=!!runningSince;
-  $("timerStartBtn").disabled=running;
-  $("timerPauseBtn").disabled=!running;
-  $("timerStartBtn").classList.toggle("active",running);
+  const pauseBtn=$("timerPauseBtn");
+  pauseBtn.disabled=!running && accumulatedSeconds===0;
+  pauseBtn.textContent=running?"⏸":"▶";
+  pauseBtn.title=running?"Pauza":"Pokračovať";
 }
 function formatDuration(totalSeconds){
   const h=Math.floor(totalSeconds/3600), m=Math.floor((totalSeconds%3600)/60), s=totalSeconds%60;
@@ -1186,8 +1219,7 @@ function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSec
 tickMatchTimer();
 syncTimerButtons();
 setInterval(tickMatchTimer,1000);
-$("timerStartBtn").onclick=startTimer;
-$("timerPauseBtn").onclick=pauseTimer;
+$("timerPauseBtn").onclick=()=>{ if(runningSince) pauseTimer(); else startTimer(); };
 $("timerStopBtn").onclick=stopTimer;
 $("endTrainingBtn").onclick=endTrainingManually;
 
@@ -1582,7 +1614,6 @@ function frameAdd(i){
     prepareTrainingSummary({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name,elapsedSeconds());
     render();showMatchWonDialog(i,"frame");return;
   }
-  advanceBilliardRack(i);
   render();
 }
 function frameSub(i){invalidateScoreEventUndo();const p=activePlayers()[i];if(p.score>0)p.score--;render();}
@@ -1847,9 +1878,9 @@ function resetAll(){
   pendingTableTennisSet=null;
   $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();pendingTrainingSummary=null;trainingSummarySaved=false;
-  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,names:state.players.map(p=>p.name)};
+  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,names:state.players.map(p=>p.name)};
   state=structuredClone(defaultState);
-  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak});
+  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
   stopTimer(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this. Manual timer -- stays stopped until Štart is pressed.
@@ -1882,6 +1913,9 @@ function applySettings(){
   state.currentIndex=0;state.starter=0;state.runInput="";
   resetScoresForMode();
   addLog("Nastavenie uložené");
+  stopTimer();
+  startTimer();
+  addLog("▶ Časovač spustený");
   syncSettingsUI();render();loadScoreActionDefinitions();
 }
 function syncSettingsUI(){
