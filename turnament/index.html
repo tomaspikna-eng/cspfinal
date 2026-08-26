@@ -131,6 +131,42 @@ input:focus,select:focus{border-color:var(--gold)}
 .match-view-switch{display:flex;align-items:center;gap:3px;padding:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px}
 .match-view-btn{padding:7px 11px;border-radius:7px;font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap}
 .match-view-btn.active{background:var(--green);color:#04150b}
+
+/* ── TOURNAMENT DISPLAY ── */
+.display-control{display:grid;grid-template-columns:310px 1fr;gap:18px;align-items:start}
+.display-settings{border:1px solid var(--line);border-radius:12px;background:var(--bg-2);padding:15px}
+.display-section{margin-bottom:18px}.display-section:last-child{margin-bottom:0}
+.display-label{font-family:var(--mono);font-size:.61rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.display-segment{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.display-seg{border:1px solid var(--line);border-radius:8px;padding:8px 6px;font-size:.69rem;font-weight:800;color:var(--muted-2);background:var(--card)}
+.display-seg.active{border-color:rgba(38,208,125,.45);background:var(--green-dim);color:var(--green)}
+.display-chips{display:flex;flex-wrap:wrap;gap:6px}.display-chip{border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:38px;font-size:.68rem;font-weight:800;color:var(--muted-2);background:var(--card)}
+.display-chip.active{border-color:var(--gold-b);background:var(--gold-dim);color:var(--gold)}
+.display-switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;font-size:.76rem;font-weight:700}
+.display-switch{width:40px;height:22px;border-radius:99px;background:#25252b;border:1px solid var(--line);position:relative;flex:0 0 auto;transition:.15s}
+.display-switch:after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;top:2px;left:3px;background:var(--muted);transition:.15s}
+.display-switch.on{background:var(--green-dim);border-color:rgba(38,208,125,.38)}.display-switch.on:after{left:19px;background:var(--green)}
+.display-actions{display:grid;gap:8px;margin-top:15px}.display-actions .btn{width:100%;padding:10px 12px}
+.display-preview-wrap{border:1px solid var(--line);border-radius:12px;background:#080909;padding:13px;min-width:0}
+.display-preview-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px;font-size:.72rem}.display-preview-head span{color:var(--muted)}
+.display-preview{background:#050605;border:1px solid #242724;border-radius:12px;padding:12px;min-height:430px;overflow:hidden}
+.dp-top{display:flex;align-items:center;border-bottom:1px solid #252825;padding-bottom:9px;margin-bottom:10px}.dp-title{font-weight:900;font-size:.95rem}.dp-live{margin-left:auto;color:var(--green);font-family:var(--mono);font-size:.58rem;font-weight:900}
+.dp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.dp-grid.landscape{grid-template-columns:repeat(3,minmax(0,1fr))}.dp-grid.portrait{grid-template-columns:1fr}
+.dp-card{border:1px solid #272a27;border-radius:9px;background:#0e100f;padding:10px;position:relative}.dp-card:before{content:'';position:absolute;left:0;right:0;top:0;height:3px;border-radius:9px 9px 0 0;background:var(--green)}.dp-card.next:before{background:var(--gold)}.dp-card.finished:before{background:#666}
+.dp-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}.dp-station{font-family:var(--mono);font-size:.58rem;color:var(--muted);font-weight:800}.dp-station b{color:var(--gold);font-size:.85rem;margin-left:4px}.dp-status{font-family:var(--mono);font-size:.52rem;font-weight:900;color:var(--green)}.dp-card.next .dp-status{color:var(--gold)}.dp-card.finished .dp-status{color:var(--muted)}
+.dp-player{display:grid;grid-template-columns:minmax(0,1fr) 30px;gap:8px;align-items:center}.dp-player span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem;font-weight:750}.dp-score{text-align:right;font-family:var(--mono);font-size:1.08rem;font-weight:900}
+.dp-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;border-top:1px solid #252825;margin-top:7px;padding-top:6px;font-family:var(--mono);font-size:.5rem;color:#c5c8c5}.dp-meta span:nth-child(2){text-align:center;color:var(--gold)}.dp-meta span:nth-child(3){text-align:right}
+.display-empty{display:grid;place-items:center;min-height:300px;color:var(--muted);font-size:.8rem;text-align:center}
+@media(max-width:900px){.display-control{grid-template-columns:1fr}.display-settings{order:2}.display-preview-wrap{order:1}}
+
+/* standalone public screen */
+body.tournament-screen-mode .topbar{display:none!important}
+body.tournament-screen-mode #app{min-height:100vh}
+.ts-screen{min-height:100vh;background:radial-gradient(circle at 88% -5%,rgba(212,168,67,.09),transparent 25%),#070807;padding:24px 28px;color:#f4f4f2}
+.ts-head{display:flex;align-items:center;border-bottom:1px solid #282b28;padding-bottom:18px;margin-bottom:18px}.ts-head h1{font-size:clamp(1.4rem,2.7vw,2.4rem);line-height:1;font-weight:900}.ts-head p{font-family:var(--mono);font-size:.62rem;color:var(--gold);letter-spacing:.14em;margin-top:7px}.ts-live{margin-left:auto;border:1px solid rgba(38,208,125,.35);background:rgba(38,208,125,.08);color:var(--green);border-radius:99px;padding:8px 12px;font-family:var(--mono);font-size:.66rem;font-weight:900}
+.ts-cards{display:grid;gap:12px}.ts-cards.layout-landscape_5x2{grid-template-columns:repeat(5,minmax(0,1fr))}.ts-cards.layout-landscape_4x2{grid-template-columns:repeat(4,minmax(0,1fr))}.ts-cards.layout-landscape_3x2{grid-template-columns:repeat(3,minmax(0,1fr))}.ts-cards.layout-landscape_2x2{grid-template-columns:repeat(2,minmax(0,1fr))}.ts-cards.layout-portrait_6,.ts-cards.layout-portrait_auto{grid-template-columns:1fr;max-width:760px;margin:0 auto}.ts-cards.layout-auto{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.ts-card{position:relative;border:1px solid #2a2e2a;border-radius:14px;background:#0d0f0e;padding:16px;overflow:hidden}.ts-card:before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--green)}.ts-card.next:before{background:var(--gold)}.ts-card.finished:before{background:#696969}.ts-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.ts-station{font-family:var(--mono);font-size:.68rem;color:#929892;font-weight:900}.ts-station b{color:var(--gold);font-size:1.22rem;margin-left:5px}.ts-status{font-family:var(--mono);font-size:.6rem;font-weight:950;color:var(--green)}.ts-card.next .ts-status{color:var(--gold)}.ts-card.finished .ts-status{color:#989898}.ts-player{display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:12px;align-items:center}.ts-player span{font-size:clamp(.95rem,1.5vw,1.35rem);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ts-score{text-align:right;font-family:var(--mono);font-size:clamp(1.4rem,2.4vw,2.2rem);font-weight:950}.ts-meta{margin-top:14px;padding-top:10px;border-top:1px solid #282b28;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-family:var(--mono);font-size:.68rem;font-weight:800}.ts-meta span:nth-child(2){text-align:center;color:var(--gold)}.ts-meta span:nth-child(3){text-align:right}.ts-list{display:grid;gap:9px;max-width:1500px;margin:0 auto}.ts-row{display:grid;grid-template-columns:120px 1fr 70px 1fr 120px;gap:14px;align-items:center;border:1px solid #292d29;background:#0d0f0e;border-radius:11px;padding:13px 15px}.ts-row .station{font-family:var(--mono);color:var(--gold);font-weight:900}.ts-row .name{font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ts-row .score{text-align:center;font-family:var(--mono);font-size:1.15rem;font-weight:950}.ts-row .state{text-align:right;font-family:var(--mono);font-size:.62rem;font-weight:900;color:var(--green)}.ts-row.next .state{color:var(--gold)}.ts-row.finished .state{color:#8a8f8a}.ts-empty{min-height:65vh;display:grid;place-items:center;color:#777d77;font-size:1rem}
+@media(max-width:900px){.ts-screen{padding:18px}.ts-cards[class*="layout-landscape"]{grid-template-columns:repeat(2,minmax(0,1fr))}.ts-row{grid-template-columns:80px 1fr 55px 1fr}.ts-row .state{display:none}}
 .bracket-scroll{overflow-x:auto;padding:3px 2px 14px}
 .bracket-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:18px;min-width:max-content;align-items:start}
 .bracket-column{display:flex;flex-direction:column;gap:12px;min-width:210px}
@@ -762,6 +798,11 @@ let tournamentMatchesChannel = null;
 let realtimeFallbackTimer = null;
 let resourceRefreshTimer = null;
 let tournamentOperations=[];
+let tournamentDisplaySettings=null;
+let tournamentDisplayDraft=null;
+let tournamentDisplayScreenTimer=null;
+let tournamentDisplayRotateTimer=null;
+let tournamentDisplayDynamicPane='display';
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -820,8 +861,14 @@ async function saveBracketState(id,state){
   const launchParams = new URLSearchParams(location.search);
   const launchTournamentId = launchParams.get('tournament_id') || launchParams.get('id');
   const launchMode = launchParams.get('mode');
+  const launchScreenToken = launchParams.get('screen');
 
   try {
+    if(launchScreenToken){
+      document.body.classList.add('tournament-screen-mode');
+      await startTournamentDisplayScreen(launchScreenToken);
+      return;
+    }
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
     currentSession = session || null;
 
@@ -1588,7 +1635,8 @@ async function viewDetail(id){
   if(!isPublicReadOnly){
     await maybeAutoCompleteTournament(curT);
     await loadTournamentOperations(curT.id);
-  }else tournamentOperations=[];
+    await loadTournamentDisplaySettings(curT.id);
+  }else { tournamentOperations=[]; tournamentDisplaySettings=null; tournamentDisplayDraft=null; }
   const players=Array.isArray(curT.players)?curT.players:[];
   const isCmb = curT.format==='rr_sko'||curT.format==='rr_dko';
 
@@ -1632,10 +1680,11 @@ async function viewDetail(id){
         </div>
       </div>
       <div class="detail-card">
-        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → zadaj výsledok</span>`}</div>
+        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewTitle()}</h3>${isPublicReadOnly||matchViewMode==='display'?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → zadaj výsledok</span>`}</div>
           <div class="match-view-switch" role="group" aria-label="Zobrazenie zápasov">
             <button class="match-view-btn ${matchViewMode==='list'?'active':''}" id="matchListViewBtn" onclick="setMatchView('list')">☷ Zoznam</button>
             <button class="match-view-btn ${matchViewMode==='bracket'?'active':''}" id="matchBracketViewBtn" onclick="setMatchView('bracket')">⑂ Pavúk</button>
+            ${isPublicReadOnly?'':`<button class="match-view-btn ${matchViewMode==='display'?'active':''}" id="matchDisplayViewBtn" onclick="setMatchView('display')">▣ Display</button>`}
           </div>
         </div>
         <div id="matchArea">${renderMatchArea(curT)}</div>
@@ -1728,16 +1777,189 @@ async function editTournament(id){
 }
 
 /* ── Prepínanie zoznam / pavúk ── */
+function matchViewTitle(){
+  return matchViewMode==='bracket'?'Pavúk':matchViewMode==='display'?'Display':'Zoznam zápasov';
+}
+
+async function loadTournamentDisplaySettings(tournamentId){
+  try{
+    const {data,error}=await tournamentRpc('ensure_tournament_display_settings',{p_tournament_id:tournamentId});
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    tournamentDisplaySettings=row||null;
+    tournamentDisplayDraft=row?JSON.parse(JSON.stringify(row)):null;
+    return row;
+  }catch(err){
+    console.error('[turnament] display settings load:',err);
+    tournamentDisplaySettings=null;tournamentDisplayDraft=null;
+    return null;
+  }
+}
+function displayDraft(){return tournamentDisplayDraft||tournamentDisplaySettings||{};}
+function displayAllResourceIds(){return tournamentOperations.map(r=>r.resource_id).filter(Boolean);}
+function displaySelectedSet(){
+  const d=displayDraft();
+  return d.selected_resource_ids==null?new Set(displayAllResourceIds()):new Set(d.selected_resource_ids||[]);
+}
+function updateDisplayDraft(field,value){
+  if(!tournamentDisplayDraft)tournamentDisplayDraft=JSON.parse(JSON.stringify(tournamentDisplaySettings||{}));
+  tournamentDisplayDraft[field]=value;
+  refreshDisplayEditor();
+}
+function toggleDisplaySwitch(field){updateDisplayDraft(field,!displayDraft()[field]);}
+function selectDisplayMode(mode){updateDisplayDraft('content_mode',mode);}
+function selectDisplayLayout(value){updateDisplayDraft('layout',value);}
+function toggleDisplayResource(resourceId){
+  if(!tournamentDisplayDraft)tournamentDisplayDraft=JSON.parse(JSON.stringify(tournamentDisplaySettings||{}));
+  const all=displayAllResourceIds();
+  let selected=tournamentDisplayDraft.selected_resource_ids==null?new Set(all):new Set(tournamentDisplayDraft.selected_resource_ids||[]);
+  if(selected.has(resourceId))selected.delete(resourceId);else selected.add(resourceId);
+  tournamentDisplayDraft.selected_resource_ids=selected.size===all.length?null:[...selected];
+  refreshDisplayEditor();
+}
+function selectAllDisplayResources(){
+  if(!tournamentDisplayDraft)tournamentDisplayDraft=JSON.parse(JSON.stringify(tournamentDisplaySettings||{}));
+  tournamentDisplayDraft.selected_resource_ids=null;
+  refreshDisplayEditor();
+}
+function refreshDisplayEditor(){
+  if(matchViewMode!=='display')return;
+  const area=document.getElementById('matchArea');if(area)area.innerHTML=renderDisplayControl(curT);
+}
+async function saveTournamentDisplaySettings(){
+  if(!curT||!tournamentDisplayDraft)return;
+  const d=tournamentDisplayDraft;
+  const payload={
+    content_mode:d.content_mode||'display',
+    selected_resource_ids:d.selected_resource_ids==null?null:d.selected_resource_ids,
+    layout:d.layout||'auto',
+    show_live:!!d.show_live,show_next:!!d.show_next,show_finished:!!d.show_finished,
+    show_match_time:!!d.show_match_time,show_race_to:!!d.show_race_to,show_discipline:!!d.show_discipline,
+    dynamic_interval_seconds:Math.max(10,Math.min(300,Number(d.dynamic_interval_seconds)||30)),
+    dynamic_auto:!!d.dynamic_auto,is_enabled:true
+  };
+  try{
+    const {data,error}=await cspAuth.client.from('tournament_display_settings').update(payload).eq('tournament_id',curT.id).select().single();
+    if(error)throw error;
+    tournamentDisplaySettings=data;tournamentDisplayDraft=JSON.parse(JSON.stringify(data));
+    toast('Display uložený ✓');refreshDisplayEditor();
+  }catch(err){console.error('[turnament] display settings save:',err);toast('Display sa nepodarilo uložiť.',true)}
+}
+function openTournamentDisplayScreen(){
+  const token=displayDraft().public_token||tournamentDisplaySettings?.public_token;
+  if(!token){toast('Výstup ešte nie je pripravený.',true);return;}
+  const u=new URL(location.pathname,location.origin);u.searchParams.set('screen',token);window.open(u.toString(),'_blank','noopener');
+}
+function displayStatusKind(status){
+  if(['live','in_progress'].includes(status))return 'live';
+  if(['completed','forfeited'].includes(status))return 'finished';
+  if(['pending','waiting_for_table','ready','called','player_arriving'].includes(status))return 'next';
+  return 'next';
+}
+function displayStatusLabel(status){const k=displayStatusKind(status);return k==='live'?'LIVE':k==='finished'?'FINISHED':'NEXT';}
+function displayShouldShowStatus(status,settings){
+  const k=displayStatusKind(status);return k==='live'?settings.show_live:k==='finished'?settings.show_finished:settings.show_next;
+}
+function displayClockSeconds(row){
+  let base=Number(row?.match_clock_elapsed_seconds||0);
+  if(row?.match_clock_started_at&&!row?.match_clock_paused_at&&!row?.match_clock_stopped_at&&displayStatusKind(row?.match_status||row?.status)==='live'){
+    base+=Math.max(0,Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
+  }
+  return base;
+}
+function displayClockText(row){const total=displayClockSeconds(row),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60,p=n=>String(n).padStart(2,'0');return h?`${h}:${p(m)}:${p(sec)}`:`${p(m)}:${p(sec)}`;}
+function renderDisplayPreviewCard(r,t,d){
+  if(!r.match_id)return '';
+  const kind=displayStatusKind(r.match_status),status=displayStatusLabel(r.match_status);
+  if(!displayShouldShowStatus(r.match_status,d))return '';
+  const race=Number(t?.config?.race_to||0);
+  return `<article class="dp-card ${kind}"><div class="dp-card-head"><span class="dp-station">STANICA <b>${esc(r.resource_number||r.resource_label||'—')}</b></span><span class="dp-status">${status}</span></div><div class="dp-player"><span>${esc(r.player1_name||'Čaká')}</span><b class="dp-score">${r.score1??0}</b></div><div class="dp-player"><span>${esc(r.player2_name||'Čaká')}</span><b class="dp-score">${r.score2??0}</b></div><div class="dp-meta"><span>${d.show_match_time?displayClockText(r):''}</span><span>${d.show_race_to&&race?`Race to ${race}`:''}</span><span>${d.show_discipline?esc(t.discipline||''):''}</span></div></article>`;
+}
+function renderDisplayControl(t){
+  const d=displayDraft();
+  if(!d||!d.public_token)return '<div class="empty">Display sa nepodarilo načítať.</div>';
+  const selected=displaySelectedSet(),allSelected=d.selected_resource_ids==null;
+  const cards=tournamentOperations.filter(r=>selected.has(r.resource_id)).map(r=>renderDisplayPreviewCard(r,t,d)).join('');
+  const portrait=String(d.layout||'auto').startsWith('portrait');
+  const landscape=String(d.layout||'auto').startsWith('landscape');
+  const chipHtml=tournamentOperations.map(r=>`<button class="display-chip ${selected.has(r.resource_id)?'active':''}" onclick="toggleDisplayResource('${r.resource_id}')">${esc(r.resource_number||r.resource_label)}</button>`).join('');
+  const sw=(field,label)=>`<div class="display-switch-row"><span>${label}</span><button class="display-switch ${d[field]?'on':''}" onclick="toggleDisplaySwitch('${field}')" aria-label="${label}"></button></div>`;
+  return `<div class="display-control">
+    <section class="display-settings">
+      <div class="display-section"><div class="display-label">Obsah</div><div class="display-segment"><button class="display-seg ${d.content_mode==='list'?'active':''}" onclick="selectDisplayMode('list')">Zoznam</button><button class="display-seg ${d.content_mode==='display'?'active':''}" onclick="selectDisplayMode('display')">Display</button><button class="display-seg ${d.content_mode==='dynamic'?'active':''}" onclick="selectDisplayMode('dynamic')">Dynamický</button></div></div>
+      <div class="display-section"><div class="display-label">Stanice</div><div class="display-chips"><button class="display-chip ${allSelected?'active':''}" onclick="selectAllDisplayResources()">Všetky</button>${chipHtml||'<span style="color:var(--muted);font-size:.75rem">Žiadne stanice</span>'}</div></div>
+      <div class="display-section"><div class="display-label">Rozloženie</div><select onchange="selectDisplayLayout(this.value)"><option value="auto" ${d.layout==='auto'?'selected':''}>Auto</option><option value="portrait_auto" ${d.layout==='portrait_auto'?'selected':''}>Portrait — Auto</option><option value="portrait_6" ${d.layout==='portrait_6'?'selected':''}>Portrait — 6 kariet</option><option value="landscape_5x2" ${d.layout==='landscape_5x2'?'selected':''}>Landscape — 5 × 2</option><option value="landscape_4x2" ${d.layout==='landscape_4x2'?'selected':''}>Landscape — 4 × 2</option><option value="landscape_3x2" ${d.layout==='landscape_3x2'?'selected':''}>Landscape — 3 × 2</option><option value="landscape_2x2" ${d.layout==='landscape_2x2'?'selected':''}>Landscape — 2 × 2</option></select></div>
+      <div class="display-section"><div class="display-label">Zápasy</div>${sw('show_live','LIVE')}${sw('show_next','NEXT')}${sw('show_finished','Ukončené')}</div>
+      <div class="display-section"><div class="display-label">Karta</div>${sw('show_match_time','Čas zápasu')}${sw('show_race_to','Race to')}${sw('show_discipline','Disciplína')}</div>
+      ${d.content_mode==='dynamic'?`<div class="display-section"><div class="display-label">Dynamický režim</div><select onchange="updateDisplayDraft('dynamic_interval_seconds',Number(this.value))"><option value="20" ${Number(d.dynamic_interval_seconds)===20?'selected':''}>20 sekúnd</option><option value="30" ${Number(d.dynamic_interval_seconds)===30?'selected':''}>30 sekúnd</option><option value="60" ${Number(d.dynamic_interval_seconds)===60?'selected':''}>60 sekúnd</option></select>${sw('dynamic_auto','Automaticky podľa stavu')}</div>`:''}
+      <div class="display-actions"><button class="btn btn-green" onclick="saveTournamentDisplaySettings()">Použiť na obrazovku</button><button class="btn btn-ghost" onclick="openTournamentDisplayScreen()">Otvoriť výstup ↗</button></div>
+    </section>
+    <section class="display-preview-wrap"><div class="display-preview-head"><b>Náhľad</b><span>${allSelected?'Všetky stanice':selected.size+' staníc'}</span></div><div class="display-preview"><div class="dp-top"><div class="dp-title">${esc(t.name)}</div><div class="dp-live">● LIVE</div></div><div class="dp-grid ${portrait?'portrait':landscape?'landscape':''}">${cards||'<div class="display-empty">Žiadne zápasy na zobrazenie.</div>'}</div></div></section>
+  </div>`;
+}
+
 function setMatchView(view){
-  matchViewMode=view==='bracket'?'bracket':'list';
+  matchViewMode=view==='bracket'?'bracket':view==='display'?'display':'list';
   const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
-  const title=document.getElementById('matchViewTitle');if(title)title.textContent=matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov';
+  const title=document.getElementById('matchViewTitle');if(title)title.textContent=matchViewTitle();
   document.getElementById('matchListViewBtn')?.classList.toggle('active',matchViewMode==='list');
   document.getElementById('matchBracketViewBtn')?.classList.toggle('active',matchViewMode==='bracket');
+  document.getElementById('matchDisplayViewBtn')?.classList.toggle('active',matchViewMode==='display');
 }
 function renderMatchArea(t){
+  if(matchViewMode==='display')return renderDisplayControl(t);
   const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
   return body + renderTournamentEvaluation(t);
+}
+
+function screenRowStatus(row){return displayStatusKind(row?.match_status||row?.status);}
+function screenFilterRows(rows,settings,statusField='match_status'){
+  return (rows||[]).filter(r=>r.match_id||statusField==='status').filter(r=>displayShouldShowStatus(r[statusField],settings));
+}
+function renderTournamentScreenDisplay(payload){
+  const s=payload.settings||{},t=payload.tournament||{};
+  const rows=screenFilterRows(payload.resources||[],s,'match_status');
+  const layout=s.layout||'auto';
+  const cards=rows.map(r=>{const kind=screenRowStatus(r),status=displayStatusLabel(r.match_status),race=Number(t.race_to||0);return `<article class="ts-card ${kind}"><div class="ts-card-head"><span class="ts-station">STANICA <b>${esc(r.resource_number||r.resource_label||'—')}</b></span><span class="ts-status">${status}</span></div><div class="ts-player"><span>${esc(r.player1_name||'Čaká')}</span><b class="ts-score">${r.score1??0}</b></div><div class="ts-player"><span>${esc(r.player2_name||'Čaká')}</span><b class="ts-score">${r.score2??0}</b></div><div class="ts-meta"><span>${s.show_match_time?displayClockText(r):''}</span><span>${s.show_race_to&&race?`Race to ${race}`:''}</span><span>${s.show_discipline?esc(t.discipline||''):''}</span></div></article>`}).join('');
+  return `<div class="ts-cards layout-${esc(layout)}">${cards||'<div class="ts-empty">Žiadne zápasy na zobrazenie.</div>'}</div>`;
+}
+function renderTournamentScreenList(payload){
+  const s=payload.settings||{},rows=screenFilterRows(payload.matches||[],s,'status');
+  const html=rows.map(r=>{const kind=displayStatusKind(r.status),label=displayStatusLabel(r.status),station=r.resource_label||'—';return `<div class="ts-row ${kind}"><span class="station">${esc(station)}</span><span class="name">${esc(r.player1_name||'Čaká')}</span><span class="score">${r.score1??0}:${r.score2??0}</span><span class="name">${esc(r.player2_name||'Čaká')}</span><span class="state">${label}</span></div>`}).join('');
+  return `<div class="ts-list">${html||'<div class="ts-empty">Žiadne zápasy na zobrazenie.</div>'}</div>`;
+}
+function effectiveTournamentScreenMode(payload){
+  const s=payload.settings||{};
+  if(s.content_mode!=='dynamic')return s.content_mode||'display';
+  if(s.dynamic_auto){return (payload.resources||[]).some(r=>displayStatusKind(r.match_status)==='live')?'display':'list';}
+  return tournamentDisplayDynamicPane;
+}
+function renderTournamentScreenPayload(payload){
+  const app=document.getElementById('app');if(!app)return;
+  const t=payload?.tournament||{},mode=effectiveTournamentScreenMode(payload||{});
+  app.innerHTML=`<main class="ts-screen"><header class="ts-head"><div><h1>${esc(t.name||'Turnaj')}</h1><p>CONNECT SPORTS PRO · TOURNAMENT DISPLAY</p></div><div class="ts-live">● LIVE</div></header><section id="tsBody">${mode==='list'?renderTournamentScreenList(payload):renderTournamentScreenDisplay(payload)}</section></main>`;
+}
+function scheduleTournamentScreenRotation(payload){
+  clearInterval(tournamentDisplayRotateTimer);tournamentDisplayRotateTimer=null;
+  const s=payload?.settings||{};
+  if(s.content_mode!=='dynamic'||s.dynamic_auto)return;
+  const seconds=Math.max(10,Math.min(300,Number(s.dynamic_interval_seconds)||30));
+  tournamentDisplayRotateTimer=setInterval(()=>{tournamentDisplayDynamicPane=tournamentDisplayDynamicPane==='display'?'list':'display';renderTournamentScreenPayload(window.__cspTournamentDisplayPayload||payload);},seconds*1000);
+}
+async function startTournamentDisplayScreen(token){
+  const load=async()=>{
+    try{
+      const {data,error}=await cspAuth.client.rpc('get_tournament_display_payload',{p_public_token:token});
+      if(error)throw error;
+      if(!data){document.getElementById('app').innerHTML='<div class="ts-screen"><div class="ts-empty">Výstup nie je dostupný.</div></div>';return;}
+      const previous=window.__cspTournamentDisplayPayload;
+      window.__cspTournamentDisplayPayload=data;
+      renderTournamentScreenPayload(data);
+      if(!previous||JSON.stringify(previous.settings)!==JSON.stringify(data.settings))scheduleTournamentScreenRotation(data);
+    }catch(err){console.error('[turnament] public display:',err);document.getElementById('app').innerHTML='<div class="ts-screen"><div class="ts-empty">Výstup sa nepodarilo načítať.</div></div>';}
+  };
+  await load();
+  clearInterval(tournamentDisplayScreenTimer);tournamentDisplayScreenTimer=setInterval(load,2000);
 }
 
 function bracketPlayerLine(player,score,isWinner){
