@@ -418,7 +418,7 @@ input:focus,select:focus{border-color:var(--gold)}
     <div class="tb-right">
       <div class="tb-user" id="tbUser" style="display:none"><span class="tb-av" id="tbUserAv">?</span><span id="tbUserNameText">…</span></div>
       <button class="link-btn" id="signOutBtn" style="display:none">Odhlásiť</button>
-      <a class="link-btn" href="/profil/">← Profil</a>
+      <a class="link-btn" id="profileBackLink" href="/profil/">← Profil</a>
     </div>
   </div>
 </div>
@@ -809,6 +809,17 @@ async function saveBracketState(id,state){
   return true;
 }
 
+
+function profileHomePath(profile){
+  const role=String(profile?.role||'player').toLowerCase();
+  const ultraRole=role==='admin' || role==='club' || role==='organization' || profile?.is_admin===true;
+  return ultraRole ? '/profil-ul/' : '/profil/';
+}
+function setProfileBackLink(profile){
+  const link=document.getElementById('profileBackLink');
+  if(link)link.href=profileHomePath(profile);
+}
+
 (async function initAuth(){
   const launchParams = new URLSearchParams(location.search);
   const launchTournamentId = launchParams.get('tournament_id') || launchParams.get('id');
@@ -822,6 +833,7 @@ async function saveBracketState(id,state){
       const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
       if(profileError){ console.error('[turnament] Could not load profile:', profileError); }
       currentProfile = profile;
+      setProfileBackLink(profile);
 
       const displayName = (profile && profile.full_name) || session.user.email;
       const initials = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
