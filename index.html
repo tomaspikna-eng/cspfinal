@@ -37,6 +37,8 @@ button,input,select{font:inherit}
  min-height:42px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:rgba(255,255,255,.025);
  color:var(--text);display:inline-flex;align-items:center;justify-content:center;font-weight:750;cursor:pointer
 }
+.nav-search-trigger{width:42px;padding:0!important}
+.nav-search-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .nav a.primary{background:var(--green);color:#051d0d;border-color:transparent}
 .dropdown{position:relative} .dropdown-menu{
  position:absolute;right:0;top:48px;min-width:190px;padding:6px;background:#0d0d0d;border:1px solid var(--line);border-radius:12px;
@@ -47,6 +49,28 @@ button,input,select{font:inherit}
 .lang-wrap{gap:7px;padding-right:8px}
 .lang-wrap select{background:transparent;border:0;color:#fff;outline:none;font-weight:750}
 .lang-wrap option{background:#111}
+
+.global-search-dialog{width:min(760px,calc(100% - 24px));max-height:min(720px,calc(100dvh - 30px));padding:0;border:1px solid rgba(212,168,67,.28);border-radius:22px;background:#0b0b0b;color:var(--text);box-shadow:0 34px 110px rgba(0,0,0,.78);overflow:hidden}
+.global-search-dialog::backdrop{background:rgba(0,0,0,.76);backdrop-filter:blur(7px)}
+.global-search-shell{display:grid;grid-template-rows:auto auto minmax(110px,1fr);max-height:min(720px,calc(100dvh - 30px))}
+.global-search-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.global-search-title{font-weight:900;font-size:1.03rem}.global-search-title span{display:block;margin-top:4px;color:var(--muted);font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;font-weight:600}
+.global-search-close{width:38px;height:38px;padding:0;border:1px solid var(--line);border-radius:11px;background:#111;color:#fff;cursor:pointer;font-size:1.25rem}
+.global-search-form{padding:16px 20px;border-bottom:1px solid var(--line)}
+.global-search-input-wrap{display:flex;align-items:center;gap:11px;min-height:54px;padding:0 15px;border:1px solid rgba(212,168,67,.38);border-radius:14px;background:#111}
+.global-search-input-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.1)}
+.global-search-input-wrap svg{width:20px;height:20px;flex:0 0 auto;fill:none;stroke:var(--gold);stroke-width:2;stroke-linecap:round}
+.global-search-input{width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:1rem;font-weight:700}
+.global-search-input::placeholder{color:#70757c}
+.global-search-results{padding:12px;overflow:auto;display:grid;align-content:start;gap:7px}
+.global-search-state{padding:28px 16px;color:var(--muted);text-align:center;line-height:1.55}
+.global-search-result{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px;border:1px solid var(--line2);border-radius:14px;background:#101010}
+.global-search-result:hover,.global-search-result:focus-visible{border-color:rgba(212,168,67,.45);background:rgba(212,168,67,.065);outline:0}
+.global-search-result.is-static{cursor:default}.global-search-result.is-static:hover{border-color:var(--line2);background:#101010}
+.global-search-avatar{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;overflow:hidden;background:#191919;color:var(--gold);font-family:var(--mono);font-size:.72rem;font-weight:900}
+.global-search-avatar.player{border-radius:50%}.global-search-avatar img{width:100%;height:100%;object-fit:cover}
+.global-search-result-copy{min-width:0}.global-search-result-title{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.global-search-result-subtitle{margin-top:4px;color:var(--muted);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.global-search-type{padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:#a8adb3;font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.06em}
 
 .hero{padding:clamp(24px,4vw,54px);display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.86fr);gap:clamp(28px,5vw,72px);align-items:center;min-height:650px}
 .eyebrow{font-family:var(--mono);font-size:.76rem;letter-spacing:.19em;color:var(--gold);font-weight:700;margin-bottom:18px}
@@ -60,18 +84,15 @@ button,input,select{font:inherit}
 }
 .hero h1 .brandline{
   display:block;
+  color:#fff;
   font-size:.46em;
   font-weight:800;
   letter-spacing:.01em;
   line-height:1.15;
   margin-bottom:16px;
 }
-.hero h1 .brandline .brand-connect,
-.hero h1 .brandline .brand-pro{color:var(--gold)}
-.hero h1 .brandline .brand-sports{color:#fff}
-.hero h1 .hero-claim{
-  display:block;
-  color:var(--green);
+.hero h1 .gold{
+  color:var(--gold);
   font-weight:600;
 }
 .hero-copy p{max-width:720px;margin:24px 0 0;color:#adb2b8;font-size:clamp(1rem,1.35vw,1.18rem);line-height:1.65}
@@ -156,7 +177,7 @@ button,input,select{font:inherit}
 .footer{padding:26px}.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:24px}.footer h3{margin:0 0 10px;color:var(--gold)}.footer p,.footer li{font-size:.82rem;color:var(--muted);line-height:1.6}.footer ul{list-style:none;padding:0;margin:0;display:grid;gap:5px}.copy{border-top:1px solid var(--line2);margin-top:22px;padding-top:16px;color:#62666c;font-size:.75rem}
 
 @media(max-width:1050px){.hero{grid-template-columns:1fr;min-height:auto}.product-stage{min-height:470px}.grid-3,.pricing-grid{grid-template-columns:1fr}}
-@media(max-width:720px){.page{width:min(100% - 16px,1440px);margin:8px auto 24px}.topbar{align-items:flex-start}.brand-logo{width:190px}.nav{width:100%;justify-content:flex-start}.hero{padding:26px 20px}.hero h1{font-size:clamp(2.2rem,10vw,3.5rem)}.device{transform:none}.product-stage{min-height:440px}.sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}.landing-tournament-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.page{width:min(100% - 16px,1440px);margin:8px auto 24px}.topbar{align-items:flex-start}.brand-logo{width:190px}.nav{width:100%;justify-content:flex-start}.hero{padding:26px 20px}.hero h1{font-size:clamp(2.2rem,10vw,3.5rem)}.device{transform:none}.product-stage{min-height:440px}.sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}.landing-tournament-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}.global-search-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px)}.global-search-shell{max-height:calc(100dvh - 16px)}.global-search-head,.global-search-form{padding-left:14px;padding-right:14px}.global-search-result{grid-template-columns:40px minmax(0,1fr)}.global-search-avatar{width:40px;height:40px}.global-search-type{display:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.product-view:first-child{opacity:1}}
 </style>
 </head>
@@ -169,6 +190,9 @@ button,input,select{font:inherit}
   </a>
   <nav class="nav">
     <a href="/" aria-label="Domov">⌂</a>
+    <button class="nav-search-trigger" id="globalSearchOpen" type="button" aria-label="Hľadať" title="Hľadať">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+    </button>
     <a href="/kalendar-turnajov/">Turnaje</a>
     <a href="/magazin/">Novinky</a>
     <a href="/login/">Prihlásiť</a>
@@ -184,10 +208,28 @@ button,input,select{font:inherit}
   </nav>
 </header>
 
+<dialog class="global-search-dialog" id="globalSearchDialog" aria-labelledby="globalSearchTitle">
+  <div class="global-search-shell">
+    <div class="global-search-head">
+      <div class="global-search-title" id="globalSearchTitle">Hľadať v Connect Sports Pro<span>HRÁČI · KLUBY · TURNAJE · LIGY · UDALOSTI · ČLÁNKY</span></div>
+      <button class="global-search-close" id="globalSearchClose" type="button" aria-label="Zavrieť">×</button>
+    </div>
+    <form class="global-search-form" id="globalSearchForm" role="search">
+      <label class="global-search-input-wrap" for="globalSearchInput">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+        <input class="global-search-input" id="globalSearchInput" type="search" placeholder="Meno hráča, klub, turnaj, článok…" autocomplete="off" spellcheck="false"/>
+      </label>
+    </form>
+    <div class="global-search-results" id="globalSearchResults" aria-live="polite">
+      <div class="global-search-state">Zadaj aspoň 2 znaky.</div>
+    </div>
+  </div>
+</dialog>
+
 <section class="panel hero">
   <div class="hero-copy">
     <div class="eyebrow">ONE CONNECTED SPORTS SYSTEM</div>
-    <h1><span class="brandline"><span class="brand-connect">CONNECT</span> <span class="brand-sports">SPORTS</span> <span class="brand-pro">PRO</span></span><span class="hero-claim">SPÁJA SVET OKOLO ŠPORTU.</span></h1>
+    <h1><span class="brandline">CONNECT SPORTS PRO</span><span class="gold">SPÁJA</span> SVET OKOLO ŠPORTU.</h1>
     <p>Hráči, turnaje, tréning, výsledky, kluby a športová komunita. Jeden systém, ktorý spája dianie pred zápasom, počas neho aj po ňom.</p>
     <div class="hero-actions">
       <a class="btn btn-green" href="/registracia/">Pridaj sa zadarmo</a>
@@ -319,6 +361,112 @@ function cspFmtDate(value){
   const d = new Date(value + 'T12:00:00');
   return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
 }
+
+const CSP_SEARCH_TYPES={
+  player:{label:'Hráč',mark:'HR'},
+  club:{label:'Klub',mark:'KL'},
+  tournament:{label:'Turnaj',mark:'TU'},
+  league:{label:'Liga',mark:'LI'},
+  event:{label:'Udalosť',mark:'UD'},
+  article:{label:'Článok',mark:'ČL'},
+};
+function cspSearchHref(row){
+  const id=encodeURIComponent(row.entity_id||'');
+  const slug=encodeURIComponent(row.public_slug||'');
+  if(row.entity_type==='player') return '';
+  if(row.entity_type==='club') return `/profil-ul/?club_id=${id}`;
+  if(row.entity_type==='tournament') return `/turnament/?id=${id}`;
+  if(row.entity_type==='league') return slug?`/liga/?slug=${slug}`:`/liga/?id=${id}`;
+  if(row.entity_type==='event') return `/kalendar-turnajov/?event_id=${id}`;
+  if(row.entity_type==='article') return slug?`/magazin/clanok/?slug=${slug}`:'/magazin/';
+  return '';
+}
+function cspSearchInitials(value){
+  const parts=String(value||'').trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0]||'C')+(parts.length>1?(parts.at(-1)?.[0]||''):'')).toUpperCase();
+}
+function cspRenderSearchResults(rows){
+  const box=document.getElementById('globalSearchResults');
+  if(!rows.length){
+    box.innerHTML='<div class="global-search-state">Nenašli sa žiadne verejné výsledky.</div>';
+    return;
+  }
+  box.innerHTML=rows.map(row=>{
+    const meta=CSP_SEARCH_TYPES[row.entity_type]||{label:'Výsledok',mark:'CSP'};
+    const avatar=row.image_url
+      ?`<img src="${cspEsc(row.image_url)}" alt="" loading="lazy" onerror="this.remove()"/>`
+      :cspEsc(row.entity_type==='player'?cspSearchInitials(row.title):meta.mark);
+    const subtitle=row.subtitle||[row.sport,row.discipline,row.location_text].filter(Boolean).join(' · ');
+    const href=cspSearchHref(row);
+    const tag=href?'a':'div';
+    const hrefAttr=href?` href="${cspEsc(href)}"`:'';
+    return `<${tag} class="global-search-result${href?'':' is-static'}"${hrefAttr}>
+      <span class="global-search-avatar ${cspEsc(row.entity_type)}">${avatar}</span>
+      <span class="global-search-result-copy">
+        <span class="global-search-result-title">${cspEsc(row.title||meta.label)}</span>
+        <span class="global-search-result-subtitle">${cspEsc(subtitle||meta.label)}</span>
+      </span>
+      <span class="global-search-type">${cspEsc(meta.label)}</span>
+    </${tag}>`;
+  }).join('');
+}
+
+(function initGlobalSearch(){
+  const dialog=document.getElementById('globalSearchDialog');
+  const openBtn=document.getElementById('globalSearchOpen');
+  const closeBtn=document.getElementById('globalSearchClose');
+  const form=document.getElementById('globalSearchForm');
+  const input=document.getElementById('globalSearchInput');
+  const results=document.getElementById('globalSearchResults');
+  if(!dialog||!openBtn||!closeBtn||!form||!input||!results)return;
+  let timer=null,requestNumber=0;
+
+  function openSearch(){
+    if(dialog.open){input.focus();return;}
+    if(typeof dialog.showModal==='function')dialog.showModal();
+    else dialog.setAttribute('open','');
+    requestAnimationFrame(()=>input.focus());
+  }
+  function closeSearch(){
+    requestNumber++;
+    if(!dialog.open)return;
+    if(typeof dialog.close==='function')dialog.close();
+    else dialog.removeAttribute('open');
+    openBtn.focus();
+  }
+  async function runSearch(){
+    const query=input.value.trim();
+    const currentRequest=++requestNumber;
+    if(query.length<2){
+      results.innerHTML='<div class="global-search-state">Zadaj aspoň 2 znaky.</div>';
+      return;
+    }
+    if(!window.cspAuth?.client){
+      results.innerHTML='<div class="global-search-state">Vyhľadávanie momentálne nie je dostupné.</div>';
+      return;
+    }
+    results.innerHTML='<div class="global-search-state">Hľadám…</div>';
+    try{
+      const {data,error}=await cspAuth.client.rpc('global_search',{
+        p_query:query,p_limit:20,p_types:null
+      });
+      if(currentRequest!==requestNumber)return;
+      if(error)throw error;
+      cspRenderSearchResults(Array.isArray(data)?data:[]);
+    }catch(err){
+      if(currentRequest!==requestNumber)return;
+      console.error('[global search]',err);
+      results.innerHTML='<div class="global-search-state">Vyhľadávanie sa nepodarilo načítať.</div>';
+    }
+  }
+
+  openBtn.addEventListener('click',openSearch);
+  closeBtn.addEventListener('click',closeSearch);
+  form.addEventListener('submit',event=>{event.preventDefault();clearTimeout(timer);runSearch();});
+  input.addEventListener('input',()=>{clearTimeout(timer);requestNumber++;timer=setTimeout(runSearch,260);});
+  dialog.addEventListener('click',event=>{if(event.target===dialog)closeSearch();});
+  dialog.addEventListener('close',()=>{requestNumber++;});
+})();
 
 (async function(){
   const box=document.getElementById('landingTournamentList');
