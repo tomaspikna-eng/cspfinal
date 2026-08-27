@@ -22,7 +22,7 @@ button{cursor:pointer}
 .hidden{display:none!important}
 .wrap{width:min(1080px,calc(100% - 28px));margin:18px auto 50px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border:1px solid var(--line);border-radius:16px;background:#0b0d0c}
-.brand img{display:block;width:180px;max-width:46vw}
+.brand img{display:block;width:220px;max-width:48vw;height:auto;object-fit:contain;object-position:left center}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap}
 .btn{min-height:42px;padding:0 14px;border-radius:9px;border:1px solid var(--line2);background:#151815;color:#eee;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .btn.gold{background:var(--gold);border-color:var(--gold);color:#211806}
@@ -81,6 +81,7 @@ button{cursor:pointer}
     <div class="top-actions">
       <a class="btn" id="editorOverviewLink" href="/profil/?view=public">← Prehľad</a>
       <a class="btn green" id="publicProfileLink" href="/profil/">Verejný profil</a>
+      <button class="btn" id="logoutButton" type="button">Odhlásiť</button>
     </div>
   </header>
 
@@ -460,6 +461,15 @@ $("avatarInput").addEventListener("change",()=>uploadAvatar($("avatarInput").fil
 $("galleryButton").addEventListener("click",()=>$("galleryInput").click());
 $("galleryInput").addEventListener("change",()=>uploadGalleryImage($("galleryInput").files?.[0]));
 $("saveButton").addEventListener("click",saveProfile);
+$("logoutButton").addEventListener("click",async()=>{
+  try{
+    if(db) await db.auth.signOut();
+  }catch(error){
+    console.warn("[profile editor] sign out:",error);
+  }finally{
+    location.replace("/");
+  }
+});
 
 init();
 </script>
