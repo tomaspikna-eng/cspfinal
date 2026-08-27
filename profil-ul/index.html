@@ -248,19 +248,6 @@ a{color:inherit;text-decoration:none}
 .btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
 .btn-green{background:var(--green);color:#06230f}
 .btn-green:hover{background:#2dd97a}
-.btn.following{background:transparent;border:1px solid var(--gold-b);color:var(--gold)}
-body.public-profile-mode .sidebar{display:none!important}
-body.public-profile-mode .app{grid-template-columns:1fr}
-body.public-profile-mode .content-grid,
-body.public-profile-mode .sport-tabs,
-body.public-profile-mode .nav-cta-green,
-body.public-profile-mode .avatar-edit,
-body.public-profile-mode .cover-edit{display:none!important}
-body.public-profile-mode .profile{padding-bottom:36px}
-body.public-profile-mode .profile-header{max-width:1100px;margin-left:auto;margin-right:auto}
-body.public-profile-mode .stats-bar{max-width:1100px;margin-left:auto;margin-right:auto}
-body.public-profile-mode .stats-bar .stat:nth-child(n+3){display:none}
-body.public-profile-mode .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 /* ════════════════════════════════════
    STATS BAR
@@ -556,6 +543,7 @@ body.public-profile-mode .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr)
 }
 .follow-btn:hover{background:var(--gold-dim)}
 .follow-btn.following{background:var(--gold-dim);color:var(--gold)}
+.social-pack{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.social-pack .btn{min-width:86px}.social-like.liked{border-color:rgba(255,91,100,.45);background:rgba(255,91,100,.08);color:#ff7b82}.social-follow.following{border-color:rgba(30,200,106,.45);background:rgba(30,200,106,.08);color:var(--green)}.social-count{font-family:var(--mono);font-size:.68rem;opacity:.76}.public-profile-mode .sidebar,.public-profile-mode .topbar,.public-profile-mode .stats-bar,.public-profile-mode .content-grid,.public-profile-mode .cover-edit,.public-profile-mode .avatar-edit{display:none!important}.public-profile-mode .main{margin-left:0!important}.public-profile-mode .profile-main{max-width:1180px;margin:0 auto}.public-profile-bio{margin-top:12px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--bg2);color:var(--text-soft);line-height:1.7;white-space:pre-wrap}
 
 /* Upcoming tournaments */
 .t-list{display:flex;flex-direction:column;gap:10px}
@@ -608,18 +596,6 @@ body.public-profile-mode .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr)
 }
 .modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
 .modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-
-.training-post-open{cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease}
-.training-post-open:hover{border-color:rgba(212,168,67,.55);background:rgba(212,168,67,.035)}
-.training-post-open:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.activity-modal-card{width:min(760px,calc(100vw - 28px))}
-.activity-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.activity-grid .settings-field.full{grid-column:1/-1}
-.activity-actions-note{font-size:.78rem;color:var(--muted);line-height:1.5}
-@media(max-width:720px){
-  .activity-grid{grid-template-columns:1fr}
-  .activity-grid .settings-field.full{grid-column:auto}
-}
 .modal-foot{
   padding:16px 22px;border-top:1px solid var(--line);
   display:flex;justify-content:flex-end;gap:10px;
@@ -755,6 +731,7 @@ body.admin-dashboard-mode .content-side{display:none!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-social.js?v=20260827-1" defer></script>
 <script src="/assets/csp-notifications.js"></script>
 </head>
 <body>
@@ -858,9 +835,12 @@ body.admin-dashboard-mode .content-side{display:none!important}
         </div>
 
         <div class="profile-actions">
+          <div class="social-pack" id="ultraSocialPack">
+            <button class="btn btn-secondary social-like hidden" id="ultraLikeBtn" type="button">♥ Like <span class="social-count" id="ultraLikeCount">0</span></button>
+            <button class="btn btn-secondary" id="ultraShareBtn" type="button">↗ Share</button>
+            <button class="btn btn-secondary social-follow hidden" id="ultraFollowBtn" type="button"><span data-follow-label>+ Follow</span> <span class="social-count" id="ultraFollowCount">0</span></button>
+          </div>
           <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
-          <button class="btn btn-primary hidden" id="followProfileBtn">+ Sledovať</button>
-          <button class="btn btn-secondary" id="shareProfileBtn">📤 Share</button>
         </div>
       </div>
 
@@ -1111,62 +1091,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
   </div>
 </div>
 
-
-<!-- ═══════════ ACTIVITY MODAL ═══════════ -->
-<div class="modal-overlay" id="activityOverlay">
-  <div class="modal-card activity-modal-card">
-    <div class="modal-head">
-      <h2>Upraviť tréning</h2>
-      <button class="modal-close" id="closeActivityBtn" type="button" title="Zavrieť">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="activity-grid">
-        <div class="settings-field">
-          <label>Šport</label>
-          <input type="text" id="activitySport" maxlength="80"/>
-        </div>
-        <div class="settings-field">
-          <label>Disciplína</label>
-          <input type="text" id="activityDiscipline" maxlength="120"/>
-        </div>
-
-        <div class="settings-field">
-          <label>Hráč 1</label>
-          <input type="text" id="activityPlayer1" maxlength="160"/>
-        </div>
-        <div class="settings-field">
-          <label>Hráč 2</label>
-          <input type="text" id="activityPlayer2" maxlength="160"/>
-        </div>
-
-        <div class="settings-field">
-          <label>Skóre hráča 1</label>
-          <input type="number" id="activityScore1" min="0" max="999"/>
-        </div>
-        <div class="settings-field">
-          <label>Skóre hráča 2</label>
-          <input type="number" id="activityScore2" min="0" max="999"/>
-        </div>
-
-        <div class="settings-field">
-          <label>Dátum a čas</label>
-          <input type="datetime-local" id="activityOccurredAt"/>
-        </div>
-        <div class="settings-field">
-          <label>Trvanie (min)</label>
-          <input type="number" id="activityDuration" min="0" max="1440"/>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-foot">
-      <button class="btn btn-secondary" id="cancelActivityBtn" type="button">Zrušiť</button>
-      <button class="btn btn-primary" id="saveActivityBtn" type="button">Uložiť zmeny</button>
-    </div>
-  </div>
-</div>
-
 <input type="file" id="avatarFileInput" accept="image/*" style="display:none"/>
 
 <div class="toast" id="toast"></div>
@@ -1239,10 +1163,6 @@ function toast(msg, type){
 // ── State shared between the auth gate and the settings modal ────────
 let currentSession = null;
 let currentProfile = null;
-let viewedProfileId = null;
-let isOwnProfile = true;
-let socialState = {};
-let activeTrainingActivity = null;
 
 // ── Shared identity rendering (used on load AND after a settings save,
 // so the page never needs a reload to reflect a change) ──────────────
@@ -1250,7 +1170,8 @@ function computeInitials(name){
   return (name && name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
 }
 function renderIdentity(){
-  const displayName = (currentProfile && currentProfile.full_name) || (currentSession?.user?.email ? currentSession.user.email.split('@')[0] : 'Profil');
+  if(!currentSession) return;
+  const displayName = (currentProfile && currentProfile.full_name) || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč');
   const initials = computeInitials(displayName);
 
   document.title = displayName + ' · Connect Sports Pro';
@@ -1280,12 +1201,12 @@ function renderIdentity(){
     const clubManagerShortcut = document.getElementById('clubManagerShortcut');
     const cmsShortcut = document.getElementById('cmsShortcut');
     const adminToolsSection = document.getElementById('adminToolsSection');
-    const canUseAdminShortcuts = isOwnProfile && isAdmin;
+    const canUseAdminShortcuts = isAdmin;
     clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
 
-    document.body.classList.toggle('admin-dashboard-mode', isOwnProfile && isAdmin);
+    document.body.classList.toggle('admin-dashboard-mode', isAdmin);
     document.getElementById('matchesNavSection')?.classList.toggle('hidden', isAdmin);
     document.getElementById('recentMatchesNav')?.classList.toggle('hidden', isAdmin);
   }
@@ -1323,7 +1244,6 @@ function renderMemberSince(){
 // reusing the session/profile already established by the auth gate
 // (authGateReady, defined further below) rather than re-fetching it.
 let zapasyLoaded = false;
-let zapasySessions = new Map();
 
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1344,39 +1264,6 @@ function zpPlayerStat(finalScore, name){
   for(const key of ZP_SCORE_KEYS){ if(entry[key] !== undefined) return entry[key]; }
   const anyNumeric = Object.entries(entry).find(([k, v]) => k !== 'name' && typeof v === 'number');
   return anyNumeric ? anyNumeric[1] : null;
-}
-function zpScoreForSlot(s, slot){
-  const names = Array.isArray(s.player_names) ? s.player_names : [];
-  const byFinal = zpPlayerStat(s.final_score, names[slot-1]);
-  if(byFinal != null) return Number(byFinal);
-  if(Array.isArray(s.live_scores) && s.live_scores[slot-1] != null) return Number(s.live_scores[slot-1]);
-  return 0;
-}
-function zpWinnerName(s){
-  if(s.winner_name) return s.winner_name;
-  const names = Array.isArray(s.player_names) ? s.player_names : [];
-  const a = zpScoreForSlot(s,1), b = zpScoreForSlot(s,2);
-  if(a>b) return names[0] || null;
-  if(b>a) return names[1] || null;
-  return null;
-}
-function zpOccurredAt(s){
-  return s.completed_at || s.archived_at || s.played_at || s.updated_at || s.created_at;
-}
-function zpEffectiveDuration(s){
-  const direct = Number(s.duration_seconds || s.elapsed_seconds || 0);
-  if(direct > 0) return direct;
-  if(s.started_at && s.archived_at){
-    return Math.max(0, Math.round((new Date(s.archived_at)-new Date(s.started_at))/1000));
-  }
-  return 0;
-}
-function zpLocalDateTime(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  if(Number.isNaN(d.getTime())) return '';
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function zpFormatDuration(totalSeconds){
   if(totalSeconds == null) return '';
@@ -1399,45 +1286,47 @@ function zpRelativeDate(iso){
 
 function renderZapasyCard(s){
   const names = Array.isArray(s.player_names) ? s.player_names : [];
-  const winner = zpWinnerName(s);
-  const scoreSummary = names.slice(0,2).map((_, i) => zpScoreForSlot(s, i+1)).join(' : ');
-  const durationText = zpFormatDuration(zpEffectiveDuration(s));
-  const occurredAt = zpOccurredAt(s);
+  const winner = s.winner_name;
+  const scoreSummary = names.map(n => { const v = zpPlayerStat(s.final_score, n); return v == null ? '?' : v; }).join(' : ');
+  const durationText = zpFormatDuration(s.duration_seconds);
 
   let playersHtml;
   if(names.length === 2){
     const [n1, n2] = names;
-    const s1 = zpScoreForSlot(s,1), s2 = zpScoreForSlot(s,2);
+    const s1 = zpPlayerStat(s.final_score, n1), s2 = zpPlayerStat(s.final_score, n2);
     const w1 = n1 === winner, w2 = n2 === winner;
     playersHtml = `
       <div class="match-card">
         <div class="match-player">
           <div class="mp-av">${escapeHtml(computeInitials(n1))}</div>
           <div class="mp-info"><div class="mp-name ${w1 ? 'winner' : ''}">${escapeHtml(n1)}${w1 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w1 ? 'winner' : ''}">${escapeHtml(s1)}</div>
+          <div class="mp-score ${w1 ? 'winner' : ''}">${s1 == null ? '–' : escapeHtml(s1)}</div>
         </div>
         <div class="match-vs">:</div>
         <div class="match-player right">
           <div class="mp-av opp">${escapeHtml(computeInitials(n2))}</div>
           <div class="mp-info"><div class="mp-name ${w2 ? 'winner' : ''}">${escapeHtml(n2)}${w2 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w2 ? 'winner' : ''}">${escapeHtml(s2)}</div>
+          <div class="mp-score ${w2 ? 'winner' : ''}">${s2 == null ? '–' : escapeHtml(s2)}</div>
         </div>
       </div>`;
   } else {
-    playersHtml = `<div class="zp-players-simple">${names.map((n, i) => {
-      const v = zpScoreForSlot(s,i+1);
+    // 3 players (or an unexpected count) — .match-card's grid is built for
+    // exactly two sides, so this simpler row avoids forcing a mismatched
+    // layout while still visually distinguishing the winner.
+    playersHtml = `<div class="zp-players-simple">${names.map(n => {
+      const v = zpPlayerStat(s.final_score, n);
       const isWinner = n === winner;
-      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''} · ${escapeHtml(v)}</span>`;
+      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''}${v != null ? ' · ' + escapeHtml(v) : ''}</span>`;
     }).join('')}</div>`;
   }
 
   return `
-    <div class="post training-post-open" data-training-id="${escapeHtml(s.id)}" role="button" tabindex="0">
+    <div class="post">
       <div class="post-head">
         <div class="post-avatar">🏓</div>
         <div class="post-meta">
           <div class="post-name">${escapeHtml(s.sport)} · ${escapeHtml(s.discipline)}</div>
-          <div class="post-time">${zpRelativeDate(occurredAt)}</div>
+          <div class="post-time">${zpRelativeDate(s.played_at)}</div>
         </div>
       </div>
       <div class="post-body">
@@ -1449,6 +1338,7 @@ function renderZapasyCard(s){
       </div>
     </div>`;
 }
+
 async function loadZapasyTab(){
   if(zapasyLoaded) return;
   await authGateReady; // reuse the session the auth gate already established, never re-fetch it here
@@ -1468,98 +1358,14 @@ async function loadZapasyTab(){
       return;
     }
     const listEl = document.getElementById('zapasyList');
-    zapasySessions = new Map(data.map(s => [String(s.id), s]));
     listEl.innerHTML = data.map(renderZapasyCard).join('');
     listEl.style.display = '';
-    listEl.querySelectorAll('[data-training-id]').forEach(card => {
-      const open = () => openTrainingActivity(card.dataset.trainingId);
-      card.addEventListener('click', open);
-      card.addEventListener('keydown', e => {
-        if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          open();
-        }
-      });
-    });
   } catch(err){
     console.error('[profil] Failed to load training_sessions:', err);
     zapasyLoaded = false; // allow a retry on the next tab switch
     document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Nepodarilo sa načítať tréningy. Skús to znova.</div>';
   }
 }
-
-
-function openTrainingActivity(sessionId){
-  const s = zapasySessions.get(String(sessionId));
-  if(!s) return;
-  activeTrainingActivity = s;
-
-  const names = Array.isArray(s.player_names) ? s.player_names : [];
-  document.getElementById('activitySport').value = s.sport || '';
-  document.getElementById('activityDiscipline').value = s.discipline || '';
-  document.getElementById('activityPlayer1').value = names[0] || '';
-  document.getElementById('activityPlayer2').value = names[1] || '';
-  document.getElementById('activityScore1').value = zpScoreForSlot(s,1);
-  document.getElementById('activityScore2').value = zpScoreForSlot(s,2);
-  document.getElementById('activityOccurredAt').value = zpLocalDateTime(zpOccurredAt(s));
-  document.getElementById('activityDuration').value = Math.round(zpEffectiveDuration(s)/60);
-
-  document.getElementById('activityOverlay').classList.add('open');
-}
-function closeTrainingActivity(){
-  activeTrainingActivity = null;
-  document.getElementById('activityOverlay')?.classList.remove('open');
-}
-async function saveTrainingActivity(){
-  if(!activeTrainingActivity || !currentSession) return;
-  const btn = document.getElementById('saveActivityBtn');
-  const occurred = document.getElementById('activityOccurredAt').value;
-  btn.disabled = true;
-  btn.textContent = 'Ukladám…';
-  try{
-    const {data,error} = await cspAuth.client.rpc('edit_my_training_activity',{
-      p_session_id: activeTrainingActivity.id,
-      p_sport: document.getElementById('activitySport').value.trim(),
-      p_discipline: document.getElementById('activityDiscipline').value.trim(),
-      p_player1_name: document.getElementById('activityPlayer1').value.trim(),
-      p_player2_name: document.getElementById('activityPlayer2').value.trim(),
-      p_score1: Math.max(0, Number(document.getElementById('activityScore1').value)||0),
-      p_score2: Math.max(0, Number(document.getElementById('activityScore2').value)||0),
-      p_occurred_at: occurred ? new Date(occurred).toISOString() : null,
-      p_duration_seconds: Math.max(0, Math.round((Number(document.getElementById('activityDuration').value)||0)*60))
-    });
-    if(error) throw error;
-
-    const updated = Array.isArray(data) ? data[0] : data;
-    if(updated?.id) zapasySessions.set(String(updated.id), updated);
-
-    toast('Aktivita bola upravená.');
-    closeTrainingActivity();
-    zapasyLoaded = false;
-    document.getElementById('zapasyList').style.display = 'none';
-    document.getElementById('zapasyLoading').style.display = '';
-    document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Načítavam tréningy…</div>';
-    await loadZapasyTab();
-  }catch(err){
-    console.error('[profil-ul] Failed to edit training activity:', err);
-    toast(err.message || 'Aktivitu sa nepodarilo uložiť.', 'error');
-  }finally{
-    btn.disabled = false;
-    btn.textContent = 'Uložiť zmeny';
-  }
-}
-
-document.getElementById('closeActivityBtn')?.addEventListener('click', closeTrainingActivity);
-document.getElementById('cancelActivityBtn')?.addEventListener('click', closeTrainingActivity);
-document.getElementById('saveActivityBtn')?.addEventListener('click', saveTrainingActivity);
-document.getElementById('activityOverlay')?.addEventListener('click', e => {
-  if(e.target === document.getElementById('activityOverlay')) closeTrainingActivity();
-});
-document.addEventListener('keydown', e => {
-  if(e.key === 'Escape' && document.getElementById('activityOverlay')?.classList.contains('open')){
-    closeTrainingActivity();
-  }
-});
 
 // ── Settings modal ─────────────────────────────────────────────────
 function openSettings(){
@@ -1719,73 +1525,12 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async () =
 });
 
 
-
-function canFollowUltraProfile(){
-  const role=String(currentProfile?.role||'').toLowerCase();
-  return role!=='admin' && ['club','organization','player'].includes(role);
-}
-async function loadFollowState(){
-  if(!viewedProfileId)return;
-  try{
-    const {data,error}=await cspAuth.client.rpc('get_profile_social_state',{p_profile_id:viewedProfileId});
-    if(error)throw error;
-    const row=Array.isArray(data)?data[0]:data;
-    socialState=row||{};
-
-    const followingEl=document.getElementById('followingCount');
-    const followersEl=document.getElementById('followersCount');
-    if(followingEl)followingEl.textContent=String(row?.following_count||0);
-    if(followersEl)followersEl.textContent=String(row?.followers_count||0);
-
-    const btn=document.getElementById('followProfileBtn');
-    if(!btn)return;
-    if(isOwnProfile || !canFollowUltraProfile()){
-      btn.classList.add('hidden');
-      return;
-    }
-    btn.classList.remove('hidden');
-    const following=!!row?.viewer_follows;
-    btn.textContent=following?'✓ Sledujem':'+ Sledovať';
-    btn.classList.toggle('following',following);
-    btn.classList.toggle('btn-primary',!following);
-  }catch(err){
-    console.error('[profil-ul] Follow state failed:',err);
-  }
-}
-async function toggleFollowProfile(){
-  if(!viewedProfileId || isOwnProfile || !canFollowUltraProfile())return;
-  const btn=document.getElementById('followProfileBtn');
-  if(btn)btn.disabled=true;
-  try{
-    if(socialState.viewer_follows){
-      const {error}=await cspAuth.client.from('profile_follows').delete()
-        .eq('follower_id',currentSession.user.id)
-        .eq('following_profile_id',viewedProfileId);
-      if(error)throw error;
-    }else{
-      const {error}=await cspAuth.client.from('profile_follows').insert({
-        follower_id:currentSession.user.id,
-        following_profile_id:viewedProfileId
-      });
-      if(error)throw error;
-    }
-    await loadFollowState();
-  }catch(err){
-    console.error('[profil-ul] Follow toggle failed:',err);
-    toast(err.message||'Sledovanie sa nepodarilo zmeniť.','error');
-  }finally{
-    if(btn)btn.disabled=false;
-  }
-}
-document.getElementById('followProfileBtn')?.addEventListener('click',toggleFollowProfile);
-
 async function loadFollowCounts(){
   if(!currentSession) return;
-  const targetId=viewedProfileId||currentSession.user.id;
   try{
     const [following,followers]=await Promise.all([
-      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',targetId),
-      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',targetId)
+      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',currentSession.user.id),
+      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',currentSession.user.id)
     ]);
     if(following.error) throw following.error;
     if(followers.error) throw followers.error;
@@ -1798,22 +1543,6 @@ async function loadFollowCounts(){
   }
 }
 
-
-
-document.getElementById('shareProfileBtn')?.addEventListener('click',async()=>{
-  const url=new URL(location.href);
-  if(viewedProfileId)url.searchParams.set('id',viewedProfileId);
-  try{
-    if(navigator.share){
-      await navigator.share({title:(currentProfile?.full_name||'Profil')+' · Connect Sports Pro',url:url.toString()});
-    }else{
-      await navigator.clipboard.writeText(url.toString());
-      toast('Odkaz na profil bol skopírovaný.');
-    }
-  }catch(err){
-    if(err?.name!=='AbortError')toast('Profil sa nepodarilo zdieľať.','error');
-  }
-});
 
 // ── ADMIN tournament dashboard ─────────────────────────────────────
 let adminTournamentRows=[];
@@ -2000,14 +1729,90 @@ document.querySelectorAll('[data-admin-tournament-filter]').forEach(btn=>{
 // exact in-flight/completed check instead of calling getSession() again
 // itself, per the same "avoid a redundant second call" reasoning already
 // documented for getCurrentProfile() above.
+
+async function bindUltraSocial(profile){
+  if(!profile?.id || !window.cspSocial?.bindProfilePack)return;
+  await window.cspSocial.bindProfilePack({
+    client:cspAuth.client,
+    profileId:profile.id,
+    role:profile.role,
+    likeButton:"ultraLikeBtn",
+    likeCount:"ultraLikeCount",
+    shareButton:"ultraShareBtn",
+    followButton:"ultraFollowBtn",
+    followCount:"ultraFollowCount",
+    title:`CSP profil – ${profile.full_name||"Profil"}`,
+    onCopied:()=>toast("Odkaz na profil je skopírovaný."),
+    onError:()=>toast("Akciu sa nepodarilo vykonať.","error")
+  });
+}
+function renderPublicUltraProfile(profile){
+  currentProfile=profile;
+  document.body.classList.add("public-profile-mode");
+  const displayName=profile.full_name||"Profil";
+  document.title=displayName+" · Connect Sports Pro";
+  document.getElementById("profileName").textContent=displayName;
+  const badge=document.getElementById("profileAccessBadge");
+  if(badge){
+    const role=String(profile.role||"").toLowerCase();
+    badge.classList.remove("hidden","admin","ultra");
+    if(role==="club" || role==="organization"){badge.textContent="ULTRA";badge.classList.add("ultra");}
+    else{badge.classList.add("hidden");}
+  }
+  const initials=computeInitials(displayName);
+  const avatar=document.getElementById("profileAvatarInitials");
+  if(avatar){
+    avatar.textContent=initials;
+    if(profile.avatar_url){
+      avatar.style.backgroundImage=`url("${String(profile.avatar_url).replaceAll('"','%22')}")`;
+      avatar.style.backgroundSize="cover";avatar.style.backgroundPosition="center";
+      avatar.textContent="";
+    }
+  }
+  document.getElementById("editProfileBtn")?.classList.add("hidden");
+  const since=document.getElementById("memberSinceMeta");
+  if(since && profile.created_at){
+    const d=new Date(profile.created_at);
+    since.innerHTML=`<span class="meta-i">📅</span> Člen od ${d.toLocaleDateString("sk-SK",{month:"long",year:"numeric"})}`;
+  }
+  const main=document.querySelector(".profile-main") || document.querySelector(".main");
+  if(main && profile.bio && !document.getElementById("publicUltraBio")){
+    const bio=document.createElement("section");
+    bio.id="publicUltraBio";bio.className="public-profile-bio";
+    bio.textContent=profile.bio;
+    main.appendChild(bio);
+  }
+  bindUltraSocial(profile).catch(console.error);
+}
+
 const authGateReady = (async function initAuthGate(){
   try {
+    const params=new URLSearchParams(location.search);
+    const requestedProfileId=params.get("id");
+    const publicView=params.get("view")==="public";
     const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
+    currentSession = session || null;
+
+    if(requestedProfileId && publicView){
+      const publicResult=await cspAuth.withTimeout(
+        cspAuth.client.from("profiles").select("id,full_name,role,avatar_url,cover_url,bio,created_at").eq("id",requestedProfileId).maybeSingle(),
+        8000,"public profile"
+      );
+      if(publicResult.error)throw publicResult.error;
+      if(!publicResult.data)throw new Error("Profil sa nenašiel.");
+      const publicRole=String(publicResult.data.role||"player").toLowerCase();
+      if(publicRole==="player"){
+        location.replace(`/profil/?id=${encodeURIComponent(publicResult.data.id)}&view=public`);
+        return;
+      }
+      renderPublicUltraProfile(publicResult.data);
+      return;
+    }
+
     if(!session){
       window.location.href = '/login/';
       return;
     }
-    currentSession = session;
 
     // Pass session.user through so getCurrentProfile() doesn't need to
     // call getSession() again internally — see its definition in
@@ -2018,40 +1823,10 @@ const authGateReady = (async function initAuthGate(){
     }
     currentProfile = profile;
 
-    const requestedProfileId=new URLSearchParams(location.search).get('id');
-    viewedProfileId=requestedProfileId||session.user.id;
-    isOwnProfile=viewedProfileId===session.user.id;
-
-    if(!isOwnProfile){
-      const {data:viewed,error:viewedError}=await cspAuth.withTimeout(
-        cspAuth.client.from('profiles')
-          .select('id,full_name,role,plan,is_admin,avatar_url,cover_url,bio,created_at')
-          .eq('id',viewedProfileId)
-          .maybeSingle(),
-        8000,
-        'load viewed profile'
-      );
-      if(viewedError)throw viewedError;
-      if(!viewed)throw new Error('Profil neexistuje.');
-
-      const targetRole=String(viewed.role||'player').toLowerCase();
-      if(targetRole==='player'){
-        window.location.replace('/profil/?id='+encodeURIComponent(viewedProfileId)+'&view=public');
-        return;
-      }
-
-      currentProfile=viewed;
-      document.body.classList.add('public-profile-mode');
-      document.getElementById('editProfileBtn')?.classList.add('hidden');
-      document.getElementById('adminToolsSection')?.classList.add('hidden');
-      document.getElementById('clubManagerShortcut')?.classList.add('hidden');
-      document.getElementById('cmsShortcut')?.classList.add('hidden');
-    }
-
-    // ROLE ROUTING GUARD: own /profil-ul/ is only for club, organization and admin.
-    const resolvedRole = String((currentProfile && currentProfile.role) || 'player').toLowerCase();
-    const resolvedAdmin = !!(currentProfile && currentProfile.is_admin) || resolvedRole === 'admin';
-    if(isOwnProfile && !resolvedAdmin && resolvedRole === 'player'){
+    // ROLE ROUTING GUARD: /profil-ul/ is only for club, organization and admin.
+    const resolvedRole = String((profile && profile.role) || 'player').toLowerCase();
+    const resolvedAdmin = !!(profile && profile.is_admin) || resolvedRole === 'admin';
+    if(!resolvedAdmin && resolvedRole === 'player'){
       window.location.replace('/profil/');
       return;
     }
@@ -2059,8 +1834,8 @@ const authGateReady = (async function initAuthGate(){
     renderIdentity();
     renderMemberSince();
     loadFollowCounts();
-    loadFollowState();
-    if(isOwnProfile && resolvedAdmin) loadAdminTournaments();
+    bindUltraSocial(currentProfile).catch(err=>console.error("[profil-ul] social:",err));
+    if(resolvedAdmin) loadAdminTournaments();
     window.cspNotifications?.bind({
       client:cspAuth.client,
       button:document.getElementById('notificationsBtn')
