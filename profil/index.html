@@ -45,6 +45,71 @@
     @media(max-width:1100px){.profile-grid{grid-template-columns:1fr}.side-column{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr 1fr}.matches{grid-column:1/-1}}
     @media(max-width:780px){.shell{display:block}.sidebar{display:none}.topbar{padding:0 15px}.stage{padding:14px 14px 35px}.player-header{min-height:220px;align-items:flex-start;padding-top:45px;flex-wrap:wrap}.avatar{width:70px;height:70px;flex-basis:70px}.identity{margin-left:12px;max-width:calc(100% - 84px)}.name-line h1{font-size:20px}.identity p{flex-wrap:wrap}.header-actions{width:100%;margin:12px 0 0 82px}.metrics{grid-template-columns:repeat(2,1fr)}.side-column,.lower-grid{grid-template-columns:1fr}.matches{grid-column:auto}.legend{justify-content:flex-start;flex-wrap:wrap}}
     @media(max-width:520px){.topbar .status-pill span{display:none}.player-header{padding-left:17px;padding-right:17px}.identity p i{display:none}.header-actions{margin-left:0}.header-actions .button{flex:1}.metrics{grid-template-columns:1fr 1fr}.metric{min-height:88px}.metric strong{font-size:22px}.diary{padding:13px}.week span{min-height:52px}.diary-actions .button:first-child{display:none}}
+  
+    /* PUBLIC PLAYER PROFILE — isolated from the signed-in dashboard */
+    body.public-player-mode{background:#050505}
+    body.public-player-mode .shell{display:block;min-height:100vh}
+    body.public-player-mode .sidebar,
+    body.public-player-mode .topbar,
+    body.public-player-mode .stage>.player-header,
+    body.public-player-mode .stage>.metrics,
+    body.public-player-mode .stage>.profile-grid,
+    body.public-player-mode .stage>.lower-grid{display:none!important}
+    body.public-player-mode .workspace{min-width:0}
+    body.public-player-mode .stage{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+    .public-player{display:none}
+    body.public-player-mode .public-player{display:block}
+    .public-top{display:flex;align-items:center;justify-content:space-between;padding:6px 0 22px;border-bottom:1px solid var(--line)}
+    .public-brand{font-size:16px;font-weight:900;letter-spacing:.01em}
+    .public-brand .connect,.public-brand .pro{color:var(--gold)}
+    .public-brand .sports{color:#fff}
+    .public-type{font-size:11px;color:var(--muted)}
+    .public-hero{display:grid;grid-template-columns:210px minmax(0,1fr);gap:30px;align-items:center;padding:34px 0 28px}
+    .public-avatar{width:190px;height:190px;border-radius:24px;border:1px solid rgba(212,168,67,.3);background:#101010;display:grid;place-items:center;overflow:hidden;font-size:52px;font-weight:900;color:var(--gold);box-shadow:0 18px 50px rgba(0,0,0,.42)}
+    .public-avatar img{width:100%;height:100%;object-fit:cover}
+    .public-kicker{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+    .public-pro-badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.28);color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.08em}
+    .public-sportline{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+    .public-name{margin:0 0 8px;font-size:42px;line-height:1.03;letter-spacing:-.035em}
+    .public-member{font-size:13px;color:#b8b8b8;margin-bottom:17px}
+    .public-social{display:flex;gap:9px;flex-wrap:wrap}
+    .public-social .button{min-width:88px}
+    .public-social .button.liked{border-color:rgba(255,91,100,.55);background:rgba(255,91,100,.09);color:#ff7b82}
+    .public-social .button.following{border-color:rgba(34,211,107,.48);background:rgba(34,211,107,.09);color:var(--green)}
+    .public-section{padding:26px 0;border-top:1px solid var(--line)}
+    .public-section-label{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--green);margin-bottom:14px}
+    .public-gallery{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+    .public-photo{aspect-ratio:4/3;border-radius:15px;overflow:hidden;border:1px solid var(--line);background:#111;min-height:190px}
+    .public-photo img{width:100%;height:100%;display:block;object-fit:cover}
+    .public-bio-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
+    .public-panel{background:#0b0b0b;border:1px solid var(--line);border-radius:15px;padding:20px}
+    .public-panel h2{margin:0 0 13px;font-size:18px}
+    .public-bio-copy{font-size:13px;line-height:1.72;color:#d2d2d2;white-space:pre-wrap}
+    .public-cv-list{display:grid}
+    .public-cv-row{display:grid;grid-template-columns:150px 1fr;gap:18px;padding:12px 0;border-bottom:1px solid #1b1b1b}
+    .public-cv-row:last-child{border-bottom:0}
+    .public-cv-key{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+    .public-cv-val{font-size:13px;color:#eee}
+    @media(max-width:820px){
+      body.public-player-mode .stage{padding:18px 16px 50px}
+      .public-hero{grid-template-columns:150px minmax(0,1fr);gap:20px}
+      .public-avatar{width:145px;height:145px;border-radius:20px;font-size:42px}
+      .public-name{font-size:34px}
+      .public-gallery{grid-template-columns:1fr 1fr}
+      .public-gallery .public-photo:first-child{grid-column:1/-1}
+      .public-bio-grid{grid-template-columns:1fr}
+    }
+    @media(max-width:560px){
+      body.public-player-mode .stage{padding:14px 14px 40px}
+      .public-top{padding-bottom:14px}
+      .public-hero{grid-template-columns:1fr;padding-top:22px}
+      .public-avatar{width:132px;height:132px}
+      .public-name{font-size:31px}
+      .public-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+      .public-photo{min-width:82%;scroll-snap-align:start}
+      .public-cv-row{grid-template-columns:1fr;gap:4px}
+    }
+
   </style>
 </head>
 <body>
@@ -54,7 +119,7 @@
     <aside class="sidebar">
       <a class="brand" href="/"><div class="mark">CSP</div><div class="brand-copy"><b>Connect</b><strong>Sports Pro</strong></div></a>
       <nav class="nav" aria-label="Hlavná navigácia">
-        <a href="/"><span class="nav-icon">⌂</span>Prehľad</a><a class="active" href="/profil/"><span class="nav-icon">●</span>Môj profil</a><a href="/turnaje/"><span class="nav-icon">▦</span>Turnaje</a><a href="/zapasy/"><span class="nav-icon">▶</span>Zápasy</a><a href="/treningy/"><span class="nav-icon">◎</span>Tréningy <small id="nav-plan">PRO</small></a><a href="/rebricky/"><span class="nav-icon">≋</span>Rebríčky</a><a href="/komunita/"><span class="nav-icon">◇</span>Komunita</a>
+        <a id="public-profile-nav-link" href="/profil/?view=public"><span class="nav-icon">⌂</span>Prehľad</a><a class="active" href="/profil/moj-profil/"><span class="nav-icon">●</span>Môj profil</a><a href="/turnaje/"><span class="nav-icon">▦</span>Turnaje</a><a href="/zapasy/"><span class="nav-icon">▶</span>Zápasy</a><a href="/treningy/"><span class="nav-icon">◎</span>Tréningy <small id="nav-plan">PRO</small></a><a href="/rebricky/"><span class="nav-icon">≋</span>Rebríčky</a><a href="/komunita/"><span class="nav-icon">◇</span>Komunita</a>
       </nav>
       <div class="sidebar-spacer"></div><div class="smart-card"><span>SMART SYSTEM</span><p>Tvoj šport. Tvoje dáta. Tvoj progres.</p></div>
       <div class="side-user"><div id="mini-avatar" class="mini-avatar">–</div><div><b id="side-name">Hráč</b><span id="side-plan">Účet</span></div></div>
@@ -68,7 +133,7 @@
     <button id="profile-share-button" class="button" type="button">↗ Share</button>
     <button id="profile-follow-button" class="button gold hidden" type="button"><span data-follow-label>+ Follow</span> <span class="social-count" id="profile-follow-count">0</span></button>
   </div>
-  <a id="edit-profile-button" class="button gold" href="/profil/upravit/">Upraviť profil</a>
+  <a id="edit-profile-button" class="button gold" href="/profil/moj-profil/">Upraviť profil</a>
 </div></section>
         <section class="metrics"><div class="metric gold"><span>ČAS V HRE</span><strong id="metric-time">0 h</strong><small>posledných 30 dní</small></div><div class="metric green"><span>TRÉNINGY</span><strong id="metric-trainings">0</strong><small id="training-sub">dokončené</small></div><div class="metric red"><span>VYNECHANÉ</span><strong id="metric-missed">0</strong><small id="missed-sub">z naplánovaných</small></div><div class="metric green winrate-metric"><span>ÚSPEŠNOSŤ</span><strong id="metric-winrate">0 %</strong><small id="winrate-sub">celkovo</small><div class="winrate-split"><span><b id="metric-training-winrate">—</b><small>TRÉNINGY</small></span><span><b id="metric-tournament-winrate">—</b><small>TURNAJE</small></span></div></div></section>
         <div class="profile-grid">
@@ -251,39 +316,151 @@
         onError:()=>toast("Akciu sa nepodarilo vykonať.")
       });
     }
-    function renderPublicPlayerProfile(profile){
-      const name=profile.full_name||"Hráč";
-      text("player-name",name);
-      text("avatar-initials",initials(name));
-      $("plan-badge")?.classList.add("hidden");
-      text("role-label","HRÁČ");
-      text("sport-label","Verejný profil");
-      const joined=dateValue(profile.created_at);
-      text("member-since",joined?`Člen od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}`:"");
-      if(profile.avatar_url){
-        const img=new Image();img.alt=`Profilová fotografia: ${name}`;img.src=profile.avatar_url;
-        $("avatar")?.prepend(img);$("avatar-initials")?.classList.add("hidden");
+    async function loadPublicPlayerExtras(profileId){
+      const extras={disciplines:[],gallery:[]};
+
+      const {data:disciplines,error:disciplineError}=await profileClient
+        .from("player_disciplines")
+        .select("sport,discipline,is_primary")
+        .eq("player_id",profileId)
+        .order("is_primary",{ascending:false});
+      if(!disciplineError) extras.disciplines=disciplines||[];
+
+      const {data:collections,error:collectionError}=await profileClient
+        .from("gallery_collections")
+        .select("id")
+        .eq("entity_type","profile")
+        .eq("entity_id",profileId)
+        .eq("visibility","public")
+        .not("published_at","is",null)
+        .order("published_at",{ascending:false})
+        .limit(1);
+
+      const galleryId=!collectionError && collections?.[0]?.id ? collections[0].id : null;
+      if(galleryId){
+        const {data:images,error:imageError}=await profileClient
+          .from("gallery_images")
+          .select("storage_path,caption,alt_text,sort_order")
+          .eq("gallery_id",galleryId)
+          .eq("is_published",true)
+          .order("sort_order",{ascending:true})
+          .limit(3);
+
+        if(!imageError && images?.length){
+          const resolved=[];
+          for(const image of images){
+            const {data:signed}=await profileClient.storage
+              .from("gallery-images")
+              .createSignedUrl(image.storage_path,3600);
+            if(signed?.signedUrl){
+              resolved.push({...image,url:signed.signedUrl});
+            }
+          }
+          extras.gallery=resolved.slice(0,3);
+        }
       }
-      document.querySelector(".metrics")?.classList.add("hidden");
-      document.querySelector(".profile-grid")?.classList.add("hidden");
-      document.querySelector(".lower-grid")?.classList.add("hidden");
-      document.querySelector(".sidebar")?.classList.add("hidden");
-      document.querySelector(".shell")?.style.setProperty("grid-template-columns","1fr");
-      document.querySelector(".topbar")?.classList.add("hidden");
-      $("edit-profile-button")?.classList.add("hidden");
+      return extras;
+    }
+
+    async function bindPublicProfileSocial(profile){
+      if(!window.cspSocial?.bindProfilePack || !profile?.id)return;
+      await window.cspSocial.bindProfilePack({
+        client:profileClient,
+        profileId:profile.id,
+        role:profile.role,
+        likeButton:"public-like-button",
+        likeCount:"public-like-count",
+        shareButton:"public-share-button",
+        followButton:"public-follow-button",
+        followCount:"public-follow-count",
+        title:`CSP profil – ${profile.full_name||"Profil"}`,
+        onCopied:()=>toast("Odkaz na profil je skopírovaný."),
+        onError:()=>toast("Akciu sa nepodarilo vykonať.")
+      });
+    }
+
+    async function renderPublicPlayerProfile(profile,extras={}){
+      const name=profile.full_name||"Hráč";
+      const disciplines=Array.isArray(extras.disciplines)?extras.disciplines:[];
+      const primary=disciplines.find(item=>item.is_primary)||disciplines[0]||null;
+      const sports=[...new Set(disciplines.map(item=>item.sport).filter(Boolean))];
+      const disciplineNames=[...new Set(disciplines.map(item=>item.discipline).filter(Boolean))];
+      const joined=dateValue(profile.created_at);
+      const memberText=joined ? `Člen CSP od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}` : "";
+      const plan=String(profile.plan||"").toLowerCase();
+      const sportLine=[primary?.sport,...disciplineNames].filter(Boolean).join(" · ");
+
+      document.body.classList.add("public-player-mode");
+      document.title=`${name} · Connect Sports Pro`;
 
       const stage=document.querySelector(".stage");
-      if(stage && !document.getElementById("public-profile-bio")){
-        const bio=document.createElement("section");
-        bio.id="public-profile-bio";bio.className="panel";
-        bio.style.marginTop="8px";bio.style.padding="20px";
-        bio.innerHTML=`<span class="panel-label">O MNE</span><div style="margin-top:10px;font-size:13px;line-height:1.7;color:#d7dad7;white-space:pre-wrap">${escapeProfileHtml(profile.bio||"")}</div>`;
-        stage.appendChild(bio);
-      }
+      if(!stage)throw new Error("Profil sa nepodarilo zobraziť.");
+
+      const gallery=Array.isArray(extras.gallery)?extras.gallery.slice(0,3):[];
+      const galleryHtml=gallery.length ? `
+        <section class="public-section">
+          <div class="public-section-label">GALÉRIA</div>
+          <div class="public-gallery">
+            ${gallery.map((image,index)=>`<div class="public-photo"><img src="${escapeProfileHtml(image.url)}" alt="${escapeProfileHtml(image.alt_text||image.caption||`${name} – fotografia ${index+1}`)}"></div>`).join("")}
+          </div>
+        </section>` : "";
+
+      const sportRows=[
+        sports.length ? ["ŠPORT",sports.join(" · ")] : null,
+        disciplineNames.length ? ["DISCIPLÍNA",disciplineNames.join(" · ")] : null,
+        memberText ? ["ČLEN CSP",memberText.replace("Člen CSP od ","")] : null
+      ].filter(Boolean);
+
+      const bioText=profile.bio?.trim()||"";
+      const bioSection=(bioText || sportRows.length) ? `
+        <section class="public-section">
+          <div class="public-section-label">BIO</div>
+          <div class="public-bio-grid">
+            ${bioText ? `<article class="public-panel"><h2>O hráčovi</h2><div class="public-bio-copy">${escapeProfileHtml(bioText)}</div></article>` : ""}
+            ${sportRows.length ? `<aside class="public-panel"><h2>Športový profil</h2><div class="public-cv-list">
+              ${sportRows.map(([key,value])=>`<div class="public-cv-row"><div class="public-cv-key">${escapeProfileHtml(key)}</div><div class="public-cv-val">${escapeProfileHtml(value)}</div></div>`).join("")}
+            </div></aside>` : ""}
+          </div>
+        </section>` : "";
+
+      stage.insertAdjacentHTML("beforeend",`
+        <div class="public-player" id="public-player-profile">
+          <header class="public-top">
+            <div class="public-brand"><span class="connect">CONNECT</span> <span class="sports">SPORTS</span> <span class="pro">PRO</span></div>
+            <div class="public-type">Verejný profil hráča</div>
+          </header>
+
+          <section class="public-hero">
+            <div class="public-avatar">
+              ${profile.avatar_url
+                ? `<img src="${escapeProfileHtml(profile.avatar_url)}" alt="Profilová fotografia: ${escapeProfileHtml(name)}">`
+                : escapeProfileHtml(initials(name))}
+            </div>
+            <div>
+              <div class="public-kicker">
+                ${plan==="pro" ? `<span class="public-pro-badge">PRO</span>` : ""}
+                ${sportLine ? `<span class="public-sportline">${escapeProfileHtml(sportLine)}</span>` : ""}
+              </div>
+              <h1 class="public-name">${escapeProfileHtml(name)}</h1>
+              <div class="public-member">${escapeProfileHtml(memberText)}</div>
+              <div class="public-social">
+                <button id="public-like-button" class="button hidden" type="button">♥ Like <span class="social-count" id="public-like-count">0</span></button>
+                <button id="public-share-button" class="button" type="button">↗ Share</button>
+                <button id="public-follow-button" class="button gold hidden" type="button"><span data-follow-label>+ Follow</span> <span class="social-count" id="public-follow-count">0</span></button>
+              </div>
+            </div>
+          </section>
+
+          ${galleryHtml}
+          ${bioSection}
+        </div>
+      `);
+
       $("loading").classList.add("hidden");
       $("app").classList.remove("hidden");
-      bindProfileSocial(profile).catch(console.error);
+      await bindPublicProfileSocial(profile);
     }
+
 
     async function init(){
       try{
@@ -297,7 +474,7 @@
 
         if(requestedId && publicView){
           const {data:profile,error:profileError}=await client.from("profiles")
-            .select("id,full_name,role,avatar_url,cover_url,bio,created_at")
+            .select("id,full_name,role,plan,avatar_url,cover_url,bio,created_at")
             .eq("id",requestedId).maybeSingle();
           if(profileError)throw profileError;
           if(!profile)throw new Error("Profil sa nenašiel.");
@@ -306,7 +483,8 @@
             location.replace(`/profil-ul/?id=${encodeURIComponent(profile.id)}&view=public`);
             return;
           }
-          renderPublicPlayerProfile(profile);
+          const extras=await loadPublicPlayerExtras(profile.id);
+          await renderPublicPlayerProfile(profile,extras);
           return;
         }
 
@@ -315,6 +493,8 @@
           showState("Prihlásenie je potrebné","Profil zobrazuje dáta aktuálne prihláseného hráča.",true);
           return;
         }
+        const ownPublicLink=document.getElementById("public-profile-nav-link");
+        if(ownPublicLink) ownPublicLink.href=`/profil/?id=${encodeURIComponent(userData.user.id)}&view=public`;
 
         const {data,error}=await client.rpc("get_my_player_profile_dashboard");
         if(error) throw error;
