@@ -59,7 +59,6 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:16p
 details>summary{cursor:pointer;font-weight:600;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;list-style:none}
 summary b{color:var(--gold)}
 .settings-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:16px;background:var(--panel);border:1px solid var(--border);border-top:none;border-radius:0 0 14px 14px}
-.timer-status #matchTimer{font-size:clamp(1.25rem,2.3vw,1.7rem);line-height:1.05}
 .field label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:6px;font-weight:600}
 .field .hint{color:var(--muted);font-size:11px}
 .switch-card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
@@ -194,16 +193,6 @@ summary b{color:var(--gold)}
 .score-event-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .score-event-btn{min-height:45px;padding:8px 9px;font-size:.72rem;font-weight:800;line-height:1.15;letter-spacing:.015em;touch-action:manipulation}
 .score-event-btn[data-style="primary"]{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.5);color:var(--green)}
-.score-event-btn.score-event-main{
-  background:var(--green);
-  border-color:var(--green);
-  color:#04170b;
-  box-shadow:0 0 0 1px rgba(24,201,100,.35),0 8px 24px rgba(24,201,100,.22);
-}
-.score-event-btn.score-event-main:hover{
-  filter:brightness(1.08);
-}
-
 .score-event-btn[data-style="positive"]{background:rgba(212,168,67,.14);border-color:var(--gold);color:var(--gold)}
 .score-event-btn[data-style="warning"]{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.45);color:#f87171}
 .score-event-btn[data-style="danger"]{background:rgba(239,68,68,.14);border-color:var(--danger);color:var(--danger)}
@@ -299,36 +288,6 @@ summary b{color:var(--gold)}
   position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:block
 }
 .player .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.player .head{
-  position:relative;
-  min-height:42px;
-  justify-content:center;
-}
-.player .player-id{
-  position:relative;
-  width:100%;
-  justify-content:center;
-  padding:0 52px;
-}
-.player .player-avatar{
-  position:absolute;
-  left:0;
-  top:50%;
-  transform:translateY(-50%);
-}
-.player .name{
-  width:100%;
-  text-align:center;
-  font-size:1.365rem;
-  font-weight:800;
-}
-.player .badge{
-  position:absolute;
-  right:0;
-  top:50%;
-  transform:translateY(-50%);
-}
-
 
 /* The default top status was too visually weak. */
 .top .label2{font-size:.62rem}
@@ -430,6 +389,615 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
   body.sport-darts .brand h1{max-width:36vw}
   body.sport-darts .brand .meta .pill:nth-child(n+3){display:none}
   body.sport-darts .actions .danger{display:none}
+}
+
+
+
+/* ════════════════════ DARTS PORTRAIT TABLET V3 ════════════════════
+   Height-aware portrait layout for 10" tablets and smaller.
+   Core scoring area stays usable without the landscape proportions. */
+@media (orientation:portrait) and (max-width:900px){
+  body.sport-darts{
+    min-height:100dvh;
+    overflow-x:hidden;
+  }
+  body.sport-darts .app{
+    width:100%;
+    max-width:none;
+    padding:clamp(7px,1.4vw,12px);
+  }
+
+  /* Compact top area: preserve all controls, spend less vertical space. */
+  body.sport-darts header{
+    min-height:0;
+    margin-bottom:6px;
+    gap:5px;
+  }
+  body.sport-darts .brand{
+    min-width:0;
+    gap:4px;
+  }
+  body.sport-darts .brand h1{
+    max-width:34vw;
+    font-size:clamp(.72rem,2.2vw,.9rem);
+  }
+  body.sport-darts .brand .meta{
+    gap:3px;
+  }
+  body.sport-darts .pill{
+    padding:3px 5px;
+    font-size:clamp(.46rem,1.5vw,.56rem);
+  }
+  body.sport-darts .actions{
+    gap:4px;
+  }
+  body.sport-darts .actions button{
+    min-height:34px;
+    padding:5px 7px;
+    font-size:clamp(.58rem,1.65vw,.69rem);
+  }
+
+  body.sport-darts .sport-picker{
+    max-width:none;
+    margin-bottom:7px;
+  }
+  body.sport-darts .sport-picker label{
+    margin-bottom:3px;
+    font-size:.58rem;
+  }
+  body.sport-darts .sport-select{
+    min-height:40px;
+    border-radius:10px;
+    font-size:.82rem;
+  }
+  body.sport-darts .settings{
+    margin-bottom:7px;
+  }
+  body.sport-darts details>summary{
+    padding:8px 11px;
+    border-radius:10px;
+    font-size:.78rem;
+  }
+
+  /* Match status is always a single compact three-cell row. */
+  body.sport-darts .top{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px;
+    margin-bottom:7px;
+  }
+  body.sport-darts .status{
+    padding:6px 4px;
+    border-radius:10px;
+    min-width:0;
+  }
+  body.sport-darts .top .label2{
+    font-size:clamp(.48rem,1.55vw,.6rem);
+    letter-spacing:.08em;
+  }
+  body.sport-darts .current,
+  body.sport-darts .period{
+    font-size:clamp(.82rem,3.1vw,1.18rem);
+    margin-top:2px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  body.sport-darts .timer-controls{
+    gap:3px!important;
+    margin-top:3px!important;
+    flex-wrap:nowrap;
+  }
+  body.sport-darts .timer-controls button{
+    min-width:24px;
+    min-height:23px;
+    padding:2px 4px;
+    font-size:.6rem;
+  }
+  body.sport-darts #endTrainingBtn{
+    min-width:0;
+    padding-inline:5px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* Portrait working stack:
+     player 1 → keypad → player 2.
+     Player cards become horizontal score strips instead of tall cards. */
+  .stage-row.darts-keypad-layout{
+    display:grid;
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto auto;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .stage-row.darts-keypad-layout .players{
+    display:contents;
+    margin:0;
+  }
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(1){order:1}
+  .stage-row.darts-keypad-layout .keypad-panel{order:2}
+  .stage-row.darts-keypad-layout .players .player:nth-of-type(2){order:3}
+
+  body.sport-darts .player{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:
+      "head score"
+      "stats score"
+      "hint score"
+      "actions actions"
+      "events events";
+    column-gap:10px;
+    row-gap:3px;
+    padding:8px 10px;
+    border-radius:12px;
+    min-height:0;
+  }
+  body.sport-darts .player .head{
+    grid-area:head;
+    margin:0;
+    min-width:0;
+  }
+  body.sport-darts .player-id{
+    gap:7px;
+  }
+  body.sport-darts .player-avatar{
+    width:32px;
+    height:32px;
+    flex-basis:32px;
+    font-size:.62rem;
+  }
+  body.sport-darts .player .name{
+    font-size:clamp(.78rem,2.3vw,.96rem);
+  }
+  body.sport-darts .player .badge{
+    padding:2px 6px;
+    font-size:.54rem;
+  }
+  body.sport-darts .big{
+    grid-area:score;
+    align-self:center;
+    min-width:2.9ch;
+    font-size:clamp(58px,9.4dvh,96px);
+    line-height:.88;
+    text-align:right;
+  }
+  body.sport-darts .big-sub{
+    grid-area:hint;
+    margin:0;
+    text-align:left;
+    min-height:0;
+    line-height:1;
+  }
+  body.sport-darts .checkout-hint{
+    display:inline;
+    min-height:0;
+    margin:0;
+    font-size:.6rem;
+  }
+  body.sport-darts .stat-grid{
+    grid-area:stats;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:4px;
+    margin:1px 0 0;
+  }
+  body.sport-darts .stat{
+    padding:4px 5px;
+    border-radius:7px;
+  }
+  body.sport-darts .stat span{
+    font-size:.49rem;
+  }
+  body.sport-darts .stat strong{
+    font-size:.78rem;
+  }
+  body.sport-darts .te-player-actions{
+    grid-area:actions;
+    gap:5px;
+    margin-top:3px;
+  }
+  body.sport-darts .te-trigger{
+    min-height:34px;
+    padding:5px 7px;
+    font-size:.62rem;
+  }
+  body.sport-darts .te-trigger i{
+    width:31px;
+    height:18px;
+    flex-basis:31px;
+  }
+  body.sport-darts .te-trigger i::after{
+    width:12px;
+    height:12px;
+  }
+  body.sport-darts .te-trigger.ready i::after,
+  body.sport-darts .te-trigger.timeout i::after{
+    transform:translateX(13px);
+  }
+  body.sport-darts .score-event-panel{
+    grid-area:events;
+    margin-top:3px;
+    padding-top:5px;
+  }
+  body.sport-darts .score-event-head{
+    margin-bottom:4px;
+  }
+  body.sport-darts .score-event-title,
+  body.sport-darts .score-event-state{
+    font-size:.5rem;
+  }
+  body.sport-darts .score-event-actions{
+    gap:4px;
+  }
+  body.sport-darts .score-event-btn{
+    min-height:33px;
+    padding:4px 6px;
+    font-size:.58rem;
+  }
+  body.sport-darts .score-event-undo{
+    min-height:30px;
+  }
+
+  /* Keypad is the main touch surface and scales by viewport HEIGHT. */
+  body.sport-darts .keypad-panel{
+    margin:0;
+    padding:8px 9px;
+    border-radius:12px;
+  }
+  body.sport-darts .keypad-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:7px;
+    margin-bottom:5px;
+  }
+  body.sport-darts .keypad-head .label2{
+    font-size:.54rem;
+  }
+  body.sport-darts .run-display{
+    font-size:clamp(30px,5.7dvh,48px);
+    min-height:.82em;
+  }
+  body.sport-darts .keypad-submit{
+    min-height:42px;
+    padding:0 14px;
+    font-size:.82rem;
+  }
+  body.sport-darts .quick-scores{
+    display:grid;
+    grid-template-columns:repeat(7,minmax(0,1fr));
+    gap:4px;
+    margin-bottom:5px;
+  }
+  body.sport-darts .quick{
+    min-width:0;
+    min-height:31px;
+    padding:3px 2px;
+    font-size:clamp(.58rem,1.7vw,.72rem);
+    border-radius:7px;
+  }
+  body.sport-darts .quick:last-child{
+    grid-column:auto;
+  }
+  body.sport-darts .keypad-grid{
+    max-width:none;
+    gap:5px;
+  }
+  body.sport-darts .keypad-grid .key{
+    min-height:clamp(40px,5.65dvh,55px);
+    padding:3px;
+    border-radius:8px;
+    font-size:clamp(18px,3.2vw,24px);
+  }
+  body.sport-darts .keypad-grid .key-fn{
+    font-size:clamp(16px,2.8vw,21px);
+  }
+  body.sport-darts .frame-actions{
+    gap:5px;
+    margin-top:5px;
+  }
+  body.sport-darts .frame-award-btn{
+    min-height:34px;
+    padding:5px 7px;
+    font-size:.65rem;
+  }
+
+  /* Log remains available below the scoring surface but does not
+     dictate the dimensions of the live scoring area. */
+  body.sport-darts .log{
+    padding:8px 10px;
+    border-radius:10px;
+  }
+  body.sport-darts .log h2{
+    margin-bottom:4px;
+    font-size:.64rem;
+  }
+  body.sport-darts .log-list{
+    max-height:88px;
+  }
+  body.sport-darts .log-item{
+    font-size:.66rem;
+  }
+}
+
+/* Smaller portrait tablets / phones: one quick-score row is too tight,
+   so switch to 4+3 while keeping the touch keypad height-aware. */
+@media (orientation:portrait) and (max-width:540px){
+  body.sport-darts .brand h1{max-width:38vw}
+  body.sport-darts .brand .meta .pill:nth-child(n+3){display:none}
+  body.sport-darts .actions .danger{display:none}
+  body.sport-darts .quick-scores{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  body.sport-darts .quick:last-child{
+    grid-column:span 2;
+  }
+  body.sport-darts .player{
+    grid-template-columns:minmax(0,1fr) minmax(92px,auto);
+    column-gap:7px;
+    padding:7px 8px;
+  }
+  body.sport-darts .big{
+    font-size:clamp(52px,9dvh,80px);
+  }
+}
+
+/* Short portrait viewport: compress non-scoring chrome first, never the
+   primary number keys below a usable touch target. */
+@media (orientation:portrait) and (max-height:860px){
+  body.sport-darts header{margin-bottom:3px}
+  body.sport-darts .sport-picker{margin-bottom:4px}
+  body.sport-darts .settings{margin-bottom:4px}
+  body.sport-darts .top{margin-bottom:4px}
+  .stage-row.darts-keypad-layout{gap:4px}
+  body.sport-darts .player{padding-top:6px;padding-bottom:6px}
+  body.sport-darts .player-avatar{width:28px;height:28px;flex-basis:28px}
+  body.sport-darts .big{font-size:clamp(48px,8.2dvh,70px)}
+  body.sport-darts .stat{padding:3px 4px}
+  body.sport-darts .score-event-btn{min-height:30px}
+  body.sport-darts .keypad-panel{padding:6px 8px}
+  body.sport-darts .keypad-grid .key{min-height:40px}
+  body.sport-darts .quick{min-height:28px}
+  body.sport-darts .log-list{max-height:65px}
+}
+
+
+
+/* ════════════════════ DARTS PORTRAIT TABLET V4 ════════════════════
+   PORTRAIT: two score boards side by side, keypad directly below. */
+@media (orientation:portrait) and (max-width:900px){
+
+  /* Exact portrait composition:
+     [ PLAYER 1 ][ PLAYER 2 ]
+     [       KEYPAD        ] */
+  .stage-row.darts-keypad-layout{
+    display:block!important;
+    margin-bottom:8px!important;
+  }
+  .stage-row.darts-keypad-layout .players{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+    margin:0 0 6px!important;
+  }
+  .stage-row.darts-keypad-layout .players .player{
+    order:initial!important;
+  }
+  .stage-row.darts-keypad-layout .keypad-panel{
+    display:block;
+    width:100%;
+    max-width:none;
+    order:initial!important;
+    margin:0!important;
+  }
+
+  /* Score boards stay as real cards, only compacted to fit side by side. */
+  body.sport-darts .player{
+    display:block!important;
+    padding:8px!important;
+    min-width:0;
+    border-radius:12px;
+  }
+  body.sport-darts .player .head{
+    display:flex!important;
+    align-items:center;
+    justify-content:space-between;
+    gap:5px;
+    margin:0 0 4px!important;
+  }
+  body.sport-darts .player-id{
+    gap:5px;
+    min-width:0;
+  }
+  body.sport-darts .player-avatar{
+    width:30px!important;
+    height:30px!important;
+    flex-basis:30px!important;
+    font-size:.58rem!important;
+  }
+  body.sport-darts .player .name{
+    font-size:clamp(.72rem,2vw,.9rem)!important;
+  }
+  body.sport-darts .player .badge{
+    padding:2px 5px!important;
+    font-size:.5rem!important;
+  }
+  body.sport-darts .big{
+    display:block!important;
+    font-size:clamp(52px,11vw,92px)!important;
+    line-height:.9!important;
+    text-align:center!important;
+    min-width:0!important;
+    margin:2px 0!important;
+  }
+  body.sport-darts .big-sub{
+    display:block!important;
+    text-align:center!important;
+    margin:0!important;
+    min-height:12px!important;
+  }
+  body.sport-darts .checkout-hint{
+    display:block!important;
+    text-align:center!important;
+    min-height:12px!important;
+    margin:1px 0 0!important;
+    font-size:.56rem!important;
+  }
+
+  body.sport-darts .stat-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:3px!important;
+    margin:5px 0 0!important;
+  }
+  body.sport-darts .stat{
+    padding:4px 3px!important;
+    border-radius:7px!important;
+  }
+  body.sport-darts .stat span{
+    font-size:.46rem!important;
+  }
+  body.sport-darts .stat strong{
+    font-size:.72rem!important;
+  }
+
+  body.sport-darts .te-player-actions{
+    display:flex!important;
+    gap:4px!important;
+    margin-top:5px!important;
+  }
+  body.sport-darts .te-trigger{
+    min-height:31px!important;
+    padding:4px 5px!important;
+    font-size:.55rem!important;
+  }
+
+  body.sport-darts .score-event-panel{
+    display:block!important;
+    margin-top:5px!important;
+    padding-top:5px!important;
+  }
+  body.sport-darts .score-event-head{
+    margin-bottom:3px!important;
+  }
+  body.sport-darts .score-event-title,
+  body.sport-darts .score-event-state{
+    font-size:.47rem!important;
+  }
+  body.sport-darts .score-event-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.sport-darts .score-event-btn{
+    min-height:29px!important;
+    padding:3px 4px!important;
+    font-size:.52rem!important;
+  }
+  body.sport-darts .score-event-undo{
+    min-height:27px!important;
+  }
+
+  /* Keypad returns to the normal full-width position directly under players. */
+  body.sport-darts .keypad-panel{
+    padding:8px 9px!important;
+    border-radius:12px!important;
+  }
+  body.sport-darts .keypad-head{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:8px!important;
+    margin-bottom:5px!important;
+    flex-wrap:nowrap!important;
+    text-align:left!important;
+  }
+  body.sport-darts .run-display{
+    font-size:clamp(30px,5.4dvh,48px)!important;
+    min-height:.82em!important;
+  }
+  body.sport-darts .keypad-submit{
+    width:auto!important;
+    min-height:40px!important;
+    padding:0 13px!important;
+    font-size:.78rem!important;
+    flex:0 0 auto;
+  }
+  body.sport-darts .quick-scores{
+    display:grid!important;
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:4px!important;
+    margin-bottom:5px!important;
+  }
+  body.sport-darts .quick{
+    min-width:0!important;
+    min-height:29px!important;
+    padding:3px 2px!important;
+    font-size:clamp(.55rem,1.55vw,.7rem)!important;
+    border-radius:7px!important;
+  }
+  body.sport-darts .quick:last-child{
+    grid-column:auto!important;
+  }
+  body.sport-darts .keypad-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    gap:5px!important;
+    max-width:none!important;
+  }
+  body.sport-darts .keypad-grid .key{
+    min-height:clamp(40px,5.2dvh,54px)!important;
+    padding:3px!important;
+    border-radius:8px!important;
+    font-size:clamp(18px,3vw,24px)!important;
+  }
+  body.sport-darts .keypad-grid .key-fn{
+    font-size:clamp(16px,2.6vw,21px)!important;
+  }
+
+  body.sport-darts .frame-actions{
+    margin-top:5px!important;
+    gap:5px!important;
+  }
+  body.sport-darts .frame-award-btn{
+    min-height:32px!important;
+    padding:4px 6px!important;
+    font-size:.62rem!important;
+  }
+}
+
+/* Narrow portrait: score boards STILL stay beside each other.
+   Only their internal typography and quick-score row compress. */
+@media (orientation:portrait) and (max-width:560px){
+  .stage-row.darts-keypad-layout .players{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:4px!important;
+  }
+  body.sport-darts .player{
+    padding:6px!important;
+  }
+  body.sport-darts .player-avatar{
+    width:26px!important;height:26px!important;flex-basis:26px!important;
+  }
+  body.sport-darts .player .name{
+    font-size:.68rem!important;
+  }
+  body.sport-darts .big{
+    font-size:clamp(44px,12vw,66px)!important;
+  }
+  body.sport-darts .stat span{
+    font-size:.42rem!important;
+  }
+  body.sport-darts .stat strong{
+    font-size:.64rem!important;
+  }
+  body.sport-darts .quick-scores{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+  body.sport-darts .quick:last-child{
+    grid-column:span 2!important;
+  }
 }
 
 
@@ -617,26 +1185,24 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
         <div class="field"><label>Hráč 1</label><input id="p1" value="Hráč 1"/></div>
         <div class="field"><label>Hráč 2</label><input id="p2" value="Hráč 2"/></div>
         <div class="field hidden" id="p3Wrap"><label>Hráč 3</label><input id="p3" value="Hráč 3"/></div>
-        <div class="field">
-          <label>Akcie</label>
-          <button class="goldbtn" id="applyBtn" style="width:100%;min-height:46px">Použiť nastavenie</button>
-        </div>
+        <div class="field"><label>Akcie</label><button class="goldbtn" id="applyBtn" style="width:100%">Použiť nastavenie</button></div>
       </div>
     </details>
   </div>
 
   <div class="top">
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
-    <div class="status timer-status">
+    <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
+    <div class="status">
       <div class="label2">Čas zápasu</div>
       <div class="period" id="matchTimer">00:00</div>
       <div class="timer-controls" style="display:flex;gap:6px;margin-top:8px;justify-content:center">
+        <button id="timerStartBtn" title="Štart">▶</button>
         <button id="timerPauseBtn" title="Pauza">⏸</button>
         <button id="timerStopBtn" title="Stop (vynuluje čas)">⏹</button>
         <button id="endTrainingBtn" class="danger" title="Ukončiť tréning">Ukončiť tréning</button>
       </div>
     </div>
-    <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
   </div>
 
   <div class="stage-row" id="stageRow">
@@ -863,16 +1429,7 @@ const SCORE_EVENT_FALLBACK={
   racket:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
 };
 const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN?"tournament":"training";
-const scoreActions=()=>{
-  if(scoreActionDefinitions.length) return scoreActionDefinitions;
-  if(mode()==="frame"){
-    return [
-      SCORE_EVENT_FALLBACK.frame,
-      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11}
-    ];
-  }
-  return [SCORE_EVENT_FALLBACK[mode()]];
-};
+const scoreActions=()=>scoreActionDefinitions.length?scoreActionDefinitions:[SCORE_EVENT_FALLBACK[mode()]];
 const escapeScoreText=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function scoreEventIdempotencyKey(){
   if(globalThis.crypto&&typeof crypto.randomUUID==="function")return crypto.randomUUID();
@@ -901,13 +1458,13 @@ async function loadScoreActionDefinitions(){
 }
 
 function scoreEventPanel(i){
-  const actions=scoreActions().filter(action=>action && action.event_key!=="eight_on_break");
+  const actions=scoreActions().filter(Boolean);
   const disabled=scoreActionBusySlot!==null;
-  const buttons=actions.map(action=>`<button class="score-event-btn${action.event_key==="standard_point"?" score-event-main":""}" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(action.label)}${action.value_required?" · #":""}</button>`).join("");
+  const buttons=actions.map(action=>`<button class="score-event-btn" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(action.label)}${action.value_required?" · #":""}</button>`).join("");
   const undo=lastScoreEvent&&lastScoreEvent.playerIndex===i
     ?`<button class="score-event-btn score-event-undo" data-score-undo="${escapeScoreText(lastScoreEvent.eventId||"local")}" data-i="${i}" ${scoreActionBusySlot!==null?"disabled":""}>↶ SPÄŤ: ${escapeScoreText(lastScoreEvent.label)}</button>`:"";
   const status=scoreActionLoading?"Načítavam…":scoreActionLoadError;
-  return `<div class="score-event-panel">${status?`<div class="score-event-state">${escapeScoreText(status)}</div>`:""}<div class="score-event-actions">${buttons||'<div class="score-event-empty">Pre túto disciplínu nie sú nastavené CTA.</div>'}${undo}</div></div>`;
+  return `<div class="score-event-panel"><div class="score-event-head"><span class="score-event-title">Herné udalosti</span><span class="score-event-state">${escapeScoreText(status)}</span></div><div class="score-event-actions">${buttons||'<div class="score-event-empty">Pre túto disciplínu nie sú nastavené CTA.</div>'}${undo}</div></div>`;
 }
 
 function invalidateScoreEventUndo(){lastScoreEvent=null;}
@@ -1070,10 +1627,9 @@ function stopTimer(){
 }
 function syncTimerButtons(){
   const running=!!runningSince;
-  const pauseBtn=$("timerPauseBtn");
-  pauseBtn.disabled=!running && accumulatedSeconds===0;
-  pauseBtn.textContent=running?"⏸":"▶";
-  pauseBtn.title=running?"Pauza":"Pokračovať";
+  $("timerStartBtn").disabled=running;
+  $("timerPauseBtn").disabled=!running;
+  $("timerStartBtn").classList.toggle("active",running);
 }
 function formatDuration(totalSeconds){
   const h=Math.floor(totalSeconds/3600), m=Math.floor((totalSeconds%3600)/60), s=totalSeconds%60;
@@ -1219,7 +1775,8 @@ function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSec
 tickMatchTimer();
 syncTimerButtons();
 setInterval(tickMatchTimer,1000);
-$("timerPauseBtn").onclick=()=>{ if(runningSince) pauseTimer(); else startTimer(); };
+$("timerStartBtn").onclick=startTimer;
+$("timerPauseBtn").onclick=pauseTimer;
 $("timerStopBtn").onclick=stopTimer;
 $("endTrainingBtn").onclick=endTrainingManually;
 
@@ -1913,9 +2470,6 @@ function applySettings(){
   state.currentIndex=0;state.starter=0;state.runInput="";
   resetScoresForMode();
   addLog("Nastavenie uložené");
-  stopTimer();
-  startTimer();
-  addLog("▶ Časovač spustený");
   syncSettingsUI();render();loadScoreActionDefinitions();
 }
 function syncSettingsUI(){
