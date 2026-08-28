@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#050706"/>
+<title>CSP Display View</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{
+  --bg:#050706;
+  --panel:#0c0f0d;
+  --panel2:#111512;
+  --line:rgba(255,255,255,.10);
+  --fg:#f6f7f6;
+  --muted:#90978f;
+  --gold:#d4a843;
+  --green:#18c964;
+  --red:#ed5b64;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+button{font:inherit}
+.shell{height:100dvh;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:14px}
+.header{
+  min-height:72px;display:flex;align-items:center;gap:18px;padding:10px 14px;
+  border:1px solid var(--line);border-radius:16px;background:rgba(12,15,13,.94)
+}
+.logo{width:230px;max-width:31vw;height:auto;display:block;object-fit:contain;object-position:left center}
+.tournament{min-width:0;flex:1}
+.tournament h1{font-size:clamp(18px,2vw,34px);line-height:1.05;margin:0;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{margin-top:5px;color:var(--muted);font-size:clamp(10px,.95vw,14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-actions{display:flex;align-items:center;gap:8px}
+.live-pill{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;
+  border:1px solid rgba(24,201,100,.28);background:rgba(24,201,100,.10);
+  color:var(--green);font-size:11px;font-weight:900;letter-spacing:.08em
+}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(24,201,100,.72)}
+.fullscreen{
+  min-height:38px;padding:0 13px;border-radius:9px;border:1px solid var(--line);
+  background:#111512;color:#fff;font-weight:800;cursor:pointer
+}
+.fullscreen:hover{border-color:rgba(212,168,67,.45);color:var(--gold)}
+.stage{min-height:0;position:relative}
+.grid{
+  height:100%;display:grid;gap:12px;min-height:0;
+  grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));
+  grid-template-rows:repeat(var(--rows,1),minmax(0,1fr))
+}
+.match-card{
+  min-width:0;min-height:0;overflow:hidden;position:relative;
+  border:1px solid var(--line);border-radius:20px;background:
+  radial-gradient(circle at 50% -20%,rgba(212,168,67,.10),transparent 42%),var(--panel);
+  padding:clamp(12px,1.5vw,24px);display:grid;grid-template-rows:auto 1fr auto
+}
+.match-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.station{
+  font-size:clamp(11px,1.05vw,17px);font-weight:900;color:var(--gold);
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.state{
+  flex:0 0 auto;padding:5px 9px;border-radius:999px;font-size:clamp(8px,.72vw,11px);
+  font-weight:900;letter-spacing:.08em;border:1px solid var(--line);color:var(--muted)
+}
+.state.live{color:var(--green);border-color:rgba(24,201,100,.35);background:rgba(24,201,100,.08)}
+.state.called{color:var(--gold);border-color:rgba(212,168,67,.35);background:rgba(212,168,67,.08)}
+.players{
+  min-height:0;display:grid;align-items:center;gap:clamp(8px,1vw,18px);
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)
+}
+.player{min-width:0;text-align:center}
+.player-name{
+  font-size:clamp(18px,2.25vw,44px);font-weight:900;line-height:1.04;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.score{
+  margin-top:clamp(4px,.6vw,8px);font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-size:clamp(56px,8vw,150px);font-weight:900;line-height:.92;color:#fff
+}
+.player:first-child .score{color:var(--gold)}
+.vs{
+  align-self:center;color:#545b55;font-size:clamp(12px,1.1vw,18px);
+  font-weight:900;letter-spacing:.12em
+}
+.match-bottom{
+  min-height:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  color:var(--muted);font-size:clamp(9px,.82vw,13px)
+}
+.round{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{font-family:"JetBrains Mono",ui-monospace,monospace;color:#b7bdb7;white-space:nowrap}
+.empty{
+  height:100%;display:grid;place-items:center;border:1px solid var(--line);border-radius:20px;background:var(--panel)
+}
+.empty-inner{text-align:center;padding:30px}
+.empty-mark{font-size:clamp(38px,6vw,78px);color:var(--gold);font-weight:900}
+.empty h2{font-size:clamp(20px,3vw,44px);margin:10px 0 4px}
+.empty p{margin:0;color:var(--muted);font-size:clamp(11px,1.1vw,16px)}
+.error{color:var(--red)}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:800}
+.hidden{display:none!important}
+
+/* Real reflow, not a scaled landscape layout. */
+@media (orientation:portrait){
+  .shell{padding:10px;gap:10px}
+  .header{min-height:64px;padding:8px 10px;gap:10px}
+  .logo{width:170px;max-width:38vw}
+  .live-pill{display:none}
+  .fullscreen{padding:0 10px;font-size:11px}
+  .match-card{border-radius:16px}
+  .players{
+    grid-template-columns:1fr;
+    grid-template-rows:minmax(0,1fr) auto minmax(0,1fr);
+    gap:4px
+  }
+  .player{
+    width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:12px;text-align:left
+  }
+  .player-name{font-size:clamp(18px,4.2vw,42px)}
+  .score{margin-top:0;font-size:clamp(48px,12vw,108px)}
+  .vs{font-size:10px;justify-self:center}
+}
+@media(max-width:560px){
+  .tournament .meta{display:none}
+  .logo{width:126px}
+  .tournament h1{font-size:15px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="header">
+    <img class="logo" src="/assets/csp-logo-full.png" alt="Connect Sports Pro"/>
+    <div class="tournament">
+      <h1 id="tournamentName">Display View</h1>
+      <div class="meta" id="tournamentMeta">Načítavam turnaj…</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <button class="fullscreen" id="fullscreenBtn" type="button">Celá obrazovka</button>
+    </div>
+  </header>
+  <main class="stage">
+    <div class="loading" id="loading">Načítavam aktuálne zápasy…</div>
+    <div class="grid hidden" id="matchesGrid"></div>
+    <div class="empty hidden" id="emptyState">
+      <div class="empty-inner">
+        <div class="empty-mark">CSP</div>
+        <h2>Čaká sa na ďalší zápas</h2>
+        <p>Display View sa aktualizuje automaticky.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const params=new URLSearchParams(location.search);
+const tournamentId=params.get('id')||params.get('tournament_id')||'';
+const $=id=>document.getElementById(id);
+let client=null;
+let matchesChannel=null;
+let resourcesChannel=null;
+let refreshTimer=null;
+let currentRows=[];
+let tournamentRow=null;
+
+function esc(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function statusLabel(status){
+  return ({
+    live:'LIVE',in_progress:'LIVE',
+    called:'VOLANÝ',player_arriving:'VOLANÝ',
+    ready:'PRIPRAVENÝ',waiting_for_table:'ČAKÁ',
+    pending:'ČAKÁ'
+  })[status]||String(status||'').toUpperCase();
+}
+function statusClass(status){
+  if(status==='live'||status==='in_progress')return 'live';
+  if(status==='called'||status==='player_arriving'||status==='ready')return 'called';
+  return '';
+}
+function formatClock(row){
+  let seconds=Number(row.match_clock_elapsed_seconds||0);
+  if(row.match_clock_started_at && !row.match_clock_paused_at){
+    seconds+=Math.max(0,Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
+  }
+  const h=Math.floor(seconds/3600);
+  const m=Math.floor((seconds%3600)/60);
+  const s=seconds%60;
+  const pad=n=>String(n).padStart(2,'0');
+  return h?`${h}:${pad(m)}:${pad(s)}`:`${pad(m)}:${pad(s)}`;
+}
+function roundText(row){
+  const parts=[];
+  if(row.group_index!=null)parts.push(`Skupina ${String.fromCharCode(64+Number(row.group_index))}`);
+  if(row.round_key)parts.push(row.round_key);
+  if(row.match_number!=null)parts.push(`#${row.match_number}`);
+  return parts.join(' · ');
+}
+function setGridGeometry(count){
+  const portrait=matchMedia('(orientation: portrait)').matches;
+  let cols=1;
+  if(portrait){
+    cols=count<=2?1:(count<=6?2:3);
+  }else{
+    cols=count<=1?1:(count===2?2:(count<=4?2:(count<=6?3:4)));
+  }
+  const rows=Math.max(1,Math.ceil(count/cols));
+  const grid=$('matchesGrid');
+  grid.style.setProperty('--cols',cols);
+  grid.style.setProperty('--rows',rows);
+}
+function render(){
+  $('loading').classList.add('hidden');
+  const grid=$('matchesGrid');
+  const empty=$('emptyState');
+  if(!currentRows.length){
+    grid.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  grid.classList.remove('hidden');
+  setGridGeometry(currentRows.length);
+  grid.innerHTML=currentRows.map(row=>`
+    <article class="match-card">
+      <div class="match-top">
+        <div class="station">${esc(row.resource_label||'Stanica')}</div>
+        <div class="state ${statusClass(row.status)}">${esc(statusLabel(row.status))}</div>
+      </div>
+      <div class="players">
+        <div class="player">
+          <div class="player-name">${esc(row.player1_name||'—')}</div>
+          <div class="score">${Number(row.score1||0)}</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="player">
+          <div class="player-name">${esc(row.player2_name||'—')}</div>
+          <div class="score">${Number(row.score2||0)}</div>
+        </div>
+      </div>
+      <div class="match-bottom">
+        <div class="round">${esc(roundText(row))}</div>
+        <div class="clock" data-clock-id="${row.id}">${formatClock(row)}</div>
+      </div>
+    </article>`).join('');
+}
+function tickClocks(){
+  if(!currentRows.length)return;
+  for(const row of currentRows){
+    const el=document.querySelector(`[data-clock-id="${CSS.escape(row.id)}"]`);
+    if(el)el.textContent=formatClock(row);
+  }
+}
+async function fetchData(){
+  if(!client||!tournamentId)return;
+  const [tRes,rRes]=await Promise.all([
+    client.from('tournaments')
+      .select('id,name,sport,discipline,date,venue,status,visibility')
+      .eq('id',tournamentId).maybeSingle(),
+    client.from('tournament_resources')
+      .select('id,label,resource_number,resource_type,status,current_match_id,sort_order,is_active')
+      .eq('tournament_id',tournamentId)
+      .eq('is_active',true)
+      .order('sort_order',{ascending:true})
+      .order('resource_number',{ascending:true})
+  ]);
+  if(tRes.error)throw tRes.error;
+  if(rRes.error)throw rRes.error;
+  if(!tRes.data)throw new Error('Turnaj sa nenašiel alebo Display View nemá prístup.');
+  tournamentRow=tRes.data;
+  $('tournamentName').textContent=tournamentRow.name||'Turnaj';
+  $('tournamentMeta').textContent=[tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
+
+  const resources=(rRes.data||[]).filter(r=>r.current_match_id);
+  if(!resources.length){
+    currentRows=[];
+    render();
+    return;
+  }
+  const matchIds=resources.map(r=>r.current_match_id);
+  const {data:matches,error:mErr}=await client.from('matches')
+    .select('id,player1_id,player2_id,score1,score2,status,round_key,match_number,group_index,started_at,match_clock_elapsed_seconds,match_clock_started_at,match_clock_paused_at')
+    .in('id',matchIds);
+  if(mErr)throw mErr;
+
+  const matchById=new Map((matches||[]).map(m=>[m.id,m]));
+  const playerIds=[...new Set((matches||[]).flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
+  let playerById=new Map();
+  if(playerIds.length){
+    const {data:players,error:pErr}=await client.from('tournament_players')
+      .select('id,name')
+      .in('id',playerIds);
+    if(pErr)throw pErr;
+    playerById=new Map((players||[]).map(p=>[p.id,p]));
+  }
+
+  currentRows=resources.map(resource=>{
+    const match=matchById.get(resource.current_match_id);
+    if(!match)return null;
+    return {
+      ...match,
+      resource_label:resource.label,
+      resource_number:resource.resource_number,
+      player1_name:playerById.get(match.player1_id)?.name||'—',
+      player2_name:playerById.get(match.player2_id)?.name||'—'
+    };
+  }).filter(Boolean);
+  render();
+}
+function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(()=>fetchData().catch(showError),120);
+}
+function showError(err){
+  console.error('[display-view]',err);
+  $('loading').classList.add('hidden');
+  $('matchesGrid').classList.add('hidden');
+  const empty=$('emptyState');
+  empty.classList.remove('hidden');
+  empty.querySelector('h2').textContent='Display View sa nepodarilo načítať';
+  empty.querySelector('p').innerHTML=`<span class="error">${esc(err?.message||'Skús obnoviť stránku.')}</span>`;
+}
+function startRealtime(){
+  matchesChannel=client.channel(`display-matches-${tournamentId}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${tournamentId}`},scheduleRefresh)
+    .subscribe();
+  resourcesChannel=client.channel(`display-resources-${tournamentId}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_resources',filter:`tournament_id=eq.${tournamentId}`},scheduleRefresh)
+    .subscribe();
+}
+async function toggleFullscreen(){
+  try{
+    if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
+    else await document.exitFullscreen();
+  }catch(err){console.warn('[display-view] fullscreen unavailable',err);}
+}
+$('fullscreenBtn').addEventListener('click',toggleFullscreen);
+document.addEventListener('fullscreenchange',()=>{
+  $('fullscreenBtn').textContent=document.fullscreenElement?'Ukončiť fullscreen':'Celá obrazovka';
+});
+window.addEventListener('resize',()=>setGridGeometry(currentRows.length||1));
+window.addEventListener('orientationchange',()=>setTimeout(()=>setGridGeometry(currentRows.length||1),80));
+setInterval(tickClocks,1000);
+
+(async function init(){
+  if(!tournamentId){showError(new Error('Chýba ID turnaja.'));return;}
+  try{
+    client=window.cspAuth?.client;
+    if(!client)throw new Error('CSP pripojenie nie je dostupné.');
+    await fetchData();
+    startRealtime();
+  }catch(err){showError(err);}
+})();
+</script>
+</body>
+</html>
