@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#050706"/>
-<title>CSP Display View</title>
+<title>CSP ProjektorTV</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
@@ -135,7 +135,7 @@ button{font:inherit}
   <header class="header">
     <img class="logo" src="/assets/csp-logo-full.png" alt="Connect Sports Pro"/>
     <div class="tournament">
-      <h1 id="tournamentName">Display View</h1>
+      <h1 id="tournamentName">ProjektorTV</h1>
       <div class="meta" id="tournamentMeta">Načítavam turnaj…</div>
     </div>
     <div class="header-actions">
@@ -150,7 +150,7 @@ button{font:inherit}
       <div class="empty-inner">
         <div class="empty-mark">CSP</div>
         <h2>Čaká sa na ďalší zápas</h2>
-        <p>Display View sa aktualizuje automaticky.</p>
+        <p>ProjektorTV sa aktualizuje automaticky.</p>
       </div>
     </div>
   </main>
@@ -258,58 +258,51 @@ function tickClocks(){
 }
 async function fetchData(){
   if(!client||!tournamentId)return;
-  const [tRes,rRes]=await Promise.all([
-    client.from('tournaments')
-      .select('id,name,sport,discipline,date,venue,status,visibility')
-      .eq('id',tournamentId).maybeSingle(),
-    client.from('tournament_resources')
-      .select('id,label,resource_number,resource_type,status,current_match_id,sort_order,is_active')
-      .eq('tournament_id',tournamentId)
-      .eq('is_active',true)
-      .order('sort_order',{ascending:true})
-      .order('resource_number',{ascending:true})
-  ]);
-  if(tRes.error)throw tRes.error;
-  if(rRes.error)throw rRes.error;
-  if(!tRes.data)throw new Error('Turnaj sa nenašiel alebo Display View nemá prístup.');
-  tournamentRow=tRes.data;
+  const {data,error}=await client.rpc('get_tournament_display_view',{
+    p_tournament_id:tournamentId
+  });
+  if(error)throw error;
+  const rows=Array.isArray(data)?data:[];
+  if(!rows.length)throw new Error('Turnaj sa nenašiel alebo ProjektorTV nemá prístup.');
+
+  const head=rows[0];
+  tournamentRow={
+    id:head.tournament_id,
+    name:head.tournament_name,
+    sport:head.sport,
+    discipline:head.discipline,
+    date:head.tournament_date,
+    venue:head.venue,
+    status:head.tournament_status,
+    visibility:head.visibility
+  };
   $('tournamentName').textContent=tournamentRow.name||'Turnaj';
   $('tournamentMeta').textContent=[tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
 
-  const resources=(rRes.data||[]).filter(r=>r.current_match_id);
-  if(!resources.length){
-    currentRows=[];
-    render();
-    return;
-  }
-  const matchIds=resources.map(r=>r.current_match_id);
-  const {data:matches,error:mErr}=await client.from('matches')
-    .select('id,player1_id,player2_id,score1,score2,status,round_key,match_number,group_index,started_at,match_clock_elapsed_seconds,match_clock_started_at,match_clock_paused_at')
-    .in('id',matchIds);
-  if(mErr)throw mErr;
-
-  const matchById=new Map((matches||[]).map(m=>[m.id,m]));
-  const playerIds=[...new Set((matches||[]).flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
-  let playerById=new Map();
-  if(playerIds.length){
-    const {data:players,error:pErr}=await client.from('tournament_players')
-      .select('id,name')
-      .in('id',playerIds);
-    if(pErr)throw pErr;
-    playerById=new Map((players||[]).map(p=>[p.id,p]));
-  }
-
-  currentRows=resources.map(resource=>{
-    const match=matchById.get(resource.current_match_id);
-    if(!match)return null;
-    return {
-      ...match,
-      resource_label:resource.label,
-      resource_number:resource.resource_number,
-      player1_name:playerById.get(match.player1_id)?.name||'—',
-      player2_name:playerById.get(match.player2_id)?.name||'—'
-    };
-  }).filter(Boolean);
+  currentRows=rows
+    .filter(row=>row.match_id)
+    .map(row=>({
+      id:row.match_id,
+      resource_id:row.resource_id,
+      resource_label:row.resource_label,
+      resource_number:row.resource_number,
+      resource_type:row.resource_type,
+      resource_status:row.resource_status,
+      round_key:row.round_key,
+      match_number:row.match_number,
+      group_index:row.group_index,
+      status:row.match_status,
+      player1_id:row.player1_id,
+      player1_name:row.player1_name||'—',
+      player2_id:row.player2_id,
+      player2_name:row.player2_name||'—',
+      score1:Number(row.score1||0),
+      score2:Number(row.score2||0),
+      started_at:row.started_at,
+      match_clock_elapsed_seconds:Number(row.match_clock_elapsed_seconds||0),
+      match_clock_started_at:row.match_clock_started_at,
+      match_clock_paused_at:row.match_clock_paused_at
+    }));
   render();
 }
 function scheduleRefresh(){
@@ -317,12 +310,12 @@ function scheduleRefresh(){
   refreshTimer=setTimeout(()=>fetchData().catch(showError),120);
 }
 function showError(err){
-  console.error('[display-view]',err);
+  console.error('[projektortv]',err);
   $('loading').classList.add('hidden');
   $('matchesGrid').classList.add('hidden');
   const empty=$('emptyState');
   empty.classList.remove('hidden');
-  empty.querySelector('h2').textContent='Display View sa nepodarilo načítať';
+  empty.querySelector('h2').textContent='ProjektorTV sa nepodarilo načítať';
   empty.querySelector('p').innerHTML=`<span class="error">${esc(err?.message||'Skús obnoviť stránku.')}</span>`;
 }
 function startRealtime(){
@@ -337,7 +330,7 @@ async function toggleFullscreen(){
   try{
     if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
     else await document.exitFullscreen();
-  }catch(err){console.warn('[display-view] fullscreen unavailable',err);}
+  }catch(err){console.warn('[projektortv] fullscreen unavailable',err);}
 }
 $('fullscreenBtn').addEventListener('click',toggleFullscreen);
 document.addEventListener('fullscreenchange',()=>{
