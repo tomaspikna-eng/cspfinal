@@ -1519,6 +1519,13 @@ function persistT(){
   });
 }
 
+
+function openDisplayView(tournamentId){
+  if(!tournamentId)return;
+  const url=`/turnament/display/?id=${encodeURIComponent(tournamentId)}`;
+  window.open(url,'_blank','noopener');
+}
+
 async function viewDetail(id){
   let t, matchRows=[];
   try {
@@ -1626,7 +1633,8 @@ async function viewDetail(id){
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
-        ${['draft','ready'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
+        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayView('${curT.id}')">▣ Display View</button>`:''}
+        ${['draft','ready','active'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
     </div>
@@ -1686,11 +1694,15 @@ async function editTournament(id){
       8000, 'load tournament'
     );
     if(tErr) throw tErr;
-    if(!['draft','ready'].includes(t.status)){
-      toast(t.status==='active'?'Turnaj už prebieha. Prezenčná listina je uzamknutá.':'Ukončený turnaj už nie je možné upravovať.',true);
+    if(!['draft','ready','active'].includes(t.status)){
+      toast('Ukončený turnaj už nie je možné upravovať.',true);
       await go('detail',id);
       return;
     }
+    const {count:existingMatchCount,error:existingMatchCountErr}=await cspAuth.client
+      .from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',id);
+    if(existingMatchCountErr)throw existingMatchCountErr;
+    const structureLocked=(existingMatchCount||0)>0 || t.status==='active';
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
       8000, 'load tournament players'
@@ -1717,6 +1729,7 @@ async function editTournament(id){
       source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
       players:restoredPlayers,
       autoDraft:!!draftSnap?.autoDraft,
+      structureLocked,
       resumeStep:Number.isInteger(draftSnap?.step)?draftSnap.step:0
     });
   } catch(err){
@@ -2972,7 +2985,18 @@ async function flushWizardAutosave(force=false){
   pendingTournamentWrite=true;
   try{
     const existingConfig=(wiz.config&&typeof wiz.config==='object')?wiz.config:{};
-    const payload={
+    const payload=wiz.structureLocked?{
+      name:snap.name||'Nový turnaj',
+      date:snap.date||null,
+      venue:snap.venue||null,
+      ihs_allowed_categories:snap.ihsCategories,
+      config:{
+        ...existingConfig,
+        race_to:snap.raceTo,
+        present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
+        draft_wizard:snap
+      }
+    }:{
       name:snap.name||'Nový turnaj',
       sport:snap.sport,
       discipline:snap.discipline,
@@ -2995,7 +3019,7 @@ async function flushWizardAutosave(force=false){
       .update(payload)
       .eq('id',wiz.editId)
       .eq('owner_id',currentSession.user.id)
-      .in('status',['draft','ready'])
+      .in('status',['draft','ready','active'])
       .select('config,status')
       .maybeSingle();
     if(error)throw error;
@@ -3043,7 +3067,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, ihsCategories:[...IHS_ALL], showBulk:false, editId:null}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return [0,1,2,3]; }
@@ -3090,11 +3114,11 @@ function renderWiz(){
       ${wiz.source_event_id?`<div class="note-box" style="margin-bottom:18px"><b>Importované z udalosti.</b> Základné údaje a ${wiz.players.length} hráčov boli prenesené automaticky. Teraz nastav formát a herné parametre.</div>`:''}
       <div class="field"><label>Názov turnaja</label><input id="wName" value="${wiz.name}" placeholder="napr. Letný pool open 2026"/></div>
       <div class="field"><label>Šport</label>
-        <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';cspPlayerDirectory=null;cspPlayerDirectorySport=null;renderWiz();loadCspPlayerDirectory().then(()=>renderWiz())">
+        <select id="wSport" ${wiz.structureLocked?'disabled':''} onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';cspPlayerDirectory=null;cspPlayerDirectorySport=null;renderWiz();loadCspPlayerDirectory().then(()=>renderWiz())">
           ${SPORTS.map(s=>`<option ${s===wiz.sport?'selected':''}>${s}</option>`).join('')}
         </select></div>
       <div class="field"><label>Disciplína</label>
-        <div class="pill-row">${discs.map(d=>`<button class="pill ${d===wiz.discipline?'sel':''}" onclick="wiz.discipline='${d}';renderWiz()">${d}</button>`).join('')}</div></div>
+        <div class="pill-row">${discs.map(d=>`<button class="pill ${d===wiz.discipline?'sel':''}" ${wiz.structureLocked?'disabled':''} onclick="wiz.discipline='${d}';renderWiz()">${d}</button>`).join('')}</div></div>
       <div class="row2">
         <div class="field"><label>Dátum</label><input type="date" id="wDate" value="${wiz.date}" onchange="wiz.date=this.value"/></div>
         <div class="field"><label>Miesto (nepovinné)</label><input id="wVenue" value="${wiz.venue}" placeholder="napr. ŠK Pohoda" oninput="wiz.venue=this.value"/></div>
@@ -3110,50 +3134,50 @@ function renderWiz(){
     const N=TM.nextPow2(Math.max(2,wiz.players.length));
     const presentCount=wiz.players.filter(pl=>pl.present).length;
     p.innerHTML=`
-      <h2>Hráči · prezenčná listina</h2><div class="sub">Pridaj hráčov a pri príchode potvrď ich fyzickú prítomnosť prepínačom Prítomný.</div>
-      <div class="player-add">
+      <h2>Hráči · prezenčná listina</h2><div class="sub">${wiz.structureLocked?'Zloženie turnaja je po spustení uzamknuté. Prítomnosť hráčov môžeš ďalej upravovať.':'Pridaj hráčov a pri príchode potvrď ich fyzickú prítomnosť prepínačom Prítomný.'}</div>
+      ${wiz.structureLocked?'':`<div class="player-add">
         <input id="wPlayerName" placeholder="Meno a priezvisko hráča" onkeydown="if(event.key==='Enter')addPlayer()"/>
         <button class="btn btn-primary" onclick="addPlayer()">＋ Pridať</button></div>
       <span class="bulk-toggle" onclick="wiz.showBulk=!wiz.showBulk;renderWiz()">${wiz.showBulk?'− Skryť hromadné pridanie':'＋ Hromadné pridanie (vložiť zoznam)'}</span>
       ${wiz.showBulk?`<div class="bulk-box">
         <textarea id="wBulk" placeholder="Ján Novák&#10;Peter Horváth&#10;Mária Kováčová&#10;…"></textarea>
-        <button class="btn btn-ghost" style="margin-top:8px" onclick="addBulk()">Pridať všetkých zo zoznamu</button></div>`:''}
+        <button class="btn btn-ghost" style="margin-top:8px" onclick="addBulk()">Pridať všetkých zo zoznamu</button></div>`:''}` }
       <div class="player-stats">
         <span class="player-count"><b>${presentCount}/${wiz.players.length}</b> prítomných</span>
-        ${wiz.players.length?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
+        ${wiz.players.length&&!wiz.structureLocked?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
       </div>
-      ${wiz.players.length?`<div class="seed-control">
+      ${wiz.players.length&&!wiz.structureLocked?`<div class="seed-control">
         <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
         <div class="seed-info">Prvých <b>${Math.min(wiz.seedCount,wiz.players.length)}</b> hráčov v zozname bude nasadených. Poradie zmeníš potiahnutím alebo šípkami. Ostatní zostanú bez seedu.</div>
       </div>
-      <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" draggable="true" data-player-index="${i}" ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)">
-        <span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>
+      <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" ${wiz.structureLocked?'':'draggable="true"'} data-player-index="${i}" ${wiz.structureLocked?'':`ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)"`}>
+        ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
         <span class="pl-name">${esc(pl.name)}${cspWizardBadge(pl)}</span>
         <label class="presence-toggle" title="Potvrdiť prítomnosť hráča"><input type="checkbox" ${pl.present?'checked':''} onchange="setPlayerPresent(${i},this.checked)"><span class="presence-switch"></span><span class="presence-label">Prítomný</span></label>
-        <span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
-        <button class="pl-del" onclick="removePlayer(${i})">✕</button>
+        ${wiz.structureLocked?'':`<span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
+        <button class="pl-del" onclick="removePlayer(${i})">✕</button>`}
       </div>`).join('')}</div>`
         : `<div class="player-empty">Zatiaľ žiadni hráči. Pridaj prvého vyššie.</div>`}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
-    setTimeout(()=>{const e=document.getElementById('wPlayerName'); if(e&&!wiz.showBulk) e.focus();},30);
+    setTimeout(()=>{const e=document.getElementById('wPlayerName'); if(e&&!wiz.showBulk&&!wiz.structureLocked) e.focus();},30);
   }
   else if(wiz.step===2){
     if(isKarty()) wiz.format='karty';
     const card=(k)=>{const f=FORMATS[k]; return `<div class="fmt-card ${wiz.format===k?'sel':''}" onclick="wiz.format='${k}';renderWiz()">
       <div class="fic">${f.ic}</div><div class="ftxt"><div class="ft">${f.t}</div><div class="fd">${f.d}</div><div class="fstruct">${f.struct.map((s,i)=>`${i>0?'<span class="arr">→</span>':''}<span class="ph">${s}</span>`).join('')}</div></div></div>`;};
     const perGroup=Math.ceil(wiz.players.length/Math.max(1,wiz.groups));
-    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">Nastav formát až po kontrole prezenčnej listiny.</div>
-      ${isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
+    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">${wiz.structureLocked?'Formát a štruktúra sú po spustení turnaja uzamknuté.':'Nastav formát až po kontrole prezenčnej listiny.'}</div>
+      ${wiz.structureLocked?`<div class="sumbox"><div class="sumrow"><span class="k">Formát</span><span class="v">${FORMATS[wiz.format]?.t||wiz.format}</span></div>${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance}</span></div>`:''}</div>`:(isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
       <div class="fmt-section">Jedna fáza</div><div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
       <div class="fmt-section">Kombinácia — skupiny → vyraďovák</div><div class="fmt-list">${card('rr_sko')}${card('rr_dko')}</div>
       ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
         <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/><div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
         <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div></div>
         ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/></div>`:''}
-        <div class="note-box" id="groupNote"></div>`:''}`}
+        <div class="note-box" id="groupNote"></div>`:''}`)}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
-    if(isCombo()) refreshGroupNote();
+    if(isCombo()&&!wiz.structureLocked) refreshGroupNote();
   }
   else if(wiz.step===3){
     const f=FORMATS[wiz.format];
@@ -3174,7 +3198,7 @@ function renderWiz(){
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
       <div id="genPreview"></div>
-      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${isKarty()?(wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly'):(wiz.editId&&wiz.status==='active'?'▶ Pokračovať v turnaji':'▶ Spustiť turnaj')}</button></div>`;
+      <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-green" onclick="createTournament()">${wiz.editId&&wiz.status==='active'?'✓ Uložiť zmeny':(isKarty()?(wiz.editId?'✓ Uložiť zmeny':'✓ Vytvoriť turnaj a otvoriť stoly'):'▶ Spustiť turnaj')}</button></div>`;
     renderPreview();
   }
 }
@@ -3350,24 +3374,32 @@ async function createTournament(){
       const {count:matchCount,error:matchCountErr}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',wiz.editId);
       if(matchCountErr)throw matchCountErr;
       if((matchCount||0)>0){
-        // A settings URL may survive after matches have already been
-        // created. Never re-sync the roster in that state: the database
-        // match rows are already authoritative. Continue/start the same
-        // tournament instead of treating its locked roster as an error.
+        // Match structure is already authoritative. Save only settings that
+        // do not rebuild players, format, groups or bracket.
         if(existing.status==='completed'||existing.status==='archived'){
-          toast('Ukončený turnaj už nie je možné znovu spustiť.',true);
+          toast('Ukončený turnaj už nie je možné upravovať.',true);
           await go('detail',wiz.editId);
           return;
         }
-        if(existing.status!=='active'){
-          const {error:startExistingErr}=await cspAuth.client.from('tournaments')
-            .update({status:'active',started_at:existing.started_at||new Date().toISOString()})
-            .eq('id',wiz.editId).eq('owner_id',currentSession.user.id);
-          if(startExistingErr)throw startExistingErr;
-          toast('Turnaj bol spustený ✓');
-        }else{
-          toast('Turnaj už prebieha — pokračujem ✓');
-        }
+        const currentCfg=(wiz.config&&typeof wiz.config==='object')?wiz.config:{};
+        const safePayload={
+          name:payload.name,
+          date:payload.date,
+          venue:payload.venue,
+          ihs_allowed_categories:payload.ihs_allowed_categories,
+          config:{
+            ...currentCfg,
+            race_to:Number(wiz.raceTo||5),
+            present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
+            draft_wizard:wizardSnapshot()
+          }
+        };
+        const {error:safeEditErr}=await cspAuth.client.from('tournaments')
+          .update(safePayload)
+          .eq('id',wiz.editId)
+          .eq('owner_id',currentSession.user.id);
+        if(safeEditErr)throw safeEditErr;
+        toast('Zmeny turnaja uložené ✓');
         await go('detail',wiz.editId);
         return;
       }
