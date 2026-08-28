@@ -83,6 +83,11 @@
     .public-bio-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
     .public-panel{background:#0b0b0b;border:1px solid var(--line);border-radius:15px;padding:20px}
     .public-panel h2{margin:0 0 13px;font-size:18px}
+    .public-sport-panel{position:relative;padding-right:126px}
+    .public-ihs-stamp{position:absolute;top:18px;right:18px;width:84px;height:84px;border:3px solid var(--gold);border-radius:50%;background:#080a08;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1px rgba(212,168,67,.12) inset}
+    .public-ihs-stamp small{font-size:9px;font-weight:900;letter-spacing:.16em;color:#fff}
+    .public-ihs-stamp strong{font-size:29px;font-weight:950;color:var(--green);margin:5px 0 4px;letter-spacing:-.04em}
+    @media(max-width:620px){.public-sport-panel{padding-right:20px;padding-top:116px}.public-ihs-stamp{top:18px;right:18px}}
     .public-bio-copy{font-size:13px;line-height:1.72;color:#d2d2d2;white-space:pre-wrap}
     .public-cv-list{display:grid}
     .public-cv-row{display:grid;grid-template-columns:150px 1fr;gap:18px;padding:12px 0;border-bottom:1px solid #1b1b1b}
@@ -104,7 +109,7 @@
     .ihs-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
     .ihs-head span{font-size:9px;letter-spacing:.13em;font-weight:900;color:var(--gold)}
     .ihs-head b{font-size:9px;color:#d9ddd9;font-weight:800}
-    .ihs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .ihs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
     .ihs-stat{min-width:0;padding:10px 9px;border:1px solid var(--line);border-radius:9px;background:#0d100d}
     .ihs-stat small{display:block;font-size:7px;letter-spacing:.12em;color:var(--muted);font-weight:850;margin-bottom:5px}
     .ihs-stat strong{display:block;font-size:18px;line-height:1;color:#fff;overflow:hidden;text-overflow:ellipsis}
@@ -116,7 +121,7 @@
     .ihs-card.free .ihs-stat{background:#111311;border-color:#292d29}
     .ihs-card.free .ihs-stat strong{color:#a7aba7}
     .ihs-card.free .ihs-pro-lock{display:inline-flex}
-    @media(max-width:720px){.ihs-grid{grid-template-columns:1fr 1fr 1fr}.ihs-stat strong{font-size:15px}.ihs-stat.level strong{font-size:10px}}
+    @media(max-width:720px){.ihs-grid{grid-template-columns:1fr 1fr}.ihs-stat strong{font-size:15px}.ihs-stat.level strong{font-size:10px}}
 
     @media(max-width:560px){
       body.public-player-mode .stage{padding:14px 14px 40px}
@@ -167,9 +172,8 @@
             <div id="ihs-card" class="ihs-card">
               <div class="ihs-head"><span>CSP IHS</span><b id="ihs-sport">—</b></div>
               <div class="ihs-grid">
-                <div class="ihs-stat"><small>RATING</small><strong id="ihs-rating">2.50</strong></div>
-                <div class="ihs-stat level"><small>LEVEL</small><strong id="ihs-level">AMATEUR</strong></div>
-                <div class="ihs-stat"><small>HANDICAP</small><strong id="ihs-handicap">—</strong></div>
+                <div class="ihs-stat"><small>HANDICAP</small><strong id="ihs-rating">2.50</strong></div>
+                <div class="ihs-stat level"><small>TRIEDA</small><strong id="ihs-level">C</strong></div>
               </div>
               <div class="ihs-foot"><span id="ihs-verified">0 VERIFIED zápasov</span><span id="ihs-pro-lock" class="ihs-pro-lock">PRO</span></div>
             </div>
@@ -319,7 +323,7 @@
     }
     function applyCapabilities(summary){ const analytics=Boolean(summary.analytics_unlocked); const planner=Boolean(summary.training_planner_unlocked); $("analytics-lock").classList.toggle("hidden",analytics); const planButton=$("plan-training"); if(!planner){ planButton.className="button disabled"; planButton.href="#"; planButton.textContent=""; planButton.append(element("small","","PRO"),document.createTextNode(" + Tréning")); } return {analytics,planner}; }
 
-    const IHS_LEVEL_LABELS={amateur:"AMATEUR",competitive:"COMPETITIVE",elite:"ELITE",world_class:"WORLD CLASS"};
+    const IHS_LEVEL_LABELS={amateur:"C",competitive:"B",elite:"A",world_class:"A+"};
     function renderIhsOverview(ihs,plan){
       const current=ihs?.current||{};
       const rating=Number(current.rating);
@@ -330,7 +334,6 @@
       const verified=Math.max(0,Number(current.verified_matches)||0);
       text("ihs-rating",Number.isFinite(rating)?rating.toFixed(2):"2.50");
       text("ihs-level",IHS_LEVEL_LABELS[level]||level.toUpperCase());
-      text("ihs-handicap",String(handicap||"—"));
       text("ihs-sport",current.sport||ihs?.primary_sport||"CSP IHS");
       text("ihs-verified",`${verified} VERIFIED ${verified===1?"zápas":(verified>=2&&verified<=4?"zápasy":"zápasov")}`);
       $("ihs-card")?.classList.toggle("free",String(plan||ihs?.plan||"free").toLowerCase()!=="pro");
@@ -364,7 +367,7 @@
       });
     }
     async function loadPublicPlayerExtras(profileId){
-      const extras={disciplines:[],gallery:[]};
+      const extras={disciplines:[],gallery:[],ihsGrade:null};
 
       const {data:disciplines,error:disciplineError}=await profileClient
         .from("player_disciplines")
@@ -372,6 +375,12 @@
         .eq("player_id",profileId)
         .order("is_primary",{ascending:false});
       if(!disciplineError) extras.disciplines=disciplines||[];
+
+      const {data:publicIhs,error:publicIhsError}=await profileClient.rpc("get_public_ihs_grade",{
+        p_player_id:profileId,
+        p_sport:null
+      });
+      if(!publicIhsError && publicIhs?.grade) extras.ihsGrade=String(publicIhs.grade);
 
       const {data:collections,error:collectionError}=await profileClient
         .from("gallery_collections")
@@ -436,6 +445,7 @@
       const memberText=joined ? `Člen CSP od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}` : "";
       const plan=String(profile.plan||"").toLowerCase();
       const sportLine=[primary?.sport,...disciplineNames].filter(Boolean).join(" · ");
+      const publicIhsGrade=String(extras.ihsGrade||"").trim();
 
       document.body.classList.add("public-player-mode");
       document.title=`${name} · Connect Sports Pro`;
@@ -464,7 +474,9 @@
           <div class="public-section-label">BIO</div>
           <div class="public-bio-grid">
             ${bioText ? `<article class="public-panel"><h2>O hráčovi</h2><div class="public-bio-copy">${escapeProfileHtml(bioText)}</div></article>` : ""}
-            ${sportRows.length ? `<aside class="public-panel"><h2>Športový profil</h2><div class="public-cv-list">
+            ${sportRows.length ? `<aside class="public-panel public-sport-panel"><h2>Športový profil</h2>
+              ${publicIhsGrade?`<div class="public-ihs-stamp" aria-label="CSP IHS ${escapeProfileHtml(publicIhsGrade)}"><small>CSP</small><strong>${escapeProfileHtml(publicIhsGrade)}</strong><small>IHS</small></div>`:""}
+              <div class="public-cv-list">
               ${sportRows.map(([key,value])=>`<div class="public-cv-row"><div class="public-cv-key">${escapeProfileHtml(key)}</div><div class="public-cv-val">${escapeProfileHtml(value)}</div></div>`).join("")}
             </div></aside>` : ""}
           </div>
