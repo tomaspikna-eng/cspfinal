@@ -1697,10 +1697,18 @@ async function editTournament(id){
       await go('detail',id);
       return;
     }
-    const {count:existingMatchCount,error:existingMatchCountErr}=await cspAuth.client
-      .from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',id);
-    if(existingMatchCountErr)throw existingMatchCountErr;
-    const structureLocked=(existingMatchCount||0)>0 || t.status==='active';
+    const {data:existingMatches,error:existingMatchesErr}=await cspAuth.client
+      .from('matches')
+      .select('id,status,started_at,completed_at,winner_id,score1,score2')
+      .eq('tournament_id',id);
+    if(existingMatchesErr)throw existingMatchesErr;
+    const matchRows=existingMatches||[];
+    const structureLocked=matchRows.length>0 || t.status==='active';
+    const formatLocked=matchRows.some(m=>
+      !!m.started_at || !!m.completed_at || !!m.winner_id ||
+      Number(m.score1||0)!==0 || Number(m.score2||0)!==0 ||
+      ['live','in_progress','completed','forfeited','disputed'].includes(String(m.status||''))
+    );
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
       8000, 'load tournament players'
@@ -1727,7 +1735,9 @@ async function editTournament(id){
       source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
       players:restoredPlayers,
       autoDraft:!!draftSnap?.autoDraft,
+      originalFormat:t.format,
       structureLocked,
+      formatLocked,
       resumeStep:Number.isInteger(draftSnap?.step)?draftSnap.step:0
     });
   } catch(err){
@@ -3065,7 +3075,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return [0,1,2,3]; }
@@ -3165,8 +3175,10 @@ function renderWiz(){
     const card=(k)=>{const f=FORMATS[k]; return `<div class="fmt-card ${wiz.format===k?'sel':''}" onclick="wiz.format='${k}';renderWiz()">
       <div class="fic">${f.ic}</div><div class="ftxt"><div class="ft">${f.t}</div><div class="fd">${f.d}</div><div class="fstruct">${f.struct.map((s,i)=>`${i>0?'<span class="arr">→</span>':''}<span class="ph">${s}</span>`).join('')}</div></div></div>`;};
     const perGroup=Math.ceil(wiz.players.length/Math.max(1,wiz.groups));
-    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">${wiz.structureLocked?'Formát a štruktúra sú po spustení turnaja uzamknuté.':'Nastav formát až po kontrole prezenčnej listiny.'}</div>
-      ${wiz.structureLocked?`<div class="sumbox"><div class="sumrow"><span class="k">Formát</span><span class="v">${FORMATS[wiz.format]?.t||wiz.format}</span></div>${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance}</span></div>`:''}</div>`:(isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
+    const formatChanged=!!wiz.editId && !!wiz.originalFormat && wiz.format!==wiz.originalFormat;
+    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">${wiz.formatLocked?'Formát je uzamknutý, pretože už začal aspoň jeden zápas.':(wiz.editId?'Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.':'Nastav formát až po kontrole prezenčnej listiny.')}</div>
+      ${wiz.formatLocked?`<div class="sumbox"><div class="sumrow"><span class="k">Formát</span><span class="v">${FORMATS[wiz.format]?.t||wiz.format}</span></div>${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance}</span></div>`:''}</div>`:(isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
+      ${formatChanged?`<div class="note-box"><b>Zmena formátu:</b> po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.</div>`:''}
       <div class="fmt-section">Jedna fáza</div><div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
       <div class="fmt-section">Kombinácia — skupiny → vyraďovák</div><div class="fmt-list">${card('rr_sko')}${card('rr_dko')}</div>
       ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
@@ -3175,7 +3187,7 @@ function renderWiz(){
         ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/></div>`:''}
         <div class="note-box" id="groupNote"></div>`:''}`)}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
-    if(isCombo()&&!wiz.structureLocked) refreshGroupNote();
+    if(isCombo()&&!wiz.formatLocked) refreshGroupNote();
   }
   else if(wiz.step===3){
     const f=FORMATS[wiz.format];
@@ -3338,6 +3350,14 @@ function renderPreview(){
 
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
+  const formatChanged=!!wiz.editId && !!wiz.originalFormat && wiz.format!==wiz.originalFormat;
+  if(formatChanged && wiz.formatLocked){
+    toast('Formát nie je možné zmeniť po začiatku prvého zápasu.',true);
+    return;
+  }
+  if(formatChanged && wiz.structureLocked && !confirm('Zmeniť formát turnaja? Existujúce neodohrané zápasy sa zrušia a vygenerujú nanovo.')){
+    return;
+  }
   await loadCspPlayerDirectory();
   const blocked=wiz.players.filter(p=>p.user_id&&!playerIhsEligible(p));
   if(blocked.length){
@@ -3369,11 +3389,23 @@ async function createTournament(){
       const {data:existing,error:existingErr}=await cspAuth.client
         .from('tournaments').select('id,status,owner_id,started_at').eq('id',wiz.editId).single();
       if(existingErr)throw existingErr;
-      const {count:matchCount,error:matchCountErr}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',wiz.editId);
+      let {count:matchCount,error:matchCountErr}=await cspAuth.client.from('matches').select('id',{count:'exact',head:true}).eq('tournament_id',wiz.editId);
       if(matchCountErr)throw matchCountErr;
+
+      if(formatChanged && (matchCount||0)>0){
+        const {error:resetFormatErr}=await cspAuth.client.rpc('reset_tournament_structure_for_format_change',{
+          p_tournament_id:wiz.editId,
+          p_new_format:wiz.format,
+          p_groups_count:isCombo()?wiz.groups:null,
+          p_advance_count:isCombo()?wiz.advance:null
+        });
+        if(resetFormatErr)throw resetFormatErr;
+        matchCount=0;
+      }
+
       if((matchCount||0)>0){
-        // Match structure is already authoritative. Save only settings that
-        // do not rebuild players, format, groups or bracket.
+        // Existing match structure remains authoritative when the format was not changed.
+        // Save only non-structural settings in that case.
         if(existing.status==='completed'||existing.status==='archived'){
           toast('Ukončený turnaj už nie je možné upravovať.',true);
           await go('detail',wiz.editId);
@@ -3405,6 +3437,7 @@ async function createTournament(){
         .from('tournaments').update(payload).eq('id', wiz.editId).select().single();
       if(uErr) throw uErr;
       tournamentId = wiz.editId; tournamentRow = updated;
+      wiz.originalFormat=wiz.format;
     } else {
       const { data: created, error: cErr } = await cspAuth.client
         .from('tournaments')
