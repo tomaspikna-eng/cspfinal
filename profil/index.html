@@ -98,6 +98,26 @@
       .public-gallery .public-photo:first-child{grid-column:1/-1}
       .public-bio-grid{grid-template-columns:1fr}
     }
+
+    /* CSP IHS */
+    .ihs-card{margin:0 0 14px;padding:14px;border:1px solid rgba(212,168,67,.28);border-radius:11px;background:linear-gradient(145deg,rgba(212,168,67,.07),rgba(255,255,255,.018))}
+    .ihs-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+    .ihs-head span{font-size:9px;letter-spacing:.13em;font-weight:900;color:var(--gold)}
+    .ihs-head b{font-size:9px;color:#d9ddd9;font-weight:800}
+    .ihs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .ihs-stat{min-width:0;padding:10px 9px;border:1px solid var(--line);border-radius:9px;background:#0d100d}
+    .ihs-stat small{display:block;font-size:7px;letter-spacing:.12em;color:var(--muted);font-weight:850;margin-bottom:5px}
+    .ihs-stat strong{display:block;font-size:18px;line-height:1;color:#fff;overflow:hidden;text-overflow:ellipsis}
+    .ihs-stat.level strong{font-size:12px;color:var(--gold2);padding-top:3px}
+    .ihs-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;font-size:8px;color:var(--muted)}
+    .ihs-pro-lock{display:none;padding:3px 6px;border-radius:5px;background:#292c29;color:#bbb;font-size:7px;font-weight:900;letter-spacing:.1em}
+    .ihs-card.free{border-color:#2c302c;background:#101210}
+    .ihs-card.free .ihs-head span,.ihs-card.free .ihs-stat.level strong{color:#8a8f8a}
+    .ihs-card.free .ihs-stat{background:#111311;border-color:#292d29}
+    .ihs-card.free .ihs-stat strong{color:#a7aba7}
+    .ihs-card.free .ihs-pro-lock{display:inline-flex}
+    @media(max-width:720px){.ihs-grid{grid-template-columns:1fr 1fr 1fr}.ihs-stat strong{font-size:15px}.ihs-stat.level strong{font-size:10px}}
+
     @media(max-width:560px){
       body.public-player-mode .stage{padding:14px 14px 40px}
       .public-top{padding-bottom:14px}
@@ -143,7 +163,17 @@
           </aside>
         </div>
         <div class="lower-grid">
-          <section class="panel matches"><div class="panel-heading"><div><span class="panel-label">POSLEDNÉ ZÁPASY</span><h2>Aktuálna forma</h2></div><a class="button" href="/zapasy/">Zobraziť všetko</a></div><div id="matches-list"></div></section>
+          <section class="panel matches"><div class="panel-heading"><div><span class="panel-label">POSLEDNÉ ZÁPASY</span><h2>Aktuálna forma</h2></div><a class="button" href="/zapasy/">Zobraziť všetko</a></div>
+            <div id="ihs-card" class="ihs-card">
+              <div class="ihs-head"><span>CSP IHS</span><b id="ihs-sport">—</b></div>
+              <div class="ihs-grid">
+                <div class="ihs-stat"><small>RATING</small><strong id="ihs-rating">2.50</strong></div>
+                <div class="ihs-stat level"><small>LEVEL</small><strong id="ihs-level">AMATEUR</strong></div>
+                <div class="ihs-stat"><small>HANDICAP</small><strong id="ihs-handicap">—</strong></div>
+              </div>
+              <div class="ihs-foot"><span id="ihs-verified">0 VERIFIED zápasov</span><span id="ihs-pro-lock" class="ihs-pro-lock">PRO</span></div>
+            </div>
+            <div id="matches-list"></div></section>
           <section class="panel next-card"><span class="panel-label">NAJBLIŽŠIE</span><div id="next-content"><div class="empty">Žiadna aktivita</div></div></section>
           <section class="panel disciplines"><span class="panel-label">DISCIPLÍNY</span><div id="disciplines-list"></div></section>
         </div>
@@ -288,11 +318,29 @@
       const when=dateValue(activityTime(next)); const date=element("div","next-date"); date.append(element("strong","",String(when.getDate()).padStart(2,"0"))); date.append(element("span","",`${monthShort[when.getMonth()]}\n${formatDate(when,{hour:"2-digit",minute:"2-digit"})}`)); root.append(date); root.append(element("h3","",next.title || next.name || "Naplánovaný tréning")); root.append(element("p","",[next.discipline,next.venue].filter(Boolean).join(" · ") || "Športový tréning")); const action=element("a",plannerUnlocked?"button green":"button disabled"); action.href=plannerUnlocked?"/treningy/":"#"; if(!plannerUnlocked) action.append(element("small","","PRO")); action.append(document.createTextNode(" Spustiť tréning")); root.append(action);
     }
     function applyCapabilities(summary){ const analytics=Boolean(summary.analytics_unlocked); const planner=Boolean(summary.training_planner_unlocked); $("analytics-lock").classList.toggle("hidden",analytics); const planButton=$("plan-training"); if(!planner){ planButton.className="button disabled"; planButton.href="#"; planButton.textContent=""; planButton.append(element("small","","PRO"),document.createTextNode(" + Tréning")); } return {analytics,planner}; }
-    function render(data, plans){
+
+    const IHS_LEVEL_LABELS={amateur:"AMATEUR",competitive:"COMPETITIVE",elite:"ELITE",world_class:"WORLD CLASS"};
+    function renderIhsOverview(ihs,plan){
+      const current=ihs?.current||{};
+      const rating=Number(current.rating);
+      const level=String(current.level||"amateur");
+      const handicap=current.handicap&&typeof current.handicap==="object"
+        ? (current.handicap.display||current.handicap.label||current.handicap.value||"—")
+        : "—";
+      const verified=Math.max(0,Number(current.verified_matches)||0);
+      text("ihs-rating",Number.isFinite(rating)?rating.toFixed(2):"2.50");
+      text("ihs-level",IHS_LEVEL_LABELS[level]||level.toUpperCase());
+      text("ihs-handicap",String(handicap||"—"));
+      text("ihs-sport",current.sport||ihs?.primary_sport||"CSP IHS");
+      text("ihs-verified",`${verified} VERIFIED ${verified===1?"zápas":(verified>=2&&verified<=4?"zápasy":"zápasov")}`);
+      $("ihs-card")?.classList.toggle("free",String(plan||ihs?.plan||"free").toLowerCase()!=="pro");
+    }
+
+    function render(data, plans, ihs){
       const profile=data.profile || {}; const summary=data.summary || {}; const disciplines=Array.isArray(data.disciplines)?data.disciplines:[]; const trainings=[...(Array.isArray(data.recent_trainings)?data.recent_trainings:[]),...(Array.isArray(data.upcoming_trainings)?data.upcoming_trainings:[]),...plans].map(item=>({...item,kind:"training"})); const matches=(Array.isArray(data.recent_matches)?data.recent_matches:[]).map(item=>({...item,kind:"match"})); const unique=new Map(); [...trainings,...matches].forEach(item=>unique.set(`${item.kind}:${item.id || activityTime(item)}`,item)); const activities=[...unique.values()];
       const name=profile.full_name || profile.display_name || "Hráč"; const short=initials(name); const plan=planName(profile.plan); const winRate=Math.round(Number(summary.win_rate)||0); text("player-name",name); text("side-name",name); text("avatar-initials",short); text("mini-avatar",short); text("plan-badge",plan); text("side-plan",`${plan} účet`); text("nav-plan",plan); $("plan-badge").classList.toggle("free",plan==="FREE"); text("role-label",String(profile.role||"hráč").toUpperCase()); const primary=disciplines.find(item=>item.is_primary)||disciplines[0]; text("sport-label",primary?[primary.sport,primary.discipline].filter(Boolean).join(" · "):"Športový profil"); const joined=dateValue(profile.created_at); text("member-since",joined?`Člen od ${monthNames[joined.getMonth()]} ${joined.getFullYear()}`:""); if(profile.avatar_url){ const img=new Image(); img.alt=`Profilová fotografia: ${name}`; img.src=profile.avatar_url; $("avatar").prepend(img); $("avatar-initials").classList.add("hidden"); }
       const completed=Number(summary.trainings_completed)||0; const missed=Number(summary.trainings_missed)||0; const planned=Number(summary.trainings_planned)||0; const wins=Number(summary.wins)||0; const losses=Number(summary.losses)||0; const trainingWins=Number(summary.training_wins)||0; const trainingLosses=Number(summary.training_losses)||0; const tournamentWins=Number(summary.match_wins)||0; const tournamentLosses=Number(summary.match_losses)||0; const trainingPlayed=trainingWins+trainingLosses; const tournamentPlayed=tournamentWins+tournamentLosses; const trainingWinRate=trainingPlayed?Math.round(trainingWins*100/trainingPlayed):null; const tournamentWinRate=tournamentPlayed?Math.round(tournamentWins*100/tournamentPlayed):null; const duration=formatDuration(summary.time_in_game_seconds); text("metric-time",duration); text("metric-trainings",completed); text("training-sub",`${planned} naplánovaných`); text("metric-missed",missed); text("missed-sub",`z ${planned} naplánovaných`); text("metric-winrate",`${winRate} %`); text("winrate-sub",`${wins} výhier · ${losses} prehier celkovo`); text("metric-training-winrate",trainingWinRate==null?'—':`${trainingWinRate} %`); text("metric-tournament-winrate",tournamentWinRate==null?'—':`${tournamentWinRate} %`); text("summary-time",duration); text("summary-trainings",completed); text("summary-missed",missed); text("analytics-winrate",`${winRate} %`); const now=new Date(); text("month-label",`${monthNames[now.getMonth()][0].toUpperCase()+monthNames[now.getMonth()].slice(1)} ${now.getFullYear()}`);
-      const capabilities=applyCapabilities(summary); buildWeek(activities); buildTimeline(activities); buildMatches(matches); buildDisciplines(disciplines,winRate); buildNext(activities,capabilities.planner); $("loading").classList.add("hidden"); $("app").classList.remove("hidden");
+      const capabilities=applyCapabilities(summary); renderIhsOverview(ihs,profile.plan); buildWeek(activities); buildTimeline(activities); buildMatches(matches); buildDisciplines(disciplines,winRate); buildNext(activities,capabilities.planner); $("loading").classList.add("hidden"); $("app").classList.remove("hidden");
     }
     function showState(title,copy,showLogin=true){ text("state-title",title); text("state-copy",copy); $("login-link").classList.toggle("hidden",!showLogin); $("loading").classList.add("hidden"); $("app").classList.add("hidden"); $("auth-state").classList.remove("hidden"); }
 
@@ -504,7 +552,9 @@
           .gte("scheduled_for",from.toISOString()).lte("scheduled_for",to.toISOString())
           .order("scheduled_for",{ascending:false});
         if(plansError) console.warn("Training plans:",plansError.message);
-        render(data||{},plans||[]);
+        const {data:ihs,error:ihsError}=await client.rpc("get_my_ihs_overview");
+        if(ihsError) console.warn("CSP IHS:",ihsError.message);
+        render(data||{},plans||[],ihs||null);
         await bindProfileSocial(data?.profile||{id:userData.user.id,role:"player",full_name:"Hráč"});
       }catch(error){
         console.error(error);
