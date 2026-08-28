@@ -327,6 +327,11 @@ input:focus,select:focus{border-color:var(--gold)}
 .csp-player-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:99px;font-family:var(--mono);font-size:.58rem;font-weight:800;line-height:1.35;vertical-align:middle;white-space:nowrap}
 .csp-player-badge.linked{color:var(--green);background:var(--green-dim);border:1px solid rgba(38,208,125,.28)}
 .csp-player-badge.match{color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-b)}
+.ihs-level-badge{display:inline-flex;align-items:center;margin-left:5px;padding:2px 6px;border-radius:99px;border:1px solid rgba(212,168,67,.24);background:rgba(212,168,67,.06);color:var(--gold);font-family:var(--mono);font-size:.56rem;font-weight:800;line-height:1.35;vertical-align:middle;white-space:nowrap}
+.ihs-settings{margin-top:20px;padding:15px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.012)}
+.ihs-settings .pill{cursor:pointer}
+.ihs-settings .pill.sel{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+
 .presence-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
 .presence-toggle input{position:absolute;opacity:0;pointer-events:none}
 .presence-switch{width:36px;height:20px;border-radius:99px;background:var(--line);border:1px solid var(--line-2);position:relative;transition:.15s}
@@ -1625,6 +1630,7 @@ async function viewDetail(id){
           <div class="dc-head"><h3>Súhrn</h3></div>
           <div class="sumrow"><span class="k">Formát</span><span class="v">${FMT_LABEL[curT.format]}</span></div>
           <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${esc(curT.sport)} · ${esc(curT.discipline||'—')}</span></div>
+          <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(Array.isArray(curT.ihs_allowed_categories)&&curT.ihs_allowed_categories.length?curT.ihs_allowed_categories:IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
           <div class="sumrow"><span class="k">Hráči</span><span class="v">${pcount(curT)}</span></div>
           ${isCmb?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${curT.groups} × postup ${curT.advance}</span></div>`:''}
           ${curT.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${curT.date}</span></div>`:''}
@@ -1694,6 +1700,7 @@ async function editTournament(id){
       groups:draftSnap?.groups ?? t.groups_count ?? 2,
       advance:draftSnap?.advance ?? t.advance_count ?? 1,
       raceTo:draftSnap?.raceTo ?? t.config?.race_to ?? 5,
+      ihsCategories:Array.isArray(draftSnap?.ihsCategories)&&draftSnap.ihsCategories.length?draftSnap.ihsCategories:(Array.isArray(t.ihs_allowed_categories)&&t.ihs_allowed_categories.length?t.ihs_allowed_categories:[...IHS_ALL]),
       protectedSeeds:draftSnap?.protectedSeeds ?? bracketState.protectedSeeds ?? 0,
       seedCount:Number(draftSnap?.seedCount ?? t.config?.seed_count ?? restoredPlayers.length),
       source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
@@ -2711,17 +2718,52 @@ const FORMATS={
   rr_dko:{ic:'🏆',t:'Skupiny → Double KO',d:'Najprv skupiny (RR), postupujúci do Double KO pavúka.',struct:['Skupiny','Double KO']},
 };
 const STEPS=[['Info','📋'],['Hráči','👥'],['Formát','🏆'],['Súhrn','✓']];
+const IHS_CATEGORIES=[
+  {key:'amateur',label:'Amateur'},
+  {key:'competitive',label:'Competitive'},
+  {key:'elite',label:'Elite'},
+  {key:'world_class',label:'World Class'}
+];
+const IHS_ALL=IHS_CATEGORIES.map(x=>x.key);
+function ihsLevelLabel(level){return IHS_CATEGORIES.find(x=>x.key===level)?.label||String(level||'').replaceAll('_',' ')}
+function toggleIhsCategory(key){
+  const current=new Set(Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length?wiz.ihsCategories:IHS_ALL);
+  if(current.has(key)){
+    if(current.size===1){toast('CSP IHS musí mať povolenú aspoň jednu kategóriu.',true);return}
+    current.delete(key);
+  }else current.add(key);
+  wiz.ihsCategories=IHS_ALL.filter(x=>current.has(x));
+  renderWiz();
+}
+function playerIhsEligible(player){
+  if(!player?.user_id)return true;
+  const dir=(cspPlayerDirectory||[]).find(x=>x.id===player.user_id);
+  if(!dir)return true;
+  return (wiz.ihsCategories||IHS_ALL).includes(dir.ihs_level);
+}
+
 
 let wiz={};
 let cspPlayerDirectory=null;
+let cspPlayerDirectorySport=null;
 const normalizePlayerName=value=>String(value||'').trim().toLocaleLowerCase('sk-SK').replace(/\s+/g,' ');
 
 async function loadCspPlayerDirectory(){
-  if(cspPlayerDirectory) return cspPlayerDirectory;
+  const sport=wiz?.sport||'Biliard';
+  if(cspPlayerDirectory && cspPlayerDirectorySport===sport) return cspPlayerDirectory;
   if(!currentSession) return [];
-  const {data,error}=await cspAuth.client.from('profiles').select('id,full_name,avatar_url').eq('role','player').not('full_name','is',null).order('full_name');
-  if(error){ console.error('[turnament] CSP player directory:',error); return []; }
-  cspPlayerDirectory=data||[];
+  const {data,error}=await cspAuth.client.rpc('get_ihs_player_directory',{p_sport:sport});
+  if(error){ console.error('[turnament] CSP IHS player directory:',error); return []; }
+  cspPlayerDirectory=(data||[]).map(row=>({
+    id:row.player_id,
+    full_name:row.full_name,
+    avatar_url:row.avatar_url,
+    ihs_rating:Number(row.ihs_rating||2.5),
+    ihs_level:row.ihs_level||'amateur',
+    ihs_verified_matches:Number(row.ihs_verified_matches||0),
+    ihs_handicap:row.ihs_handicap||{}
+  }));
+  cspPlayerDirectorySport=sport;
   return cspPlayerDirectory;
 }
 function cspCandidatesForName(name){
@@ -2730,7 +2772,11 @@ function cspCandidatesForName(name){
   return key?cspPlayerDirectory.filter(p=>normalizePlayerName(p.full_name)===key):[];
 }
 function cspWizardBadge(player){
-  if(player?.user_id)return '<span class="csp-player-badge linked" title="Prepojený CSP hráč">CSP ✓</span>';
+  if(player?.user_id){
+    const dir=(cspPlayerDirectory||[]).find(x=>x.id===player.user_id);
+    const ihs=dir?`<span class="ihs-level-badge" title="CSP IHS ${Number(dir.ihs_rating).toFixed(2)}">${esc(ihsLevelLabel(dir.ihs_level))}</span>`:'';
+    return `<span class="csp-player-badge linked" title="Prepojený CSP hráč">CSP ✓</span>${ihs}`;
+  }
   const matches=cspCandidatesForName(player?.name);
   return matches.length?'<span class="csp-player-badge match" title="Meno existuje v CSP, ale hráč ešte nie je overene prepojený">CSP ?</span>':'';
 }
@@ -2783,6 +2829,7 @@ function wizardSnapshot(){
     groups:Math.max(1,Number(wiz?.groups)||2),
     advance:Math.max(1,Number(wiz?.advance)||1),
     protectedSeeds:Math.max(0,Number(wiz?.protectedSeeds)||0),
+    ihsCategories:Array.isArray(wiz?.ihsCategories)&&wiz.ihsCategories.length?[...wiz.ihsCategories]:[...IHS_ALL],
     autoDraft:!!wiz?.autoDraft,
     source_event_id:wiz?.source_event_id||null
   };
@@ -2810,6 +2857,7 @@ async function flushWizardAutosave(force=false){
       venue:snap.venue||null,
       groups_count:(snap.format==='rr_sko'||snap.format==='rr_dko')?snap.groups:null,
       advance_count:(snap.format==='rr_sko'||snap.format==='rr_dko')?snap.advance:null,
+      ihs_allowed_categories:snap.ihsCategories,
       config:{
         ...existingConfig,
         race_to:snap.raceTo,
@@ -2871,7 +2919,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, showBulk:false, editId:null}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, ihsCategories:[...IHS_ALL], showBulk:false, editId:null}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return [0,1,2,3]; }
@@ -2886,7 +2934,7 @@ function initWizard(existing){
   wiz=blankWiz();
   if(existing){ // editácia / obnovený draft
     const restoredStep=Number.isInteger(existing.resumeStep)?existing.resumeStep:0;
-    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, ihsCategories:Array.isArray(existing.ihsCategories)&&existing.ihsCategories.length?[...existing.ihsCategories]:(Array.isArray(existing.ihs_allowed_categories)&&existing.ihs_allowed_categories.length?[...existing.ihs_allowed_categories]:[...IHS_ALL]), seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
   }
   renderWiz();
   startWizardAutosave();
@@ -2918,7 +2966,7 @@ function renderWiz(){
       ${wiz.source_event_id?`<div class="note-box" style="margin-bottom:18px"><b>Importované z udalosti.</b> Základné údaje a ${wiz.players.length} hráčov boli prenesené automaticky. Teraz nastav formát a herné parametre.</div>`:''}
       <div class="field"><label>Názov turnaja</label><input id="wName" value="${wiz.name}" placeholder="napr. Letný pool open 2026"/></div>
       <div class="field"><label>Šport</label>
-        <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';renderWiz()">
+        <select id="wSport" onchange="wiz.sport=this.value;wiz.discipline=(DISCIPLINES[this.value]||[])[0];if(wiz.sport==='Karty')wiz.format='karty';cspPlayerDirectory=null;cspPlayerDirectorySport=null;renderWiz();loadCspPlayerDirectory().then(()=>renderWiz())">
           ${SPORTS.map(s=>`<option ${s===wiz.sport?'selected':''}>${s}</option>`).join('')}
         </select></div>
       <div class="field"><label>Disciplína</label>
@@ -2928,6 +2976,10 @@ function renderWiz(){
         <div class="field"><label>Miesto (nepovinné)</label><input id="wVenue" value="${wiz.venue}" placeholder="napr. ŠK Pohoda" oninput="wiz.venue=this.value"/></div>
       </div>
       <div class="field"><label>Race to / cieľ zápasu</label><input type="number" id="wRaceTo" min="1" max="99" value="${wiz.raceTo||5}" oninput="wiz.raceTo=Math.max(1,+this.value||1)"/><div class="hint">Prenesie sa aj do QR scoreboardu konkrétneho zápasu.</div></div>
+      <div class="field ihs-settings"><label>CSP IHS · REGISTRÁCIA</label>
+        <div class="pill-row">${IHS_CATEGORIES.map(cat=>`<button type="button" class="pill ${(wiz.ihsCategories||IHS_ALL).includes(cat.key)?'sel':''}" onclick="toggleIhsCategory('${cat.key}')">${cat.label}</button>`).join('')}</div>
+        <div class="hint">Registrácia iba pre vybrané IHS kategórie.</div>
+      </div>
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="cancelWizard()">Zrušiť</button><button class="btn btn-primary" onclick="saveInfo()">Ďalej →</button></div>`;
   }
   else if(wiz.step===1){
@@ -2992,6 +3044,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Prítomní</span><span class="v">${presentCount}/${wiz.players.length}</span></div>
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         <div class="sumrow"><span class="k">Race to</span><span class="v">${wiz.raceTo||5}</span></div>
+        <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
         ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
@@ -3013,9 +3066,13 @@ async function addPlayer(){
   if(!name) return;
   await loadCspPlayerDirectory();
   const matches=cspCandidatesForName(name);
+  if(matches.length===1 && !(wiz.ihsCategories||IHS_ALL).includes(matches[0].ihs_level)){
+    toast(`CSP IHS: ${name} je ${ihsLevelLabel(matches[0].ihs_level)} — táto kategória nie je pre turnaj povolená.`,true);
+    return;
+  }
   wiz.players.push({name,user_id:matches.length===1?matches[0].id:null,present:false});
   inp.value=''; renderWiz();
-  if(matches.length===1)toast('Hráč prepojený s CSP profilom ✓');
+  if(matches.length===1)toast(`Hráč prepojený s CSP profilom · IHS ${ihsLevelLabel(matches[0].ihs_level)} ✓`);
   else if(matches.length>1)toast('V CSP je viac hráčov s rovnakým menom — profil nebol automaticky prepojený.',true);
 }
 async function addBulk(){
@@ -3023,11 +3080,15 @@ async function addBulk(){
   const names=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!names.length){ toast('Vlož aspoň jedno meno.',true); return; }
   await loadCspPlayerDirectory();
+  let added=0,blocked=0;
   names.forEach(n=>{
     const matches=cspCandidatesForName(n);
+    if(matches.length===1 && !(wiz.ihsCategories||IHS_ALL).includes(matches[0].ihs_level)){blocked++;return}
     wiz.players.push({name:n,user_id:matches.length===1?matches[0].id:null,present:false});
+    added++;
   });
-  wiz.showBulk=false; renderWiz(); toast(`Pridaných ${names.length} hráčov`);
+  wiz.showBulk=false; renderWiz();
+  toast(blocked?`Pridaných ${added} hráčov · ${blocked} blokovaných CSP IHS`:`Pridaných ${added} hráčov`,blocked>0);
 }
 function setPlayerPresent(index,present){
   if(!wiz.players[index]) return;
@@ -3131,6 +3192,12 @@ function renderPreview(){
 
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
+  await loadCspPlayerDirectory();
+  const blocked=wiz.players.filter(p=>p.user_id&&!playerIhsEligible(p));
+  if(blocked.length){
+    toast(`CSP IHS nepovoľuje ${blocked.length} hráčov v aktuálnych kategóriách.`,true);
+    return;
+  }
   stopWizardAutosave();
   pendingTournamentWrite=true;
   const btn = document.querySelector('#wizPanel .btn-green');
@@ -3147,6 +3214,7 @@ async function createTournament(){
       venue: wiz.venue || null,
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
+      ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
       config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
