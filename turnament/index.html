@@ -123,9 +123,16 @@ input:focus,select:focus{border-color:var(--gold)}
 .btn-danger:hover{border-color:var(--red);color:var(--red);background:var(--red-dim)}
 
 /* detail */
-.detail-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start}
-@media(max-width:820px){.detail-grid{grid-template-columns:1fr}}
+.detail-grid{display:block}
 .detail-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.tournament-info-strip{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:0 0 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:11px 16px}
+.tournament-info-item{display:flex;align-items:center;gap:6px;font-size:.78rem;white-space:nowrap}
+.tournament-info-item .k{color:var(--muted)}
+.tournament-info-item .v{color:var(--fg);font-weight:750}
+.tournament-info-item+.tournament-info-item:before{content:"·";color:var(--gold);margin:0 12px;font-weight:900}
+.matches-wide{width:100%}
+.matches-wide #matchArea{max-width:none}
+@media(max-width:760px){.tournament-info-strip{gap:8px 0}.tournament-info-item{white-space:normal}.tournament-info-item+.tournament-info-item:before{margin:0 8px}}
 .dc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .dc-head h3{font-size:.96rem;font-weight:800}
 .match-view-switch{display:flex;align-items:center;gap:3px;padding:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px}
@@ -1626,7 +1633,7 @@ async function viewDetail(id){
       <div>
         <span class="fmt" style="display:inline-block;margin-bottom:8px">${FMT_LABEL[curT.format]||curT.format}</span>
         <h1>${esc(curT.name)}</h1>
-        <p>${esc(curT.sport)}${curT.discipline?' · '+esc(curT.discipline):''} · ${pcount(curT)} hráčov${curT.date?' · '+esc(curT.date):''}${curT.venue?' · '+esc(curT.venue):''} · <span class="status-chip ${esc(curT.status)}">${statusLabel(curT.status)}</span></p>
+        <p>${esc(curT.sport)}${curT.discipline?' · '+esc(curT.discipline):''}${curT.date?' · '+esc(curT.date):''}${curT.venue?' · '+esc(curT.venue):''} · <span class="status-chip ${esc(curT.status)}">${statusLabel(curT.status)}</span></p>
       </div>
       ${isPublicReadOnly?'':`<div style="display:flex;gap:10px">
         ${curT.status==='draft'?`<button class="btn btn-primary" onclick="setTournamentWorkflowStatus('${curT.id}','ready')">Označiť ako pripravený</button>`:''}
@@ -1643,25 +1650,16 @@ async function viewDetail(id){
       <button class="btn btn-green" id="tournamentShareBtn" type="button">📤 Zdieľať</button>
     </div>
     ${isPublicReadOnly?'':renderOperationsPanel()}
+    <div class="tournament-info-strip" aria-label="Informácie o turnaji">
+      <span class="tournament-info-item"><span class="k">Formát</span><span class="v">${FMT_LABEL[curT.format]}</span></span>
+      <span class="tournament-info-item"><span class="k">Šport</span><span class="v">${esc(curT.sport)}${curT.discipline?' · '+esc(curT.discipline):''}</span></span>
+      <span class="tournament-info-item"><span class="k">CSP IHS</span><span class="v">${(Array.isArray(curT.ihs_allowed_categories)&&curT.ihs_allowed_categories.length?curT.ihs_allowed_categories:IHS_ALL).map(ihsLevelLabel).join(' / ')}</span></span>
+      ${isCmb?`<span class="tournament-info-item"><span class="k">Skupiny</span><span class="v">${curT.groups} × postup ${curT.advance}</span></span>`:''}
+      ${curT.date?`<span class="tournament-info-item"><span class="k">Dátum</span><span class="v">${esc(curT.date)}</span></span>`:''}
+      ${curT.venue?`<span class="tournament-info-item"><span class="k">Miesto</span><span class="v">${esc(curT.venue)}</span></span>`:''}
+    </div>
     <div class="detail-grid">
-      <div>
-        <div class="detail-card">
-          <div class="dc-head"><h3>Súhrn</h3></div>
-          <div class="sumrow"><span class="k">Formát</span><span class="v">${FMT_LABEL[curT.format]}</span></div>
-          <div class="sumrow"><span class="k">Šport · disciplína</span><span class="v">${esc(curT.sport)} · ${esc(curT.discipline||'—')}</span></div>
-          <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(Array.isArray(curT.ihs_allowed_categories)&&curT.ihs_allowed_categories.length?curT.ihs_allowed_categories:IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
-          <div class="sumrow"><span class="k">Hráči</span><span class="v">${pcount(curT)}</span></div>
-          ${isCmb?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${curT.groups} × postup ${curT.advance}</span></div>`:''}
-          ${curT.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${curT.date}</span></div>`:''}
-        </div>
-        <div class="detail-card" style="margin-top:16px">
-          <div class="dc-head"><h3>Hráči (${players.length})</h3>${!isPublicReadOnly&&['draft','ready'].includes(curT.status)?`<button class="link-btn" onclick="editTournament('${curT.id}')">upraviť</button>`:''}</div>
-          <div class="player-list" style="max-height:240px">
-            ${players.length?players.map((p,i)=>`<div class="pl-item"><span class="pl-seed ${i<Number(curT.config?.seed_count||0)?'':'unseeded'}">${i<Number(curT.config?.seed_count||0)?`Seed ${i+1}`:'—'}</span><span class="pl-name">${esc(p.name)}${p.user_id?'<span class="csp-player-badge linked">CSP ✓</span>':''}</span></div>`).join(''):'<div class="player-empty">Žiadni hráči</div>'}
-          </div>
-        </div>
-      </div>
-      <div class="detail-card">
+      <div class="detail-card matches-wide">
         <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → zadaj výsledok</span>`}</div>
           <div class="match-view-switch" role="group" aria-label="Zobrazenie zápasov">
             <button class="match-view-btn ${matchViewMode==='list'?'active':''}" id="matchListViewBtn" onclick="setMatchView('list')">☷ Zoznam</button>
