@@ -1522,7 +1522,7 @@ function persistT(){
 
 function openDisplayView(tournamentId){
   if(!tournamentId)return;
-  const url=`/turnament/display/?id=${encodeURIComponent(tournamentId)}`;
+  const url=`/displayview/?id=${encodeURIComponent(tournamentId)}`;
   window.open(url,'_blank','noopener');
 }
 
@@ -1633,7 +1633,7 @@ async function viewDetail(id){
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
-        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayView('${curT.id}')">▣ Display View</button>`:''}
+        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayView('${curT.id}')">▣ ProjektorTV</button>`:''}
         ${['draft','ready','active'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
@@ -2856,10 +2856,10 @@ const FORMATS={
 };
 const STEPS=[['Info','📋'],['Hráči','👥'],['Formát','🏆'],['Súhrn','✓']];
 const IHS_CATEGORIES=[
-  {key:'amateur',label:'Amateur'},
-  {key:'competitive',label:'Competitive'},
-  {key:'elite',label:'Elite'},
-  {key:'world_class',label:'World Class'}
+  {key:'world_class',label:'A+'},
+  {key:'elite',label:'A'},
+  {key:'competitive',label:'B'},
+  {key:'amateur',label:'C'}
 ];
 const IHS_ALL=IHS_CATEGORIES.map(x=>x.key);
 function ihsLevelLabel(level){return IHS_CATEGORIES.find(x=>x.key===level)?.label||String(level||'').replaceAll('_',' ')}
@@ -2911,7 +2911,7 @@ function cspCandidatesForName(name){
 function cspWizardBadge(player){
   if(player?.user_id){
     const dir=(cspPlayerDirectory||[]).find(x=>x.id===player.user_id);
-    const ihs=dir?`<span class="ihs-level-badge" title="CSP IHS ${Number(dir.ihs_rating).toFixed(2)}">${esc(ihsLevelLabel(dir.ihs_level))}</span>`:'';
+    const ihs=dir?`<span class="ihs-level-badge" title="CSP IHS">${esc(ihsLevelLabel(dir.ihs_level))}</span>`:'';
     return `<span class="csp-player-badge linked" title="Prepojený CSP hráč">CSP ✓</span>${ihs}`;
   }
   const matches=cspCandidatesForName(player?.name);
