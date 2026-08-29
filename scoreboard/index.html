@@ -49,6 +49,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:16p
 .pill.gold{background:rgba(212,168,67,.14);color:var(--gold)}
 .pill.green{background:rgba(24,201,100,.14);color:var(--green)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+.fullscreen-btn{white-space:nowrap}
+:fullscreen body{background:var(--bg)}
+:fullscreen .app{max-width:none;width:100%}
 
 /* SPORT SWITCHER */
 .sport-picker{margin-bottom:14px;max-width:360px}
@@ -1122,6 +1125,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
       </div>
     </div>
     <div class="actions">
+      <button class="fullscreen-btn" id="fullscreenBtn" type="button">Celá obrazovka</button>
       <button class="primary" id="newPeriodBtn">Nový frame</button>
       <button class="danger" id="resetBtn">Reset</button>
     </div>
@@ -2713,6 +2717,21 @@ function initFixedStationTablet(){
   fetchStationState();
   stationPollTimer=setInterval(fetchStationState,5000);
 }
+
+
+/* ════════════════════ FULLSCREEN ════════════════════ */
+async function toggleScoreboardFullscreen(){
+  try{
+    if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
+    else await document.exitFullscreen();
+  }catch(err){
+    console.warn("[scoreboard] fullscreen unavailable",err);
+  }
+}
+$("fullscreenBtn").addEventListener("click",toggleScoreboardFullscreen);
+document.addEventListener("fullscreenchange",()=>{
+  $("fullscreenBtn").textContent=document.fullscreenElement?"Ukončiť fullscreen":"Celá obrazovka";
+});
 
 /* ════════════════════ INIT ════════════════════ */
 if(DEVICE_TOKEN){
