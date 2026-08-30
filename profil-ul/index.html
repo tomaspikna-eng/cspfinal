@@ -768,10 +768,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
     <div class="nav-section">Klub</div>
     <a href="#" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
 
-    <div class="nav-section" id="matchesNavSection">Zápasy</div>
-    <a href="#" class="nav-item" id="recentMatchesNav"><span class="icon">📋</span>Posledné</a>
-    <a href="#" class="nav-item"><span class="icon">📈</span>Hodnotenie</a>
-
   </aside>
 
   <!-- ═══════════ MAIN ═══════════ -->
@@ -1207,8 +1203,6 @@ function renderIdentity(){
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
 
     document.body.classList.toggle('admin-dashboard-mode', isAdmin);
-    document.getElementById('matchesNavSection')?.classList.toggle('hidden', isAdmin);
-    document.getElementById('recentMatchesNav')?.classList.toggle('hidden', isAdmin);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
