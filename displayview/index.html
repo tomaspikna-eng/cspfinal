@@ -38,6 +38,10 @@ button{font:inherit}
   color:var(--green);font-size:11px;font-weight:900;letter-spacing:.08em
 }
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(24,201,100,.72)}
+.live-pill.offline{color:var(--red);border-color:rgba(237,91,100,.32);background:rgba(237,91,100,.09)}
+.live-pill.offline .live-dot{background:var(--red);box-shadow:0 0 14px rgba(237,91,100,.55)}
+.live-pill.pairing{color:var(--gold);border-color:rgba(212,168,67,.32);background:rgba(212,168,67,.09)}
+.live-pill.pairing .live-dot{background:var(--gold);box-shadow:0 0 14px rgba(212,168,67,.55)}
 .fullscreen{
   min-height:38px;padding:0 13px;border-radius:9px;border:1px solid var(--line);
   background:#111512;color:#fff;font-weight:800;cursor:pointer
@@ -66,6 +70,7 @@ button{font:inherit}
 }
 .state.live{color:var(--green);border-color:rgba(24,201,100,.35);background:rgba(24,201,100,.08)}
 .state.called{color:var(--gold);border-color:rgba(212,168,67,.35);background:rgba(212,168,67,.08)}
+.state.completed{color:#c8cec9;border-color:rgba(255,255,255,.17);background:rgba(255,255,255,.06)}
 .players{
   min-height:0;display:grid;align-items:center;gap:clamp(8px,1vw,18px);
   grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)
@@ -91,6 +96,10 @@ button{font:inherit}
 }
 .round{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clock{font-family:"JetBrains Mono",ui-monospace,monospace;color:#b7bdb7;white-space:nowrap}
+.match-card.station-idle{place-items:center;text-align:center;grid-template-rows:1fr}
+.station-idle-inner{align-self:center}
+.station-idle-name{font-size:clamp(22px,3vw,54px);font-weight:900;color:var(--gold)}
+.station-idle-copy{margin-top:12px;color:var(--muted);font-size:clamp(12px,1.2vw,19px);font-weight:700}
 .empty{
   height:100%;display:grid;place-items:center;border:1px solid var(--line);border-radius:20px;background:var(--panel)
 }
@@ -100,6 +109,19 @@ button{font:inherit}
 .empty p{margin:0;color:var(--muted);font-size:clamp(11px,1.1vw,16px)}
 .error{color:var(--red)}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:800}
+.pairing-screen{
+  height:100%;display:grid;place-items:center;border:1px solid var(--line);border-radius:20px;
+  background:radial-gradient(circle at 50% 10%,rgba(212,168,67,.12),transparent 38%),var(--panel)
+}
+.pairing-card{width:min(680px,92vw);padding:clamp(26px,5vw,58px);text-align:center}
+.pairing-kicker{font-size:12px;font-weight:900;letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
+.pairing-card h2{font-size:clamp(26px,4vw,52px);margin:12px 0 8px}
+.pairing-card p{color:var(--muted);font-size:clamp(13px,1.25vw,18px);line-height:1.55;margin:0 auto;max-width:560px}
+.pairing-code{
+  margin:28px auto 20px;font-family:"JetBrains Mono",ui-monospace,monospace;
+  font-size:clamp(58px,10vw,116px);font-weight:900;line-height:1;letter-spacing:.12em;color:#fff
+}
+.pairing-expiry{margin-top:16px;font-size:12px;color:#727972}
 .hidden{display:none!important}
 
 /* Real reflow, not a scaled landscape layout. */
@@ -139,7 +161,7 @@ button{font:inherit}
       <div class="meta" id="tournamentMeta">Načítavam turnaj…</div>
     </div>
     <div class="header-actions">
-      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="live-pill" id="connectionPill"><span class="live-dot"></span><span id="connectionLabel">LIVE</span></div>
       <button class="fullscreen" id="fullscreenBtn" type="button">Celá obrazovka</button>
     </div>
   </header>
@@ -153,44 +175,94 @@ button{font:inherit}
         <p>ProjektorTV sa aktualizuje automaticky.</p>
       </div>
     </div>
+    <div class="pairing-screen hidden" id="pairingState">
+      <div class="pairing-card">
+        <div class="pairing-kicker">CSP MULTISCREEN</div>
+        <h2>Spárovať obrazovku</h2>
+        <p>V Display centre turnaja zadaj tento kód a pomenuj monitor.</p>
+        <div class="pairing-code" id="pairingCode">------</div>
+        <p>Po priradení sa obrazovka spustí automaticky. Kód platí desať minút.</p>
+        <div class="pairing-expiry" id="pairingExpiry">Pripájam obrazovku…</div>
+      </div>
+    </div>
   </main>
 </div>
 
 <script>
 const params=new URLSearchParams(location.search);
-const tournamentId=params.get('id')||params.get('tournament_id')||'';
+const explicitScreenToken=params.get('screen')||params.get('token')||'';
+const legacyTournamentId=params.get('id')||params.get('tournament_id')||'';
 const $=id=>document.getElementById(id);
+const storage={
+  get(key){try{return localStorage.getItem(key)||''}catch(_){return ''}},
+  set(key,value){try{localStorage.setItem(key,value)}catch(_){}},
+  remove(key){try{localStorage.removeItem(key)}catch(_){}}
+};
+const SCREEN_TOKEN_KEY='csp_display_screen_token';
+const DEVICE_KEY_KEY='csp_display_device_key';
+
+if(params.get('reset')==='1'){
+  storage.remove(SCREEN_TOKEN_KEY);
+  storage.remove(DEVICE_KEY_KEY);
+}
+
+let screenToken=explicitScreenToken||(!legacyTournamentId?storage.get(SCREEN_TOKEN_KEY):'');
+let deviceKey=storage.get(DEVICE_KEY_KEY);
 let client=null;
-let matchesChannel=null;
-let resourcesChannel=null;
-let refreshTimer=null;
-let currentRows=[];
 let tournamentRow=null;
+let screenRow=null;
+let currentRows=[];
+let fetchBusy=false;
+let consecutiveErrors=0;
+let pairingExpiresAt=null;
+let matchesChannel=null;
+let displayPollTimer=null;
+let heartbeatTimer=null;
+let pairingPollTimer=null;
+let legacyRefreshTimer=null;
 
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function makeUuid(){
+  if(globalThis.crypto?.randomUUID)return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,ch=>{
+    const r=Math.random()*16|0,v=ch==='x'?r:(r&3|8);return v.toString(16);
+  });
+}
+function ensureDeviceKey(){
+  if(!deviceKey){deviceKey=makeUuid();storage.set(DEVICE_KEY_KEY,deviceKey)}
+  return deviceKey;
 }
 function statusLabel(status){
   return ({
     live:'LIVE',in_progress:'LIVE',
     called:'VOLANÝ',player_arriving:'VOLANÝ',
-    ready:'PRIPRAVENÝ',waiting_for_table:'ČAKÁ',
-    pending:'ČAKÁ'
+    ready:'PRIPRAVENÝ',waiting_for_table:'ČAKÁ',pending:'ČAKÁ',
+    completed:'UKONČENÝ',finished:'UKONČENÝ',paused:'PAUZA'
   })[status]||String(status||'').toUpperCase();
 }
 function statusClass(status){
   if(status==='live'||status==='in_progress')return 'live';
   if(status==='called'||status==='player_arriving'||status==='ready')return 'called';
+  if(status==='completed'||status==='finished')return 'completed';
   return '';
+}
+function modeLabel(mode){
+  return ({overview:'PREHĽAD HALY',resource:'ŠPORTOVISKO',match:'VYBRANÝ ZÁPAS',idle:'POZASTAVENÉ'})[mode]||'PROJEKTORTV';
+}
+function setConnection(state,label){
+  const pill=$('connectionPill');
+  pill.classList.toggle('offline',state==='offline');
+  pill.classList.toggle('pairing',state==='pairing');
+  $('connectionLabel').textContent=label||(state==='offline'?'OFFLINE':state==='pairing'?'PÁROVANIE':'LIVE');
 }
 function formatClock(row){
   let seconds=Number(row.match_clock_elapsed_seconds||0);
-  if(row.match_clock_started_at && !row.match_clock_paused_at){
+  if(row.match_clock_started_at&&!row.match_clock_paused_at&&row.status!=='completed'){
     seconds+=Math.max(0,Math.floor((Date.now()-new Date(row.match_clock_started_at).getTime())/1000));
   }
-  const h=Math.floor(seconds/3600);
-  const m=Math.floor((seconds%3600)/60);
-  const s=seconds%60;
+  const h=Math.floor(seconds/3600),m=Math.floor((seconds%3600)/60),s=seconds%60;
   const pad=n=>String(n).padStart(2,'0');
   return h?`${h}:${pad(m)}:${pad(s)}`:`${pad(m)}:${pad(s)}`;
 }
@@ -198,156 +270,255 @@ function roundText(row){
   const parts=[];
   if(row.group_index!=null)parts.push(`Skupina ${String.fromCharCode(64+Number(row.group_index))}`);
   if(row.round_key)parts.push(row.round_key);
-  if(row.match_number!=null)parts.push(`#${row.match_number}`);
+  if(row.match_number!=null&&!String(row.round_key||'').includes(`#${row.match_number}`))parts.push(`#${row.match_number}`);
   return parts.join(' · ');
 }
 function setGridGeometry(count){
-  const portrait=matchMedia('(orientation: portrait)').matches;
+  const forced=screenRow?.layout;
+  const portrait=forced==='portrait'||(forced!=='landscape'&&matchMedia('(orientation: portrait)').matches);
+  const single=['resource','match'].includes(screenRow?.display_mode)||count<=1;
   let cols=1;
-  if(portrait){
-    cols=count<=2?1:(count<=6?2:3);
-  }else{
-    cols=count<=1?1:(count===2?2:(count<=4?2:(count<=6?3:4)));
+  if(!single){
+    if(portrait)cols=count<=2?1:(count<=6?2:3);
+    else cols=count===2?2:(count<=4?2:(count<=6?3:4));
   }
   const rows=Math.max(1,Math.ceil(count/cols));
-  const grid=$('matchesGrid');
-  grid.style.setProperty('--cols',cols);
-  grid.style.setProperty('--rows',rows);
+  $('matchesGrid').style.setProperty('--cols',cols);
+  $('matchesGrid').style.setProperty('--rows',rows);
+}
+function hideStates(){
+  $('loading').classList.add('hidden');
+  $('matchesGrid').classList.add('hidden');
+  $('emptyState').classList.add('hidden');
+  $('pairingState').classList.add('hidden');
+}
+function showEmpty(title,copy,error=false){
+  hideStates();
+  const empty=$('emptyState');
+  empty.classList.remove('hidden');
+  empty.querySelector('h2').textContent=title;
+  empty.querySelector('p').innerHTML=error?`<span class="error">${esc(copy)}</span>`:esc(copy);
 }
 function render(){
-  $('loading').classList.add('hidden');
-  const grid=$('matchesGrid');
-  const empty=$('emptyState');
-  if(!currentRows.length){
-    grid.classList.add('hidden');
-    empty.classList.remove('hidden');
+  hideStates();
+  const mode=screenRow?.display_mode||'overview';
+  if(mode==='idle'){
+    showEmpty('Obrazovka je pozastavená','Obsah môže organizátor kedykoľvek zapnúť v Display centre.');
     return;
   }
-  empty.classList.add('hidden');
+  if(!currentRows.length){
+    const title=mode==='match'?'Vybraný zápas nie je dostupný':'Čaká sa na ďalší zápas';
+    const copy=mode==='resource'?'Na tomto športovisku zatiaľ nie je pridelený zápas.':'ProjektorTV sa aktualizuje automaticky.';
+    showEmpty(title,copy);
+    return;
+  }
+  const grid=$('matchesGrid');
   grid.classList.remove('hidden');
   setGridGeometry(currentRows.length);
-  grid.innerHTML=currentRows.map(row=>`
-    <article class="match-card">
+  grid.innerHTML=currentRows.map(row=>{
+    if(row.has_match===false||!row.id){
+      return `<article class="match-card station-idle"><div class="station-idle-inner"><div class="station-idle-name">${esc(row.resource_label||'Stanica')}</div><div class="station-idle-copy">Voľné stanovisko · čaká na zápas</div></div></article>`;
+    }
+    return `<article class="match-card">
       <div class="match-top">
         <div class="station">${esc(row.resource_label||'Stanica')}</div>
         <div class="state ${statusClass(row.status)}">${esc(statusLabel(row.status))}</div>
       </div>
       <div class="players">
-        <div class="player">
-          <div class="player-name">${esc(row.player1_name||'—')}</div>
-          <div class="score">${Number(row.score1||0)}</div>
-        </div>
+        <div class="player"><div class="player-name">${esc(row.player1_name||'—')}</div><div class="score">${Number(row.score1||0)}</div></div>
         <div class="vs">VS</div>
-        <div class="player">
-          <div class="player-name">${esc(row.player2_name||'—')}</div>
-          <div class="score">${Number(row.score2||0)}</div>
-        </div>
+        <div class="player"><div class="player-name">${esc(row.player2_name||'—')}</div><div class="score">${Number(row.score2||0)}</div></div>
       </div>
-      <div class="match-bottom">
-        <div class="round">${esc(roundText(row))}</div>
-        <div class="clock" data-clock-id="${row.id}">${formatClock(row)}</div>
-      </div>
-    </article>`).join('');
+      <div class="match-bottom"><div class="round">${esc(roundText(row))}</div><div class="clock" data-clock-id="${esc(row.id)}">${formatClock(row)}</div></div>
+    </article>`;
+  }).join('');
 }
 function tickClocks(){
-  if(!currentRows.length)return;
-  for(const row of currentRows){
-    const el=document.querySelector(`[data-clock-id="${CSS.escape(row.id)}"]`);
-    if(el)el.textContent=formatClock(row);
-  }
-}
-async function fetchData(){
-  if(!client||!tournamentId)return;
-  const {data,error}=await client.rpc('get_tournament_display_view',{
-    p_tournament_id:tournamentId
+  const byId=new Map(currentRows.filter(row=>row.id).map(row=>[String(row.id),row]));
+  document.querySelectorAll('[data-clock-id]').forEach(el=>{
+    const row=byId.get(el.dataset.clockId);if(row)el.textContent=formatClock(row);
   });
+}
+function applyPayload(payload){
+  tournamentRow=payload.tournament||{};
+  screenRow=payload.screen||{display_mode:'overview',layout:'auto',name:'ProjektorTV'};
+  currentRows=(Array.isArray(payload.items)?payload.items:[]).map(row=>({
+    ...row,
+    id:row.match_id||'',
+    has_match:row.has_match!==false&&!!row.match_id,
+    player1_name:row.player1_name||'—',
+    player2_name:row.player2_name||'—',
+    score1:Number(row.score1||0),score2:Number(row.score2||0),
+    match_clock_elapsed_seconds:Number(row.match_clock_elapsed_seconds||0)
+  }));
+  $('tournamentName').textContent=tournamentRow.name||'Turnaj';
+  $('tournamentMeta').textContent=[screenRow.name,modeLabel(screenRow.display_mode),tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
+  render();
+}
+function showPairing(data){
+  hideStates();
+  $('pairingState').classList.remove('hidden');
+  $('tournamentName').textContent='CSP Multiscreen';
+  $('tournamentMeta').textContent='Párovanie novej obrazovky';
+  $('pairingCode').textContent=data?.pairing_code||'------';
+  pairingExpiresAt=data?.expires_at?new Date(data.expires_at):null;
+  updatePairingExpiry();
+  setConnection('pairing','PÁROVANIE');
+}
+function updatePairingExpiry(){
+  if(!pairingExpiresAt){$('pairingExpiry').textContent='Pripájam obrazovku…';return}
+  const seconds=Math.max(0,Math.ceil((pairingExpiresAt.getTime()-Date.now())/1000));
+  const m=Math.floor(seconds/60),s=String(seconds%60).padStart(2,'0');
+  $('pairingExpiry').textContent=seconds?`Platnosť kódu: ${m}:${s}`:'Kód vypršal, vytváram nový…';
+}
+function showDisabled(){
+  $('tournamentName').textContent='CSP Multiscreen';
+  $('tournamentMeta').textContent='Obrazovka je vypnutá';
+  showEmpty('Obrazovka je vypnutá','Organizátor ju môže znovu aktivovať v Display centre.');
+  setConnection('offline','VYPNUTÁ');
+}
+function clearDisplayTimers(){
+  clearInterval(displayPollTimer);displayPollTimer=null;
+  clearInterval(heartbeatTimer);heartbeatTimer=null;
+  if(matchesChannel&&client){client.removeChannel(matchesChannel);matchesChannel=null}
+  clearInterval(legacyRefreshTimer);legacyRefreshTimer=null;
+}
+function clearPairingTimer(){clearInterval(pairingPollTimer);pairingPollTimer=null}
+function adoptScreenToken(token){
+  if(!token)return;
+  screenToken=token;
+  storage.set(SCREEN_TOKEN_KEY,token);
+  const url=new URL(location.href);
+  url.search='';url.searchParams.set('screen',token);
+  history.replaceState(null,'',url);
+  clearPairingTimer();
+  startScreenMode();
+}
+async function requestPairing(){
+  ensureDeviceKey();
+  const {data,error}=await client.rpc('request_display_pairing',{p_device_key:deviceKey});
+  if(error)throw error;
+  if(data?.status==='paired'&&data.screen_token){adoptScreenToken(data.screen_token);return}
+  if(data?.status==='disabled'){showDisabled();startPairingPoll();return}
+  showPairing(data||{});
+  startPairingPoll();
+}
+async function pollPairing(){
+  updatePairingExpiry();
+  const {data,error}=await client.rpc('get_display_pairing_status',{p_device_key:ensureDeviceKey()});
+  if(error)throw error;
+  if(data?.status==='paired'&&data.screen_token){adoptScreenToken(data.screen_token);return}
+  if(data?.status==='disabled'){showDisabled();return}
+  if(data?.status==='expired'||data?.status==='missing'){
+    await requestPairing();return;
+  }
+  if(data?.status==='waiting')showPairing(data);
+}
+function startPairingPoll(){
+  clearPairingTimer();
+  pairingPollTimer=setInterval(()=>pollPairing().catch(err=>setConnection('offline',err?.message?'OFFLINE':'OFFLINE')),2000);
+}
+async function heartbeat(){
+  if(!screenToken)return;
+  const {error}=await client.rpc('touch_tournament_display_screen',{p_screen_token:screenToken});
+  if(error)console.warn('[projektortv] heartbeat:',error);
+}
+async function recoverScreen(){
+  ensureDeviceKey();
+  const {data,error}=await client.rpc('request_display_pairing',{p_device_key:deviceKey});
+  if(error)throw error;
+  if(data?.status==='paired'&&data.screen_token){
+    if(data.screen_token!==screenToken){adoptScreenToken(data.screen_token)}
+    return;
+  }
+  if(data?.status==='disabled'){showDisabled();return}
+  screenToken='';storage.remove(SCREEN_TOKEN_KEY);showPairing(data||{});startPairingPoll();
+}
+async function fetchScreenData(){
+  if(fetchBusy||!screenToken)return;
+  fetchBusy=true;
+  try{
+    const {data,error}=await client.rpc('get_tournament_display_screen_payload',{p_screen_token:screenToken});
+    if(error)throw error;
+    if(!data){await recoverScreen();return}
+    consecutiveErrors=0;
+    setConnection('online','LIVE');
+    applyPayload(data);
+  }finally{fetchBusy=false}
+}
+function handleScreenError(err){
+  consecutiveErrors++;
+  console.error('[projektortv]',err);
+  setConnection('offline','OFFLINE');
+  if(!currentRows.length&&consecutiveErrors>=2)showEmpty('Spojenie bolo prerušené','ProjektorTV sa pokúša znovu pripojiť.',true);
+}
+function startScreenMode(){
+  clearDisplayTimers();
+  clearPairingTimer();
+  fetchScreenData().catch(handleScreenError);
+  displayPollTimer=setInterval(()=>fetchScreenData().catch(handleScreenError),2000);
+  heartbeat();
+  heartbeatTimer=setInterval(heartbeat,15000);
+}
+async function fetchLegacyData(){
+  if(!client||!legacyTournamentId)return;
+  const {data,error}=await client.rpc('get_tournament_display_view',{p_tournament_id:legacyTournamentId});
   if(error)throw error;
   const rows=Array.isArray(data)?data:[];
   if(!rows.length)throw new Error('Turnaj sa nenašiel alebo ProjektorTV nemá prístup.');
-
   const head=rows[0];
-  tournamentRow={
-    id:head.tournament_id,
-    name:head.tournament_name,
-    sport:head.sport,
-    discipline:head.discipline,
-    date:head.tournament_date,
-    venue:head.venue,
-    status:head.tournament_status,
-    visibility:head.visibility
-  };
+  tournamentRow={id:head.tournament_id,name:head.tournament_name,sport:head.sport,discipline:head.discipline,date:head.tournament_date,venue:head.venue};
+  screenRow={name:'Hlavná obrazovka',display_mode:'overview',layout:'auto'};
+  currentRows=rows.map(row=>({
+    id:row.match_id||'',has_match:!!row.match_id,resource_id:row.resource_id,
+    resource_label:row.resource_label,resource_number:row.resource_number,resource_type:row.resource_type,
+    resource_status:row.resource_status,round_key:row.round_key,match_number:row.match_number,
+    group_index:row.group_index,status:row.match_status||'waiting_for_table',player1_name:row.player1_name||'—',
+    player2_name:row.player2_name||'—',score1:Number(row.score1||0),score2:Number(row.score2||0),
+    started_at:row.started_at,match_clock_elapsed_seconds:Number(row.match_clock_elapsed_seconds||0),
+    match_clock_started_at:row.match_clock_started_at,match_clock_paused_at:row.match_clock_paused_at
+  }));
   $('tournamentName').textContent=tournamentRow.name||'Turnaj';
-  $('tournamentMeta').textContent=[tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
-
-  currentRows=rows
-    .filter(row=>row.match_id)
-    .map(row=>({
-      id:row.match_id,
-      resource_id:row.resource_id,
-      resource_label:row.resource_label,
-      resource_number:row.resource_number,
-      resource_type:row.resource_type,
-      resource_status:row.resource_status,
-      round_key:row.round_key,
-      match_number:row.match_number,
-      group_index:row.group_index,
-      status:row.match_status,
-      player1_id:row.player1_id,
-      player1_name:row.player1_name||'—',
-      player2_id:row.player2_id,
-      player2_name:row.player2_name||'—',
-      score1:Number(row.score1||0),
-      score2:Number(row.score2||0),
-      started_at:row.started_at,
-      match_clock_elapsed_seconds:Number(row.match_clock_elapsed_seconds||0),
-      match_clock_started_at:row.match_clock_started_at,
-      match_clock_paused_at:row.match_clock_paused_at
-    }));
-  render();
+  $('tournamentMeta').textContent=['Hlavná obrazovka',tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
+  setConnection('online','LIVE');render();
 }
-function scheduleRefresh(){
-  clearTimeout(refreshTimer);
-  refreshTimer=setTimeout(()=>fetchData().catch(showError),120);
+function scheduleLegacyRefresh(){
+  clearTimeout(legacyRefreshTimer);
+  legacyRefreshTimer=setTimeout(()=>fetchLegacyData().catch(handleScreenError),120);
 }
-function showError(err){
-  console.error('[projektortv]',err);
-  $('loading').classList.add('hidden');
-  $('matchesGrid').classList.add('hidden');
-  const empty=$('emptyState');
-  empty.classList.remove('hidden');
-  empty.querySelector('h2').textContent='ProjektorTV sa nepodarilo načítať';
-  empty.querySelector('p').innerHTML=`<span class="error">${esc(err?.message||'Skús obnoviť stránku.')}</span>`;
-}
-function startRealtime(){
-  matchesChannel=client.channel(`display-matches-${tournamentId}`)
-    .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${tournamentId}`},scheduleRefresh)
+function startLegacyMode(){
+  fetchLegacyData().catch(handleScreenError);
+  matchesChannel=client.channel(`display-legacy-${legacyTournamentId}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${legacyTournamentId}`},scheduleLegacyRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_resources',filter:`tournament_id=eq.${legacyTournamentId}`},scheduleLegacyRefresh)
     .subscribe();
-  resourcesChannel=client.channel(`display-resources-${tournamentId}`)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_resources',filter:`tournament_id=eq.${tournamentId}`},scheduleRefresh)
-    .subscribe();
+  displayPollTimer=setInterval(()=>fetchLegacyData().catch(handleScreenError),5000);
+}
+function showFatal(err){
+  console.error('[projektortv]',err);setConnection('offline','OFFLINE');
+  showEmpty('ProjektorTV sa nepodarilo načítať',err?.message||'Skús obnoviť stránku.',true);
 }
 async function toggleFullscreen(){
   try{
     if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
     else await document.exitFullscreen();
-  }catch(err){console.warn('[projektortv] fullscreen unavailable',err);}
+  }catch(err){console.warn('[projektortv] fullscreen unavailable',err)}
 }
 $('fullscreenBtn').addEventListener('click',toggleFullscreen);
-document.addEventListener('fullscreenchange',()=>{
-  $('fullscreenBtn').textContent=document.fullscreenElement?'Ukončiť fullscreen':'Celá obrazovka';
-});
+document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'Ukončiť fullscreen':'Celá obrazovka'});
 window.addEventListener('resize',()=>setGridGeometry(currentRows.length||1));
 window.addEventListener('orientationchange',()=>setTimeout(()=>setGridGeometry(currentRows.length||1),80));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){screenToken?fetchScreenData().catch(handleScreenError):legacyTournamentId&&fetchLegacyData().catch(handleScreenError)}});
 setInterval(tickClocks,1000);
 
 (async function init(){
-  if(!tournamentId){showError(new Error('Chýba ID turnaja.'));return;}
   try{
     client=window.cspAuth?.client;
     if(!client)throw new Error('CSP pripojenie nie je dostupné.');
-    await fetchData();
-    startRealtime();
-  }catch(err){showError(err);}
+    if(screenToken){storage.set(SCREEN_TOKEN_KEY,screenToken);startScreenMode();return}
+    if(legacyTournamentId){startLegacyMode();return}
+    await requestPairing();
+  }catch(err){showFatal(err)}
 })();
 </script>
 </body>
