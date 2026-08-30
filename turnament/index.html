@@ -423,6 +423,29 @@ input:focus,select:focus{border-color:var(--gold)}
 .status-chip{display:inline-block;font-family:var(--mono);font-size:.62rem;font-weight:800;letter-spacing:.07em;padding:5px 9px;border-radius:99px;background:var(--card-2);color:var(--muted-2)}
 .status-chip.active{color:var(--green);background:var(--green-dim)}.status-chip.ready{color:var(--gold);background:var(--gold-dim)}
 
+/* ── DISPLAY CENTRE / MULTISCREEN ── */
+.display-center-overlay{position:fixed;inset:0;z-index:450;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:18px}
+.display-center{width:min(1060px,96vw);max-height:92vh;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.display-center-head{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--line);background:rgba(13,16,14,.97);backdrop-filter:blur(10px)}
+.display-center-head h2{font-size:1.25rem;margin:0 0 4px}.display-center-head p{font-size:.78rem;color:var(--muted);margin:0}
+.display-center-body{padding:20px 22px 24px}
+.display-pair-box{display:grid;grid-template-columns:minmax(150px,190px) minmax(180px,1fr) auto;gap:10px;align-items:end;padding:16px;border:1px solid rgba(212,168,67,.23);border-radius:13px;background:var(--gold-dim);margin-bottom:18px}
+.display-pair-box label,.display-screen-field label{display:block;font-family:var(--mono);font-size:.58rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.display-pair-code{font-family:var(--mono);font-size:1.2rem;font-weight:900;letter-spacing:.16em;text-align:center}
+.display-screens{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.display-screen-card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px}
+.display-screen-card.offline{border-color:rgba(227,81,73,.28)}.display-screen-card.disabled{opacity:.68}
+.display-screen-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.display-screen-name{font-weight:850;font-size:.94rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.display-screen-state{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.56rem;font-weight:850;letter-spacing:.07em;color:var(--red)}
+.display-screen-state i{width:7px;height:7px;border-radius:50%;background:currentColor}.display-screen-state.online{color:var(--green)}.display-screen-state.disabled{color:var(--muted)}
+.display-screen-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}.display-screen-field.wide{grid-column:1/-1}
+.display-screen-field input,.display-screen-field select{width:100%;padding:9px 10px;font-size:.76rem;border-radius:8px}
+.display-screen-actions{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}.display-screen-actions .match-op{flex:1;min-width:78px}
+.display-screen-empty{grid-column:1/-1;padding:34px;border:1px dashed var(--line);border-radius:13px;text-align:center;color:var(--muted)}
+.display-help{font-size:.72rem;color:var(--muted);line-height:1.55;margin:0 0 16px}
+@media(max-width:680px){.display-pair-box{grid-template-columns:1fr}.display-screen-form{grid-template-columns:1fr}.display-screen-field.wide{grid-column:auto}.display-center-body{padding:16px}.display-center-head{padding:16px}}
+
 </style>
 </head>
 <body>
@@ -457,6 +480,24 @@ input:focus,select:focus{border-color:var(--gold)}
       <button class="btn btn-ghost" id="matchQrCopyBtn">Kopírovať link</button>
     </div>
   </div>
+</div>
+
+<div class="display-center-overlay hidden" id="displayCenterOverlay" onclick="if(event.target===this)closeDisplayCenter()">
+  <section class="display-center" role="dialog" aria-modal="true" aria-labelledby="displayCenterTitle">
+    <header class="display-center-head">
+      <div><h2 id="displayCenterTitle">Display centrum</h2><p>Hlavná obrazovka, stoly, terče a samostatné zápasy.</p></div>
+      <button class="btn btn-ghost" style="padding:7px 10px" onclick="closeDisplayCenter()">✕</button>
+    </header>
+    <div class="display-center-body">
+      <div class="display-pair-box">
+        <div><label for="displayPairCode">Kód z monitora</label><input class="display-pair-code" id="displayPairCode" inputmode="numeric" maxlength="6" placeholder="000000"></div>
+        <div><label for="displayPairName">Názov obrazovky</label><input id="displayPairName" maxlength="80" placeholder="Napr. Terč 1 alebo Hlavná hala"></div>
+        <button class="btn btn-primary" id="displayPairBtn" onclick="pairDisplayScreen()">＋ Spárovať</button>
+      </div>
+      <p class="display-help">Na novom monitore otvor <b>/displayview/</b>. Zobrazí sa šesťmiestny kód, ktorý sem zadáš iba pri prvom pripojení.</p>
+      <div class="display-screens" id="displayScreens"><div class="display-screen-empty">Načítavam obrazovky…</div></div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -886,6 +927,8 @@ let realtimeFallbackTimer = null;
 let resourceRefreshTimer = null;
 let tournamentOperations=[];
 let groupResourceAssignments=new Map();
+let displayScreens=[];
+let displayCenterTimer=null;
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -1653,10 +1696,153 @@ function persistT(){
 }
 
 
-function openDisplayView(tournamentId){
-  if(!tournamentId)return;
-  const url=`/displayview/?id=${encodeURIComponent(tournamentId)}`;
-  window.open(url,'_blank','noopener');
+function displayScreenPath(token){return `/displayview/?screen=${encodeURIComponent(token)}`}
+function displayScreenOnline(screen){
+  return !!screen?.is_enabled&&!!screen?.last_seen_at&&(Date.now()-new Date(screen.last_seen_at).getTime())<35000;
+}
+function displayPlayerName(playerId){
+  return (curT?.players||[]).find(player=>player.id===playerId)?.name||'Čaká';
+}
+function displayMatchOptions(){
+  const unique=new Map();
+  [...realMatchesByKey.values()].forEach(row=>{if(row?.id)unique.set(row.id,row)});
+  return [...unique.values()].sort((a,b)=>Number(a.match_number||999999)-Number(b.match_number||999999));
+}
+function renderDisplayTarget(screen){
+  if(screen.display_mode==='resource'){
+    const options=tournamentOperations.map(resource=>`<option value="${esc(resource.resource_id)}" ${screen.resource_id===resource.resource_id?'selected':''}>${esc(resource.resource_label)}</option>`).join('');
+    return `<div class="display-screen-field wide"><label>Športovisko</label><select onchange="changeDisplayScreenTarget('${screen.id}','resource',this.value)">${options||'<option value="">Žiadne športovisko</option>'}</select></div>`;
+  }
+  if(screen.display_mode==='match'){
+    const options=displayMatchOptions().map(row=>{
+      const p1=row.player1_name||displayPlayerName(row.player1_id),p2=row.player2_name||displayPlayerName(row.player2_id);
+      return `<option value="${esc(row.id)}" ${screen.match_id===row.id?'selected':''}>#${Number(row.match_number||0)} · ${esc(p1)} – ${esc(p2)}</option>`;
+    }).join('');
+    return `<div class="display-screen-field wide"><label>Konkrétny zápas</label><select onchange="changeDisplayScreenTarget('${screen.id}','match',this.value)">${options||'<option value="">Žiadny zápas</option>'}</select></div>`;
+  }
+  return '';
+}
+function renderDisplayScreenCard(screen){
+  const online=displayScreenOnline(screen);
+  const state=!screen.is_enabled?'disabled':online?'online':'offline';
+  const stateLabel=!screen.is_enabled?'VYPNUTÁ':online?'ONLINE':'OFFLINE';
+  return `<article class="display-screen-card ${state}" data-display-screen-id="${screen.id}">
+    <div class="display-screen-top"><div class="display-screen-name">${esc(screen.name)}</div><span class="display-screen-state ${state}"><i></i>${stateLabel}</span></div>
+    <div class="display-screen-form">
+      <div class="display-screen-field wide"><label>Názov obrazovky</label><input maxlength="80" value="${esc(screen.name)}" onchange="changeDisplayScreenName('${screen.id}',this.value)"></div>
+      <div class="display-screen-field"><label>Režim</label><select onchange="changeDisplayScreenMode('${screen.id}',this.value)">
+        <option value="overview" ${screen.display_mode==='overview'?'selected':''}>Prehľad haly</option>
+        <option value="resource" ${screen.display_mode==='resource'?'selected':''}>Športovisko</option>
+        <option value="match" ${screen.display_mode==='match'?'selected':''}>Konkrétny zápas</option>
+        <option value="idle" ${screen.display_mode==='idle'?'selected':''}>Pozastavená</option>
+      </select></div>
+      <div class="display-screen-field"><label>Orientácia</label><select onchange="changeDisplayScreenLayout('${screen.id}',this.value)">
+        <option value="auto" ${screen.layout==='auto'?'selected':''}>Automatická</option>
+        <option value="landscape" ${screen.layout==='landscape'?'selected':''}>Na šírku</option>
+        <option value="portrait" ${screen.layout==='portrait'?'selected':''}>Na výšku</option>
+      </select></div>
+      ${renderDisplayTarget(screen)}
+      <div class="display-screen-field wide"><label>Stav</label><select onchange="changeDisplayScreenEnabled('${screen.id}',this.value==='true')"><option value="true" ${screen.is_enabled?'selected':''}>Zapnutá</option><option value="false" ${!screen.is_enabled?'selected':''}>Vypnutá</option></select></div>
+    </div>
+    <div class="display-screen-actions">
+      <button class="match-op" onclick="openDisplayScreen('${screen.public_token}')">▣ Otvoriť</button>
+      <button class="match-op qr" onclick="copyDisplayScreenLink('${screen.public_token}')">Kopírovať link</button>
+      <button class="match-op stop" onclick="deleteDisplayScreen('${screen.id}')">✕ Odpojiť</button>
+    </div>
+  </article>`;
+}
+function renderDisplayCenter(){
+  const root=document.getElementById('displayScreens');if(!root)return;
+  root.innerHTML=displayScreens.length?displayScreens.map(renderDisplayScreenCard).join(''):'<div class="display-screen-empty"><b>Zatiaľ nie je spárovaná žiadna obrazovka.</b><br><br>Na monitore otvor /displayview/ a zadaj zobrazený kód vyššie.</div>';
+}
+async function loadDisplayScreens(){
+  if(!curT?.id)return;
+  const {data,error}=await tournamentRpc('list_tournament_display_screens',{p_tournament_id:curT.id});
+  if(error)throw error;
+  displayScreens=Array.isArray(data?.screens)?data.screens:[];
+  renderDisplayCenter();
+}
+async function openDisplayCenter(tournamentId){
+  if(!tournamentId||!curT||curT.id!==tournamentId)return;
+  document.getElementById('displayCenterOverlay')?.classList.remove('hidden');
+  document.getElementById('displayPairCode').value='';
+  document.getElementById('displayPairName').value='';
+  try{
+    if(!tournamentOperations.length)await loadTournamentOperations(tournamentId);
+    await loadDisplayScreens();
+  }catch(err){
+    console.error('[turnament] display centre:',err);
+    document.getElementById('displayScreens').innerHTML=`<div class="display-screen-empty">${esc(cspErrorMessage(err))}</div>`;
+  }
+  clearInterval(displayCenterTimer);
+  displayCenterTimer=setInterval(()=>loadDisplayScreens().catch(err=>console.warn('[turnament] display status:',err)),10000);
+}
+function closeDisplayCenter(){
+  document.getElementById('displayCenterOverlay')?.classList.add('hidden');
+  clearInterval(displayCenterTimer);displayCenterTimer=null;
+}
+async function pairDisplayScreen(){
+  const code=String(document.getElementById('displayPairCode')?.value||'').replace(/\D/g,'').slice(0,6);
+  const name=String(document.getElementById('displayPairName')?.value||'').trim();
+  if(!/^\d{6}$/.test(code)){toast('Zadaj šesťmiestny kód z monitora.',true);return}
+  if(!name){toast('Pomenuj obrazovku.',true);return}
+  const button=document.getElementById('displayPairBtn');button.disabled=true;button.textContent='Párujem…';
+  try{
+    const {error}=await tournamentRpc('pair_tournament_display_screen',{p_tournament_id:curT.id,p_pairing_code:code,p_name:name});
+    if(error)throw error;
+    document.getElementById('displayPairCode').value='';document.getElementById('displayPairName').value='';
+    await loadDisplayScreens();toast(`${name} pripojená ✓`);
+  }catch(err){console.error('[turnament] display pairing:',err);toast(cspErrorMessage(err),true)}
+  finally{button.disabled=false;button.textContent='＋ Spárovať'}
+}
+async function persistDisplayScreen(screen){
+  const {data,error}=await tournamentRpc('update_tournament_display_screen',{
+    p_screen_id:screen.id,p_name:screen.name,p_display_mode:screen.display_mode,
+    p_resource_id:screen.resource_id||null,p_match_id:screen.match_id||null,
+    p_layout:screen.layout||'auto',p_is_enabled:screen.is_enabled!==false
+  });
+  if(error)throw error;
+  Object.assign(screen,data||{});
+  renderDisplayCenter();
+}
+async function mutateDisplayScreen(id,mutator,successText='Obrazovka aktualizovaná ✓'){
+  const screen=displayScreens.find(item=>item.id===id);if(!screen)return;
+  const previous={...screen};mutator(screen);
+  try{await persistDisplayScreen(screen);toast(successText)}
+  catch(err){Object.assign(screen,previous);renderDisplayCenter();console.error('[turnament] display update:',err);toast(cspErrorMessage(err),true)}
+}
+function changeDisplayScreenMode(id,mode){
+  mutateDisplayScreen(id,screen=>{
+    screen.display_mode=mode;screen.resource_id=null;screen.match_id=null;
+    if(mode==='resource'){
+      if(tournamentOperations[0])screen.resource_id=tournamentOperations[0].resource_id;
+      else screen.display_mode='idle';
+    }
+    if(mode==='match'){
+      const first=displayMatchOptions()[0];if(first)screen.match_id=first.id;else screen.display_mode='idle';
+    }
+  });
+}
+function changeDisplayScreenTarget(id,type,value){
+  mutateDisplayScreen(id,screen=>{if(type==='resource')screen.resource_id=value||null;else screen.match_id=value||null});
+}
+function changeDisplayScreenName(id,value){mutateDisplayScreen(id,screen=>{screen.name=String(value||'').trim()})}
+function changeDisplayScreenLayout(id,value){mutateDisplayScreen(id,screen=>{screen.layout=value})}
+function changeDisplayScreenEnabled(id,value){mutateDisplayScreen(id,screen=>{screen.is_enabled=!!value},value?'Obrazovka zapnutá ✓':'Obrazovka vypnutá ✓')}
+function openDisplayScreen(token){window.open(displayScreenPath(token),'_blank','noopener')}
+async function copyDisplayScreenLink(token){
+  const link=new URL(displayScreenPath(token),location.origin).href;
+  try{await navigator.clipboard.writeText(link);toast('Link obrazovky skopírovaný ✓')}
+  catch{const area=document.createElement('textarea');area.value=link;document.body.append(area);area.select();document.execCommand('copy');area.remove();toast('Link obrazovky skopírovaný ✓')}
+}
+async function deleteDisplayScreen(id){
+  const screen=displayScreens.find(item=>item.id===id);if(!screen)return;
+  if(!confirm(`Odpojiť obrazovku „${screen.name}“? Na monitore sa následne zobrazí nový párovací kód.`))return;
+  try{
+    const {data,error}=await tournamentRpc('delete_tournament_display_screen',{p_screen_id:id});
+    if(error)throw error;if(!data)throw new Error('Obrazovku sa nepodarilo odpojiť.');
+    await loadDisplayScreens();toast('Obrazovka odpojená ✓');
+  }catch(err){console.error('[turnament] display delete:',err);toast(cspErrorMessage(err),true)}
 }
 
 async function viewDetail(id){
@@ -1777,7 +1963,7 @@ async function viewDetail(id){
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
-        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayView('${curT.id}')">▣ ProjektorTV</button>`:''}
+        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayCenter('${curT.id}')">▣ Display centrum</button>`:''}
         ${['draft','ready','active'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
