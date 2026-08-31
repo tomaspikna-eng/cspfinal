@@ -1,4 +1,4 @@
-/* Connect Sports Pro — profile social pack: Like · Share · Follow */
+/* Connect Sports Pro — social pack: Like · Share · Follow */
 (function(global){
   "use strict";
 
@@ -46,6 +46,129 @@
     }
     await copy(payload.url);
     return {shared:false,copied:true};
+  }
+
+  const entityBindings=new WeakMap();
+
+  async function bind(options={}){
+    const db=dbFrom(options);
+    const entityType=String(options.entityType||"").trim();
+    const entityId=String(options.entityId||"").trim();
+    const likeButton=el(options.likeButton);
+    const likeCount=el(options.likeCount);
+    const shareButton=el(options.shareButton);
+    const bindingElement=likeButton || shareButton;
+
+    if(!db || !entityType || !entityId) return null;
+
+    entityBindings.get(bindingElement)?.destroy?.();
+
+    let session=await getSession(db);
+    let liked=false;
+    let busy=false;
+    let destroyed=false;
+
+    function render(){
+      if(!likeButton) return;
+      likeButton.classList.toggle("liked",liked);
+      likeButton.setAttribute("aria-pressed",String(liked));
+    }
+
+    async function load(){
+      session=await getSession(db);
+
+      const countQuery=db.from("social_reactions")
+        .select("id",{count:"exact",head:true})
+        .eq("entity_type",entityType)
+        .eq("entity_id",entityId)
+        .eq("reaction_type","like");
+
+      const ownLikeQuery=session
+        ? db.from("social_reactions").select("id")
+            .eq("user_id",session.user.id)
+            .eq("entity_type",entityType)
+            .eq("entity_id",entityId)
+            .eq("reaction_type","like")
+            .maybeSingle()
+        : Promise.resolve({data:null,error:null});
+
+      const [likes,myLike]=await Promise.all([countQuery,ownLikeQuery]);
+      if(likes.error) throw likes.error;
+      if(myLike.error) throw myLike.error;
+
+      liked=!!myLike.data;
+      if(likeCount) likeCount.textContent=String(likes.count||0);
+      render();
+      return {liked,likes:likes.count||0};
+    }
+
+    async function toggleLike(){
+      if(busy || destroyed) return;
+      session=session || await getSession(db);
+      if(!session){ loginRedirect(); return; }
+
+      busy=true;
+      if(likeButton) likeButton.disabled=true;
+      try{
+        const result=liked
+          ? await db.from("social_reactions").delete()
+              .eq("user_id",session.user.id)
+              .eq("entity_type",entityType)
+              .eq("entity_id",entityId)
+              .eq("reaction_type","like")
+          : await db.from("social_reactions").insert({
+              user_id:session.user.id,
+              entity_type:entityType,
+              entity_id:entityId,
+              reaction_type:"like"
+            });
+        if(result.error) throw result.error;
+        await load();
+      }catch(error){
+        console.error("[csp-social] entity like:",error);
+        options.onError?.(error);
+      }finally{
+        busy=false;
+        if(likeButton) likeButton.disabled=false;
+      }
+    }
+
+    async function shareEntity(){
+      try{
+        const result=await share({
+          title:options.title || document.title,
+          text:options.text || "",
+          url:options.url || global.location.href
+        });
+        if(result?.copied) options.onCopied?.();
+      }catch(error){
+        console.error("[csp-social] entity share:",error);
+        options.onError?.(error);
+      }
+    }
+
+    function destroy(){
+      destroyed=true;
+      likeButton?.removeEventListener("click",toggleLike);
+      shareButton?.removeEventListener("click",shareEntity);
+      if(bindingElement && entityBindings.get(bindingElement)?.destroy===destroy){
+        entityBindings.delete(bindingElement);
+      }
+    }
+
+    likeButton?.addEventListener("click",toggleLike);
+    shareButton?.addEventListener("click",shareEntity);
+
+    const api={reload:load,toggleLike,destroy};
+    if(bindingElement) entityBindings.set(bindingElement,api);
+
+    try{
+      await load();
+      return api;
+    }catch(error){
+      destroy();
+      throw error;
+    }
   }
 
   async function bindProfilePack(options={}){
@@ -208,5 +331,5 @@
     return {reload:load,toggleLike,toggleFollow};
   }
 
-  global.cspSocial={...(global.cspSocial||{}),share,bindProfilePack};
+  global.cspSocial={...(global.cspSocial||{}),share,bind,bindProfilePack};
 })(window);
