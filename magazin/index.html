@@ -15,7 +15,7 @@
   --fg:#f3f3f5;--muted:#8a8a96;--muted-2:#a6a6b2;
   --gold:#d4a843;--gold-soft:#a8862e;--gold-dim:rgba(212,168,67,.12);
   --green:#26d07d;
-  --c-novinky:#d4a843;--c-recenzie:#26d07d;--c-historia:#c08457;--c-pravidla:#5aa9e6;
+  --c-novinky:#d4a843;--c-recenzie:#26d07d;--c-historia:#c08457;--c-pravidla:#5aa9e6;--c-navody:#7ddf91;
   --radius:12px;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -69,6 +69,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .cat[data-cat="recenzie"].active{border-left-color:var(--c-recenzie)}
 .cat[data-cat="historia"].active{border-left-color:var(--c-historia)}
 .cat[data-cat="pravidla"].active{border-left-color:var(--c-pravidla)}
+.cat[data-cat="navody"].active{border-left-color:var(--c-navody)}
 
 .feed-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
 .feed-head h1{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
@@ -93,6 +94,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .tag.recenzie{background:rgba(38,208,125,.16);color:var(--c-recenzie)}
 .tag.historia{background:rgba(192,132,87,.18);color:var(--c-historia)}
 .tag.pravidla{background:rgba(90,169,230,.16);color:var(--c-pravidla)}
+.tag.navody{background:rgba(125,223,145,.16);color:var(--c-navody)}
 .art-body h3{font-size:1.2rem;font-weight:800;line-height:1.2;letter-spacing:-.01em;transition:color .12s}
 .art:hover h3{color:var(--gold)}
 .art-body p{color:var(--muted-2);font-size:.88rem;line-height:1.5;margin-top:8px;flex:1}
@@ -173,6 +175,7 @@ input:focus,select:focus{border-color:var(--gold)}
         <div class="cat" data-cat="recenzie" onclick="setCat('recenzie')"><span class="ic">⭐</span><div><div class="ct">Recenzie</div><div class="cd">Vybavenie, podniky a kluby</div></div></div>
         <div class="cat" data-cat="historia" onclick="setCat('historia')"><span class="ic">📜</span><div><div class="ct">História</div><div class="cd">Medailóniky hráčov, fakty</div></div></div>
         <div class="cat" data-cat="pravidla" onclick="setCat('pravidla')"><span class="ic">📋</span><div><div class="ct">Pravidlá hry</div><div class="cd">Od biliardu po padel, vždy aktuálne</div></div></div>
+        <div class="cat" data-cat="navody" onclick="setCat('navody')"><span class="ic">🧭</span><div><div class="ct">Návody</div><div class="cd">Turnaje, ligy a práca s CSP</div></div></div>
       </div>
     </div>
   </aside>
@@ -225,16 +228,16 @@ input:focus,select:focus{border-color:var(--gold)}
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/csp-auth.js"></script>
 <script>
-const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá'};
+const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá',navody:'Návody'};
 const SPORT_LABEL={biliard:'Biliard',sipky:'Šípky',bowling:'Bowling',padel:'Padel',tenis:'Tenis',pingpong:'Ping pong',general:'Všeobecné'};
-const CAT_GRAD={novinky:'linear-gradient(135deg,#3a2f10,#1a160a)',recenzie:'linear-gradient(135deg,#0e3320,#0a1a12)',historia:'linear-gradient(135deg,#3a2418,#1c130d)',pravidla:'linear-gradient(135deg,#143049,#0c1822)'};
+const CAT_GRAD={novinky:'linear-gradient(135deg,#3a2f10,#1a160a)',recenzie:'linear-gradient(135deg,#0e3320,#0a1a12)',historia:'linear-gradient(135deg,#3a2418,#1c130d)',pravidla:'linear-gradient(135deg,#143049,#0c1822)',navody:'linear-gradient(135deg,#173622,#0a1c10)'};
 
 let articles=[];
 let curCat='all',curSport='all';
 
 function normalizeArticleCategory(value){
   const c=String(value||'novinky').trim().toLowerCase();
-  if(['novinky','recenzie','historia','pravidla'].includes(c)) return c;
+  if(['novinky','recenzie','historia','pravidla','navody'].includes(c)) return c;
   return 'novinky';
 }
 function articleDate(value){
@@ -298,12 +301,6 @@ async function loadArticles(){
 }
 
 function fmtDate(d){if(!d)return'';const M=['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];const p=d.split('-');if(p.length!==3)return d;return `${+p[2]}. ${M[+p[1]-1]} ${p[0]}`;}
-function readTime(a){
-  const raw=String(a.content||a.excerpt||'').replace(/<[^>]*>/g,' ');
-  const words=raw.trim()?raw.trim().split(/\s+/).length:0;
-  return Math.max(2,Math.round(words/180))+' min';
-}
-
 function render(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase();
   let list=articles.filter(a=>a.status==='published')
@@ -319,7 +316,7 @@ function render(){
     return `<article class="art" onclick="openArticle('${encodeURIComponent(a.slug)}')">
       <div class="art-cover" ${bg}>${cover}<span class="cov-label">${escHtml(SPORT_LABEL[a.sport]||a.sport||'CSP')}</span></div>
       <div class="art-body">
-        <div class="art-meta"><span class="tag ${escHtml(a.category)}">${escHtml(CAT_LABEL[a.category]||a.category)}</span><span>${escHtml(readTime(a))} čítania</span></div>
+        <div class="art-meta"><span class="tag ${escHtml(a.category)}">${escHtml(CAT_LABEL[a.category]||a.category)}</span></div>
         <h3>${escHtml(a.title)}</h3><p>${escHtml(a.excerpt||'')}</p>
         <div class="art-foot"><span>${escHtml(a.author||'Redakcia CSP')}</span><span class="dot"></span><span>${escHtml(fmtDate(a.date))}</span></div>
       </div>
@@ -332,8 +329,8 @@ function setCat(cat){
   document.querySelectorAll('.cat').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));
   document.querySelectorAll('.mc').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));
   document.getElementById('navHome').classList.toggle('active',cat==='all');
-  const titles={all:'Najnovšie články',novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry'};
-  const subs={all:'Aktuálne dianie zo sveta cue sports, šípok, bowlingu a ďalších.',novinky:'Aktuality zo sveta športu.',recenzie:'Vybavenie, podniky a kluby pod lupou.',historia:'Medailóniky hráčov a historické fakty.',pravidla:'Vždy aktuálne pravidlá — od biliardu po padel.'};
+  const titles={all:'Najnovšie články',novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry',navody:'Návody'};
+  const subs={all:'Aktuálne dianie zo sveta cue sports, šípok, bowlingu a ďalších.',novinky:'Aktuality zo sveta športu.',recenzie:'Vybavenie, podniky a kluby pod lupou.',historia:'Medailóniky hráčov a historické fakty.',pravidla:'Vždy aktuálne pravidlá — od biliardu po padel.',navody:'Praktické postupy pre turnaje, ligy a nástroje CSP.'};
   document.getElementById('feedTitle').textContent=titles[cat];
   document.getElementById('feedSub').textContent=subs[cat];
   render();window.scrollTo({top:0,behavior:'smooth'});
@@ -344,7 +341,7 @@ function buildSportFilter(){
   document.getElementById('sportFilter').innerHTML=sports.map(s=>`<button class="sp ${s==='all'?'active':''}" data-sp="${s}" onclick="setSport('${s}')">${s==='all'?'Všetky športy':(SPORT_LABEL[s]||s)}</button>`).join('');
 }
 function buildMobileCats(){
-  const cats=[['all','Všetko'],['novinky','Novinky'],['recenzie','Recenzie'],['historia','História'],['pravidla','Pravidlá']];
+  const cats=[['all','Všetko'],['novinky','Novinky'],['recenzie','Recenzie'],['historia','História'],['pravidla','Pravidlá'],['navody','Návody']];
   document.getElementById('mobileCats').innerHTML=cats.map(([c,l])=>`<button class="mc ${c==='all'?'active':''}" data-cat="${c}" onclick="setCat('${c}')">${l}</button>`).join('');
 }
 function openArticle(slug){location.href='/magazin/clanok/?slug='+slug;}
