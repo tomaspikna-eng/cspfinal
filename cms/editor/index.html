@@ -264,6 +264,12 @@ function genSlug(){
 /* ── Auto-grow ── */
 function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
 
+function escHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]));
+}
+
 /* ════════ BLOKY ════════
    Kept as the editing UI (paragraphs/headings/quotes/lists/images) — but
    the real `articles.content` column (migration 0006) is plain text, not
@@ -304,11 +310,11 @@ function renderBlocks(){
         <div class="img-block">
           ${prev}
           <div class="img-row">
-            <input placeholder="URL obrázka alebo nahraj →" value="${(b.url||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].url=this.value" onchange="renderBlocks()"/>
+            <input placeholder="URL obrázka alebo nahraj →" value="${escHtml(b.url||'')}" oninput="blocks[${i}].url=this.value" onchange="renderBlocks()"/>
             <button class="img-upload-btn" onclick="document.getElementById('file${i}').click()">Nahrať</button>
             <input type="file" id="file${i}" accept="image/*" class="hidden" onchange="uploadImg(${i},this)"/>
           </div>
-          <input placeholder="Popis obrázka (nepovinné)" value="${(b.caption||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].caption=this.value"/>
+          <input placeholder="Popis obrázka (nepovinné)" value="${escHtml(b.caption||'')}" oninput="blocks[${i}].caption=this.value"/>
         </div>
       </div>`;
     }
@@ -317,7 +323,7 @@ function renderBlocks(){
         <div class="img-block" style="border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px">
           ${img.url?`<div class="img-preview"><img src="${img.url}" alt=""/></div>`:''}
           <div class="img-row">
-            <input placeholder="URL fotky alebo nahraj →" value="${(img.url||'').replace(/"/g,'&quot;')}" oninput="blocks[${i}].images[${gi}].url=this.value" onchange="renderBlocks()"/>
+            <input placeholder="URL fotky alebo nahraj →" value="${escHtml(img.url||'')}" oninput="blocks[${i}].images[${gi}].url=this.value" onchange="renderBlocks()"/>
             <button class="img-upload-btn" onclick="document.getElementById('gfile${i}_${gi}').click()">Nahrať</button>
             <input type="file" id="gfile${i}_${gi}" accept="image/*" class="hidden" onchange="uploadGalleryImg(${i},${gi},this)"/>
             <button class="img-upload-btn" onclick="blocks[${i}].images.splice(${gi},1);renderBlocks()">✕</button>
@@ -332,7 +338,7 @@ function renderBlocks(){
     }
     const cls={paragraph:'b-text',heading:'b-text b-heading',quote:'b-text b-quote',list:'b-text b-list'}[b.type];
     return `<div class="block">${ctrls}${typeLbl}
-      <textarea class="${cls}" rows="1" placeholder="${BLOCK_META[b.type].ph}" oninput="blocks[${i}].text=this.value;autoGrow(this)">${b.text||''}</textarea>
+      <textarea class="${cls}" rows="1" placeholder="${BLOCK_META[b.type].ph}" oninput="blocks[${i}].text=this.value;autoGrow(this)">${escHtml(b.text||'')}</textarea>
     </div>`;
   }).join('');
   wrap.querySelectorAll('textarea').forEach(autoGrow);
@@ -366,6 +372,10 @@ function blocksToText(){
     if(b.type==='gallery') return (b.images||[]).filter(g=>g.url).map(g=>`![${g.caption||''}](${g.url})`).join('\n');
     if(b.type==='heading') return '## '+(b.text||'');
     if(b.type==='quote') return '> '+(b.text||'');
+    if(b.type==='list') return (b.text||'').split('\n')
+      .map(line=>line.trim()).filter(Boolean)
+      .map(line=>'- '+line.replace(/^[-*]\s+/,''))
+      .join('\n');
     return (b.text||'');
   }).filter(t=>t.trim()).join('\n\n');
 }
@@ -385,6 +395,15 @@ function textToBlocks(text){
     if(imgMatches.length && imgMatches.every(Boolean)){
       if(imgMatches.length===1) return {type:'image', caption:imgMatches[0][1], url:imgMatches[0][2]};
       return {type:'gallery', images: imgMatches.map(m=>({caption:m[1], url:m[2]}))};
+    }
+    if(lines.length===1 && lines[0].startsWith('## ')){
+      return {type:'heading', text:lines[0].slice(3).trim()};
+    }
+    if(lines.length && lines.every(line=>line.startsWith('> '))){
+      return {type:'quote', text:lines.map(line=>line.slice(2)).join('\n')};
+    }
+    if(lines.length && lines.every(line=>/^[-*]\s+/.test(line))){
+      return {type:'list', text:lines.map(line=>line.replace(/^[-*]\s+/, '')).join('\n')};
     }
     return {type:'paragraph', text:chunk};
   });
