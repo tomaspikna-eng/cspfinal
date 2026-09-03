@@ -74,6 +74,8 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 </div>
 
 <script>
+const ARTICLE_CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry',navody:'Návody'};
+
 function getSlug(){
   const params = new URLSearchParams(location.search);
   return (params.get('slug') || '').trim();
@@ -137,7 +139,7 @@ function renderArticle(article){
     .join('');
 
   document.getElementById('wrap').innerHTML = `
-    <div class="kicker">Z magazínu</div>
+    <div class="kicker">${ARTICLE_CAT_LABEL[article.category]||'Z magazínu'}</div>
     <h1>${article.title}</h1>
     <div class="meta-row">${dateLabel ? dateLabel : 'Nepublikované'}</div>
     ${excerptHtml}
@@ -169,7 +171,7 @@ async function loadArticle(){
   try{
     const { data, error } = await cspAuth.withTimeout(
       cspAuth.client.from('articles')
-        .select('id, slug, title, excerpt, content, cover_image_url, published_at, status')
+        .select('id, slug, title, excerpt, content, cover_image_url, published_at, status, category')
         .eq('slug', slug)
         .eq('status', 'published')
         .maybeSingle(),
