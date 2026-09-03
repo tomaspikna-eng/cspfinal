@@ -149,6 +149,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
           <option value="recenzie">Recenzie</option>
           <option value="historia">História</option>
           <option value="pravidla">Pravidlá hry</option>
+          <option value="navody">Návody</option>
         </select>
       </div>
       <div class="side-field">
@@ -175,7 +176,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
           <button type="button" class="img-upload-btn" onclick="document.getElementById('coverFile').click()">Nahrať</button>
           <input type="file" id="coverFile" accept="image/*" class="hidden" onchange="uploadCoverFile(this)"/>
         </div>
-        <div class="help">Prázdne = automatická grafika podľa kategórie</div>
+        <div class="help">Použi CSP náhľad článku, odporúčané rozlíšenie 1200 × 630 px.</div>
       </div>
     </div>
   </aside>
@@ -205,8 +206,7 @@ let currentSession = null;
   init();
 })();
 
-/* ── Cover preview (no category-based fallback anymore — no real
-   category column exists; shows the real image or a generic mark) ── */
+/* ── Cover preview: shows the uploaded CSP cover or a generic mark. ── */
 /* Real upload to the `article-covers` storage bucket (migration 0007) —
    admin-only write, public read, no ownership restriction on the path
    itself (all admins share equal CMS access). Used for both the cover
