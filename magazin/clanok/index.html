@@ -42,8 +42,12 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 .meta-row{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.86rem;margin-bottom:28px}
 .excerpt{font-size:1.05rem;color:var(--muted-2);line-height:1.6;margin-bottom:26px}
 .cover{width:100%;border-radius:var(--radius);border:1px solid var(--line);margin-bottom:30px;display:block}
-.content{font-size:1rem;color:var(--fg);line-height:1.8;white-space:pre-wrap}
-.content p{margin-bottom:1.2em}
+.content{font-size:1rem;color:var(--fg);line-height:1.8}
+.content p{margin-bottom:1.2em;white-space:pre-wrap}
+.content h2{font-size:1.45rem;line-height:1.3;margin:1.8em 0 .65em;color:var(--fg)}
+.content blockquote{margin:1.5em 0;padding:.15em 0 .15em 18px;border-left:3px solid var(--gold);color:var(--muted-2);font-style:italic;white-space:pre-wrap}
+.content ul{margin:1.1em 0 1.4em 1.25em;padding-left:.7em}
+.content li{margin:.45em 0;padding-left:.25em}
 .content-img{margin:1.6em 0}
 .content-img img{width:100%;border-radius:12px;display:block}
 .content-img figcaption{font-size:.82rem;color:var(--muted);margin-top:8px;text-align:center}
@@ -75,6 +79,19 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 
 <script>
 const ARTICLE_CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry',navody:'Návody'};
+
+function escHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]));
+}
+
+function safeMediaUrl(value){
+  try{
+    const url=new URL(String(value||'').trim(),window.location.origin);
+    return ['http:','https:'].includes(url.protocol) ? escHtml(url.href) : '';
+  }catch(_error){ return ''; }
+}
 
 function getSlug(){
   const params = new URLSearchParams(location.search);
@@ -109,11 +126,12 @@ function renderError(){
 function renderArticle(article){
   document.title = article.title + ' · Connect Sports Pro Magazine';
   const dateLabel = fmtDate(article.published_at);
-  const coverHtml = article.cover_image_url
-    ? `<img class="cover" src="${article.cover_image_url}" alt="${article.title}"/>`
+  const coverUrl = safeMediaUrl(article.cover_image_url);
+  const coverHtml = coverUrl
+    ? `<img class="cover" src="${coverUrl}" alt="${escHtml(article.title)}"/>`
     : '';
   const excerptHtml = article.excerpt
-    ? `<p class="excerpt">${article.excerpt}</p>`
+    ? `<p class="excerpt">${escHtml(article.excerpt)}</p>`
     : '';
 
   // Chunks made entirely of ![caption](url) lines (written by the CMS
@@ -129,19 +147,34 @@ function renderArticle(article){
       if (matches.length && matches.every(Boolean)) {
         if (matches.length === 1) {
           const [, caption, url] = matches[0];
-          return `<figure class="content-img"><img src="${url}" alt="${caption}"/>${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
+          const safeUrl=safeMediaUrl(url);
+          if(!safeUrl) return '';
+          return `<figure class="content-img"><img src="${safeUrl}" alt="${escHtml(caption)}"/>${caption ? `<figcaption>${escHtml(caption)}</figcaption>` : ''}</figure>`;
         }
-        const items = matches.map(m => `<div class="gallery-item"><img src="${m[2]}" alt="${m[1]}"/>${m[1] ? `<figcaption>${m[1]}</figcaption>` : ''}</div>`).join('');
+        const items = matches.map(m => {
+          const safeUrl=safeMediaUrl(m[2]);
+          if(!safeUrl) return '';
+          return `<div class="gallery-item"><img src="${safeUrl}" alt="${escHtml(m[1])}"/>${m[1] ? `<figcaption>${escHtml(m[1])}</figcaption>` : ''}</div>`;
+        }).join('');
         return `<div class="gallery-grid">${items}</div>`;
       }
-      return `<p>${chunk}</p>`;
+      if(lines.length===1 && lines[0].startsWith('## ')){
+        return `<h2>${escHtml(lines[0].slice(3).trim())}</h2>`;
+      }
+      if(lines.length && lines.every(line=>line.startsWith('> '))){
+        return `<blockquote>${lines.map(line=>escHtml(line.slice(2))).join('<br>')}</blockquote>`;
+      }
+      if(lines.length && lines.every(line=>/^[-*]\s+/.test(line))){
+        return `<ul>${lines.map(line=>`<li>${escHtml(line.replace(/^[-*]\s+/,''))}</li>`).join('')}</ul>`;
+      }
+      return `<p>${escHtml(chunk).replace(/\n/g,'<br>')}</p>`;
     })
     .join('');
 
   document.getElementById('wrap').innerHTML = `
-    <div class="kicker">${ARTICLE_CAT_LABEL[article.category]||'Z magazínu'}</div>
-    <h1>${article.title}</h1>
-    <div class="meta-row">${dateLabel ? dateLabel : 'Nepublikované'}</div>
+    <div class="kicker">${escHtml(ARTICLE_CAT_LABEL[article.category]||'Z magazínu')}</div>
+    <h1>${escHtml(article.title)}</h1>
+    <div class="meta-row">${escHtml(dateLabel || 'Nepublikované')}</div>
     ${excerptHtml}
     ${coverHtml}
     <div class="content">${contentHtml}</div>
