@@ -65,7 +65,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
 <header>
   <div class="top">
     <a class="brand" href="/"><span class="gold">Connect</span>Sports<span class="gold">Pro</span></a>
-    <a href="/profil/" class="gold">Profil</a>
+    <a href="/profil/" class="gold" id="profileLink">Profil</a>
   </div>
 </header>
 
@@ -171,15 +171,34 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
       : '';
   }
 
+  function profileHomePath(profile,user){
+    const source = new URLSearchParams(location.search).get('from');
+    if(source === 'profil-ul') return '/profil-ul/';
+
+    const appMeta = user?.app_metadata || {};
+    const role = String(profile?.role || appMeta.role || 'player').toLowerCase();
+    const plan = String(profile?.plan || appMeta.plan || '').toLowerCase();
+    const isAdmin = profile?.is_admin === true || appMeta.is_admin === true || role === 'admin';
+
+    return isAdmin || role === 'club' || role === 'organization' || plan === 'ultra'
+      ? '/profil-ul/'
+      : '/profil/';
+  }
+
+  function setProfileLink(profile,user){
+    $('profileLink').href = profileHomePath(profile,user);
+  }
+
   async function loadSession(){
     const result = await db.auth.getSession();
     currentSession = result.data.session;
     if(currentSession){
       const profileResult = await db.from('profiles')
-        .select('id,full_name,role')
+        .select('id,full_name,role,plan,is_admin')
         .eq('id', currentSession.user.id)
         .maybeSingle();
       const profile = profileResult.data;
+      setProfileLink(profile,currentSession.user);
       if(profile?.role === 'player' && profile.full_name){
         $('fullName').value = profile.full_name;
         $('fullName').readOnly = true;
@@ -238,6 +257,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     }
 
     const isOwner = currentSession && currentSession.user.id === currentEvent.owner_id;
+    if(isOwner) $('profileLink').href = '/profil-ul/';
     $('ownerPanel').classList.toggle('hidden', !isOwner);
 
     if(isOwner){
