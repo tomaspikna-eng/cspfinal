@@ -198,6 +198,7 @@ input:focus,select:focus{border-color:var(--gold)}
           <option value="recenzie">Recenzie</option>
           <option value="historia">História</option>
           <option value="pravidla">Pravidlá hry</option>
+          <option value="navody">Návody</option>
         </select>
         <select id="filterStatus" onchange="renderArticles()">
           <option value="all">Všetky stavy</option>
@@ -239,15 +240,12 @@ let articles = [];
   await loadArticles();
 })();
 
-/* ── Real articles from Supabase (replaces localStorage) ──
-   No `category` column in the real schema — the old rubrika concept was
-   dropped entirely rather than kept as dead UI. `status` only supports
-   draft/published (no archived) per migration 0006's check constraint. */
+/* ── Real articles from Supabase (replaces localStorage) ── */
 async function loadArticles(){
   try{
     const { data, error } = await cspAuth.withTimeout(
       cspAuth.client.from('articles')
-        .select('id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at')
+        .select('id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, category')
         .order('created_at', { ascending: false }),
       8000, 'articles lookup'
     );
@@ -276,7 +274,7 @@ function renderStats(){
   document.getElementById('stMonth').textContent=articles.filter(a=>(a.published_at||'').startsWith(ym)).length;
 }
 
-const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry'};
+const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá hry',navody:'Návody'};
 
 function renderArticles(){
   renderStats();
