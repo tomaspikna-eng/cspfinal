@@ -196,6 +196,7 @@ summary b{color:var(--gold)}
 .score-event-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .score-event-btn{min-height:45px;padding:8px 9px;font-size:.72rem;font-weight:800;line-height:1.15;letter-spacing:.015em;touch-action:manipulation}
 .score-event-btn[data-style="primary"]{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.5);color:var(--green)}
+.score-event-btn[data-score-event="standard_point"]{background:var(--green);border-color:var(--green);color:#031108}
 .score-event-btn[data-style="positive"]{background:rgba(212,168,67,.14);border-color:var(--gold);color:var(--gold)}
 .score-event-btn[data-style="warning"]{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.45);color:#f87171}
 .score-event-btn[data-style="danger"]{background:rgba(239,68,68,.14);border-color:var(--danger);color:var(--danger)}
@@ -1302,9 +1303,9 @@ const defaultState={
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
   ],
   log:[],
 };
@@ -1425,16 +1426,51 @@ async function loadTournamentPlayerAvatars(row){
 
 /* ════════════════════ DYNAMIC SPORT EVENT CTA ════════════════════ */
 const SCORE_EVENT_FALLBACK={
-  frame:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
-  points:{event_key:"frame_win",label:"+1 FRAME",score_delta:1,metric_key:"frame_win",value_required:false,button_style:"primary",sort_order:10},
-  darts:{event_key:"leg_win",label:"+1 LEG",score_delta:1,metric_key:"leg_win",value_required:false,button_style:"primary",sort_order:10},
-  universal:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
-  tabletennis:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
-  racket:{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+  frame:{
+    default:[
+      {event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11},
+    ],
+    "8-ball":[
+      {event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11},
+      {event_key:"break_and_run",label:"ČISTÁ HRA",score_delta:1,metric_key:"break_and_run",value_required:false,button_style:"positive",sort_order:20},
+      {event_key:"eight_on_break",label:"8 ON BREAK",score_delta:1,metric_key:"eight_on_break",value_required:false,button_style:"positive",sort_order:30},
+    ],
+    "9-ball":[
+      {event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11},
+      {event_key:"break_and_run",label:"ČISTÁ HRA",score_delta:1,metric_key:"break_and_run",value_required:false,button_style:"positive",sort_order:20},
+      {event_key:"golden_break",label:"ESO",score_delta:1,metric_key:"golden_break",value_required:false,button_style:"positive",sort_order:30},
+      {event_key:"combo_win",label:"KOMBO",score_delta:1,metric_key:"combo_win",value_required:false,button_style:"positive",sort_order:35},
+      {event_key:"three_foul_win",label:"3 CHYBY",score_delta:1,metric_key:"three_foul_win",value_required:false,button_style:"warning",sort_order:40},
+    ],
+    "10-ball":[
+      {event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10},
+      {event_key:"standard_minus",label:"−1",score_delta:-1,metric_key:null,value_required:false,button_style:"secondary",sort_order:11},
+      {event_key:"break_and_run",label:"ČISTÁ HRA",score_delta:1,metric_key:"break_and_run",value_required:false,button_style:"positive",sort_order:20},
+      {event_key:"golden_break",label:"ESO",score_delta:1,metric_key:"golden_break",value_required:false,button_style:"positive",sort_order:30},
+    ],
+  },
+  points:[{event_key:"frame_win",label:"+1 FRAME",score_delta:1,metric_key:"frame_win",value_required:false,button_style:"primary",sort_order:10}],
+  darts:[{event_key:"leg_win",label:"+1 LEG",score_delta:1,metric_key:"leg_win",value_required:false,button_style:"primary",sort_order:10}],
+  universal:[{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10}],
+  tabletennis:[{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10}],
+  racket:[{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10}],
 };
 const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN?"tournament":"training";
-const scoreActions=()=>scoreActionDefinitions.length?scoreActionDefinitions:[SCORE_EVENT_FALLBACK[mode()]];
+const scoreActions=()=>{
+  if(scoreActionDefinitions.length)return scoreActionDefinitions;
+  const fallback=SCORE_EVENT_FALLBACK[mode()];
+  if(Array.isArray(fallback))return fallback;
+  return fallback?.[state.discipline]||fallback?.default||[];
+};
 const escapeScoreText=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const scoreActionButtonLabel=action=>{
+  const label=String(action?.label||"");
+  const delta=Number(action?.score_delta||0);
+  return delta>0&&!/\+\s*\d/.test(label)?`${label} · +${delta}`:label;
+};
 function scoreEventIdempotencyKey(){
   if(globalThis.crypto&&typeof crypto.randomUUID==="function")return crypto.randomUUID();
   const bytes=new Uint8Array(16);
@@ -1457,14 +1493,14 @@ async function loadScoreActionDefinitions(){
     scoreActionDefinitions=(Array.isArray(data)?data:[]).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
   }catch(err){
     console.warn("[scoreboard] Event CTA catalogue unavailable:",err);
-    scoreActionLoadError="Offline – dostupné je základné skórovanie";
+    scoreActionLoadError="";
   }finally{scoreActionLoading=false;render();}
 }
 
 function scoreEventPanel(i){
   const actions=scoreActions().filter(Boolean);
   const disabled=scoreActionBusySlot!==null;
-  const buttons=actions.map(action=>`<button class="score-event-btn" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(action.label)}${action.value_required?" · #":""}</button>`).join("");
+  const buttons=actions.map(action=>`<button class="score-event-btn" data-score-event="${escapeScoreText(action.event_key)}" data-i="${i}" data-style="${escapeScoreText(action.button_style||"secondary")}" ${disabled?"disabled":""}>${escapeScoreText(scoreActionButtonLabel(action))}${action.value_required?" · #":""}</button>`).join("");
   const undo=lastScoreEvent&&lastScoreEvent.playerIndex===i
     ?`<button class="score-event-btn score-event-undo" data-score-undo="${escapeScoreText(lastScoreEvent.eventId||"local")}" data-i="${i}" ${scoreActionBusySlot!==null?"disabled":""}>↶ SPÄŤ: ${escapeScoreText(lastScoreEvent.label)}</button>`:"";
   const status=scoreActionLoading?"Načítavam…":scoreActionLoadError;
@@ -1530,6 +1566,7 @@ function applyLocalMetric(i,action,value){
   if(action.metric_key)p.metrics[action.metric_key]=(p.metrics[action.metric_key]||0)+(value??1);
   if(action.event_key==="break_and_run")p.breakRuns++;
   if(action.event_key==="golden_break")p.goldenBreaks++;
+  if(action.event_key==="combo_win")p.comboWins++;
   if(action.event_key==="three_foul_win")p.threeFoulWins++;
   if(action.event_key==="eight_on_break")p.eightOnBreaks++;
   if(mode()==="points"&&["snooker_break","century_break"].includes(action.event_key)){
@@ -1748,7 +1785,7 @@ function startNextSet(){
   state.setNumber++;
   state.period=1;state.runInput="";
   if(pendingSetMode==="frame"){
-    activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.errors=0;p.goldenBreaks=0;});
+    activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.errors=0;p.goldenBreaks=0;p.comboWins=0;});
     state.currentIndex=breakerIndex();
   } else if(pendingSetMode==="points"){
     activePlayers().forEach(p=>{p.frames=0;p.framePoints=0;p.highBreak=0;p.innings=0;});
@@ -2061,13 +2098,14 @@ function playerCard(p,i,m){
     controls="";
     if(["9-ball","10-ball"].includes(state.discipline)){
       stats=`<div class="stat-grid">
-        <div class="stat"><span>B&amp;R</span><strong>${p.breakRuns}</strong></div>
-        <div class="stat"><span>Golden</span><strong>${p.goldenBreaks}</strong></div>
-        <div class="stat"><span>3 chyby</span><strong>${p.threeFoulWins}</strong></div>
+        <div class="stat"><span>Čistá hra</span><strong>${p.breakRuns}</strong></div>
+        <div class="stat"><span>ESO</span><strong>${p.goldenBreaks}</strong></div>
+        ${state.discipline==="9-ball"?`<div class="stat"><span>KOMBO</span><strong>${p.comboWins}</strong></div>`:""}
+        ${state.discipline==="9-ball"?`<div class="stat"><span>3 chyby</span><strong>${p.threeFoulWins}</strong></div>`:""}
       </div>`;
     }else if(state.discipline==="8-ball"){
       stats=`<div class="stat-grid">
-        <div class="stat"><span>B&amp;R</span><strong>${p.breakRuns}</strong></div>
+        <div class="stat"><span>Čistá hra</span><strong>${p.breakRuns}</strong></div>
         <div class="stat"><span>8 na rozstrele</span><strong>${p.eightOnBreaks}</strong></div>
       </div>`;
     }else{
