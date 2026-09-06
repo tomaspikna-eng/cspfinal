@@ -103,6 +103,7 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
 .badge{padding:5px 8px;border-radius:999px;border:1px solid var(--line);font-size:.7rem;font-weight:800}
 .open{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
 .series-card{grid-column:1/-1;display:block;padding:0;overflow:hidden}
+.series-main-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
 .series-toggle{
   width:100%;min-height:0;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) auto auto;
   align-items:center;gap:22px;border:0;border-radius:0;background:transparent;color:var(--text);
@@ -117,6 +118,11 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
 .series-action{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
 .series-action i{display:inline-block;margin-left:6px;font-style:normal;transition:transform .16s ease}
 .series-toggle[aria-expanded="true"] .series-action i{transform:rotate(180deg)}
+.series-standings{
+  display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-right:18px;padding:0 14px;
+  border-radius:10px;background:var(--green);color:var(--greenText);font-size:.78rem;font-weight:900;white-space:nowrap
+}
+.series-standings:hover{filter:brightness(1.06)}
 .series-rounds{border-top:1px solid var(--line);padding:8px 18px 16px;background:rgba(0,0,0,.16)}
 .series-round{
   display:grid;grid-template-columns:92px 125px minmax(0,1fr) auto;align-items:center;gap:14px;
@@ -149,8 +155,10 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
   .card{grid-template-columns:1fr}
   .open{justify-self:start}
   .series-toggle{grid-template-columns:1fr;gap:12px;padding:16px}
+  .series-main-row{grid-template-columns:1fr}
   .series-period{min-width:0}
   .series-action{justify-self:start}
+  .series-standings{justify-self:start;margin:0 16px 16px}
   .series-rounds{padding:7px 10px 12px}
   .series-round{grid-template-columns:76px 1fr auto;gap:8px;padding:10px 7px}
   .round-note{grid-column:2/-1}
@@ -430,7 +438,7 @@ function renderSeriesCard(group,isExpanded){
   const p=cspTournamentPlace(group);
   const place=[p.city,p.country].filter(Boolean).join(', ') || group.venue || 'Miesto neuvedené';
   const nextIndex=nextRoundIndex(rounds);
-  const seriesId=String(group.group_id||group.series_id||'');
+  const seriesId=String(group.series_id||group.group_id||'');
   const roundWord=group.round_count===1?'KOLO':group.round_count>=2&&group.round_count<=4?'KOLÁ':'KÔL';
 
   const roundRows=isExpanded?`
@@ -453,23 +461,26 @@ function renderSeriesCard(group,isExpanded){
     </div>`:'';
 
   return `<article class="card series-card">
-    <button class="series-toggle" type="button" data-series-toggle="${cspEsc(seriesId)}" aria-expanded="${isExpanded?'true':'false'}">
-      <div class="series-copy">
-        <div class="series-label">SÉRIA · ${group.round_count} ${roundWord}</div>
-        <div class="name">${cspEsc(group.name||'Séria turnajov')}</div>
-        <div class="meta">
-          <span class="badge">${cspEsc(group.sport||'Šport')}</span>
-          ${group.discipline?`<span>${cspEsc(group.discipline)}</span>`:''}
-          <span>${cspEsc(place)}</span>
-          ${group.organizer_name?`<span>${cspEsc(group.organizer_name)}</span>`:''}
+    <div class="series-main-row">
+      <button class="series-toggle" type="button" data-series-toggle="${cspEsc(seriesId)}" aria-expanded="${isExpanded?'true':'false'}">
+        <div class="series-copy">
+          <div class="series-label">SÉRIA · ${group.round_count} ${roundWord}</div>
+          <div class="name">${cspEsc(group.name||'Séria turnajov')}</div>
+          <div class="meta">
+            <span class="badge">${cspEsc(group.sport||'Šport')}</span>
+            ${group.discipline?`<span>${cspEsc(group.discipline)}</span>`:''}
+            <span>${cspEsc(place)}</span>
+            ${group.organizer_name?`<span>${cspEsc(group.organizer_name)}</span>`:''}
+          </div>
         </div>
-      </div>
-      <div class="series-period">
-        <small>TERMÍNY</small>
-        <strong>${cspFmtRange(group.first_event_date,group.last_event_date)}</strong>
-      </div>
-      <span class="series-action">${isExpanded?'Skryť kolá':'Zobraziť kolá'} <i>⌄</i></span>
-    </button>
+        <div class="series-period">
+          <small>TERMÍNY</small>
+          <strong>${cspFmtRange(group.first_event_date,group.last_event_date)}</strong>
+        </div>
+        <span class="series-action">${isExpanded?'Skryť kolá':'Zobraziť kolá'} <i>⌄</i></span>
+      </button>
+      ${seriesId?`<a class="series-standings" href="/seria/?id=${encodeURIComponent(seriesId)}">Celkové poradie →</a>`:''}
+    </div>
     ${roundRows}
   </article>`;
 }
