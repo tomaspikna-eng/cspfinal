@@ -146,6 +146,18 @@ input:focus,select:focus{border-color:var(--gold)}
 .bracket-column{display:flex;flex-direction:column;gap:12px;min-width:210px}
 .bracket-column-title{font-family:var(--mono);font-size:.68rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;padding-bottom:8px;border-bottom:1px solid var(--gold-b)}
 .bracket-column-matches{display:flex;flex-direction:column;justify-content:space-around;gap:12px;min-height:100%}
+.dko-bracket-scroll{scroll-behavior:smooth;overscroll-behavior-inline:contain;scrollbar-gutter:stable}
+.dko-bracket-grid{grid-auto-columns:210px;align-items:stretch}
+.dko-bracket-column{min-height:100%;scroll-snap-align:center}
+.dko-bracket-column .bracket-column-matches{flex:1;min-height:0}
+.dko-column-side{min-height:18px;margin-bottom:4px;font-family:var(--mono);font-size:.56rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.dko-bracket-column.loser .dko-column-side,.dko-bracket-column.loser .bracket-column-title{color:var(--red)}
+.dko-bracket-column.loser .bracket-column-title{border-color:rgba(255,76,88,.34)}
+.dko-bracket-column.start{padding:0 8px;border-left:1px solid var(--gold-b);border-right:1px solid var(--gold-b);background:linear-gradient(180deg,rgba(212,168,67,.055),transparent 42%)}
+.dko-bracket-column.start .dko-column-side{color:var(--gold)}
+.dko-bracket-column.winner .dko-column-side{color:var(--green)}
+.dko-bracket-column.final .dko-column-side,.dko-bracket-column.final .bracket-column-title{color:var(--green)}
+.dko-bracket-column.final .bracket-column-title{border-color:rgba(38,208,125,.34)}
 .bracket-match{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--bg-2);overflow:hidden;cursor:pointer;transition:.12s}
 .bracket-match:hover{border-color:var(--gold-b);transform:translateY(-1px)}
 .bracket-match.disabled{cursor:default;opacity:.72}.bracket-match.disabled:hover{transform:none;border-color:var(--line)}
@@ -342,13 +354,13 @@ input:focus,select:focus{border-color:var(--gold)}
 .ihs-settings .pill{cursor:pointer}
 .ihs-settings .pill.sel{border-color:var(--green);background:var(--green-dim);color:var(--green)}
 
-.presence-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
-.presence-toggle input{position:absolute;opacity:0;pointer-events:none}
+.presence-toggle{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;font:inherit;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+.presence-toggle:focus-visible{outline:2px solid var(--green);outline-offset:4px;border-radius:99px}
 .presence-switch{width:36px;height:20px;border-radius:99px;background:var(--line);border:1px solid var(--line-2);position:relative;transition:.15s}
 .presence-switch:after{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;border-radius:50%;background:var(--muted);transition:.15s}
-.presence-toggle input:checked + .presence-switch{background:rgba(38,208,125,.18);border-color:var(--green)}
-.presence-toggle input:checked + .presence-switch:after{left:18px;background:var(--green)}
-.presence-toggle input:checked ~ .presence-label{color:var(--green)}
+.presence-toggle.is-present .presence-switch{background:rgba(38,208,125,.18);border-color:var(--green)}
+.presence-toggle.is-present .presence-switch:after{left:18px;background:var(--green)}
+.presence-toggle.is-present .presence-label{color:var(--green)}
 .pl-move{display:flex;gap:3px}.pl-move button{width:24px;height:24px;border-radius:6px;color:var(--muted);font-size:.72rem}.pl-move button:hover{background:var(--gold-dim);color:var(--gold)}
 .seed-control{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:14px;align-items:end;margin:14px 0}
 .seed-control .field{margin:0}.seed-info{font-size:.78rem;color:var(--muted);line-height:1.45}
@@ -2276,6 +2288,8 @@ async function editTournament(id){
 
 /* ── Prepínanie zoznam / pavúk ── */
 function setMatchView(view){
+  const enteringBracket=view==='bracket'&&matchViewMode!=='bracket';
+  if(enteringBracket)dkoBracketScrollLeft=null;
   matchViewMode=view==='bracket'?'bracket':'list';
   const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
   const title=document.getElementById('matchViewTitle');if(title)title.textContent=matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov';
@@ -2284,6 +2298,7 @@ function setMatchView(view){
 }
 function renderMatchArea(t){
   const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
   return body + renderTournamentEvaluation(t);
 }
 
@@ -2311,18 +2326,57 @@ function bracketColumns(rounds,names,prefix){
     <section class="bracket-column">
       <div class="bracket-column-title">${esc(names?.[ri]||`Kolo ${ri+1}`)}</div>
       <div class="bracket-column-matches">${round.map((m,mi)=>bracketMatchCard(m,`${prefix}:${ri}:${mi}`)).join('')}</div>
-    </section>`).join('')}</div></div>`;
+  </section>`).join('')}</div></div>`;
+}
+let dkoBracketScrollLeft=null;
+function rememberDkoBracketScroll(scroller){
+  dkoBracketScrollLeft=scroller.scrollLeft;
+}
+function restoreDkoBracketScroll(){
+  const scroller=document.querySelector('.dko-bracket-scroll');
+  if(!scroller)return;
+  const max=Math.max(0,scroller.scrollWidth-scroller.clientWidth);
+  if(dkoBracketScrollLeft===null){
+    const start=scroller.querySelector('[data-dko-start]');
+    if(start)dkoBracketScrollLeft=Math.max(0,Math.min(max,start.offsetLeft+(start.offsetWidth/2)-(scroller.clientWidth/2)));
+  }
+  scroller.scrollLeft=Math.max(0,Math.min(max,dkoBracketScrollLeft||0));
+}
+function dkoBracketColumn(round,title,prefix,roundIndex,side){
+  const sideLabel=side==='loser'?'Prehratá strana':side==='start'?'Štart':side==='winner'?'Víťazná strana':'Finálová fáza';
+  return `<section class="bracket-column dko-bracket-column ${side}" ${side==='start'?'data-dko-start="true"':''}>
+    <div class="dko-column-side">${sideLabel}</div>
+    <div class="bracket-column-title">${esc(title)}</div>
+    <div class="bracket-column-matches">${(round||[]).map((m,mi)=>bracketMatchCard(m,`${prefix}:${roundIndex}:${mi}`)).join('')}</div>
+  </section>`;
+}
+function dkoBracketColumns(dko,phase2=false){
+  if(!dko?.W?.length)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
+  const p=phase2?{w:'p2dA',l:'p2dB',q:'p2dQ',s:'p2dS',f:'p2dF'}:{w:'dkoA',l:'dkoB',q:'dkoQ',s:'dkoS',f:'dkoF'};
+  const columns=[];
+
+  // Chronologicky posledné loser kolo je úplne vľavo. Prvé loser kolo
+  // zostáva pri štartovom kole, rovnako ako v klasickom DKO pavúku.
+  for(let ri=(dko.L?.length||0)-1;ri>=0;ri--){
+    columns.push(dkoBracketColumn(dko.L[ri],TM.dkoRoundName('L',ri,dko.L.length),p.l,ri,'loser'));
+  }
+
+  columns.push(dkoBracketColumn(dko.W[0],TM.dkoRoundName('W',0,dko.W.length),p.w,0,'start'));
+  for(let ri=1;ri<dko.W.length;ri++){
+    columns.push(dkoBracketColumn(dko.W[ri],TM.dkoRoundName('W',ri,dko.W.length),p.w,ri,'winner'));
+  }
+  if(dko.QF?.length)columns.push(dkoBracketColumn(dko.QF,'Štvrťfinále',p.q,0,'final'));
+  if(dko.SF?.length)columns.push(dkoBracketColumn(dko.SF,'Semifinále',p.s,0,'final'));
+  columns.push(dkoBracketColumn([dko.F],'Finále',p.f,0,'final'));
+
+  return `<div class="bracket-scroll dko-bracket-scroll" onscroll="rememberDkoBracketScroll(this)"><div class="bracket-grid dko-bracket-grid">${columns.join('')}</div></div>`;
 }
 function renderBracketView(t){
   if(t.format==='sko'&&t.bracket){
     return bracketColumns(t.bracket.rounds,t.bracket.rounds.map((_,ri)=>TM.roundName(ri,t.bracket.total)),'sko');
   }
   if(t.format==='dko'&&t.dko){
-    return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(t.dko.W,t.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,t.dko.W.length)),'dkoA')}
-      <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${t.dko.L.length?bracketColumns(t.dko.L,t.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,t.dko.L.length)),'dkoB'):''}
-      ${t.dko.QF.length?`<div class="bracket-branch">◆ TOP 8 · ŠTVRŤFINÁLE</div>${bracketColumns([t.dko.QF],['Štvrťfinále'],'dkoQ')}`:''}
-      ${t.dko.SF.length?`<div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([t.dko.SF],['Semifinále'],'dkoS')}`:''}
-      <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[t.dko.F]],['Finále'],'dkoF')}`;
+    return dkoBracketColumns(t.dko);
   }
   if(t.format==='rr'){
     return `<div class="note-box">Round Robin nemá vyraďovací pavúk. Použi zobrazenie Zoznam, kde sú zápasy rozdelené podľa kôl.</div>`;
@@ -2333,11 +2387,7 @@ function renderBracketView(t){
   const phase=t.phase2;
   if(!phase)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
   if(phase.kind==='standard-sko')return bracketColumns(phase.bracket.rounds,phase.bracket.rounds.map((_,ri)=>TM.roundName(ri,phase.bracket.total)),'p2s');
-  if(phase.kind==='standard-dko')return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(phase.dko.W,phase.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,phase.dko.W.length)),'p2dA')}
-    <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${phase.dko.L.length?bracketColumns(phase.dko.L,phase.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,phase.dko.L.length)),'p2dB'):''}
-    ${phase.dko.QF.length?`<div class="bracket-branch">◆ TOP 8 · ŠTVRŤFINÁLE</div>${bracketColumns([phase.dko.QF],['Štvrťfinále'],'p2dQ')}`:''}
-    ${phase.dko.SF.length?`<div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([phase.dko.SF],['Semifinále'],'p2dS')}`:''}
-    <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[phase.dko.F]],['Finále'],'p2dF')}`;
+  if(phase.kind==='standard-dko')return dkoBracketColumns(phase.dko,true);
   const activeBracket=phase.main||phase.prelim;
   const prefix=phase.main?'p2m':'p2p';
   return bracketColumns(activeBracket.rounds,activeBracket.rounds.map((_,ri)=>TM.roundName(ri,activeBracket.total)),prefix);
@@ -3716,7 +3766,7 @@ function renderWiz(){
         ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
         <span class="pl-name">${esc(pl.name)}${cspWizardBadge(pl)}</span>
-        <label class="presence-toggle" title="Potvrdiť prítomnosť hráča"><input type="checkbox" ${pl.present?'checked':''} onchange="setPlayerPresent(${i},this.checked)"><span class="presence-switch"></span><span class="presence-label">Prítomný</span></label>
+        <button type="button" class="presence-toggle ${pl.present?'is-present':''}" role="switch" aria-checked="${pl.present?'true':'false'}" title="Potvrdiť prítomnosť hráča" onclick="setPlayerPresent(${i},!wiz.players[${i}].present,this)"><span class="presence-switch" aria-hidden="true"></span><span class="presence-label">Prítomný</span></button>
         ${wiz.structureLocked?'':`<span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
         <button class="pl-del" onclick="removePlayer(${i})">✕</button>`}
       </div>`).join('')}</div>`
@@ -3802,13 +3852,13 @@ async function addBulk(){
   wiz.showBulk=false; renderWiz();
   toast(blocked?`Pridaných ${added} hráčov · ${blocked} blokovaných CSP IHS`:`Pridaných ${added} hráčov`,blocked>0);
 }
-function setPlayerPresent(index,present){
+function setPlayerPresent(index,present,control){
   if(!wiz.players[index]) return;
   wiz.players[index].present=!!present;
-
-  // Do not rebuild the whole wizard here. Re-rendering step 2 focused
-  // the add-player input at the top of the page and forced the scroll
-  // position back to the beginning of the attendance list.
+  if(control){
+    control.classList.toggle('is-present',!!present);
+    control.setAttribute('aria-checked',present?'true':'false');
+  }
   const countEl=document.querySelector('.player-count b');
   if(countEl){
     const presentCount=wiz.players.filter(pl=>pl.present).length;
