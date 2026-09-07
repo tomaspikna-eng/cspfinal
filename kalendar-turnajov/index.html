@@ -273,6 +273,10 @@ function cspDateKey(d){
   const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
+function isCurrentOrUpcomingRound(round,today=cspDateKey(new Date())){
+  const eventDate=String(round?.event_date||'').slice(0,10);
+  return Boolean(eventDate && eventDate>=today);
+}
 function calendarMonthName(d){
   return new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric'}).format(d);
 }
@@ -553,11 +557,22 @@ function render(){
     if(!window.cspAuth?.client) throw new Error('CSP auth client unavailable');
     const {data,error}=await cspAuth.client.rpc('get_grouped_tournament_calendar');
     if(error) throw error;
-    allGroups=(data||[]).map(group=>({
-      ...group,
-      round_count:Number(group.round_count)||0,
-      rounds:Array.isArray(group.rounds)?group.rounds:[]
-    }));
+    const today=cspDateKey(new Date());
+    allGroups=(data||[]).map(group=>{
+      const allRounds=Array.isArray(group.rounds)?group.rounds:[];
+      const sortedRounds=(group.is_series
+        ? allRounds.filter(round=>isCurrentOrUpcomingRound(round,today))
+        : allRounds
+      ).sort((a,b)=>String(a.event_date||'').localeCompare(String(b.event_date||'')));
+      const rounds=group.is_series?sortedRounds.slice(0,2):sortedRounds;
+      return {
+        ...group,
+        round_count:Number(group.round_count)||0,
+        rounds,
+        first_event_date:group.is_series?(rounds[0]?.event_date||''):group.first_event_date,
+        last_event_date:group.is_series?(rounds[rounds.length-1]?.event_date||''):group.last_event_date
+      };
+    }).filter(group=>!group.is_series||group.rounds.length>0);
     allCalendarRounds=allGroups.flatMap(group=>group.rounds.map((round,index)=>({
       ...round,
       name:group.name,
