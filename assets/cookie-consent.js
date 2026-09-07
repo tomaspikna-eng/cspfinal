@@ -77,6 +77,11 @@
     .csp-cookie-grid{grid-template-columns:1fr}
     .csp-cookie-actions{justify-content:stretch}
     .csp-cookie-actions .csp-cookie-btn{flex:1}
+    #csp-cookie-reopen{
+      left:auto;right:10px;bottom:max(10px,env(safe-area-inset-bottom));
+      width:42px;height:42px;padding:0;display:grid;place-items:center;font-size:0
+    }
+    #csp-cookie-reopen::before{content:"🍪";font-size:1rem;line-height:1}
   }`;
 
   function injectStyles() {
@@ -221,7 +226,7 @@
   }
 
   function reopenHtml() {
-    return `<button id="csp-cookie-reopen" class="csp-hidden" type="button">Nastavenia cookies</button>`;
+    return `<button id="csp-cookie-reopen" class="csp-hidden" type="button" aria-label="Nastavenia cookies" title="Nastavenia cookies">Nastavenia cookies</button>`;
   }
 
   function showBanner() {

@@ -32,12 +32,20 @@ button,input,select{font:inherit}
 .panel{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012));overflow:hidden}
 .topbar{min-height:74px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand-logo{display:block;width:min(250px,44vw);height:48px;object-fit:contain;object-position:left center}
-.nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.topbar{position:relative}
+.nav{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end}
+.nav-links{display:flex;align-items:center;gap:8px}
 .nav a,.nav button,.lang-wrap{
  min-height:42px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:rgba(255,255,255,.025);
  color:var(--text);display:inline-flex;align-items:center;justify-content:center;font-weight:750;cursor:pointer
 }
-.nav-search-trigger{width:42px;padding:0!important}.nav-search-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nav-home,.nav-search-trigger{width:42px;padding:0!important}
+.nav-search-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nav-menu-toggle{display:none!important;width:42px;padding:0!important;flex-direction:column;gap:4px}
+.nav-menu-toggle span{display:block;width:18px;height:2px;border-radius:2px;background:currentColor;transition:.16s}
+.nav.open .nav-menu-toggle span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.nav.open .nav-menu-toggle span:nth-child(2){opacity:0}
+.nav.open .nav-menu-toggle span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
 .nav a.primary{background:var(--green);color:#051d0d;border-color:transparent}
 .dropdown{position:relative} .dropdown-menu{
  position:absolute;right:0;top:48px;min-width:190px;padding:6px;background:#0d0d0d;border:1px solid var(--line);border-radius:12px;
@@ -178,7 +186,36 @@ button,input,select{font:inherit}
 .footer{padding:26px}.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:24px}.footer h3{margin:0 0 10px;color:var(--gold)}.footer p,.footer li{font-size:.82rem;color:var(--muted);line-height:1.6}.footer ul{list-style:none;padding:0;margin:0;display:grid;gap:5px}.copy{border-top:1px solid var(--line2);margin-top:22px;padding-top:16px;color:#62666c;font-size:.75rem}
 
 @media(max-width:1050px){.hero{grid-template-columns:1fr;min-height:auto}.product-stage{min-height:470px}.grid-3,.pricing-grid{grid-template-columns:1fr}}
-@media(max-width:720px){.page{width:min(100% - 16px,1440px);margin:8px auto 24px}.topbar{align-items:flex-start}.brand-logo{width:190px}.nav{width:100%;justify-content:flex-start}.hero{padding:26px 20px}.hero h1{font-size:clamp(2.2rem,10vw,3.5rem)}.device{transform:none}.product-stage{min-height:440px}.sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}.landing-tournament-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}.global-search-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px)}.global-search-shell{max-height:calc(100dvh - 16px)}.global-search-head,.global-search-form{padding-left:14px;padding-right:14px}.global-search-result{grid-template-columns:40px minmax(0,1fr)}.global-search-avatar{width:40px;height:40px}.global-search-type{display:none}}
+@media(max-width:720px){
+  .page{width:min(100% - 16px,1440px);margin:8px auto 24px}
+  .topbar{min-height:66px;padding:9px 10px;align-items:center;gap:8px;overflow:visible}
+  .brand-logo{width:min(154px,39vw);height:42px}
+  .nav{width:auto;justify-content:flex-end;gap:6px}
+  .nav-home,.nav-search-trigger,.nav-menu-toggle{width:42px;height:42px;min-height:42px}
+  .nav-menu-toggle{display:inline-flex!important}
+  .nav-links{
+    display:none;position:absolute;top:calc(100% + 9px);right:0;z-index:100;
+    width:min(310px,calc(100vw - 16px));padding:8px;border:1px solid rgba(212,168,67,.28);
+    border-radius:16px;background:#0b0d0b;box-shadow:0 24px 70px rgba(0,0,0,.72)
+  }
+  .nav.open .nav-links{display:grid;gap:6px}
+  .nav-links a,.nav-links .lang-wrap{width:100%;min-height:48px;justify-content:flex-start}
+  .nav-links a.primary{justify-content:center}
+  .nav-links .lang-wrap select{flex:1}
+  .hero{padding:26px 20px}
+  .hero h1{font-size:clamp(2.2rem,10vw,3.5rem)}
+  .device{transform:none}
+  .product-stage{min-height:440px}
+  .sports-section,.pillars,.live,.pricing,.mag,.footer{padding:20px}
+  .landing-tournament-row{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+  .global-search-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px)}
+  .global-search-shell{max-height:calc(100dvh - 16px)}
+  .global-search-head,.global-search-form{padding-left:14px;padding-right:14px}
+  .global-search-result{grid-template-columns:40px minmax(0,1fr)}
+  .global-search-avatar{width:40px;height:40px}
+  .global-search-type{display:none}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.product-view:first-child{opacity:1}}
 </style>
 </head>
@@ -189,16 +226,18 @@ button,input,select{font:inherit}
   <a href="/" aria-label="Connect Sports Pro">
     <img class="brand-logo" src="/assets/csp-logo-full.png" alt="Connect Sports Pro"/>
   </a>
-  <nav class="nav">
-    <a href="/" aria-label="Domov">⌂</a>
+  <nav class="nav" id="siteNav" aria-label="Hlavná navigácia">
+    <a class="nav-home" href="/" aria-label="Domov">⌂</a>
     <button class="nav-search-trigger" id="globalSearchOpen" type="button" aria-label="Hľadať" title="Hľadať">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
     </button>
-    <a href="/kalendar-turnajov/">Turnaje</a>
-    <a href="/magazin/">Novinky</a>
-    <a href="/login/">Prihlásiť</a>
-    <a class="primary" href="/registracia/">Pridaj sa zadarmo</a>
-    <div class="lang-wrap"><span>🌐</span><select id="cspLanguageSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
+    <button class="nav-menu-toggle" id="siteNavToggle" type="button" aria-label="Otvoriť menu" aria-controls="siteNavLinks" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="siteNavLinks">
+      <a href="/kalendar-turnajov/">Turnaje</a>
+      <a href="/magazin/">Novinky</a>
+      <a href="/login/">Prihlásiť</a>
+      <a class="primary" href="/registracia/">Pridaj sa zadarmo</a>
+      <div class="lang-wrap"><span>🌐</span><select id="cspLanguageSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
   <option value="sk" translate="no" data-no-translate="true">SK</option>
   <option value="en" translate="no" data-no-translate="true">EN</option>
   <option value="de" translate="no" data-no-translate="true">DE</option>
@@ -206,6 +245,7 @@ button,input,select{font:inherit}
   <option value="pl" translate="no" data-no-translate="true">PL</option>
   <option value="ru" translate="no" data-no-translate="true">RU</option>
 </select></div>
+    </div>
   </nav>
 </header>
 
@@ -423,6 +463,34 @@ function cspRenderSearchResults(rows,onOpen){
     btn.addEventListener('click',()=>onOpen(rows[Number(btn.dataset.searchIndex)]));
   });
 }
+(function initMobileNavigation(){
+  const nav=document.getElementById('siteNav');
+  const toggle=document.getElementById('siteNavToggle');
+  const links=document.getElementById('siteNavLinks');
+  const search=document.getElementById('globalSearchOpen');
+  if(!nav||!toggle||!links)return;
+  const close=()=>{
+    nav.classList.remove('open');
+    toggle.setAttribute('aria-expanded','false');
+    toggle.setAttribute('aria-label','Otvoriť menu');
+  };
+  const open=()=>{
+    nav.classList.add('open');
+    toggle.setAttribute('aria-expanded','true');
+    toggle.setAttribute('aria-label','Zavrieť menu');
+  };
+  toggle.addEventListener('click',event=>{
+    event.stopPropagation();
+    nav.classList.contains('open')?close():open();
+  });
+  links.querySelectorAll('a').forEach(link=>link.addEventListener('click',close));
+  search?.addEventListener('click',close);
+  document.addEventListener('click',event=>{if(!nav.contains(event.target))close();});
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&nav.classList.contains('open')){close();toggle.focus();}
+  });
+  window.addEventListener('resize',()=>{if(window.innerWidth>720)close();},{passive:true});
+})();
 (function initGlobalSearch(){
   const dialog=document.getElementById('globalSearchDialog');
   const openBtn=document.getElementById('globalSearchOpen');
