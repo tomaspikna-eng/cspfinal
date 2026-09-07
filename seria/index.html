@@ -76,8 +76,9 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
 .empty-state{padding:50px 24px;text-align:center;color:var(--muted)}
 .empty-state strong{display:block;color:var(--text);font-size:1.05rem;margin-bottom:6px}
 .round-list{padding:7px 18px 14px}
-.round-row{display:grid;grid-template-columns:92px 160px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:76px;padding:12px 5px;border-bottom:1px solid rgba(255,255,255,.065)}
-.round-row:last-child{border-bottom:0}
+.round-item{border-bottom:1px solid rgba(255,255,255,.065)}
+.round-item:last-child{border-bottom:0}
+.round-row{display:grid;grid-template-columns:92px 160px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:76px;padding:12px 5px}
 .round-no{font-weight:950;color:var(--gold)}
 .round-date strong{display:block;font-size:.86rem}
 .round-date small{display:block;color:var(--muted);font-size:.7rem;margin-top:2px}
@@ -85,8 +86,17 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
 .round-copy span{display:block;color:var(--muted);font-size:.75rem;margin-top:3px}
 .round-status{display:inline-flex!important;width:max-content;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.045);color:#bcbcc4!important;font-size:.67rem!important;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
 .round-status.live,.round-status.open{background:rgba(34,211,107,.09);color:var(--green)!important}
-.round-link{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:900;white-space:nowrap}
+.round-link{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:900;white-space:nowrap;background:transparent;color:var(--text);cursor:pointer}
 .round-link.primary{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.round-results{margin:0 5px 14px;border:1px solid var(--line);border-radius:14px;background:#09090d;overflow:hidden}
+.round-results-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line)}
+.round-results-head strong{font-size:.84rem}
+.round-results-head a{color:var(--muted);font-size:.74rem;font-weight:850}
+.round-results table{min-width:430px}
+.round-results th{padding:9px 13px;font-size:.62rem}
+.round-results td{padding:10px 13px;font-size:.82rem}
+.round-result-player{font-weight:850}
+.round-result-points{color:var(--gold);font-weight:950}
 .toast{position:fixed;right:18px;bottom:18px;z-index:1000;max-width:min(380px,calc(100vw - 36px));padding:12px 15px;border:1px solid rgba(34,211,107,.35);border-radius:12px;background:#111117;box-shadow:0 18px 55px rgba(0,0,0,.5);font-size:.82rem;font-weight:800;opacity:0;transform:translateY(8px);pointer-events:none;transition:.18s ease}
 .toast.show{opacity:1;transform:none}
 .toast.bad{border-color:rgba(255,107,107,.38);color:#ffd1d1}
@@ -195,7 +205,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   const db=window.cspAuth?.client;
   const params=new URLSearchParams(location.search);
   const seriesId=params.get('id')||'';
-  let series=null,rounds=[],standings=[],session=null,following=false,followBusy=false;
+  let series=null,rounds=[],standings=[],roundResults=[],session=null,following=false,followBusy=false;
 
   const $=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
@@ -236,7 +246,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     return !round.starts_at || new Date(round.starts_at)>new Date();
   }
   function roundAction(round){
-    if(round.tournament_id && round.round_status==='completed')return {href:`/turnament/?id=${encodeURIComponent(round.tournament_id)}`,label:'Výsledky',primary:false};
+    if(round.round_status==='completed' && round.result_count)return {type:'results',label:'Výsledková listina',primary:false};
     if(round.tournament_id && round.round_status==='live')return {href:`/turnament/?id=${encodeURIComponent(round.tournament_id)}`,label:'Sledovať',primary:true};
     if(registrationOpen(round))return {href:`/predregistracia/?event=${encodeURIComponent(round.event_id)}`,label:'Predregistrácia',primary:true};
     if(round.event_id)return {href:`/udalost/?id=${encodeURIComponent(round.event_id)}`,label:'Detail kola',primary:false};
@@ -247,13 +257,41 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     $('roundList').innerHTML=rounds.map(round=>{
       const state=roundStatus(round),action=roundAction(round);
       const detail=round.winner_name?`Víťaz: ${esc(round.winner_name)}`:(round.result_count?`${round.result_count} výsledkov`:'Výsledky zatiaľ nie sú dostupné');
-      return `<article class="round-row">
+      const results=roundResults.filter(result=>Number(result.series_round_number)===Number(round.series_round_number));
+      const resultsId=`round-results-${Number(round.series_round_number)||0}`;
+      return `<article class="round-item"><div class="round-row">
         <div class="round-no">${Number(round.series_round_number)||'—'}. kolo</div>
         <div class="round-date"><strong>${esc(dateTime(round.starts_at))}</strong>${round.registration_deadline?`<small>Prihlášky do ${esc(dateTime(round.registration_deadline))}</small>`:''}</div>
         <div class="round-copy"><strong>${esc(round.event_title||series.title)}</strong><span class="round-status ${state.className}">${esc(state.label)}</span><span>${detail}</span></div>
-        ${action?`<a class="round-link ${action.primary?'primary':''}" href="${esc(action.href)}">${esc(action.label)} →</a>`:''}
-      </article>`;
+        ${action?.type==='results'
+          ?`<button class="round-link" type="button" data-round-results="${esc(resultsId)}" aria-expanded="false">${esc(action.label)} ↓</button>`
+          :(action?`<a class="round-link ${action.primary?'primary':''}" href="${esc(action.href)}">${esc(action.label)} →</a>`:'')}
+      </div>${action?.type==='results'?renderRoundResults(round,results,resultsId):''}</article>`;
     }).join('')||'<div class="empty-state"><strong>Kolá nie sú dostupné</strong>Séria zatiaľ nemá zverejnené termíny.</div>';
+  }
+  function renderRoundResults(round,results,resultsId){
+    const rows=results.map(result=>{
+      const position=Number(result.final_position)||0;
+      const name=result.player_name||'Hráč';
+      const player=result.profile_id
+        ?`<a class="round-result-player" href="/profil/?id=${encodeURIComponent(result.profile_id)}">${esc(name)}</a>`
+        :`<span class="round-result-player">${esc(name)}</span>`;
+      return `<tr><td><span class="rank ${position<=3?`top-${position}`:''}">${position}.</span></td><td>${player}</td><td class="num"><span class="round-result-points">${Number(result.points)||0} b</span></td></tr>`;
+    }).join('');
+    const tournamentLink=round.tournament_id?`<a href="/turnament/?id=${encodeURIComponent(round.tournament_id)}">Priebeh turnaja →</a>`:'';
+    return `<section class="round-results hidden" id="${esc(resultsId)}"><div class="round-results-head"><strong>Konečné poradie ${Number(round.series_round_number)||'—'}. kola</strong>${tournamentLink}</div><div class="table-wrap"><table><thead><tr><th>Poradie</th><th>Hráč</th><th class="num">Body</th></tr></thead><tbody>${rows||'<tr><td colspan="3">Výsledková listina nie je dostupná.</td></tr>'}</tbody></table></div></section>`;
+  }
+  function bindRoundResults(){
+    $('roundList').addEventListener('click',event=>{
+      const button=event.target.closest('[data-round-results]');
+      if(!button)return;
+      const panel=$(button.dataset.roundResults);
+      if(!panel)return;
+      const opening=panel.classList.contains('hidden');
+      panel.classList.toggle('hidden',!opening);
+      button.setAttribute('aria-expanded',String(opening));
+      button.textContent=opening?'Zavrieť výsledky ↑':'Výsledková listina ↓';
+    });
   }
   function renderStandings(){
     const empty=!standings.length;
@@ -345,22 +383,24 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     if(!db)return fail('Pripojenie k Connect Sports Pro nie je dostupné.');
     if(!uuid(seriesId))return fail('Odkaz na sériu nie je platný.');
     try{
-      const [seriesResult,roundsResult,standingsResult,countsResult]=await Promise.all([
+      const [seriesResult,roundsResult,standingsResult,roundResultsResult,countsResult]=await Promise.all([
         db.from('event_series').select('id,owner_id,club_id,title,event_type,sport,discipline,total_rounds,status,visibility,ranking_config').eq('id',seriesId).maybeSingle(),
         db.from('event_series_public_rounds').select('*').eq('series_id',seriesId).order('series_round_number',{ascending:true}),
         db.from('event_series_standings').select('*').eq('series_id',seriesId).order('standing_position',{ascending:true}),
+        db.from('event_series_round_results').select('series_round_number,tournament_id,profile_id,player_name,final_position,points,is_counted').eq('series_id',seriesId).order('series_round_number',{ascending:true}).order('final_position',{ascending:true}),
         db.from('event_series_social_counts').select('follower_count,like_count').eq('series_id',seriesId).maybeSingle()
       ]);
       if(seriesResult.error)throw seriesResult.error;
       if(roundsResult.error)throw roundsResult.error;
       if(standingsResult.error)throw standingsResult.error;
+      if(roundResultsResult.error)throw roundResultsResult.error;
       if(countsResult.error)throw countsResult.error;
       if(!seriesResult.data)return fail('Táto séria neexistuje alebo nie je verejná.');
-      series=seriesResult.data;rounds=roundsResult.data||[];standings=standingsResult.data||[];
+      series=seriesResult.data;rounds=roundsResult.data||[];standings=standingsResult.data||[];roundResults=roundResultsResult.data||[];
       const meta=await optionalNames();
       renderHeader(meta);renderScoring();renderRounds();renderStandings();setSocialCounts(countsResult.data||{});renderFollow();
       $('loading').classList.add('hidden');$('seriesContent').classList.remove('hidden');
-      bindTabs();
+      bindTabs();bindRoundResults();
       $('followBtn').addEventListener('click',toggleFollow);
       try{await loadFollow()}catch(error){console.error('[series-follow-load]',error);renderFollow()}
       if(window.cspSocial){
