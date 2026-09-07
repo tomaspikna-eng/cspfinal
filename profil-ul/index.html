@@ -1642,7 +1642,14 @@ function adminTournamentSortValue(t){
   const ts=raw ? new Date(raw).getTime() : NaN;
   return Number.isFinite(ts) ? ts : 0;
 }
+function adminTournamentHasFinalResult(t){
+  const status=String(t?.status||'').toLowerCase();
+  return status==='completed' || status==='archived';
+}
 function adminTournamentTarget(t){
+  if(t?._series_id && t?._series_round_number && adminTournamentHasFinalResult(t)){
+    return '/seria/?id='+encodeURIComponent(t._series_id)+'&round='+encodeURIComponent(t._series_round_number);
+  }
   const id=encodeURIComponent(t.id);
   return t._source==='event' ? '/udalost/?id='+id : '/turnament/?id='+id;
 }
@@ -1650,7 +1657,7 @@ function adminSeriesRows(t){
   return (Array.isArray(t._rounds)?t._rounds:[]).map(round=>{
     const bucket=adminTournamentBucket(round);
     const dateValue=round._source==='event'?round.starts_at:round.date;
-    return `<div class="admin-series-round" data-admin-tournament-id="${escAdminTournament(round.id)}" data-admin-tournament-source="${escAdminTournament(round._source)}" role="link" tabindex="0">
+    return `<div class="admin-series-round" data-admin-tournament-id="${escAdminTournament(round.id)}" data-admin-tournament-source="${escAdminTournament(round._source)}" data-admin-tournament-target="${escAdminTournament(adminTournamentTarget(round))}" role="link" tabindex="0">
       <div class="admin-series-round-no">${Number(round._series_round_number)||'—'}. KOLO</div>
       <div class="admin-series-round-name">${escAdminTournament(round.name||round.title||'Turnaj')}</div>
       <div class="admin-series-round-date">${escAdminTournament(adminTournamentDateLabel(dateValue))}</div>
@@ -1769,7 +1776,7 @@ function renderAdminTournamentDashboard(){
     });
   });
   list.querySelectorAll('[data-admin-tournament-id]').forEach(row=>{
-    const open=()=>location.href=adminTournamentTarget({id:row.dataset.adminTournamentId,_source:row.dataset.adminTournamentSource});
+    const open=()=>location.href=row.dataset.adminTournamentTarget||adminTournamentTarget({id:row.dataset.adminTournamentId,_source:row.dataset.adminTournamentSource});
     row.addEventListener('click',open);
     row.addEventListener('keydown',event=>{
       if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}
