@@ -205,6 +205,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   const db=window.cspAuth?.client;
   const params=new URLSearchParams(location.search);
   const seriesId=params.get('id')||'';
+  const requestedRound=Math.max(0,Number.parseInt(params.get('round')||'',10)||0);
   let series=null,rounds=[],standings=[],roundResults=[],session=null,following=false,followBusy=false;
 
   const $=id=>document.getElementById(id);
@@ -259,12 +260,12 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       const detail=round.winner_name?`Víťaz: ${esc(round.winner_name)}`:(round.result_count?`${round.result_count} výsledkov`:'Výsledky zatiaľ nie sú dostupné');
       const results=roundResults.filter(result=>Number(result.series_round_number)===Number(round.series_round_number));
       const resultsId=`round-results-${Number(round.series_round_number)||0}`;
-      return `<article class="round-item"><div class="round-row">
+      return `<article class="round-item" data-series-round="${Number(round.series_round_number)||0}"><div class="round-row">
         <div class="round-no">${Number(round.series_round_number)||'—'}. kolo</div>
         <div class="round-date"><strong>${esc(dateTime(round.starts_at))}</strong>${round.registration_deadline?`<small>Prihlášky do ${esc(dateTime(round.registration_deadline))}</small>`:''}</div>
         <div class="round-copy"><strong>${esc(round.event_title||series.title)}</strong><span class="round-status ${state.className}">${esc(state.label)}</span><span>${detail}</span></div>
         ${action?.type==='results'
-          ?`<button class="round-link" type="button" data-round-results="${esc(resultsId)}" aria-expanded="false">${esc(action.label)} ↓</button>`
+          ?`<button class="round-link" type="button" data-round-results="${esc(resultsId)}" data-round-number="${Number(round.series_round_number)||0}" aria-expanded="false">${esc(action.label)} ↓</button>`
           :(action?`<a class="round-link ${action.primary?'primary':''}" href="${esc(action.href)}">${esc(action.label)} →</a>`:'')}
       </div>${action?.type==='results'?renderRoundResults(round,results,resultsId):''}</article>`;
     }).join('')||'<div class="empty-state"><strong>Kolá nie sú dostupné</strong>Séria zatiaľ nemá zverejnené termíny.</div>';
@@ -288,10 +289,15 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       const panel=$(button.dataset.roundResults);
       if(!panel)return;
       const opening=panel.classList.contains('hidden');
-      panel.classList.toggle('hidden',!opening);
-      button.setAttribute('aria-expanded',String(opening));
-      button.textContent=opening?'Zavrieť výsledky ↑':'Výsledková listina ↓';
+      setRoundResultsOpen(button,opening);
     });
+  }
+  function setRoundResultsOpen(button,opening){
+    const panel=$(button.dataset.roundResults);
+    if(!panel)return;
+    panel.classList.toggle('hidden',!opening);
+    button.setAttribute('aria-expanded',String(opening));
+    button.textContent=opening?'Zavrieť výsledky ↑':'Výsledková listina ↓';
   }
   function renderStandings(){
     const empty=!standings.length;
@@ -365,13 +371,21 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     }catch(error){console.error('[series-follow]',error);toast('Sledovanie sa nepodarilo zmeniť.',true)}
     finally{followBusy=false;$('followBtn').disabled=false}
   }
+  function activateTab(tab){
+    document.querySelectorAll('[data-tab]').forEach(button=>button.classList.toggle('active',button.dataset.tab===tab));
+    $('standingsPanel').classList.toggle('hidden',tab!=='standings');
+    $('roundsPanel').classList.toggle('hidden',tab!=='rounds');
+  }
   function bindTabs(){
-    document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
-      const tab=button.dataset.tab;
-      document.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item===button));
-      $('standingsPanel').classList.toggle('hidden',tab!=='standings');
-      $('roundsPanel').classList.toggle('hidden',tab!=='rounds');
-    }));
+    document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  }
+  function openRequestedRound(){
+    if(!requestedRound)return;
+    activateTab('rounds');
+    const roundItem=document.querySelector(`[data-series-round="${requestedRound}"]`);
+    const button=document.querySelector(`[data-round-results][data-round-number="${requestedRound}"]`);
+    if(button)setRoundResultsOpen(button,true);
+    if(roundItem)roundItem.scrollIntoView({behavior:'auto',block:'start'});
   }
   async function optionalNames(){
     const tasks=[];
@@ -401,6 +415,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       renderHeader(meta);renderScoring();renderRounds();renderStandings();setSocialCounts(countsResult.data||{});renderFollow();
       $('loading').classList.add('hidden');$('seriesContent').classList.remove('hidden');
       bindTabs();bindRoundResults();
+      openRequestedRound();
       $('followBtn').addEventListener('click',toggleFollow);
       try{await loadFollow()}catch(error){console.error('[series-follow-load]',error);renderFollow()}
       if(window.cspSocial){
