@@ -1,1844 +1,418 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sk">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Ján Novák · Connect Sports Pro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-:root{
-  --bg:#060608;
-  --bg2:#0d0d11;
-  --bg3:#14141a;
-  --bg4:#1a1a22;
-  --line:rgba(255,255,255,.07);
-  --line2:rgba(255,255,255,.04);
-  --text:#f4f4f8;
-  --text-soft:#a8a8b8;
-  --muted:#6a6a7a;
-  --muted2:#80809a;
-  --gold:#d4a843;
-  --gold-bright:#e8b94f;
-  --gold-dim:rgba(212,168,67,.10);
-  --gold-b:rgba(212,168,67,.25);
-  --green:#1ec86a;
-  --green-dim:rgba(30,200,106,.10);
-  --red:#d94f4f;
-  --blue:#4a82cc;
-  --font:'Syne',sans-serif;
-  --display:'Bebas Neue',sans-serif;
-  --mono:'JetBrains Mono',monospace;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
-button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-a{color:inherit;text-decoration:none}
-
-/* ════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════ */
-.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-@media(max-width:880px){.app{grid-template-columns:1fr}}
-
-/* ════════════════════════════════════
-   SIDEBAR
-═══════════════════════════════════ */
-.sidebar{
-  background:var(--bg2);border-right:1px solid var(--line);
-  padding:20px 0;display:flex;flex-direction:column;gap:4px;
-  position:sticky;top:0;height:100vh;overflow-y:auto;
-}
-@media(max-width:880px){.sidebar{display:none;position:fixed;inset:0;z-index:200;height:100vh}.sidebar.open{display:flex}}
-
-.logo-row{padding:0 22px 20px;display:flex;align-items:center;gap:8px}
-.logo-mark{
-  width:26px;height:26px;border-radius:7px;
-  display:block;object-fit:cover;
-  box-shadow:0 3px 9px rgba(212,168,67,.16);
-}
-.logo-text{font-weight:800;font-size:1.02rem;letter-spacing:-.02em;color:#fff}
-.logo-text .g{color:var(--gold)}
-.logo-text .w{color:#fff}
-
-.nav-section{padding:14px 12px 6px 22px;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
-.nav-item{
-  display:flex;align-items:center;gap:11px;padding:10px 22px;
-  color:var(--text-soft);font-size:.86rem;font-weight:500;
-  border-left:3px solid transparent;transition:.12s;cursor:pointer;
-}
-.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.nav-item.active{background:var(--gold-dim);color:var(--gold);border-left-color:var(--gold);font-weight:600}
-.nav-item .icon{font-size:1.05rem;width:18px;display:inline-flex;justify-content:center}
-
-.nav-cta-green{margin:14px 16px}
-.nav-cta-green-btn{
-  width:100%;padding:12px;border-radius:9px;
-  background:var(--green);color:#06230f;
-  font-family:var(--font);font-weight:700;font-size:.84rem;letter-spacing:.02em;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:.15s;
-  box-shadow:0 4px 12px rgba(30,200,106,.2);
-}
-.nav-cta-green-btn:hover{background:#2dd97a;transform:translateY(-1px)}
-
-/* ════════════════════════════════════
-   TOPBAR
-═══════════════════════════════════ */
-.main{display:flex;flex-direction:column;min-width:0}
-.topbar{
-  background:var(--bg2);border-bottom:1px solid var(--line);
-  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  position:sticky;top:0;z-index:10;
-}
-.topbar-left{display:flex;align-items:center;gap:12px;flex:1;max-width:480px}
-.mobile-toggle{display:none;font-size:1.4rem;padding:0 6px;color:var(--text)}
-@media(max-width:880px){.mobile-toggle{display:block}}
-
-.search-box{
-  flex:1;display:flex;align-items:center;gap:8px;
-  padding:8px 14px;border-radius:9px;border:1px solid var(--line);
-  background:rgba(255,255,255,.02);
-  color:var(--muted2);font-size:.84rem;
-}
-.search-box input{
-  flex:1;background:none;border:none;outline:none;color:var(--text);
-  font-family:inherit;font-size:.86rem;
-}
-.search-box input::placeholder{color:var(--muted2)}
-.search-box .key{font-family:var(--mono);font-size:.7rem;color:var(--muted);padding:2px 6px;border:1px solid var(--line);border-radius:4px}
-
-.topbar-right{display:flex;align-items:center;gap:10px;position:relative}
-.icon-btn{
-  width:36px;height:36px;border-radius:9px;border:1px solid var(--line);
-  background:rgba(255,255,255,.02);display:flex;align-items:center;justify-content:center;
-  color:var(--text-soft);transition:.12s;position:relative;
-}
-.icon-btn:hover{background:rgba(255,255,255,.05);color:var(--text)}
-.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg2)}
-
-.user-pill{
-  display:flex;align-items:center;gap:9px;padding:5px 14px 5px 5px;
-  border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);
-  font-weight:600;font-size:.84rem;color:var(--text);transition:.12s;
-}
-.user-pill:hover{background:rgba(255,255,255,.05)}
-.user-pill .av-mini{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--gold),#a8862e);color:#1a1000;font-weight:800;font-family:var(--display);font-size:.85rem}
-
-.user-menu{
-  position:absolute;top:48px;right:0;background:var(--bg2);
-  border:1px solid var(--line);border-radius:11px;
-  box-shadow:0 12px 36px rgba(0,0,0,.5);min-width:230px;padding:6px;
-  display:none;z-index:50;
-}
-.user-menu.show{display:block}
-.user-menu .mi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:7px;font-size:.84rem;color:var(--text-soft);font-weight:500;width:100%;text-align:left;cursor:pointer}
-.user-menu .mi:hover{background:rgba(255,255,255,.04);color:var(--text)}
-.user-menu .mi-danger{color:#ff8a8a}
-.user-menu .mi-divider{height:1px;background:var(--line);margin:4px 0}
-
-/* ════════════════════════════════════
-   PROFILE — COVER + HEADER
-═══════════════════════════════════ */
-.profile{padding:0 0 80px}
-
-.cover{
-  height:240px;position:relative;
-  background:
-    radial-gradient(ellipse 80% 100% at 20% 0%, rgba(212,168,67,.35), transparent 60%),
-    radial-gradient(ellipse 60% 80% at 80% 50%, rgba(30,200,106,.18), transparent 60%),
-    radial-gradient(ellipse 50% 50% at 50% 100%, rgba(74,130,204,.15), transparent 60%),
-    linear-gradient(135deg,#1a1410 0%, #0a0a0e 100%);
-}
-.cover::after{
-  content:'';position:absolute;inset:0;
-  background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0);
-  background-size:8px 8px;
-  opacity:.5;
-}
-.cover-edit{
-  position:absolute;top:16px;right:16px;
-  padding:8px 14px;border-radius:8px;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.12);
-  color:#fff;font-size:.78rem;font-weight:600;
-  display:flex;align-items:center;gap:6px;
-  transition:.15s;
-}
-.cover-edit:hover{background:rgba(0,0,0,.75)}
-
-.profile-header{
-  padding:0 32px;display:grid;grid-template-columns:auto 1fr auto;gap:24px;
-  margin-top:-70px;position:relative;align-items:end;
-}
-@media(max-width:880px){
-  .profile-header{padding:0 20px;grid-template-columns:1fr;gap:14px;margin-top:-64px;align-items:start}
-  .profile-actions{justify-self:start !important}
-}
-
-.avatar-wrap{position:relative}
-.avatar{
-  width:140px;height:140px;border-radius:50%;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-size:3.4rem;color:#1a1000;letter-spacing:.06em;
-  border:4px solid var(--bg);
-  box-shadow:0 12px 36px rgba(0,0,0,.5);
-}
-.avatar-edit{
-  position:absolute;bottom:8px;right:8px;
-  width:36px;height:36px;border-radius:50%;
-  background:var(--bg3);border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1rem;transition:.15s;
-}
-.avatar-edit:hover{background:var(--gold);color:#1a1000}
-
-.identity{padding-bottom:8px;min-width:0}
-.name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.name{
-  font-family:var(--display);font-size:2.6rem;letter-spacing:.03em;line-height:1;
-  color:#fff;
-}
-
-.profile-access-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-height:28px;padding:5px 11px;border-radius:999px;
-  font-family:var(--mono);font-size:.72rem;font-weight:900;
-  letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;
-  border:1px solid rgba(212,168,67,.4);
-}
-.profile-access-badge.admin{
-  background:var(--gold);border-color:var(--gold);color:#1a1000;
-  box-shadow:0 0 0 1px rgba(212,168,67,.12),0 6px 20px rgba(212,168,67,.12);
-}
-.profile-access-badge.ultra{
-  background:rgba(30,200,106,.12);border-color:rgba(30,200,106,.35);color:var(--green);
-}
-.verified{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;
-  background:var(--gold);color:#1a1000;font-size:.78rem;font-weight:800;
-}
-.handle{
-  font-family:var(--mono);font-size:.85rem;color:var(--muted2);
-  margin-top:4px;
-}
-.bio{
-  color:var(--text-soft);font-size:.92rem;line-height:1.5;
-  margin-top:12px;max-width:580px;
-}
-.meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px}
-.meta-item{
-  display:inline-flex;align-items:center;gap:6px;
-  font-family:var(--mono);font-size:.72rem;color:var(--muted2);
-  font-weight:500;
-}
-.meta-item .meta-i{opacity:.7}
-
-.profile-actions{display:flex;gap:10px;padding-bottom:8px;justify-self:end;flex-wrap:wrap;justify-content:flex-end}
-.btn{
-  padding:10px 18px;border-radius:9px;font-family:var(--font);
-  font-weight:700;font-size:.84rem;letter-spacing:.02em;
-  display:inline-flex;align-items:center;gap:8px;transition:.15s;cursor:pointer;
-}
-.btn-primary{background:var(--gold);color:#1a1000}
-.btn-primary:hover{background:var(--gold-bright)}
-.btn-secondary{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text)}
-.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
-.btn-green{background:var(--green);color:#06230f}
-.btn-green:hover{background:#2dd97a}
-
-/* ════════════════════════════════════
-   STATS BAR
-═══════════════════════════════════ */
-.stats-bar{
-  margin:28px 32px 0;
-  background:var(--bg2);border:1px solid var(--line);border-radius:14px;
-  display:grid;grid-template-columns:repeat(6,1fr);
-}
-@media(max-width:880px){.stats-bar{margin:24px 20px 0;grid-template-columns:repeat(3,1fr)}}
-@media(max-width:520px){.stats-bar{grid-template-columns:repeat(2,1fr)}}
-.stat{
-  text-align:center;padding:18px 8px;
-  position:relative;cursor:pointer;transition:.12s;
-}
-.stat:hover{background:rgba(255,255,255,.02)}
-.stat + .stat::before{
-  content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:var(--line2);
-}
-@media(max-width:520px){.stat + .stat::before{display:none}}
-.stat.highlight{background:var(--gold-dim)}
-.stat-num{font-family:var(--display);font-size:1.7rem;letter-spacing:.04em;color:var(--text);line-height:1}
-.stat.highlight .stat-num{color:var(--gold)}
-.stat-label{font-size:.62rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-top:6px}
-
-/* ════════════════════════════════════
-   SPORT TABS
-═══════════════════════════════════ */
-.sport-tabs{
-  margin:18px 32px 0;
-  display:flex;gap:8px;flex-wrap:wrap;
-}
-@media(max-width:880px){.sport-tabs{margin:16px 20px 0}}
-.sport-tab{
-  padding:10px 16px;border-radius:10px;
-  border:1px solid var(--line);background:var(--bg2);
-  display:inline-flex;align-items:center;gap:10px;
-  font-size:.86rem;font-weight:600;color:var(--text-soft);
-  transition:.15s;
-}
-.sport-tab:hover{background:var(--bg3);color:var(--text)}
-.sport-tab.active{
-  background:var(--gold-dim);border-color:var(--gold-b);color:var(--gold);
-}
-.sport-tab .icon{font-size:1.1rem}
-.sport-tab .rating{
-  font-family:var(--mono);font-size:.76rem;font-weight:700;
-  padding:2px 8px;background:rgba(255,255,255,.06);border-radius:6px;color:var(--text);
-}
-.sport-tab.active .rating{background:rgba(212,168,67,.18);color:var(--gold)}
-.sport-tab.muted{opacity:.5}
-.sport-tab.muted .muted-label{font-size:.72rem;color:var(--muted);font-weight:500}
-.sport-tab.muted:hover{opacity:1}
-
-/* ════════════════════════════════════
-   CONTENT GRID (FEED + SIDEBAR)
-═══════════════════════════════════ */
-.content-grid{
-  margin:24px 32px 0;
-  display:grid;grid-template-columns:1fr 340px;gap:24px;
-  align-items:start;
-}
-@media(max-width:1100px){.content-grid{grid-template-columns:1fr}}
-@media(max-width:880px){.content-grid{margin:24px 20px 0}}
-
-/* Content tabs */
-.content-tabs{
-  display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:18px;
-}
-.content-tab{
-  padding:12px 18px;
-  font-size:.88rem;font-weight:600;color:var(--muted2);
-  border-bottom:2px solid transparent;margin-bottom:-1px;
-  transition:.12s;
-}
-.content-tab:hover{color:var(--text)}
-.content-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-
-/* Tab panels — one per content-tab, only the active one shown. Same
-   display:none/inline-style-toggle convention already used elsewhere in
-   this file (e.g. #settingsVenuesLocked/#settingsVenuesUnlocked) rather
-   than introducing a new utility class. */
-.tab-panel{display:none}
-.tab-panel.active{display:block}
-
-/* ════════════════════════════════════
-   FEED POSTS
-═══════════════════════════════════ */
-.feed{display:flex;flex-direction:column;gap:14px}
-.post{
-  background:var(--bg2);border:1px solid var(--line);border-radius:14px;
-  overflow:hidden;
-}
-.post-head{
-  padding:14px 18px;display:flex;align-items:center;gap:12px;
-}
-.post-avatar{
-  width:40px;height:40px;border-radius:50%;flex:0 0 40px;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  color:#1a1000;font-weight:800;font-family:var(--display);font-size:1rem;
-}
-.post-avatar.alt{background:linear-gradient(135deg,#4a82cc,#2a5a9a);color:#fff}
-.post-meta{flex:1;min-width:0}
-.post-name{font-size:.92rem;font-weight:700;color:var(--text);line-height:1.3}
-.post-name .post-action{font-weight:500;color:var(--muted2)}
-.post-time{font-family:var(--mono);font-size:.72rem;color:var(--muted2);margin-top:2px}
-.post-menu{
-  width:32px;height:32px;border-radius:7px;color:var(--muted2);font-size:1.2rem;
-  display:flex;align-items:center;justify-content:center;transition:.12s;
-}
-.post-menu:hover{background:rgba(255,255,255,.04);color:var(--text)}
-
-.post-body{padding:0 18px 14px}
-
-/* Match card */
-.match-card{
-  background:var(--bg3);border-radius:10px;padding:16px;
-  display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;
-}
-.match-player{display:flex;align-items:center;gap:10px}
-.match-player.right{justify-content:flex-end;flex-direction:row-reverse}
-.mp-av{
-  width:40px;height:40px;border-radius:50%;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  color:#1a1000;font-weight:800;font-family:var(--display);font-size:1rem;flex:0 0 40px;
-}
-.mp-av.opp{background:linear-gradient(135deg,#5a5a78,#3a3a50);color:#fff}
-.mp-info{min-width:0}
-.mp-name{font-size:.86rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mp-club{font-family:var(--mono);font-size:.66rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-.mp-score{
-  font-family:var(--display);font-size:2.2rem;letter-spacing:.02em;color:var(--text);line-height:1;
-}
-.mp-score.winner{color:var(--gold)}
-.mp-name.winner{color:var(--gold)}
-.match-vs{
-  font-family:var(--mono);font-size:.74rem;font-weight:700;color:var(--muted);
-  padding:6px 0;text-align:center;
-}
-.match-info{
-  margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
-  font-family:var(--mono);font-size:.74rem;color:var(--muted2);
-}
-/* Fallback player list for training sessions with 3 players — .match-card's
-   grid (1fr auto 1fr) is built for exactly two sides, so 3-player sessions
-   use this simpler row instead rather than forcing a mismatched layout. */
-.zp-players-simple{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:.86rem;color:var(--text-soft)}
-.zp-players-simple .zp-winner{color:var(--gold);font-weight:700}
-.rating-change{
-  padding:4px 10px;border-radius:6px;font-weight:700;letter-spacing:.04em;
-}
-.rating-change.positive{background:var(--green-dim);color:var(--green)}
-.rating-change.negative{background:rgba(217,79,79,.10);color:#ff8a8a}
-
-/* Record card */
-.record-card{
-  background:linear-gradient(135deg,rgba(212,168,67,.10),rgba(212,168,67,.02));
-  border:1px solid var(--gold-b);
-  border-radius:10px;padding:18px;
-  display:flex;align-items:center;gap:16px;
-}
-.record-trophy{font-size:2.4rem}
-.record-title{font-family:var(--display);font-size:1.5rem;letter-spacing:.02em;color:var(--gold);line-height:1.1}
-.record-sub{font-family:var(--mono);font-size:.72rem;color:var(--muted2);margin-top:4px;letter-spacing:.04em}
-
-/* Tournament card */
-.tournament-card{
-  background:var(--bg3);border-radius:10px;padding:18px;
-  display:flex;align-items:center;gap:16px;
-}
-.medal{font-size:2.4rem}
-.t-name{font-family:var(--display);font-size:1.4rem;letter-spacing:.02em;color:var(--text);line-height:1.1}
-.t-stats{font-family:var(--mono);font-size:.72rem;color:var(--muted2);margin-top:4px;letter-spacing:.04em}
-
-/* Milestone card */
-.milestone-card{
-  background:linear-gradient(135deg,rgba(30,200,106,.10),rgba(30,200,106,.02));
-  border:1px solid rgba(30,200,106,.25);
-  border-radius:10px;padding:18px;
-  display:flex;align-items:center;gap:18px;
-}
-.milestone-num{font-family:var(--display);font-size:3rem;color:var(--green);letter-spacing:.02em;line-height:1}
-.milestone-text{font-size:1.05rem;color:var(--text);font-weight:600}
-
-/* Post actions */
-.post-actions{
-  display:flex;border-top:1px solid var(--line2);
-}
-.action{
-  flex:1;padding:11px 6px;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:.84rem;font-weight:600;color:var(--text-soft);
-  transition:.12s;
-}
-.action:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.action.kudos:hover{color:var(--gold)}
-.action span{font-family:var(--mono);font-size:.78rem;color:var(--muted2)}
-.action.kudos.given{color:var(--gold);background:var(--gold-dim)}
-
-/* ════════════════════════════════════
-   EMPTY STATES (genuine zero-data states,
-   replacing what used to be fake demo content)
-═══════════════════════════════════ */
-.empty-state{
-  text-align:center;padding:36px 20px;color:var(--muted2);
-}
-.empty-state .empty-icon{font-size:2rem;margin-bottom:10px;opacity:.6}
-.empty-state .empty-title{font-size:.92rem;font-weight:700;color:var(--text-soft);margin-bottom:4px}
-.empty-state .empty-sub{font-size:.8rem;line-height:1.5;max-width:320px;margin:0 auto}
-.empty-state.small{padding:20px 12px}
-
-/* ════════════════════════════════════
-   SIDE WIDGETS
-═══════════════════════════════════ */
-.content-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:84px}
-@media(max-width:1100px){.content-side{position:static}}
-.widget{
-  background:var(--bg2);border:1px solid var(--line);border-radius:14px;
-  padding:18px;
-}
-.widget-head{
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:14px;
-}
-.widget-head h3{
-  font-size:.7rem;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--muted2);
-}
-.widget-head .see-all{
-  font-size:.74rem;color:var(--gold);font-weight:600;
-}
-.widget-head .see-all:hover{text-decoration:underline}
-.widget-head select{
-  background:var(--bg3);border:1px solid var(--line);color:var(--text);
-  font-family:inherit;font-size:.74rem;padding:4px 8px;border-radius:6px;
-  outline:none;cursor:pointer;
-}
-
-/* Performance graph */
-.graph-wrap{
-  background:var(--bg3);border-radius:10px;padding:14px;
-  display:flex;flex-direction:column;gap:10px;
-}
-.graph-svg{width:100%;height:120px;display:block}
-.graph-stats{
-  display:flex;justify-content:space-between;align-items:center;
-  padding-top:10px;border-top:1px solid var(--line2);
-  font-family:var(--mono);font-size:.78rem;color:var(--muted2);
-}
-.graph-stats .positive{color:var(--green);font-weight:700}
-
-/* Avatar grid */
-.avatar-grid{
-  display:grid;grid-template-columns:repeat(6,1fr);gap:6px;
-}
-.av-tile{
-  aspect-ratio:1;border-radius:50%;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  color:#1a1000;font-weight:800;font-family:var(--display);font-size:.84rem;letter-spacing:.04em;
-  border:1px solid var(--bg2);transition:.12s;cursor:pointer;
-}
-.av-tile.alt-1{background:linear-gradient(135deg,#4a82cc,#2a5a9a);color:#fff}
-.av-tile.alt-2{background:linear-gradient(135deg,#1ec86a,#0a8a44);color:#fff}
-.av-tile.alt-3{background:linear-gradient(135deg,#cc4a7a,#9a2a52);color:#fff}
-.av-tile.alt-4{background:linear-gradient(135deg,#9a4acc,#5a2a9a);color:#fff}
-.av-tile:hover{transform:translateY(-2px)}
-
-/* Player list */
-.player-list{display:flex;flex-direction:column;gap:0}
-.player-row{
-  display:flex;align-items:center;gap:11px;padding:10px 0;
-  border-bottom:1px solid var(--line2);
-}
-.player-row:last-child{border-bottom:none}
-.player-row .av-mini{
-  width:36px;height:36px;border-radius:50%;flex:0 0 36px;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  color:#1a1000;font-weight:800;font-family:var(--display);font-size:.86rem;
-}
-.player-row .av-mini.alt-1{background:linear-gradient(135deg,#4a82cc,#2a5a9a);color:#fff}
-.player-row .av-mini.alt-2{background:linear-gradient(135deg,#1ec86a,#0a8a44);color:#fff}
-.player-info{flex:1;min-width:0}
-.player-name{font-size:.86rem;font-weight:700;color:var(--text)}
-.player-meta{font-family:var(--mono);font-size:.7rem;color:var(--muted2);margin-top:2px;letter-spacing:.04em}
-.follow-btn{
-  padding:6px 14px;border-radius:8px;border:1px solid var(--gold-b);
-  color:var(--gold);font-size:.74rem;font-weight:700;letter-spacing:.04em;
-  transition:.12s;
-}
-.follow-btn:hover{background:var(--gold-dim)}
-.follow-btn.following{background:var(--gold-dim);color:var(--gold)}
-.social-pack{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.social-pack .btn{min-width:86px}.social-like.liked{border-color:rgba(255,91,100,.45);background:rgba(255,91,100,.08);color:#ff7b82}.social-follow.following{border-color:rgba(30,200,106,.45);background:rgba(30,200,106,.08);color:var(--green)}.social-count{font-family:var(--mono);font-size:.68rem;opacity:.76}.public-profile-mode .sidebar,.public-profile-mode .topbar,.public-profile-mode .stats-bar,.public-profile-mode .content-grid,.public-profile-mode .cover-edit,.public-profile-mode .avatar-edit{display:none!important}.public-profile-mode .main{margin-left:0!important}.public-profile-mode .profile-main{max-width:1180px;margin:0 auto}.public-profile-bio{margin-top:12px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--bg2);color:var(--text-soft);line-height:1.7;white-space:pre-wrap}
-
-/* Upcoming tournaments */
-.t-list{display:flex;flex-direction:column;gap:10px}
-.t-card{
-  padding:12px;border-radius:10px;background:var(--bg3);
-  display:flex;flex-direction:column;gap:6px;
-  border:1px solid var(--line);transition:.12s;cursor:pointer;
-}
-.t-card:hover{border-color:rgba(212,168,67,.25);background:rgba(212,168,67,.04)}
-.t-card-title{font-size:.86rem;font-weight:700;color:var(--text)}
-.t-card-meta{font-family:var(--mono);font-size:.7rem;color:var(--muted2);letter-spacing:.04em}
-.t-card-meta .date{color:var(--gold)}
-
-/* ════════════════════════════════════
-   SHARE FAB
-═══════════════════════════════════ */
-.share-fab{
-  position:fixed;bottom:24px;right:24px;z-index:50;
-  padding:12px 20px;border-radius:99px;
-  background:linear-gradient(135deg,var(--gold),#a8862e);color:#1a1000;
-  font-family:var(--font);font-weight:700;font-size:.86rem;letter-spacing:.02em;
-  box-shadow:0 8px 24px rgba(212,168,67,.4);
-  display:flex;align-items:center;gap:8px;transition:.15s;
-}
-.share-fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(212,168,67,.5)}
-@media(max-width:880px){.share-fab{bottom:16px;right:16px}}
-
-/* ════════════════════════════════════
-   SETTINGS MODAL
-═══════════════════════════════════ */
-.modal-overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-  z-index:500;align-items:center;justify-content:center;padding:20px;
-}
-.modal-overlay.open{display:flex}
-.modal-card{
-  width:100%;max-width:440px;max-height:90vh;overflow-y:auto;
-  background:var(--bg2);border:1px solid var(--line);border-radius:16px;
-  box-shadow:0 24px 64px rgba(0,0,0,.5);
-}
-.modal-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 22px;border-bottom:1px solid var(--line);
-}
-.modal-head h2{font-family:var(--display);font-size:1.3rem;letter-spacing:.03em;color:var(--gold)}
-.modal-close{
-  width:32px;height:32px;border-radius:8px;color:var(--muted2);font-size:1.1rem;
-  display:flex;align-items:center;justify-content:center;transition:.12s;
-}
-.modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
-.modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-.modal-foot{
-  padding:16px 22px;border-top:1px solid var(--line);
-  display:flex;justify-content:flex-end;gap:10px;
-}
-
-.settings-avatar-row{display:flex;align-items:center;gap:16px}
-.settings-avatar{width:64px;height:64px;font-size:1.4rem;flex:0 0 64px}
-.settings-hint{font-size:.72rem;color:var(--muted2);margin-top:6px;line-height:1.4}
-
-.settings-field{display:flex;flex-direction:column;gap:6px}
-.settings-field label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2)}
-.settings-field input[type="text"],
-.settings-field select{
-  background:var(--bg3);border:1px solid var(--line);border-radius:9px;
-  color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 13px;outline:none;transition:.12s;
-}
-.settings-field input[type="text"]:focus,
-.settings-field select:focus{border-color:rgba(212,168,67,.35)}
-
-.settings-plan-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.plan-badge{
-  display:inline-flex;padding:5px 14px;border-radius:999px;
-  font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
-  background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,67,.3);
-}
-.plan-badge.plan-ultra{background:rgba(30,200,106,.12);color:var(--green);border-color:rgba(30,200,106,.3)}
-.settings-upgrade-link{font-size:.82rem;font-weight:700;color:var(--gold)}
-.settings-upgrade-link:hover{text-decoration:underline}
-
-.settings-venues-locked{
-  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;
-  background:var(--bg3);border:1px solid var(--line);color:var(--muted2);
-  font-size:.84rem;opacity:.8;
-}
-.settings-venues-unlocked{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:12px 14px;border-radius:9px;background:rgba(30,200,106,.07);
-  border:1px solid rgba(30,200,106,.25);font-size:.85rem;color:var(--text);
-}
-
-.btn-sm{padding:8px 14px;font-size:.78rem}
-.btn:disabled{opacity:.55;cursor:not-allowed;pointer-events:none}
-
-/* ════════════════════════════════════
-   TOAST (same pattern as manager/stanice
-   and magazin/index.html — reused, not
-   reinvented, plus an .error variant)
-═══════════════════════════════════ */
-.toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:var(--green);color:#06230f;font-weight:700;
-  padding:12px 22px;border-radius:99px;opacity:0;transition:.2s;
-  pointer-events:none;z-index:600;max-width:calc(100vw - 40px);text-align:center;
-}
-.toast.show{opacity:1}
-.toast.error{background:var(--red);color:#fff}
-
-/* ════════════════════════════════════
-   ADMIN DASHBOARD — TOURNAMENTS
-═══════════════════════════════════ */
-.admin-tournaments-panel{
-  display:none;background:var(--bg2);border:1px solid var(--line);
-  border-radius:14px;overflow:hidden;
-}
-body.admin-dashboard-mode .admin-tournaments-panel{display:block}
-body.admin-dashboard-mode .content-grid{grid-template-columns:1fr}
-body.admin-dashboard-mode .content-main > .content-tabs,
-body.admin-dashboard-mode .content-main > .tab-panel,
-body.admin-dashboard-mode .content-side{display:none!important}
-
-.admin-tournaments-head{
-  display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:18px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap
-}
-.admin-tournaments-head h2{
-  margin:0;font-family:var(--display);font-size:1.5rem;letter-spacing:.02em
-}
-.admin-tournament-filters{display:flex;gap:8px;flex-wrap:wrap}
-.admin-tournament-filter{
-  border:1px solid var(--line);background:var(--bg3);color:var(--text-soft);
-  border-radius:999px;padding:7px 12px;font-size:.74rem;font-weight:700;cursor:pointer
-}
-.admin-tournament-filter:hover{border-color:var(--gold-b);color:var(--gold)}
-.admin-tournament-filter.active{
-  border-color:var(--gold-b);background:var(--gold-dim);color:var(--gold)
-}
-.admin-tournament-filter b{
-  display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
-  margin-left:5px;padding:0 5px;border-radius:999px;background:rgba(255,255,255,.06);
-  font-family:var(--mono);font-size:.66rem
-}
-.admin-tournament-list{display:flex;flex-direction:column}
-.admin-tournament-row{
-  display:grid;grid-template-columns:minmax(0,1.4fr) minmax(120px,.7fr) minmax(120px,.7fr) auto;
-  gap:14px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line2);
-  transition:.12s;cursor:pointer
-}
-.admin-tournament-row:last-child{border-bottom:none}
-.admin-tournament-row:hover{background:rgba(255,255,255,.025)}
-.admin-tournament-name{font-size:.92rem;font-weight:800;color:var(--text);margin-bottom:4px}
-.admin-tournament-meta{
-  font-family:var(--mono);font-size:.69rem;color:var(--muted2);letter-spacing:.03em
-}
-.admin-tournament-date{
-  font-family:var(--mono);font-size:.76rem;color:var(--text-soft)
-}
-.admin-tournament-place{
-  font-size:.76rem;color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap
-}
-.admin-tournament-status{
-  justify-self:end;padding:6px 9px;border-radius:999px;border:1px solid var(--line);
-  font-size:.68rem;font-weight:800;white-space:nowrap
-}
-.admin-tournament-status.upcoming{color:var(--gold);border-color:var(--gold-b);background:var(--gold-dim)}
-.admin-tournament-status.active{color:var(--green);border-color:rgba(30,200,106,.28);background:var(--green-dim)}
-.admin-tournament-status.archive{color:var(--muted2)}
-.admin-tournament-origin{
-  display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;
-  border:1px solid var(--line);font-size:.6rem;color:var(--muted2);vertical-align:1px
-}
-.admin-tournaments-empty{
-  padding:34px 20px;text-align:center;color:var(--muted2);font-size:.82rem
-}
-.admin-tournaments-loading{
-  padding:28px 20px;text-align:center;color:var(--muted2);font-size:.82rem
-}
-@media(max-width:760px){
-  .admin-tournament-row{grid-template-columns:1fr auto;gap:7px 12px}
-  .admin-tournament-date,.admin-tournament-place{grid-column:1/2}
-  .admin-tournament-status{grid-column:2/3;grid-row:1/3}
-}
-
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Verejné poradie a kolá turnajovej série v Connect Sports Pro.">
+<meta name="theme-color" content="#050505">
+<title>Séria · Connect Sports Pro</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/csp-auth.js"></script>
-<script src="/assets/csp-social.js?v=20260827-1" defer></script>
-<script src="/assets/csp-notifications.js"></script>
+<script src="/assets/csp-social.js"></script>
+<style>
+:root{--bg:#050505;--surface:#0c0c10;--surface2:#121218;--surface3:#17171e;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.16);--text:#f4f4f5;--muted:#9696a0;--gold:#d4a843;--green:#22d36b;--green-ink:#041b0c;--danger:#ff6b6b}
+*{box-sizing:border-box}
+html{color-scheme:dark;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.45}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+.page{width:min(1240px,calc(100% - 32px));margin:0 auto 72px}
+.topbar{min-height:84px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line)}
+.brand{display:inline-flex;align-items:center;min-width:0}
+.brand img{display:block;width:310px;max-width:48vw;height:auto}
+.back{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:11px;font-size:.88rem;font-weight:850;color:#d8d8dc}
+.back:hover{border-color:rgba(212,168,67,.55);color:var(--gold)}
+.loading{margin-top:28px;padding:38px 24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--muted);text-align:center}
+.loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:9px;box-shadow:0 0 0 7px rgba(34,211,107,.08)}
+.hidden{display:none!important}
+.error{border-color:rgba(255,107,107,.32);color:#ffd1d1}
+.hero{margin-top:28px;border:1px solid var(--line);border-radius:24px;overflow:hidden;background:radial-gradient(circle at 100% 0,rgba(212,168,67,.15),transparent 35%),linear-gradient(145deg,#111116,#09090c 68%)}
+.hero-main{padding:28px 30px 24px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+.eyebrow{display:flex;align-items:center;gap:9px;margin-bottom:10px;color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 5px rgba(34,211,107,.09)}
+h1{font-size:clamp(2rem,5vw,4.25rem);line-height:.98;letter-spacing:-.055em;margin:0;max-width:900px}
+.hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:16px;color:#b2b2bb;font-size:.88rem}
+.badge{display:inline-flex;align-items:center;min-height:29px;padding:0 9px;border:1px solid var(--line-strong);border-radius:999px;font-size:.75rem;font-weight:850;color:#ededf0;background:rgba(255,255,255,.025)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:9px;justify-content:flex-end}
+.action{min-height:44px;padding:0 14px;border:1px solid var(--line-strong);border-radius:11px;background:var(--surface2);color:var(--text);font-weight:850;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.action:hover{border-color:rgba(212,168,67,.52)}
+.action-primary{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.action.liked,.action.following{border-color:rgba(34,211,107,.5);background:rgba(34,211,107,.1);color:var(--green)}
+.action:disabled{opacity:.58;cursor:wait}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.hero-stat{padding:16px 22px;border-right:1px solid var(--line);min-width:0}
+.hero-stat:last-child{border-right:0}
+.hero-stat span{display:block;color:var(--muted);font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.hero-stat strong{display:block;font-size:1.03rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score-rules{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 22px;padding:12px 14px;border:1px solid var(--line);border-radius:15px;background:var(--surface)}
+.score-rules-title{font-size:.7rem;font-weight:900;letter-spacing:.09em;color:var(--gold);text-transform:uppercase;margin-right:3px}
+.score-chip{font-size:.78rem;color:#d5d5da;padding-right:10px;border-right:1px solid var(--line)}
+.score-chip:last-of-type{border-right:0}
+.score-note{margin-left:auto;color:var(--muted);font-size:.75rem}
+.tabs{display:flex;gap:6px;padding:5px;border:1px solid var(--line);border-radius:14px;background:var(--surface);width:max-content;max-width:100%;margin-bottom:14px}
+.tab{min-height:42px;padding:0 16px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:900;cursor:pointer}
+.tab.active{background:var(--surface3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.panel{border:1px solid var(--line);border-radius:20px;background:var(--surface);overflow:hidden}
+.panel-head{display:flex;align-items:end;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid var(--line)}
+.panel-head h2{margin:0 0 3px;font-size:1.2rem;letter-spacing:-.02em}
+.panel-head p{margin:0;color:var(--muted);font-size:.8rem}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th{padding:12px 16px;color:#777781;font-size:.66rem;letter-spacing:.08em;text-align:left;text-transform:uppercase;background:#09090c;border-bottom:1px solid var(--line)}
+th.num,td.num{text-align:right}
+td{padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.065);vertical-align:middle;font-size:.88rem}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+.rank{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--surface3);font-weight:950}
+.rank.top-1{color:#171006;background:linear-gradient(135deg,#f0ca62,#b98a2c)}
+.rank.top-2{color:#17181b;background:linear-gradient(135deg,#e5e7eb,#8e949e)}
+.rank.top-3{color:#1c1008;background:linear-gradient(135deg,#d59a68,#8c5935)}
+.player{display:flex;align-items:center;gap:11px;min-width:220px}
+.avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#202028;border:1px solid var(--line);font-weight:900;color:var(--gold);flex:0 0 auto}
+.player strong{display:block;font-size:.92rem}
+.player small{display:block;color:var(--muted);font-size:.69rem;margin-top:2px}
+.points{font-size:1.08rem;font-weight:950;color:var(--gold)}
+.latest{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:850}
+.empty-state{padding:50px 24px;text-align:center;color:var(--muted)}
+.empty-state strong{display:block;color:var(--text);font-size:1.05rem;margin-bottom:6px}
+.round-list{padding:7px 18px 14px}
+.round-item{border-bottom:1px solid rgba(255,255,255,.065)}
+.round-item:last-child{border-bottom:0}
+.round-row{display:grid;grid-template-columns:92px 160px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:76px;padding:12px 5px}
+.round-no{font-weight:950;color:var(--gold)}
+.round-date strong{display:block;font-size:.86rem}
+.round-date small{display:block;color:var(--muted);font-size:.7rem;margin-top:2px}
+.round-copy strong{display:block;font-size:.92rem}
+.round-copy span{display:block;color:var(--muted);font-size:.75rem;margin-top:3px}
+.round-status{display:inline-flex!important;width:max-content;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.045);color:#bcbcc4!important;font-size:.67rem!important;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.round-status.live,.round-status.open{background:rgba(34,211,107,.09);color:var(--green)!important}
+.round-link{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:900;white-space:nowrap;background:transparent;color:var(--text);cursor:pointer}
+.round-link.primary{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.round-results{margin:0 5px 14px;border:1px solid var(--line);border-radius:14px;background:#09090d;overflow:hidden}
+.round-results-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line)}
+.round-results-head strong{font-size:.84rem}
+.round-results-head a{color:var(--muted);font-size:.74rem;font-weight:850}
+.round-results table{min-width:430px}
+.round-results th{padding:9px 13px;font-size:.62rem}
+.round-results td{padding:10px 13px;font-size:.82rem}
+.round-result-player{font-weight:850}
+.round-result-points{color:var(--gold);font-weight:950}
+.toast{position:fixed;right:18px;bottom:18px;z-index:1000;max-width:min(380px,calc(100vw - 36px));padding:12px 15px;border:1px solid rgba(34,211,107,.35);border-radius:12px;background:#111117;box-shadow:0 18px 55px rgba(0,0,0,.5);font-size:.82rem;font-weight:800;opacity:0;transform:translateY(8px);pointer-events:none;transition:.18s ease}
+.toast.show{opacity:1;transform:none}
+.toast.bad{border-color:rgba(255,107,107,.38);color:#ffd1d1}
+@media(max-width:820px){
+  .hero-main{grid-template-columns:1fr;align-items:start;padding:23px 20px}
+  .hero-actions{justify-content:flex-start}
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .hero-stat:nth-child(2){border-right:0}
+  .hero-stat:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .score-note{width:100%;margin-left:0}
+  .round-row{grid-template-columns:82px minmax(0,1fr) auto}
+  .round-date{grid-column:2}
+  .round-copy{grid-column:2}
+  .round-link{grid-column:3;grid-row:1/4}
+}
+@media(max-width:560px){
+  .page{width:min(100% - 20px,1240px)}
+  .topbar{min-height:68px}
+  .brand img{width:225px;max-width:60vw}
+  .back{font-size:0;width:44px;padding:0}
+  .back::before{content:'←';font-size:1rem}
+  .hero{margin-top:18px;border-radius:18px}
+  .hero-actions{display:grid;grid-template-columns:1fr 1fr 1fr;width:100%}
+  .action{padding:0 9px;font-size:.76rem}
+  .hero-stat{padding:13px 14px}
+  .hero-stat strong{font-size:.9rem}
+  .score-rules{gap:8px}
+  .score-chip{font-size:.72rem}
+  .panel-head{padding:17px}
+  .round-list{padding:5px 12px 12px}
+  .round-row{grid-template-columns:70px minmax(0,1fr);gap:8px;padding:14px 2px}
+  .round-link{grid-column:2;grid-row:auto;justify-self:start;margin-top:4px}
+}
+</style>
 </head>
 <body>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Connect Sports Pro"><img src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
+    <a class="back" href="/kalendar-turnajov/">← Kalendár turnajov</a>
+  </header>
 
-<div class="app">
+  <main>
+    <div class="loading" id="loading"><span class="loading-dot"></span>Načítavam sériu…</div>
+    <div class="loading error hidden" id="errorBox"></div>
 
-  <!-- ═══════════ SIDEBAR ═══════════ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="logo-row">
-      <img class="logo-mark" src="data:image/png;base64,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" alt="Connect Sports Pro"/>
-      <div class="logo-text"><span class="g">Connect</span> <span class="w">Sports</span> <span class="g">Pro</span></div>
-    </div>
-
-    <a href="#" class="nav-item"><span class="icon">🏠</span>Domov</a>
-    <a href="#" class="nav-item active"><span class="icon">👤</span>Profil</a>
-
-    <div class="nav-cta-green">
-      <button class="nav-cta-green-btn" onclick="location.href='/turnament/'">
-        <span style="font-size:1.05rem">🏆</span> Nový Turnaj
-      </button>
-      <button class="nav-cta-green-btn" onclick="location.href='/udalost/'" style="margin-top:8px">
-        <span style="font-size:1.05rem">📅</span> Nová Udalosť
-      </button>
-    </div>
-
-    <div class="nav-section" id="adminToolsSection">Správa</div>
-    <a id="clubManagerShortcut" href="https://cspmanager.app/dashboard/" target="_blank" rel="noopener" class="nav-item hidden"><span class="icon">⚙</span>Club Manager</a>
-    <a id="cmsShortcut" href="/cms/" class="nav-item hidden"><span class="icon">✎</span>CMS</a>
-
-    <div class="nav-section">Súťaž</div>
-    <a href="/ligy/" class="nav-item"><span class="icon">🏅</span>Ligy</a>
-    <a href="/turnament/" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
-
-    <div class="nav-section">Klub</div>
-    <a href="#" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
-
-  </aside>
-
-  <!-- ═══════════ MAIN ═══════════ -->
-  <main class="main">
-
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
-        <div class="search-box">
-          <span>🔍</span>
-          <input type="text" placeholder="Hľadaj hráčov, kluby, turnaje...">
-          <span class="key">⌘K</span>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="icon-btn" id="notificationsBtn" data-csp-notifications-button title="Notifikácie">🔔</button>
-        <button class="user-pill" onclick="toggleUserMenu(event)">
-          <span class="av-mini" id="topbarAvatarInitials">JN</span>
-          <span id="topbarUserName">Ján Novák</span>
-          <span style="font-size:.7rem;color:var(--muted2)">▾</span>
-        </button>
-        <div class="user-menu" id="userMenu">
-          <a href="#" class="mi" id="openSettingsBtn">⚙️ Nastavenia profilu</a>
-          <a href="#" class="mi">🎨 Téma a vzhľad</a>
-          <a href="#" class="mi">⭐ Upgrade plán</a>
-          <div class="mi-divider"></div>
-          <a href="#" class="mi mi-danger" id="logoutLink">↪ Odhlásiť sa</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════ PROFILE ═══════════ -->
-    <div class="profile">
-
-      <!-- COVER -->
-      <div class="cover">
-        <button class="cover-edit">📷 Upraviť pozadie</button>
-      </div>
-
-      <!-- HEADER -->
-      <div class="profile-header">
-        <div class="avatar-wrap">
-          <div class="avatar" id="profileAvatarInitials">JN</div>
-          <button class="avatar-edit" id="avatarEditBtn" title="Zmeniť fotku">📷</button>
-        </div>
-
-        <div class="identity">
-          <div class="name-row">
-            <h1 class="name" id="profileName">Hráč</h1>
-            <span class="profile-access-badge hidden" id="profileAccessBadge">ADMIN</span>
-          </div>
-          <!-- Bio/handle/club/location are not real fields on `profiles` yet
-               (no bio, username, or club-membership columns exist) — no fake
-               placeholder content is shown for them, they simply don't
-               render until those features actually exist. Only "member
-               since" is genuine (profiles.created_at), filled in by JS. -->
-          <div class="meta">
-            <span class="meta-item" id="memberSinceMeta"><span class="meta-i">📅</span> Člen od —</span>
-          </div>
-        </div>
-
-        <div class="profile-actions">
-          <div class="social-pack" id="ultraSocialPack">
-            <button class="btn btn-secondary social-like hidden" id="ultraLikeBtn" type="button">♥ Like <span class="social-count" id="ultraLikeCount">0</span></button>
-            <button class="btn btn-secondary" id="ultraShareBtn" type="button">↗ Share</button>
-            <button class="btn btn-secondary social-follow hidden" id="ultraFollowBtn" type="button"><span data-follow-label>+ Follow</span> <span class="social-count" id="ultraFollowCount">0</span></button>
-          </div>
-          <button class="btn btn-primary" id="editProfileBtn">✎ Upraviť profil</button>
-        </div>
-      </div>
-
-      <!-- STATS BAR -->
-      <!-- Genuine zero/empty state: none of these are backed by real data
-           yet (no followers, respects, or match-history tables exist), so
-           every new real user sees honest zeros/dashes here instead of
-           leftover demo numbers. -->
-      <div class="stats-bar">
-        <div class="stat">
-          <div class="stat-num" id="followingCount">0</div>
-          <div class="stat-label">Sledujú</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num" id="followersCount">0</div>
-          <div class="stat-label">Sledovatelia</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num">0</div>
-          <div class="stat-label">Respekty</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num">0</div>
-          <div class="stat-label">Zápasy</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num">0–0</div>
-          <div class="stat-label">V – P</div>
-        </div>
-        <div class="stat highlight">
-          <div class="stat-num">—</div>
-          <div class="stat-label">Rank SK</div>
-        </div>
-      </div>
-
-      <!-- ═══════════ CONTENT GRID ═══════════ -->
-      <div class="content-grid">
-
-        <!-- LEFT: FEED -->
-        <div class="content-main">
-
-          <section class="admin-tournaments-panel" id="adminTournamentsPanel">
-            <div class="admin-tournaments-head">
-              <h2>Turnaje</h2>
-              <div class="admin-tournament-filters">
-                <button class="admin-tournament-filter active" type="button" data-admin-tournament-filter="upcoming">Nasledujúce <b id="adminTournamentUpcomingCount">0</b></button>
-                <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="active">Aktívne <b id="adminTournamentActiveCount">0</b></button>
-                <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="archive">Archív <b id="adminTournamentArchiveCount">0</b></button>
-              </div>
-            </div>
-            <div class="admin-tournaments-loading" id="adminTournamentsLoading">Načítavam turnaje…</div>
-            <div class="admin-tournament-list" id="adminTournamentList" style="display:none"></div>
-            <div class="admin-tournaments-empty" id="adminTournamentsEmpty" style="display:none">Žiadne turnaje.</div>
-          </section>
-
-          <div class="content-tabs">
-            <button class="content-tab active" onclick="setContentTab(this, 'aktivity')">Aktivity</button>
-            <button class="content-tab" onclick="setContentTab(this, 'statistiky')">Štatistiky</button>
-            <button class="content-tab" onclick="setContentTab(this, 'turnaje')">Turnaje</button>
-            <button class="content-tab" onclick="setContentTab(this, 'zapasy')">Zápasy</button>
-          </div>
-
-          <!-- AKTIVITY — genuine empty state: there is no posts/activity-feed
-               table yet, so a real new user sees an honest "nothing here
-               yet" message instead of fabricated match wins/records/
-               tournament results. This replaces what was previously 5
-               hardcoded fake posts for a fictional "Ján Novák". Unchanged
-               by this task other than being moved into its own panel. -->
-          <div class="tab-panel active" id="tabPanel-aktivity">
-            <div class="feed">
-              <div class="empty-state">
-                <div class="empty-icon">🎯</div>
-                <div class="empty-title">Zatiaľ žiadna aktivita</div>
-                <div class="empty-sub">Tvoje zápasy, turnaje a míľniky sa tu zobrazia, hneď ako začneš hrať na CSP.</div>
-              </div>
+    <div class="hidden" id="seriesContent">
+      <section class="hero">
+        <div class="hero-main">
+          <div>
+            <div class="eyebrow"><i></i><span id="seriesState">Turnajová séria</span></div>
+            <h1 id="seriesTitle">—</h1>
+            <div class="hero-meta">
+              <span class="badge" id="seriesSport">Šport</span>
+              <span id="seriesDiscipline"></span>
+              <span id="seriesPeriod"></span>
+              <span id="seriesOrganizer"></span>
             </div>
           </div>
-
-          <!-- ŠTATISTIKY — genuine "not built yet" empty state. Real
-               aggregate stats (win rate, totals, charts) from
-               training_sessions are separate future work, not this task's
-               scope — deliberately not wired up here to avoid duplicating/
-               caching numbers that belong to a dedicated stats task. -->
-          <div class="tab-panel" id="tabPanel-statistiky">
-            <div class="empty-state">
-              <div class="empty-icon">📊</div>
-              <div class="empty-title">Štatistiky sa pripravujú</div>
-              <div class="empty-sub">Súhrnné čísla (úspešnosť, počty zápasov...) tu pribudnú v samostatnej funkcii.</div>
-            </div>
-          </div>
-
-          <!-- TURNAJE — genuine "not built yet" empty state. Tournaments do
-               exist in the backend (supabase/migrations/0003), but wiring
-               this tab to the real tournaments/tournament_players tables is
-               separate follow-up work, same reasoning as the "Nadchádzajúce
-               turnaje" sidebar widget below. -->
-          <div class="tab-panel" id="tabPanel-turnaje">
-            <div class="empty-state">
-              <div class="empty-icon">🏆</div>
-              <div class="empty-title">Turnaje sa pripravujú</div>
-              <div class="empty-sub">Prehľad tvojich turnajov tu pribudne v samostatnej funkcii.</div>
-            </div>
-          </div>
-
-          <!-- ZÁPASY — real content: the user's own training_sessions rows
-               (migrations 0016/0017), written by the scoreboard. Loaded on
-               first switch to this tab (see loadZapasyTab() below), reusing
-               the session already established by the auth gate. -->
-          <div class="tab-panel" id="tabPanel-zapasy">
-            <div class="empty-state" id="zapasyLoading">
-              <div class="empty-sub">Načítavam tréningy…</div>
-            </div>
-            <div class="empty-state" id="zapasyEmpty" style="display:none">
-              <div class="empty-icon">🏓</div>
-              <div class="empty-title">Zatiaľ žiadne odohraté tréningy</div>
-              <div class="empty-sub">Spusti tréning zo <a href="/scoreboard/">scoreboardu</a> a objaví sa tu.</div>
-            </div>
-            <div class="feed" id="zapasyList" style="display:none"></div>
+          <div class="hero-actions">
+            <button class="action" id="likeBtn" type="button" aria-pressed="false">♥ <span id="likeCount">0</span></button>
+            <button class="action" id="shareBtn" type="button">Zdieľať</button>
+            <button class="action action-primary" id="followBtn" type="button" aria-pressed="false"><span id="followLabel">Sledovať</span></button>
           </div>
         </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span>Kolá série</span><strong id="roundProgress">0 / 0</strong></div>
+          <div class="hero-stat"><span>Najbližšie kolo</span><strong id="nextRound">—</strong></div>
+          <div class="hero-stat"><span>Sledujúci</span><strong id="followerCount">0</strong></div>
+          <div class="hero-stat"><span>Poradie</span><strong id="standingsState">Čaká na výsledky</strong></div>
+        </div>
+      </section>
 
-        <!-- ═══════════ SIDE WIDGETS ═══════════ -->
-        <aside class="content-side">
+      <div class="score-rules" id="scoreRules"></div>
 
-          <!-- PERFORMANCE GRAPH -->
-          <!-- Genuine empty state: no ratings-history table exists yet,
-               so no fake chart/numbers are shown for a real user. -->
-          <div class="widget">
-            <div class="widget-head">
-              <h3>Vývoj hodnotenia</h3>
-            </div>
-            <div class="empty-state small">
-              <div class="empty-icon">📈</div>
-              <div class="empty-sub">Graf sa zobrazí po odohraní prvých zápasov.</div>
-            </div>
-          </div>
+      <nav class="tabs" aria-label="Obsah série">
+        <button class="tab active" type="button" data-tab="standings">Celkové poradie</button>
+        <button class="tab" type="button" data-tab="rounds">Kolá série <span id="roundTabCount"></span></button>
+      </nav>
 
-          <!-- FOLLOWERS PREVIEW -->
-          <!-- Genuine empty state: no followers table exists yet. -->
-          <div class="widget">
-            <div class="widget-head">
-              <h3>Sledovatelia · 0</h3>
-            </div>
-            <div class="empty-state small">
-              <div class="empty-sub">Zatiaľ nemáš žiadnych sledovateľov.</div>
-            </div>
-          </div>
+      <section class="panel" id="standingsPanel">
+        <div class="panel-head">
+          <div><h2>Celkové poradie</h2><p id="standingsNote">Aktualizuje sa po ukončení každého kola.</p></div>
+        </div>
+        <div class="table-wrap" id="standingsTableWrap">
+          <table>
+            <thead><tr><th>Poradie</th><th>Hráč</th><th class="num">Body</th><th class="num">Odohrané</th><th class="num">Víťazstvá</th><th class="num">2. miesta</th><th class="num">3. miesta</th><th>Posledné kolo</th></tr></thead>
+            <tbody id="standingsBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="standingsEmpty"><strong>Poradie zatiaľ nie je vytvorené</strong>Zobrazí sa automaticky po ukončení prvého kola série.</div>
+      </section>
 
-          <!-- SIMILAR PLAYERS -->
-          <!-- Genuine empty state: no player-similarity/matching feature
-               has been built yet, so no fabricated player list is shown. -->
-          <div class="widget">
-            <div class="widget-head">
-              <h3>Hráči podobní tebe</h3>
-            </div>
-            <div class="empty-state small">
-              <div class="empty-sub">Táto funkcia sa pripravuje.</div>
-            </div>
-          </div>
-
-          <!-- UPCOMING TOURNAMENTS -->
-          <!-- Genuine empty state: tournaments do exist in the backend
-               (see supabase/migrations/0003), but this widget isn't wired
-               up to query the real tournaments/tournament_players tables
-               yet -- that's real follow-up work, not something to fake
-               here in the meantime. -->
-          <div class="widget">
-            <div class="widget-head">
-              <h3>Nadchádzajúce turnaje</h3>
-              <a href="/search/" class="see-all">Hľadať →</a>
-            </div>
-            <div class="empty-state small">
-              <div class="empty-sub">Zatiaľ nie si prihlásený/á na žiadny turnaj.</div>
-            </div>
-          </div>
-
-        </aside>
-      </div>
-
+      <section class="panel hidden" id="roundsPanel">
+        <div class="panel-head"><div><h2>Kolá série</h2><p>Termíny, predregistrácia a výsledky jednotlivých kôl.</p></div></div>
+        <div class="round-list" id="roundList"></div>
+      </section>
     </div>
   </main>
 </div>
-
-<!-- SHARE FAB -->
-<button class="share-fab" onclick="alert('Funkcia Share Card príde čoskoro – generuje IG/FB kartu s tvojím profilom.')">
-  📤 Share môj profil
-</button>
-
-<!-- ═══════════ SETTINGS MODAL ═══════════ -->
-<div class="modal-overlay" id="settingsOverlay">
-  <div class="modal-card">
-    <div class="modal-head">
-      <h2>Nastavenia profilu</h2>
-      <button class="modal-close" id="closeSettingsBtn" type="button" title="Zavrieť">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="settings-avatar-row">
-        <div class="avatar settings-avatar" id="settingsAvatarPreview">?</div>
-        <div>
-          <button class="btn btn-secondary btn-sm" id="settingsChangePhotoBtn" type="button">📷 Zmeniť fotku</button>
-          <div class="settings-hint">JPG/PNG, uloží sa hneď po výbere súboru.</div>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label>Zobrazované meno</label>
-        <input type="text" id="settingsFullName" placeholder="Tvoje meno" maxlength="80"/>
-      </div>
-
-      <div class="settings-field">
-        <label>Rola</label>
-        <select id="settingsRole">
-          <option value="player">Hráč</option>
-          <option value="club">Klub</option>
-          <option value="organization">Organizácia</option>
-        </select>
-        <div class="settings-hint">Rola mení, čo vidíš v aplikácii — neovplyvňuje tvoj plán ani prístup k funkciám.</div>
-      </div>
-
-      <div class="settings-field">
-        <label>Plán</label>
-        <div class="settings-plan-row">
-          <span class="plan-badge" id="settingsPlanBadge">Free</span>
-          <a href="/upgrade/" class="settings-upgrade-link" id="settingsUpgradeLink">Upgradovať →</a>
-        </div>
-        <div class="settings-hint">Plán je určený administrátorom/predplatným, tu sa nedá meniť priamo.</div>
-      </div>
-
-      <div class="settings-field">
-        <label>Športoviská</label>
-        <div class="settings-venues-locked" id="settingsVenuesLocked">
-          <span>🔒</span>
-          <span>Dostupné od plánu <strong>Ultra</strong></span>
-          <a href="/upgrade/" class="settings-upgrade-link" style="margin-left:auto">Upgradovať →</a>
-        </div>
-        <div class="settings-venues-unlocked" id="settingsVenuesUnlocked" style="display:none">
-          <span id="settingsVenuesCount">Načítavam…</span>
-          <a href="/manager/sportoviska/" class="settings-upgrade-link" id="settingsVenuesManageLink">Spravovať →</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-foot">
-      <button class="btn btn-secondary" id="cancelSettingsBtn" type="button">Zrušiť</button>
-      <button class="btn btn-primary" id="saveSettingsBtn" type="button">Uložiť zmeny</button>
-    </div>
-  </div>
-</div>
-
-<input type="file" id="avatarFileInput" accept="image/*" style="display:none"/>
-
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-// ── Page interactions — defined and wired up FIRST, unconditionally ──
-// These must never depend on the auth/profile-loading work below in any
-// way, so a slow or failing network call can never make buttons on this
-// page unresponsive. (This fixes an incident where almost every button
-// except logout stopped responding after real Supabase Auth was wired
-// in — root cause was a redundant internal getSession() call inside
-// getCurrentProfile() that could hang; see cspAuth.getCurrentProfile()
-// and the auth gate below for the fix. Button wiring itself was not
-// actually gated behind that call, but it's moved here and made
-// unconditional as well so there is no possible ambiguity about it.)
-function setSport(btn){
-  if(btn.classList.contains('muted')) return;
-  document.querySelectorAll('.sport-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-function setContentTab(btn, tabKey){
-  document.querySelectorAll('.content-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tabPanel-' + tabKey)?.classList.add('active');
-  if(tabKey === 'zapasy') loadZapasyTab();
-}
-function toggleUserMenu(e){
-  e.stopPropagation();
-  document.getElementById('userMenu').classList.toggle('show');
-}
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('open');
-}
-document.addEventListener('click', e => {
-  if(!e.target.closest('.user-pill') && !e.target.closest('.user-menu')){
-    document.getElementById('userMenu')?.classList.remove('show');
+(function(){
+  'use strict';
+  const db=window.cspAuth?.client;
+  const params=new URLSearchParams(location.search);
+  const seriesId=params.get('id')||'';
+  let series=null,rounds=[],standings=[],roundResults=[],session=null,following=false,followBusy=false;
+
+  const $=id=>document.getElementById(id);
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+  const uuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const initials=name=>String(name||'?').trim().split(/\s+/).map(part=>part[0]||'').join('').slice(0,2).toUpperCase();
+  const date=value=>value?new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value)):'—';
+  const dateTime=value=>value?new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)):'—';
+
+  function toast(message,bad=false){
+    const node=$('toast'); node.textContent=message; node.classList.toggle('bad',bad); node.classList.add('show');
+    clearTimeout(toast.timer); toast.timer=setTimeout(()=>node.classList.remove('show'),2600);
   }
-});
-
-// Cmd+K focuses search
-document.addEventListener('keydown', e => {
-  if((e.metaKey || e.ctrlKey) && e.key === 'k'){
-    e.preventDefault();
-    document.querySelector('.search-box input')?.focus();
+  function fail(message){
+    $('loading').classList.add('hidden'); $('seriesContent').classList.add('hidden');
+    $('errorBox').textContent=message; $('errorBox').classList.remove('hidden');
   }
-});
-
-document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  try {
-    await cspAuth.withTimeout(cspAuth.signOut(), 8000, 'signOut()');
-  } catch(err){
-    console.error('[profil] signOut failed or timed out, redirecting to /login/ anyway:', err);
+  function rangeLabel(rule){
+    const min=Number(rule?.min_position),max=rule?.max_position==null?null:Number(rule.max_position);
+    if(max===null)return `${min}. a ďalší`;
+    if(min===max)return `${min}. miesto`;
+    return `${min}.–${max}. miesto`;
   }
-  window.location.href = '/login/';
-});
-
-// ── Toast — reuses the exact pattern already used elsewhere in the app
-// (manager/stanice/index.html, magazin/index.html), plus an .error
-// variant for save failures.
-function toast(msg, type){
-  const t = document.getElementById('toast');
-  if(!t) return;
-  t.textContent = msg;
-  t.className = 'toast show' + (type === 'error' ? ' error' : '');
-  setTimeout(() => { t.className = 'toast'; }, 2600);
-}
-
-// ── State shared between the auth gate and the settings modal ────────
-let currentSession = null;
-let currentProfile = null;
-
-// ── Shared identity rendering (used on load AND after a settings save,
-// so the page never needs a reload to reflect a change) ──────────────
-function computeInitials(name){
-  return (name && name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()) || '??';
-}
-function renderIdentity(){
-  if(!currentSession) return;
-  const displayName = (currentProfile && currentProfile.full_name) || (currentSession.user.email ? currentSession.user.email.split('@')[0] : 'Hráč');
-  const initials = computeInitials(displayName);
-
-  document.title = displayName + ' · Connect Sports Pro';
-  const nameEl = document.getElementById('profileName');
-  if(nameEl) nameEl.textContent = displayName;
-  const topbarNameEl = document.getElementById('topbarUserName');
-  if(topbarNameEl) topbarNameEl.textContent = displayName;
-
-  const badgeEl = document.getElementById('profileAccessBadge');
-  if(badgeEl){
-    const role = String((currentProfile && currentProfile.role) || 'player').toLowerCase();
-    const isAdmin = !!(currentProfile && currentProfile.is_admin) || role === 'admin';
-    const plan = String((currentProfile && currentProfile.plan) || '').toLowerCase();
-
-    badgeEl.classList.remove('hidden','admin','ultra');
-    if(isAdmin){
-      badgeEl.textContent = 'ADMIN';
-      badgeEl.classList.add('admin');
-    }else if(role === 'club' || role === 'organization' || plan === 'ultra'){
-      badgeEl.textContent = 'ULTRA';
-      badgeEl.classList.add('ultra');
-    }else{
-      badgeEl.classList.add('hidden');
-    }
-
-    // Profile shortcuts: Club Manager for club/organization/admin, CMS only for admin.
-    const clubManagerShortcut = document.getElementById('clubManagerShortcut');
-    const cmsShortcut = document.getElementById('cmsShortcut');
-    const adminToolsSection = document.getElementById('adminToolsSection');
-    const canUseAdminShortcuts = isAdmin;
-    clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
-    cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
-    adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
-
-    document.body.classList.toggle('admin-dashboard-mode', isAdmin);
+  function renderScoring(){
+    const rules=Array.isArray(series?.ranking_config?.points)?series.ranking_config.points:[];
+    const best=series?.ranking_config?.best_results_count;
+    $('scoreRules').innerHTML=`<span class="score-rules-title">Bodovanie</span>${rules.map(rule=>`<span class="score-chip">${esc(rangeLabel(rule))} <strong>${Number(rule.points)||0} b</strong></span>`).join('')}<span class="score-note">${best?`Počíta sa najlepších ${Number(best)} výsledkov.`:'Počítajú sa všetky odohrané kolá.'}</span>`;
   }
-
-  // Real avatar image if the user has one (profiles.avatar_url, wired up
-  // by the storage migration — see supabase/migrations/0007); otherwise
-  // fall back to the initials placeholder, never a fake photo.
-  const avatarUrl = currentProfile && currentProfile.avatar_url;
-  [document.getElementById('profileAvatarInitials'), document.getElementById('topbarAvatarInitials'), document.getElementById('settingsAvatarPreview')].forEach(el => {
-    if(!el) return;
-    if(avatarUrl){
-      el.style.backgroundImage = `url("${avatarUrl}")`;
-      el.style.backgroundSize = 'cover';
-      el.style.backgroundPosition = 'center';
-      el.textContent = '';
-    } else {
-      el.style.backgroundImage = '';
-      el.textContent = initials;
-    }
-  });
-}
-
-const SK_MONTHS_GENITIVE = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
-function renderMemberSince(){
-  const memberSinceEl = document.getElementById('memberSinceMeta');
-  if(memberSinceEl && currentProfile && currentProfile.created_at){
-    const created = new Date(currentProfile.created_at);
-    const monthName = SK_MONTHS_GENITIVE[created.getMonth()];
-    memberSinceEl.innerHTML = `<span class="meta-i">📅</span> Člen od ${monthName} ${created.getFullYear()}`;
+  function roundStatus(round){
+    if(round.round_status==='completed')return {label:'Ukončené',className:'completed'};
+    if(round.round_status==='live')return {label:'Prebieha',className:'live'};
+    if(round.round_status==='cancelled')return {label:'Zrušené',className:'cancelled'};
+    if(registrationOpen(round))return {label:'Otvorená predregistrácia',className:'open'};
+    return {label:'Naplánované',className:'scheduled'};
   }
-}
-
-// ── ZÁPASY tab — real training_sessions history (migrations 0016/0017) ──
-// Loaded once, on first switch to this tab (see setContentTab() above),
-// reusing the session/profile already established by the auth gate
-// (authGateReady, defined further below) rather than re-fetching it.
-let zapasyLoaded = false;
-
-function escapeHtml(s){
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// final_score is free-form jsonb with a different shape per sport (see
-// scoreboard/index.html's saveTrainingSession() call sites) — biliard's
-// frame mode uses `score`, points mode (Snooker/Pyramída/Karambol) uses
-// `frames`, darts uses `legs`, universal uses `sets`. Checked in that
-// priority order; anything else present but not one of these known keys
-// still renders via the numeric-fallback below rather than being dropped,
-// per the task's "render whatever keys are actually present reasonably"
-// instruction.
-const ZP_SCORE_KEYS = ['score', 'frames', 'legs', 'sets'];
-function zpPlayerStat(finalScore, name){
-  const entry = finalScore && Array.isArray(finalScore.players) ? finalScore.players.find(p => p && p.name === name) : null;
-  if(!entry) return null;
-  for(const key of ZP_SCORE_KEYS){ if(entry[key] !== undefined) return entry[key]; }
-  const anyNumeric = Object.entries(entry).find(([k, v]) => k !== 'name' && typeof v === 'number');
-  return anyNumeric ? anyNumeric[1] : null;
-}
-function zpFormatDuration(totalSeconds){
-  if(totalSeconds == null) return '';
-  const h = Math.floor(totalSeconds / 3600), m = Math.floor((totalSeconds % 3600) / 60), s = totalSeconds % 60;
-  const pad = n => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}
-const SK_MONTHS_SHORT = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
-function zpRelativeDate(iso){
-  const d = new Date(iso);
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
-  if(diffMin < 1) return 'práve teraz';
-  if(diffMin < 60) return `pred ${diffMin} min`;
-  const diffH = Math.floor(diffMin / 60);
-  if(diffH < 24) return `pred ${diffH} h`;
-  const diffD = Math.floor(diffH / 24);
-  if(diffD < 7) return `pred ${diffD} d`;
-  return `${d.getDate()}. ${SK_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-function renderZapasyCard(s){
-  const names = Array.isArray(s.player_names) ? s.player_names : [];
-  const winner = s.winner_name;
-  const scoreSummary = names.map(n => { const v = zpPlayerStat(s.final_score, n); return v == null ? '?' : v; }).join(' : ');
-  const durationText = zpFormatDuration(s.duration_seconds);
-
-  let playersHtml;
-  if(names.length === 2){
-    const [n1, n2] = names;
-    const s1 = zpPlayerStat(s.final_score, n1), s2 = zpPlayerStat(s.final_score, n2);
-    const w1 = n1 === winner, w2 = n2 === winner;
-    playersHtml = `
-      <div class="match-card">
-        <div class="match-player">
-          <div class="mp-av">${escapeHtml(computeInitials(n1))}</div>
-          <div class="mp-info"><div class="mp-name ${w1 ? 'winner' : ''}">${escapeHtml(n1)}${w1 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w1 ? 'winner' : ''}">${s1 == null ? '–' : escapeHtml(s1)}</div>
-        </div>
-        <div class="match-vs">:</div>
-        <div class="match-player right">
-          <div class="mp-av opp">${escapeHtml(computeInitials(n2))}</div>
-          <div class="mp-info"><div class="mp-name ${w2 ? 'winner' : ''}">${escapeHtml(n2)}${w2 ? ' 🏆' : ''}</div></div>
-          <div class="mp-score ${w2 ? 'winner' : ''}">${s2 == null ? '–' : escapeHtml(s2)}</div>
-        </div>
-      </div>`;
-  } else {
-    // 3 players (or an unexpected count) — .match-card's grid is built for
-    // exactly two sides, so this simpler row avoids forcing a mismatched
-    // layout while still visually distinguishing the winner.
-    playersHtml = `<div class="zp-players-simple">${names.map(n => {
-      const v = zpPlayerStat(s.final_score, n);
-      const isWinner = n === winner;
-      return `<span class="${isWinner ? 'zp-winner' : ''}">${escapeHtml(n)}${isWinner ? ' 🏆' : ''}${v != null ? ' · ' + escapeHtml(v) : ''}</span>`;
-    }).join('')}</div>`;
+  function registrationOpen(round){
+    if(round.registration_enabled!==true || round.round_status!=='scheduled')return false;
+    if(round.registration_deadline && new Date(round.registration_deadline)<new Date())return false;
+    return !round.starts_at || new Date(round.starts_at)>new Date();
   }
-
-  return `
-    <div class="post">
-      <div class="post-head">
-        <div class="post-avatar">🏓</div>
-        <div class="post-meta">
-          <div class="post-name">${escapeHtml(s.sport)} · ${escapeHtml(s.discipline)}</div>
-          <div class="post-time">${zpRelativeDate(s.played_at)}</div>
-        </div>
-      </div>
-      <div class="post-body">
-        ${playersHtml}
-        <div class="match-info">
-          <span>Skóre: ${escapeHtml(scoreSummary)}</span>
-          ${durationText ? `<span>⏱ ${durationText}</span>` : ''}
-        </div>
-      </div>
-    </div>`;
-}
-
-async function loadZapasyTab(){
-  if(zapasyLoaded) return;
-  await authGateReady; // reuse the session the auth gate already established, never re-fetch it here
-  if(!currentSession) return; // no real session -- the auth gate already redirects to /login/ in that case, nothing further to do here
-  zapasyLoaded = true;
-
-  try {
-    const { data, error } = await cspAuth.withTimeout(
-      cspAuth.client.from('training_sessions').select('*').eq('owner_id', currentSession.user.id).order('played_at', { ascending: false }),
-      8000, 'load training_sessions'
-    );
-    if(error) throw error;
-
-    document.getElementById('zapasyLoading').style.display = 'none';
-    if(!data || !data.length){
-      document.getElementById('zapasyEmpty').style.display = '';
-      return;
-    }
-    const listEl = document.getElementById('zapasyList');
-    listEl.innerHTML = data.map(renderZapasyCard).join('');
-    listEl.style.display = '';
-  } catch(err){
-    console.error('[profil] Failed to load training_sessions:', err);
-    zapasyLoaded = false; // allow a retry on the next tab switch
-    document.getElementById('zapasyLoading').innerHTML = '<div class="empty-sub">Nepodarilo sa načítať tréningy. Skús to znova.</div>';
+  function roundAction(round){
+    if(round.round_status==='completed' && round.result_count)return {type:'results',label:'Výsledková listina',primary:false};
+    if(round.tournament_id && round.round_status==='live')return {href:`/turnament/?id=${encodeURIComponent(round.tournament_id)}`,label:'Sledovať',primary:true};
+    if(registrationOpen(round))return {href:`/predregistracia/?event=${encodeURIComponent(round.event_id)}`,label:'Predregistrácia',primary:true};
+    if(round.event_id)return {href:`/udalost/?id=${encodeURIComponent(round.event_id)}`,label:'Detail kola',primary:false};
+    return null;
   }
-}
-
-// ── Settings modal ─────────────────────────────────────────────────
-function openSettings(){
-  if(!currentSession){
-    toast('Načítavam profil, skús o chvíľu znova.', 'error');
-    return;
+  function renderRounds(){
+    $('roundTabCount').textContent=`(${rounds.length})`;
+    $('roundList').innerHTML=rounds.map(round=>{
+      const state=roundStatus(round),action=roundAction(round);
+      const detail=round.winner_name?`Víťaz: ${esc(round.winner_name)}`:(round.result_count?`${round.result_count} výsledkov`:'Výsledky zatiaľ nie sú dostupné');
+      const results=roundResults.filter(result=>Number(result.series_round_number)===Number(round.series_round_number));
+      const resultsId=`round-results-${Number(round.series_round_number)||0}`;
+      return `<article class="round-item"><div class="round-row">
+        <div class="round-no">${Number(round.series_round_number)||'—'}. kolo</div>
+        <div class="round-date"><strong>${esc(dateTime(round.starts_at))}</strong>${round.registration_deadline?`<small>Prihlášky do ${esc(dateTime(round.registration_deadline))}</small>`:''}</div>
+        <div class="round-copy"><strong>${esc(round.event_title||series.title)}</strong><span class="round-status ${state.className}">${esc(state.label)}</span><span>${detail}</span></div>
+        ${action?.type==='results'
+          ?`<button class="round-link" type="button" data-round-results="${esc(resultsId)}" aria-expanded="false">${esc(action.label)} ↓</button>`
+          :(action?`<a class="round-link ${action.primary?'primary':''}" href="${esc(action.href)}">${esc(action.label)} →</a>`:'')}
+      </div>${action?.type==='results'?renderRoundResults(round,results,resultsId):''}</article>`;
+    }).join('')||'<div class="empty-state"><strong>Kolá nie sú dostupné</strong>Séria zatiaľ nemá zverejnené termíny.</div>';
   }
-  document.getElementById('settingsFullName').value = (currentProfile && currentProfile.full_name) || '';
-  document.getElementById('settingsRole').value = (currentProfile && currentProfile.role) || 'player';
-
-  const plan = (currentProfile && currentProfile.plan) || 'free';
-  const planBadge = document.getElementById('settingsPlanBadge');
-  planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-  planBadge.classList.toggle('plan-ultra', plan === 'ultra');
-  document.getElementById('settingsUpgradeLink').style.display = plan === 'ultra' ? 'none' : '';
-
-  // Športoviská (venues) — locked for free/pro, matching the same
-  // club_manager feature gate (currently ultra-tier, is_admin always
-  // bypasses) already used to protect Club Manager itself. Checked
-  // locally against the already-loaded profile rather than an extra RPC
-  // round trip, same style as the plan badge above.
-  const isAdmin = !!(currentProfile && currentProfile.is_admin);
-  const venuesUnlocked = plan === 'ultra' || isAdmin;
-  document.getElementById('settingsVenuesLocked').style.display = venuesUnlocked ? 'none' : '';
-  document.getElementById('settingsVenuesUnlocked').style.display = venuesUnlocked ? '' : 'none';
-  if(venuesUnlocked) loadVenuesSummary();
-
-  document.getElementById('settingsOverlay').classList.add('open');
-}
-
-// Real venue count for the current user's club, or a "create your club
-// first" prompt if they don't have one yet (nothing creates a clubs row
-// automatically — same reality already handled in Club Manager itself
-// via cspManager.requireClubManagerAccess({allowNoClub:true})).
-async function loadVenuesSummary(){
-  const countEl = document.getElementById('settingsVenuesCount');
-  const linkEl = document.getElementById('settingsVenuesManageLink');
-  if(!countEl || !linkEl || !currentSession) return;
-  countEl.textContent = 'Načítavam…';
-  try{
-    const { data: club, error: clubError } = await cspAuth.withTimeout(
-      cspAuth.client.from('clubs').select('id').eq('owner_id', currentSession.user.id).maybeSingle(),
-      8000, 'clubs lookup'
-    );
-    if(clubError) throw clubError;
-    if(!club){
-      countEl.textContent = 'Najprv si vytvor klub.';
-      linkEl.textContent = 'Vytvoriť klub →';
-      linkEl.href = '/manager/Dashboard%20obsluhy/';
-      return;
-    }
-    const { count, error: venuesError } = await cspAuth.withTimeout(
-      cspAuth.client.from('venues').select('id', { count: 'exact', head: true }).eq('club_id', club.id),
-      8000, 'venues count'
-    );
-    if(venuesError) throw venuesError;
-    const n = count || 0;
-    const word = n === 1 ? 'športovisko' : (n >= 2 && n <= 4 ? 'športoviská' : 'športovísk');
-    countEl.textContent = n + ' ' + word;
-    linkEl.textContent = 'Spravovať →';
-    linkEl.href = '/manager/sportoviska/';
-  }catch(err){
-    console.error('[profil] Could not load venues summary:', err);
-    countEl.textContent = 'Nepodarilo sa načítať.';
+  function renderRoundResults(round,results,resultsId){
+    const rows=results.map(result=>{
+      const position=Number(result.final_position)||0;
+      const name=result.player_name||'Hráč';
+      const player=result.profile_id
+        ?`<a class="round-result-player" href="/profil/?id=${encodeURIComponent(result.profile_id)}">${esc(name)}</a>`
+        :`<span class="round-result-player">${esc(name)}</span>`;
+      return `<tr><td><span class="rank ${position<=3?`top-${position}`:''}">${position}.</span></td><td>${player}</td><td class="num"><span class="round-result-points">${Number(result.points)||0} b</span></td></tr>`;
+    }).join('');
+    const tournamentLink=round.tournament_id?`<a href="/turnament/?id=${encodeURIComponent(round.tournament_id)}">Priebeh turnaja →</a>`:'';
+    return `<section class="round-results hidden" id="${esc(resultsId)}"><div class="round-results-head"><strong>Konečné poradie ${Number(round.series_round_number)||'—'}. kola</strong>${tournamentLink}</div><div class="table-wrap"><table><thead><tr><th>Poradie</th><th>Hráč</th><th class="num">Body</th></tr></thead><tbody>${rows||'<tr><td colspan="3">Výsledková listina nie je dostupná.</td></tr>'}</tbody></table></div></section>`;
   }
-}
-function closeSettings(){
-  document.getElementById('settingsOverlay').classList.remove('open');
-}
-document.getElementById('editProfileBtn')?.addEventListener('click', openSettings);
-document.getElementById('openSettingsBtn')?.addEventListener('click', (e) => { e.preventDefault(); openSettings(); });
-document.getElementById('avatarEditBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
-document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
-document.getElementById('cancelSettingsBtn')?.addEventListener('click', closeSettings);
-document.getElementById('settingsOverlay')?.addEventListener('click', (e) => {
-  if(e.target.id === 'settingsOverlay') closeSettings();
-});
-document.getElementById('settingsChangePhotoBtn')?.addEventListener('click', () => document.getElementById('avatarFileInput').click());
-
-// ── Avatar upload — uploads immediately on file selection (its own
-// save action, independent of the name/role Save button below), to the
-// `avatars` bucket at {user_id}/{filename}, matching the path
-// convention its RLS policy enforces (supabase/migrations/0007).
-document.getElementById('avatarFileInput')?.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
-  e.target.value = ''; // allow re-selecting the same file later
-  if(!file || !currentSession) return;
-
-  if(!file.type.startsWith('image/')){
-    toast('Vyber prosím obrázok (JPG, PNG...).', 'error');
-    return;
-  }
-
-  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
-  const path = `${currentSession.user.id}/avatar.${ext}`;
-
-  toast('Nahrávam fotku...');
-  try {
-    const { error: uploadError } = await cspAuth.withTimeout(
-      cspAuth.client.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '3600' }),
-      15000, 'avatar upload'
-    );
-    if(uploadError) throw uploadError;
-
-    const { data: urlData } = cspAuth.client.storage.from('avatars').getPublicUrl(path);
-    // Cache-bust: the path is fixed per user (avatar.<ext>), so without a
-    // changing query param the browser/CDN could keep serving the old
-    // image after a re-upload.
-    const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
-
-    const { data: updated, error: updateError } = await cspAuth.withTimeout(
-      cspAuth.client.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentSession.user.id).select().single(),
-      8000, 'avatar_url update'
-    );
-    if(updateError) throw updateError;
-
-    currentProfile = updated;
-    renderIdentity();
-    toast('Fotka bola aktualizovaná.');
-  } catch(err){
-    console.error('[profil] Avatar upload failed:', err);
-    toast('Nepodarilo sa nahrať fotku. Skús to znova.', 'error');
-  }
-});
-
-// ── Save display name + role ──────────────────────────────────────
-// Plan is intentionally never included in this update: it's read-only
-// here by design (protected column, see migration 0001's
-// protect_admin_only_columns trigger — a non-admin update to it would be
-// silently reverted server-side anyway).
-document.getElementById('saveSettingsBtn')?.addEventListener('click', async () => {
-  if(!currentSession) return;
-  const btn = document.getElementById('saveSettingsBtn');
-  const fullName = document.getElementById('settingsFullName').value.trim();
-  const role = document.getElementById('settingsRole').value;
-
-  btn.disabled = true;
-  btn.textContent = 'Ukladám...';
-  try {
-    const { data: updated, error } = await cspAuth.withTimeout(
-      cspAuth.client.from('profiles').update({ full_name: fullName || null, role: role }).eq('id', currentSession.user.id).select().single(),
-      8000, 'profile update'
-    );
-    if(error) throw error;
-
-    currentProfile = updated;
-    renderIdentity();
-    closeSettings();
-    toast('Zmeny boli uložené.');
-  } catch(err){
-    console.error('[profil] Settings save failed:', err);
-    toast('Nepodarilo sa uložiť zmeny. Skús to znova.', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Uložiť zmeny';
-  }
-});
-
-
-async function loadFollowCounts(){
-  if(!currentSession) return;
-  try{
-    const [following,followers]=await Promise.all([
-      cspAuth.client.from('profile_follows').select('following_profile_id',{count:'exact',head:true}).eq('follower_id',currentSession.user.id),
-      cspAuth.client.from('profile_follows').select('follower_id',{count:'exact',head:true}).eq('following_profile_id',currentSession.user.id)
-    ]);
-    if(following.error) throw following.error;
-    if(followers.error) throw followers.error;
-    const followingEl=document.getElementById('followingCount');
-    const followersEl=document.getElementById('followersCount');
-    if(followingEl)followingEl.textContent=String(following.count||0);
-    if(followersEl)followersEl.textContent=String(followers.count||0);
-  }catch(err){
-    console.error('[profil-ul] Follow counts failed:',err);
-  }
-}
-
-
-// ── ADMIN tournament dashboard ─────────────────────────────────────
-let adminTournamentRows=[];
-let adminTournamentFilter='upcoming';
-
-function adminTournamentBucket(t){
-  const status=String(t?.status||'').toLowerCase();
-
-  if(t?._source==='event'){
-    if(status==='completed' || status==='cancelled') return 'archive';
-    const now=Date.now();
-    const start=t?.starts_at ? new Date(t.starts_at).getTime() : NaN;
-    const end=t?.ends_at ? new Date(t.ends_at).getTime() : NaN;
-
-    if(Number.isFinite(end) && end < now) return 'archive';
-    if(Number.isFinite(start) && start <= now && (!Number.isFinite(end) || end >= now)) return 'active';
-    return 'upcoming';
-  }
-
-  if(status==='active') return 'active';
-  if(status==='archived' || status==='completed' || status==='cancelled') return 'archive';
-  return 'upcoming';
-}
-function adminTournamentStatusLabel(t){
-  const bucket=adminTournamentBucket(t);
-  if(bucket==='active') return 'AKTÍVNY';
-  if(bucket==='archive'){
-    const status=String(t?.status||'').toLowerCase();
-    if(status==='cancelled') return 'ZRUŠENÝ';
-    if(status==='archived') return 'ARCHÍV';
-    return 'UKONČENÝ';
-  }
-  const status=String(t?.status||'').toLowerCase();
-  if(status==='ready') return 'PRIPRAVENÝ';
-  if(status==='draft') return 'ROZPRACOVANÝ';
-  return 'NASLEDUJÚCI';
-}
-function adminTournamentDateLabel(value){
-  if(!value) return 'Dátum neurčený';
-  const d=new Date(value);
-  if(Number.isNaN(d.getTime())) return 'Dátum neurčený';
-  const hasTime=String(value).includes('T');
-  return new Intl.DateTimeFormat('sk-SK',{
-    day:'2-digit',month:'2-digit',year:'numeric',
-    ...(hasTime?{hour:'2-digit',minute:'2-digit'}:{})
-  }).format(d);
-}
-function escAdminTournament(v){
-  return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
-}
-function adminTournamentSortValue(t){
-  const raw=t?._source==='event' ? t.starts_at : t.date;
-  const ts=raw ? new Date(raw).getTime() : NaN;
-  return Number.isFinite(ts) ? ts : 0;
-}
-function renderAdminTournamentDashboard(){
-  const list=document.getElementById('adminTournamentList');
-  const empty=document.getElementById('adminTournamentsEmpty');
-  const loading=document.getElementById('adminTournamentsLoading');
-  if(!list||!empty||!loading)return;
-
-  const counts={upcoming:0,active:0,archive:0};
-  adminTournamentRows.forEach(t=>counts[adminTournamentBucket(t)]++);
-  document.getElementById('adminTournamentUpcomingCount').textContent=String(counts.upcoming);
-  document.getElementById('adminTournamentActiveCount').textContent=String(counts.active);
-  document.getElementById('adminTournamentArchiveCount').textContent=String(counts.archive);
-
-  let rows=adminTournamentRows.filter(t=>adminTournamentBucket(t)===adminTournamentFilter);
-  rows.sort((a,b)=>{
-    const av=adminTournamentSortValue(a),bv=adminTournamentSortValue(b);
-    return adminTournamentFilter==='archive' ? bv-av : av-bv;
-  });
-
-  loading.style.display='none';
-  if(!rows.length){
-    list.style.display='none';
-    empty.style.display='block';
-    empty.textContent=adminTournamentFilter==='upcoming'?'Žiadne nasledujúce turnaje.':
-      adminTournamentFilter==='active'?'Žiadne aktívne turnaje.':'Archív je prázdny.';
-    return;
-  }
-
-  empty.style.display='none';
-  list.style.display='flex';
-  list.innerHTML=rows.map(t=>{
-    const bucket=adminTournamentBucket(t);
-    const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
-    const place=t._source==='event'
-      ? [t.city,t.location_text].filter(Boolean).join(' · ')
-      : [t.city,t.venue].filter(Boolean).join(' · ');
-    const dateValue=t._source==='event' ? t.starts_at : t.date;
-    const origin=t._source==='event' ? '<span class="admin-tournament-origin">UDALOSŤ</span>' : '';
-    return `<article class="admin-tournament-row"
-      data-admin-tournament-id="${escAdminTournament(t.id)}"
-      data-admin-tournament-source="${escAdminTournament(t._source)}">
-      <div>
-        <div class="admin-tournament-name">${escAdminTournament(t.name||t.title||'Turnaj')} ${origin}</div>
-        <div class="admin-tournament-meta">${escAdminTournament(sport||'')}</div>
-      </div>
-      <div class="admin-tournament-date">${escAdminTournament(adminTournamentDateLabel(dateValue))}</div>
-      <div class="admin-tournament-place">${escAdminTournament(place||'')}</div>
-      <div class="admin-tournament-status ${bucket}">${escAdminTournament(adminTournamentStatusLabel(t))}</div>
-    </article>`;
-  }).join('');
-
-  list.querySelectorAll('[data-admin-tournament-id]').forEach(row=>{
-    row.addEventListener('click',()=>{
-      const id=encodeURIComponent(row.dataset.adminTournamentId);
-      location.href=row.dataset.adminTournamentSource==='event'
-        ? '/udalost/?id='+id
-        : '/turnament/?id='+id;
+  function bindRoundResults(){
+    $('roundList').addEventListener('click',event=>{
+      const button=event.target.closest('[data-round-results]');
+      if(!button)return;
+      const panel=$(button.dataset.roundResults);
+      if(!panel)return;
+      const opening=panel.classList.contains('hidden');
+      panel.classList.toggle('hidden',!opening);
+      button.setAttribute('aria-expanded',String(opening));
+      button.textContent=opening?'Zavrieť výsledky ↑':'Výsledková listina ↓';
     });
-  });
-}
-async function loadAdminTournaments(){
-  const loading=document.getElementById('adminTournamentsLoading');
-  if(loading){
-    loading.style.display='block';
-    loading.textContent='Načítavam turnaje…';
   }
-  try{
-    const [tournamentRes,eventRes]=await Promise.all([
-      cspAuth.client
-        .from('tournaments')
-        .select('id,name,sport,discipline,date,venue,city,status,visibility,source_event_id,created_at,updated_at')
-        .eq('owner_id',currentSession.user.id)
-        .order('date',{ascending:true,nullsFirst:false}),
-      cspAuth.client
-        .from('events')
-        .select('id,title,event_type,sport,discipline,starts_at,ends_at,location_text,city,status,visibility,created_at,updated_at')
-        .eq('owner_id',currentSession.user.id)
-        .ilike('event_type','turnaj')
-        .order('starts_at',{ascending:true,nullsFirst:false})
-    ]);
-
-    if(tournamentRes.error) throw tournamentRes.error;
-    if(eventRes.error) throw eventRes.error;
-
-    const tournaments=(Array.isArray(tournamentRes.data)?tournamentRes.data:[])
-      .map(t=>({...t,_source:'tournament'}));
-
-    const linkedEventIds=new Set(
-      tournaments.map(t=>t.source_event_id).filter(Boolean).map(String)
-    );
-
-    const eventTournaments=(Array.isArray(eventRes.data)?eventRes.data:[])
-      .filter(e=>!linkedEventIds.has(String(e.id)))
-      .map(e=>({...e,_source:'event'}));
-
-    adminTournamentRows=[...tournaments,...eventTournaments];
-    renderAdminTournamentDashboard();
-  }catch(err){
-    console.error('[profil-ul] tournaments/events:',err);
-    if(loading) loading.textContent='Turnaje sa nepodarilo načítať.';
+  function renderStandings(){
+    const empty=!standings.length;
+    $('standingsTableWrap').classList.toggle('hidden',empty);
+    $('standingsEmpty').classList.toggle('hidden',!empty);
+    $('standingsState').textContent=empty?'Čaká na výsledky':`${standings.length} hráčov`;
+    $('standingsBody').innerHTML=standings.map(row=>{
+      const position=Number(row.standing_position)||0;
+      const playerName=row.player_name||'Hráč';
+      const playerInner=`<span class="avatar">${esc(initials(playerName))}</span><span><strong>${esc(playerName)}</strong><small>${row.counted_rounds===row.rounds_played?`${Number(row.rounds_played)||0} započítaných kôl`:`${Number(row.counted_rounds)||0} z ${Number(row.rounds_played)||0} započítaných`}</small></span>`;
+      const player=row.profile_id?`<a class="player" href="/profil/?id=${encodeURIComponent(row.profile_id)}">${playerInner}</a>`:`<div class="player">${playerInner}</div>`;
+      return `<tr>
+        <td><span class="rank ${position<=3?`top-${position}`:''}">${position}</span></td>
+        <td>${player}</td>
+        <td class="num"><span class="points">${Number(row.total_points)||0}</span></td>
+        <td class="num">${Number(row.rounds_played)||0}</td>
+        <td class="num">${Number(row.victories)||0}</td>
+        <td class="num">${Number(row.runner_up_finishes)||0}</td>
+        <td class="num">${Number(row.third_places)||0}</td>
+        <td><span class="latest">${row.latest_round_number?`${Number(row.latest_round_number)}. kolo · +${Number(row.latest_round_points)||0} b`:'—'}</span></td>
+      </tr>`;
+    }).join('');
   }
-}
-document.querySelectorAll('[data-admin-tournament-filter]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    adminTournamentFilter=btn.dataset.adminTournamentFilter;
-    document.querySelectorAll('[data-admin-tournament-filter]').forEach(b=>b.classList.toggle('active',b===btn));
-    renderAdminTournamentDashboard();
-  });
-});
-
-// ── Real Supabase Auth gate ──────────────────────────────────────────
-// Identity (name/avatar/title/member-since), the settings modal above,
-// and auth (session gate + logout) are all wired to the real
-// csp-staging backend. The stats bar, activity feed, rating graph,
-// followers, similar-players, and upcoming tournaments widgets are
-// genuine empty/zero states in the static HTML above (not fetched here)
-// — none of that data has a backing table yet (no followers/posts/
-// ratings tables exist), so a real new user sees honest "nothing yet"
-// states instead of the leftover demo content this page used to show.
-// Upcoming tournaments in particular *could* someday query the real
-// tournaments/tournament_players tables (they exist — see
-// supabase/migrations/0003) but that's real follow-up work, not
-// something to fake here in the meantime.
-//
-// Wrapped in try/catch with a timeout on every awaited call: a
-// network/auth hiccup here now always logs clearly instead of becoming
-// a silent unhandled promise rejection, and can never hang indefinitely.
-// Exposed as an awaitable promise (rather than a bare IIFE) so other code
-// that needs the session — e.g. loadZapasyTab() below — can wait for this
-// exact in-flight/completed check instead of calling getSession() again
-// itself, per the same "avoid a redundant second call" reasoning already
-// documented for getCurrentProfile() above.
-
-async function bindUltraSocial(profile){
-  if(!profile?.id || !window.cspSocial?.bindProfilePack)return;
-  await window.cspSocial.bindProfilePack({
-    client:cspAuth.client,
-    profileId:profile.id,
-    role:profile.role,
-    likeButton:"ultraLikeBtn",
-    likeCount:"ultraLikeCount",
-    shareButton:"ultraShareBtn",
-    followButton:"ultraFollowBtn",
-    followCount:"ultraFollowCount",
-    title:`CSP profil – ${profile.full_name||"Profil"}`,
-    onCopied:()=>toast("Odkaz na profil je skopírovaný."),
-    onError:()=>toast("Akciu sa nepodarilo vykonať.","error")
-  });
-}
-function renderPublicUltraProfile(profile){
-  currentProfile=profile;
-  document.body.classList.add("public-profile-mode");
-  const displayName=profile.full_name||"Profil";
-  document.title=displayName+" · Connect Sports Pro";
-  document.getElementById("profileName").textContent=displayName;
-  const badge=document.getElementById("profileAccessBadge");
-  if(badge){
-    const role=String(profile.role||"").toLowerCase();
-    badge.classList.remove("hidden","admin","ultra");
-    if(role==="club" || role==="organization"){badge.textContent="ULTRA";badge.classList.add("ultra");}
-    else{badge.classList.add("hidden");}
+  function renderHeader(meta){
+    const completed=rounds.filter(round=>round.round_status==='completed').length;
+    const future=rounds.find(round=>round.round_status==='live')||rounds.find(round=>round.round_status==='scheduled'&&(!round.starts_at||new Date(round.starts_at)>=new Date()));
+    const first=rounds[0]?.starts_at,last=rounds[rounds.length-1]?.starts_at;
+    $('seriesTitle').textContent=series.title;
+    $('seriesState').textContent=series.status==='completed'?'Ukončená turnajová séria':'Turnajová séria';
+    $('seriesSport').textContent=series.sport||series.event_type||'Šport';
+    $('seriesDiscipline').textContent=series.discipline||'';
+    $('seriesPeriod').textContent=first&&last?`${date(first)} – ${date(last)}`:'';
+    $('seriesOrganizer').textContent=meta.clubName||meta.ownerName?`Organizátor: ${meta.clubName||meta.ownerName}`:'';
+    $('roundProgress').textContent=`${completed} / ${Number(series.total_rounds)||rounds.length}`;
+    $('nextRound').textContent=future
+      ?`${Number(future.series_round_number)||'—'}. kolo · ${date(future.starts_at)}`
+      :(series.status==='completed'?'Séria ukončená':'Ďalší termín nie je určený');
+    document.title=`${series.title} · Celkové poradie · Connect Sports Pro`;
   }
-  const initials=computeInitials(displayName);
-  const avatar=document.getElementById("profileAvatarInitials");
-  if(avatar){
-    avatar.textContent=initials;
-    if(profile.avatar_url){
-      avatar.style.backgroundImage=`url("${String(profile.avatar_url).replaceAll('"','%22')}")`;
-      avatar.style.backgroundSize="cover";avatar.style.backgroundPosition="center";
-      avatar.textContent="";
-    }
+  function setSocialCounts(counts){
+    $('likeCount').textContent=String(Number(counts?.like_count)||0);
+    $('followerCount').textContent=String(Number(counts?.follower_count)||0);
   }
-  document.getElementById("editProfileBtn")?.classList.add("hidden");
-  const since=document.getElementById("memberSinceMeta");
-  if(since && profile.created_at){
-    const d=new Date(profile.created_at);
-    since.innerHTML=`<span class="meta-i">📅</span> Člen od ${d.toLocaleDateString("sk-SK",{month:"long",year:"numeric"})}`;
+  async function loadCounts(){
+    const {data,error}=await db.from('event_series_social_counts').select('follower_count,like_count').eq('series_id',seriesId).maybeSingle();
+    if(error)throw error; setSocialCounts(data||{});
   }
-  const main=document.querySelector(".profile-main") || document.querySelector(".main");
-  if(main && profile.bio && !document.getElementById("publicUltraBio")){
-    const bio=document.createElement("section");
-    bio.id="publicUltraBio";bio.className="public-profile-bio";
-    bio.textContent=profile.bio;
-    main.appendChild(bio);
+  function renderFollow(){
+    $('followBtn').classList.toggle('following',following);
+    $('followBtn').classList.toggle('action-primary',!following);
+    $('followBtn').setAttribute('aria-pressed',String(following));
+    $('followLabel').textContent=following?'Sledujem':'Sledovať';
   }
-  bindUltraSocial(profile).catch(console.error);
-}
-
-const authGateReady = (async function initAuthGate(){
-  try {
-    const params=new URLSearchParams(location.search);
-    const requestedProfileId=params.get("id");
-    const publicView=params.get("view")==="public";
-    const { data: { session } } = await cspAuth.withTimeout(cspAuth.getSession(), 8000, 'getSession()');
-    currentSession = session || null;
-
-    if(requestedProfileId && publicView){
-      const publicResult=await cspAuth.withTimeout(
-        cspAuth.client.from("profiles").select("id,full_name,role,avatar_url,cover_url,bio,created_at").eq("id",requestedProfileId).maybeSingle(),
-        8000,"public profile"
-      );
-      if(publicResult.error)throw publicResult.error;
-      if(!publicResult.data)throw new Error("Profil sa nenašiel.");
-      const publicRole=String(publicResult.data.role||"player").toLowerCase();
-      if(publicRole==="player"){
-        location.replace(`/profil/?id=${encodeURIComponent(publicResult.data.id)}&view=public`);
-        return;
+  async function loadFollow(){
+    const auth=await db.auth.getSession(); session=auth.data?.session||null;
+    if(!session){following=false;renderFollow();return;}
+    const {data,error}=await db.from('event_series_follows').select('series_id').eq('series_id',seriesId).eq('follower_id',session.user.id).maybeSingle();
+    if(error)throw error; following=!!data; renderFollow();
+  }
+  async function toggleFollow(){
+    if(followBusy)return;
+    if(!session){location.href='/login/?returnTo='+encodeURIComponent(location.pathname+location.search);return;}
+    followBusy=true;$('followBtn').disabled=true;
+    try{
+      const result=following
+        ?await db.from('event_series_follows').delete().eq('series_id',seriesId).eq('follower_id',session.user.id)
+        :await db.from('event_series_follows').insert({series_id:seriesId,follower_id:session.user.id});
+      if(result.error)throw result.error;
+      following=!following;renderFollow();await loadCounts();
+      toast(following?'Sériu teraz sleduješ.':'Sériu už nesleduješ.');
+    }catch(error){console.error('[series-follow]',error);toast('Sledovanie sa nepodarilo zmeniť.',true)}
+    finally{followBusy=false;$('followBtn').disabled=false}
+  }
+  function bindTabs(){
+    document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
+      const tab=button.dataset.tab;
+      document.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item===button));
+      $('standingsPanel').classList.toggle('hidden',tab!=='standings');
+      $('roundsPanel').classList.toggle('hidden',tab!=='rounds');
+    }));
+  }
+  async function optionalNames(){
+    const tasks=[];
+    if(series.owner_id)tasks.push(db.from('profiles').select('full_name').eq('id',series.owner_id).maybeSingle().then(result=>({ownerName:result.data?.full_name||''})).catch(()=>({})));
+    if(series.club_id)tasks.push(db.from('clubs').select('name').eq('id',series.club_id).maybeSingle().then(result=>({clubName:result.data?.name||''})).catch(()=>({})));
+    const parts=await Promise.all(tasks);return Object.assign({},...parts);
+  }
+  async function init(){
+    if(!db)return fail('Pripojenie k Connect Sports Pro nie je dostupné.');
+    if(!uuid(seriesId))return fail('Odkaz na sériu nie je platný.');
+    try{
+      const [seriesResult,roundsResult,standingsResult,roundResultsResult,countsResult]=await Promise.all([
+        db.from('event_series').select('id,owner_id,club_id,title,event_type,sport,discipline,total_rounds,status,visibility,ranking_config').eq('id',seriesId).maybeSingle(),
+        db.from('event_series_public_rounds').select('*').eq('series_id',seriesId).order('series_round_number',{ascending:true}),
+        db.from('event_series_standings').select('*').eq('series_id',seriesId).order('standing_position',{ascending:true}),
+        db.from('event_series_round_results').select('series_round_number,tournament_id,profile_id,player_name,final_position,points,is_counted').eq('series_id',seriesId).order('series_round_number',{ascending:true}).order('final_position',{ascending:true}),
+        db.from('event_series_social_counts').select('follower_count,like_count').eq('series_id',seriesId).maybeSingle()
+      ]);
+      if(seriesResult.error)throw seriesResult.error;
+      if(roundsResult.error)throw roundsResult.error;
+      if(standingsResult.error)throw standingsResult.error;
+      if(roundResultsResult.error)throw roundResultsResult.error;
+      if(countsResult.error)throw countsResult.error;
+      if(!seriesResult.data)return fail('Táto séria neexistuje alebo nie je verejná.');
+      series=seriesResult.data;rounds=roundsResult.data||[];standings=standingsResult.data||[];roundResults=roundResultsResult.data||[];
+      const meta=await optionalNames();
+      renderHeader(meta);renderScoring();renderRounds();renderStandings();setSocialCounts(countsResult.data||{});renderFollow();
+      $('loading').classList.add('hidden');$('seriesContent').classList.remove('hidden');
+      bindTabs();bindRoundResults();
+      $('followBtn').addEventListener('click',toggleFollow);
+      try{await loadFollow()}catch(error){console.error('[series-follow-load]',error);renderFollow()}
+      if(window.cspSocial){
+        try{
+          await cspSocial.bind({entityType:'event_series',entityId:seriesId,likeButton:'likeBtn',likeCount:'likeCount',shareButton:'shareBtn',title:`${series.title} · Connect Sports Pro`,text:[series.sport,series.discipline,'Celkové poradie série'].filter(Boolean).join(' · '),url:location.href,onCopied:()=>toast('Odkaz na sériu bol skopírovaný.'),onError:()=>toast('Akciu sa nepodarilo dokončiť.',true)});
+        }catch(error){console.error('[series-social-load]',error)}
       }
-      renderPublicUltraProfile(publicResult.data);
-      return;
-    }
-
-    if(!session){
-      window.location.href = '/login/';
-      return;
-    }
-
-    // Pass session.user through so getCurrentProfile() doesn't need to
-    // call getSession() again internally — see its definition in
-    // csp-auth.js for why that redundant second call mattered.
-    const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
-    if(profileError){
-      console.error('[profil] Could not load profile row, falling back to email-derived name:', profileError);
-    }
-    currentProfile = profile;
-
-    // ROLE ROUTING GUARD: /profil-ul/ is only for club, organization and admin.
-    const resolvedRole = String((profile && profile.role) || 'player').toLowerCase();
-    const resolvedAdmin = !!(profile && profile.is_admin) || resolvedRole === 'admin';
-    if(!resolvedAdmin && resolvedRole === 'player'){
-      window.location.replace('/profil/');
-      return;
-    }
-
-    renderIdentity();
-    renderMemberSince();
-    loadFollowCounts();
-    bindUltraSocial(currentProfile).catch(err=>console.error("[profil-ul] social:",err));
-    if(resolvedAdmin) loadAdminTournaments();
-    window.cspNotifications?.bind({
-      client:cspAuth.client,
-      button:document.getElementById('notificationsBtn')
-    }).catch(err=>console.error('[profil-ul] notifications:',err));
-  } catch(err) {
-    console.error('[profil] Auth gate failed or timed out (page remains usable, identity just won\'t be updated):', err);
+    }catch(error){console.error('[event-series]',error);fail('Sériu sa nepodarilo načítať. Skús stránku obnoviť.')}
   }
+  init();
 })();
 </script>
-  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
+<script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
