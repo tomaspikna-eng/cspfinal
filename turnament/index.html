@@ -553,6 +553,7 @@ input:focus,select:focus{border-color:var(--gold)}
    CSP TOURNAMENT ENGINE — zamknuté vzorce
 ════════════════════════════════════════════════════════════ */
 const TM = {
+  MAX_DKO_PLAYERS:256,
   // Seedovanie čistého KO (overené proti zväzu 16/32/64/128/256)
   seedKO(n){
     let seq=[1,2];
@@ -564,7 +565,9 @@ const TM = {
     return seq; // pozícia -> seed
   },
   nextPow2(q){ let n=2; while(n<q) n*=2; return n; },
-  // Pavúk s bye: qualifiers v poradí nasadenia (najlepší prvý), N=mocnina2
+  // Pavúk s W.O.: hráči v poradí nasadenia, N je najbližšia mocnina 2.
+  // Prázdne pozície zostávajú interne označené `bye`, používateľ však
+  // všade vidí športový názov W.O. (walkover / voľný los).
   bracketWithByes(qualifiers, N){
     const Q=qualifiers.length, order=this.seedKO(N);
     return order.map(s => s<=Q ? qualifiers[s-1] : {bye:true});
@@ -630,10 +633,11 @@ const TM = {
       R[r].forEach((m,i)=>{
         // ak sa zmenili účastníci od zadania výsledku -> zruš výsledok
         if(m.resultSig && m.resultSig!==this.matchSig(m)){ m.winner=null; m.s1=null; m.s2=null; m.resultSig=null; }
-        // auto bye (len 1. kolo)
+        m._walkover=false;
+        // Automatický W.O. v prvom kole.
         if(r===0){
-          if(m.p1&&m.p1.bye&&m.p2&&!m.p2.bye) m.winner=2;
-          else if(m.p2&&m.p2.bye&&m.p1&&!m.p1.bye) m.winner=1;
+          if(m.p1&&m.p1.bye&&m.p2&&!m.p2.bye){m.winner=2;m._walkover=true;}
+          else if(m.p2&&m.p2.bye&&m.p1&&!m.p1.bye){m.winner=1;m._walkover=true;}
         }
         // posuň víťaza do ďalšieho kola
         if(r+1<R.length){
@@ -651,43 +655,79 @@ const TM = {
   mkMatch(number,p1,p2){
     return {key:this.matchKey(number),number:Number(number),p1:p1||null,p2:p2||null,s1:null,s2:null,winner:null,resultSig:null,_resolvedEmpty:false};
   },
-  buildDKO(players,startNumber=1){
+  dkoDrawOrder(count,drawKey){
+    const order=Array.from({length:count},(_,i)=>i);
+    let hash=2166136261;
+    const source=String(drawKey||'csp-dko');
+    for(let i=0;i<source.length;i++){
+      hash^=source.charCodeAt(i);
+      hash=Math.imul(hash,16777619)>>>0;
+    }
+    for(let i=order.length-1;i>0;i--){
+      hash=(Math.imul(hash,1664525)+1013904223)>>>0;
+      const j=hash%(i+1);
+      [order[i],order[j]]=[order[j],order[i]];
+    }
+    return order;
+  },
+  // CueScore-style crossing porazených. Pole je vždy mocnina dvoch:
+  // 16 → 8, 32 → 8, 64 → 8, 128 → 8 a 256 → 8.
+  // XOR masky krížia vzdialené vetvy, obmedzujú skoré odvety a zodpovedajú
+  // overenému CueScore poradiu pre 16/32/64 aj veľkým 256-player schémam.
+  dkoDropMap(count,level){
+    if(count<=1)return [0];
+    const mask=level===1
+      ? count-1
+      : (level%2===0 ? Math.max(1,count/2-1) : Math.max(1,count/2));
+    return Array.from({length:count},(_,i)=>i^mask);
+  },
+  buildDKO(players,startNumber=1,drawKey=''){
+    if(players.length>this.MAX_DKO_PLAYERS)throw new RangeError(`Double KO podporuje najviac ${this.MAX_DKO_PLAYERS} hráčov.`);
     const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
     const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.bracketWithByes(seeded,N);
     const total=Math.log2(N);
+    const koSize=N>=16?8:Math.max(2,N/2);
+    const winnerQualifierCount=koSize/2;
+    const winnerRoundCount=Math.log2(N/winnerQualifierCount);
     const W=[],L=[];
     let matchNo=Math.max(1,Number(startNumber)||1);
 
     // Úvodné zápasy štartového poľa.
     W.push(Array.from({length:N/2},(_,i)=>this.mkMatch(matchNo++,slots[2*i],slots[2*i+1])));
 
-    // Ďalšie kolá: winner vetva a loser vetva. Čísla zápasov pokračujú
-    // bez resetu naprieč celým turnajom.
-    for(let level=1;level<=total-2;level++){
+    // DKO N/8 podľa štandardného crossing modelu. Každé ďalšie kolo
+    // víťaznej strany dopĺňajú dve kolá prehratej strany: zúženie a
+    // krížové prijatie porazených. Pri 32/8 tak vzniknú presne 4 loser kolá.
+    for(let level=1;level<winnerRoundCount;level++){
       const count=N/Math.pow(2,level+1);
       W.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
       L.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
+      L.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
     }
 
-    const SF=[
-      this.mkMatch(matchNo++,null,null),
-      this.mkMatch(matchNo++,null,null)
-    ];
+    const QF=koSize===8?Array.from({length:4},()=>this.mkMatch(matchNo++,null,null)):[];
+    const SF=koSize>=4?Array.from({length:2},()=>this.mkMatch(matchNo++,null,null)):[];
     const F=this.mkMatch(matchNo++,null,null);
+    const stableDrawKey=drawKey||seeded.map(p=>p.id||p.name).join('|');
+    const koDraw=this.dkoDrawOrder(winnerQualifierCount,stableDrawKey);
+    const dropMaps=Array.from({length:Math.max(0,winnerRoundCount-1)},(_,i)=>
+      this.dkoDropMap(W[i+1].length,i+1)
+    );
 
-    const dko={type:'dko',schemaVersion:4,N,total,W,L,SF,F};
+    const dko={type:'dko',schemaVersion:6,N,total,koSize,winnerRoundCount,W,L,QF,SF,F,koDraw,dropMaps};
     this.recomputeDKO(dko);
     return dko;
   },
   recomputeDKO(dko){
-    const {W,L,SF,F}=dko;
+    const {W,L,QF=[],SF=[],F}=dko;
     const inval=m=>{
       if(!m)return;
       if(m.resultSig && m.resultSig!==this.matchSig(m)){
         m.winner=null;m.s1=null;m.s2=null;m.resultSig=null;
       }
       m._resolvedEmpty=false;
+      m._walkover=false;
     };
     const wOf=m=>{
       const p=m&&m.winner?(m.winner===1?m.p1:m.p2):null;
@@ -702,12 +742,18 @@ const TM = {
       inval(m);
       if(!inputsResolved)return;
       const a=!!(m.p1&&!m.p1.bye),b=!!(m.p2&&!m.p2.bye);
-      if(a&&!b&&!m.winner){m.winner=1;m.resultSig=this.matchSig(m);}
-      else if(b&&!a&&!m.winner){m.winner=2;m.resultSig=this.matchSig(m);}
+      if(a&&!b){
+        if(!m.winner){m.winner=1;m.resultSig=this.matchSig(m);}
+        m._walkover=true;
+      }
+      else if(b&&!a){
+        if(!m.winner){m.winner=2;m.resultSig=this.matchSig(m);}
+        m._walkover=true;
+      }
       else if(!a&&!b){m._resolvedEmpty=true;m.resultSig=null;}
     };
 
-    // A vetva.
+    // Víťazná strana.
     W[0].forEach(m=>resolve(m,true));
     for(let r=1;r<W.length;r++){
       W[r].forEach((m,i)=>{
@@ -717,50 +763,78 @@ const TM = {
       });
     }
 
-    // Prvé loser kolo dostane porazených z úvodných zápasov. Ďalšie loser kolá
-    // pokračujú iba víťazmi predchádzajúceho loser kola — žiadne duplicitné medzikolá.
-    if(L.length){
-      L[0].forEach((m,i)=>{
-        const a=W[0][2*i],b=W[0][2*i+1];
-        m.p1=lOf(a);m.p2=lOf(b);
-        resolve(m,resolved(a)&&resolved(b));
-      });
-      for(let r=1;r<L.length;r++){
-        L[r].forEach((m,i)=>{
-          const a=L[r-1][2*i],b=L[r-1][2*i+1];
+    // Prehratá strana. Každé prijímacie kolo má vlastnú pevnú crossing mapu;
+    // pri 64–256 hráčoch nestačí jednoduché striedanie susedných vetiev.
+    // Mapy sa ukladajú do pavúka, takže zostanú stabilné po každom načítaní.
+    if(!Array.isArray(dko.dropMaps))dko.dropMaps=[];
+    for(let level=1;level<W.length;level++){
+      const narrowIndex=2*level-2;
+      const crossIndex=narrowIndex+1;
+      const narrow=L[narrowIndex]||[];
+      if(level===1){
+        narrow.forEach((m,i)=>{
+          const a=W[0][2*i],b=W[0][2*i+1];
+          m.p1=lOf(a);m.p2=lOf(b);
+          resolve(m,resolved(a)&&resolved(b));
+        });
+      }else{
+        const previousCross=L[narrowIndex-1]||[];
+        narrow.forEach((m,i)=>{
+          const a=previousCross[2*i],b=previousCross[2*i+1];
           m.p1=wOf(a);m.p2=wOf(b);
           resolve(m,resolved(a)&&resolved(b));
         });
       }
+
+      const cross=L[crossIndex]||[];
+      const winnerRound=W[level]||[];
+      const storedMap=dko.dropMaps[level-1];
+      const dropMap=Array.isArray(storedMap)&&storedMap.length===winnerRound.length
+        ? storedMap
+        : this.dkoDropMap(winnerRound.length,level);
+      dko.dropMaps[level-1]=dropMap;
+      cross.forEach((m,i)=>{
+        const source=narrow[i];
+        const incomingIndex=dropMap[i];
+        const incoming=winnerRound[incomingIndex];
+        m.p1=wOf(source);m.p2=lOf(incoming);
+        resolve(m,resolved(source)&&resolved(incoming));
+      });
     }
 
-    // Semifinále: 2 víťazi A + 2 víťazi B, krížom.
+    // Do Single KO fázy postupuje polovica hráčov z každej strany.
     const aLast=W[W.length-1]||[];
-    let bFinalists=[],bResolved=[];
-    if(L.length){
-      const bLast=L[L.length-1];
-      bFinalists=bLast.map(wOf);
-      bResolved=bLast.map(resolved);
-    }else{
-      // 4-hráčový fallback: porazení úvodných zápasov tvoria loser finalistov priamo.
-      bFinalists=W[0].map(lOf);
-      bResolved=W[0].map(resolved);
-    }
+    const bLast=L[L.length-1]||[];
+    const entryRound=QF.length?QF:(SF.length?SF:[F]);
+    const draw=Array.isArray(dko.koDraw)&&dko.koDraw.length===entryRound.length
+      ? dko.koDraw
+      : Array.from({length:entryRound.length},(_,i)=>i);
+    entryRound.forEach((m,i)=>{
+      const a=aLast[i],b=bLast[draw[i]];
+      m.p1=wOf(a);m.p2=wOf(b);
+      resolve(m,resolved(a)&&resolved(b));
+    });
 
-    if(SF?.length===2){
-      SF[0].p1=wOf(aLast[0]);SF[0].p2=bFinalists[1]||null;
-      resolve(SF[0],resolved(aLast[0])&&!!bResolved[1]);
-      SF[1].p1=wOf(aLast[1]);SF[1].p2=bFinalists[0]||null;
-      resolve(SF[1],resolved(aLast[1])&&!!bResolved[0]);
+    const koRounds=[];
+    if(QF.length)koRounds.push(QF);
+    if(SF.length)koRounds.push(SF);
+    koRounds.push([F]);
+    for(let r=1;r<koRounds.length;r++){
+      koRounds[r].forEach((m,i)=>{
+        const a=koRounds[r-1][2*i],b=koRounds[r-1][2*i+1];
+        m.p1=wOf(a);m.p2=wOf(b);
+        resolve(m,resolved(a)&&resolved(b));
+      });
     }
-
-    // Jedno finále.
-    F.p1=wOf(SF[0]);F.p2=wOf(SF[1]);
-    resolve(F,resolved(SF[0])&&resolved(SF[1]));
   },
   dkoChampion(dko){
     const m=dko?.F;
     return m&&m.winner?(m.winner===1?m.p1:m.p2):null;
+  },
+  isWalkover(m){
+    if(!m)return false;
+    const a=!!(m.p1&&!m.p1.bye),b=!!(m.p2&&!m.p2.bye);
+    return !!m._walkover || (!!m.winner && a!==b);
   },
   dkoStandings(dko){
     const wOf=m=>m&&m.winner?(m.winner===1?m.p1:m.p2):null;
@@ -768,8 +842,16 @@ const TM = {
     const rank=this.dkoRanking(dko);
     return {first:wOf(dko?.F),second:lOf(dko?.F),third:rank[2]||null};
   },
-  dkoRoundName(branch,ri,total){
-    if(branch==='W'||branch==='L')return `${ri+1}. kolo`;
+  dkoRoundName(branch,ri,roundCount){
+    if(branch==='W'){
+      if(ri===0)return '1. kolo';
+      if(ri===roundCount-1)return 'Kvalifikácia víťazov';
+      return `${ri}. kolo víťazov`;
+    }
+    if(branch==='L'){
+      if(ri===roundCount-1)return 'Kvalifikácia porazených';
+      return `${ri+1}. kolo porazených`;
+    }
     return '';
   },
   // Zdieľaný rebríček: primárne výhry, potom fáza, rozdiel hier, %
@@ -795,7 +877,7 @@ const TM = {
     return arr;
   },
   dkoRanking(dko){
-    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
+    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.QF||[]),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
     const base=this.rankFrom(allMatches.map((m,i)=>({m,phase:i+1})));
     if(!dko?.F?.winner)return base;
 
@@ -813,22 +895,18 @@ const TM = {
     const enrich=p=>p?({...p,...(byName.get(p.name)||{})}):null;
     const result=[];
     const pushBand=players=>{
-      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>result.push({...p,place:result.length+1}));
+      const bandPlace=result.length+1;
+      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>result.push({...p,place:bandPlace}));
     };
 
     pushBand([wOf(dko.F)]);
     pushBand([lOf(dko.F)]);
     pushBand((dko.SF||[]).map(lOf));
-
-    const maxLevel=Math.max(0,(dko.W?.length||1)-1);
-    for(let level=maxLevel;level>=1;level--){
-      const aLosers=(dko.W?.[level]||[]).map(lOf);
-      const bLosers=(dko.L?.[level-1]||[]).map(lOf);
-      pushBand([...aLosers,...bLosers]);
-    }
+    pushBand((dko.QF||[]).map(lOf));
+    for(let level=(dko.L?.length||0)-1;level>=0;level--)pushBand((dko.L[level]||[]).map(lOf));
 
     // Defensive fallback for any player not captured in the completed
-    // elimination bands (e.g. unusual BYE-heavy small fields).
+    // elimination bands (e.g. unusual W.O.-heavy small fields).
     const seen=new Set(result.map(r=>r.name));
     pushBand(base.filter(r=>!seen.has(r.name)).map(r=>({name:r.name,seed:r.seed})));
     return result;
@@ -846,9 +924,11 @@ function dkoMatchesInNumberOrder(dko){
   if(dko.W?.[0])out.push(...dko.W[0]);
   for(let level=1;level<(dko.W?.length||0);level++){
     out.push(...(dko.W[level]||[]));
-    if(dko.L?.[level-1])out.push(...dko.L[level-1]);
+    const narrowIndex=2*level-2;
+    if(dko.L?.[narrowIndex])out.push(...dko.L[narrowIndex]);
+    if(dko.L?.[narrowIndex+1])out.push(...dko.L[narrowIndex+1]);
   }
-  for(let i=Math.max(0,(dko.W?.length||0)-1);i<(dko.L?.length||0);i++)out.push(...(dko.L[i]||[]));
+  out.push(...(dko.QF||[]));
   out.push(...(dko.SF||[]));
   if(dko.F)out.push(dko.F);
   return out;
@@ -1528,7 +1608,7 @@ function ensureBracket(t){
     if(!t.bracket || t.bracket.type!=='sko' || !t.bracket.rounds) t.bracket=TM.buildSKO(players);
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
-    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==4 || !t.dko.W || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players);
+    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players,1,t.id||'');
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
@@ -1622,7 +1702,7 @@ function createProtectedPhase2(crossSeeded,k){
   // too early.
   // For 4→2 this is preliminary round 0; for the confirmed 6→2 case
   // (from 8 total advancers, K=2) it is round 1, using the engine's
-  // ordinary non-power-of-two byes rather than special-case math.
+  // ordinary non-power-of-two W.O. positions rather than special-case math.
   let cutoff=prelim.rounds.length-2;
   for(let r=0;r<prelim.rounds.length-1;r++){
     if(prelim.rounds[r+1].length*2===survivorCount){ cutoff=r; break; }
@@ -1652,7 +1732,7 @@ function maybeGenerateComboPhase(t){
     }else if(t.format==='rr_sko'){
       t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
     }else{
-      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player))};
+      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`)};
     }
   }
   if(t.phase2.kind==='protected-sko'){
@@ -1662,7 +1742,7 @@ function maybeGenerateComboPhase(t){
         .flatMap(m=>[m.p1,m.p2]).filter(p=>p&&!p.bye);
       // The preliminary cutoff is chosen so exactly survivorCount slots
       // exist; filter defensively in case a malformed legacy database state
-      // contained an extra bye placeholder.
+      // contained an extra W.O. placeholder.
       t.phase2.main=TM.buildSKO([...t.phase2.protected,...survivors.slice(0,t.phase2.survivorCount)]);
     }
   }else if(t.phase2.kind==='standard-sko'){
@@ -2207,8 +2287,8 @@ function renderMatchArea(t){
   return body + renderTournamentEvaluation(t);
 }
 
-function bracketPlayerLine(player,score,isWinner){
-  const label=player?(player.bye?'VO':esc(player.name)):'Čaká na postup';
+function bracketPlayerLine(player,score,isWinner,isWalkoverSlot=false){
+  const label=player?(player.bye?'W.O.':esc(player.name)):(isWalkoverSlot?'W.O.':'Čaká na postup');
   return `<div class="bracket-player ${isWinner?'win':''}"><span>${label}</span><span class="bracket-score">${score??'–'}</span></div>`;
 }
 function matchDisplayKey(m){
@@ -2219,10 +2299,11 @@ function matchDisplayKey(m){
 
 function bracketMatchCard(m,loc){
   const playable=!isPublicReadOnly&&m?.p1&&m?.p2&&!m.p1.bye&&!m.p2.bye;
+  const walkover=TM.isWalkover(m);
   return `<article class="bracket-match ${playable?'':'disabled'}" ${playable?`onclick="openMatch('${loc}')"`:''}>
     <div class="bracket-match-key">${esc(matchDisplayKey(m))}</div>
-    ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1)}
-    ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2)}
+    ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1,walkover&&!m?.p1)}
+    ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2,walkover&&!m?.p2)}
   </article>`;
 }
 function bracketColumns(rounds,names,prefix){
@@ -2237,9 +2318,10 @@ function renderBracketView(t){
     return bracketColumns(t.bracket.rounds,t.bracket.rounds.map((_,ri)=>TM.roundName(ri,t.bracket.total)),'sko');
   }
   if(t.format==='dko'&&t.dko){
-    return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(t.dko.W,t.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,t.dko.total)),'dkoA')}
-      <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${t.dko.L.length?bracketColumns(t.dko.L,t.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,t.dko.total)),'dkoB'):''}
-      <div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([t.dko.SF],['Semifinále'],'dkoS')}
+    return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(t.dko.W,t.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,t.dko.W.length)),'dkoA')}
+      <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${t.dko.L.length?bracketColumns(t.dko.L,t.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,t.dko.L.length)),'dkoB'):''}
+      ${t.dko.QF.length?`<div class="bracket-branch">◆ TOP 8 · ŠTVRŤFINÁLE</div>${bracketColumns([t.dko.QF],['Štvrťfinále'],'dkoQ')}`:''}
+      ${t.dko.SF.length?`<div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([t.dko.SF],['Semifinále'],'dkoS')}`:''}
       <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[t.dko.F]],['Finále'],'dkoF')}`;
   }
   if(t.format==='rr'){
@@ -2251,9 +2333,10 @@ function renderBracketView(t){
   const phase=t.phase2;
   if(!phase)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
   if(phase.kind==='standard-sko')return bracketColumns(phase.bracket.rounds,phase.bracket.rounds.map((_,ri)=>TM.roundName(ri,phase.bracket.total)),'p2s');
-  if(phase.kind==='standard-dko')return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(phase.dko.W,phase.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,phase.dko.total)),'p2dA')}
-    <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${phase.dko.L.length?bracketColumns(phase.dko.L,phase.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,phase.dko.total)),'p2dB'):''}
-    <div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([phase.dko.SF],['Semifinále'],'p2dS')}
+  if(phase.kind==='standard-dko')return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(phase.dko.W,phase.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,phase.dko.W.length)),'p2dA')}
+    <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${phase.dko.L.length?bracketColumns(phase.dko.L,phase.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,phase.dko.L.length)),'p2dB'):''}
+    ${phase.dko.QF.length?`<div class="bracket-branch">◆ TOP 8 · ŠTVRŤFINÁLE</div>${bracketColumns([phase.dko.QF],['Štvrťfinále'],'p2dQ')}`:''}
+    ${phase.dko.SF.length?`<div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([phase.dko.SF],['Semifinále'],'p2dS')}`:''}
     <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[phase.dko.F]],['Finále'],'p2dF')}`;
   const activeBracket=phase.main||phase.prelim;
   const prefix=phase.main?'p2m':'p2p';
@@ -2290,9 +2373,10 @@ function renderMatchList(t){
       });
       return h;
     };
-    html+=sect('▲ VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'dkoA');
-    if(dko.L.length)html+=sect('▼ VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'dkoB');
-    html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
+    html+=sect('▲ VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'dkoA');
+    if(dko.L.length)html+=sect('▼ VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
+    if(dko.QF.length)html+=sect('◆ TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'dkoQ');
+    if(dko.SF.length)html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
     html+=sect('◆ FINÁLE','conv',[[dko.F]],['Finále'],'dkoF');
     const champ=TM.dkoChampion(dko);if(champ) html=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${champ.name}</b></div>`+html;
     if(played && !tournamentFlowFinished(t)) html+=renderRankTable(rank);
@@ -2369,9 +2453,10 @@ function renderPhaseDKO(dko){
     });
     return h;
   };
-  return sect('▲ Phase 2 · VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'p2dA')+
-    (dko.L.length?sect('▼ Phase 2 · VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'p2dB'):'')+
-    sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS')+
+  return sect('▲ Phase 2 · VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'p2dA')+
+    (dko.L.length?sect('▼ Phase 2 · VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
+    (dko.QF.length?sect('◆ Phase 2 · TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'p2dQ'):'')+
+    (dko.SF.length?sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS'):'')+
     sect('◆ Phase 2 · FINÁLE','conv',[[dko.F]],['Finále'],'p2dF');
 }
 function renderComboPhase2(phase){
@@ -2444,7 +2529,7 @@ function phase2Ranking(t){
 function collectPhase2Matches(phase){
   if(!phase) return [];
   if(phase.kind==='standard-sko') return phase.bracket.rounds.flat();
-  if(phase.kind==='standard-dko') return [...phase.dko.W.flat(),...phase.dko.L.flat(),...phase.dko.SF,...(phase.dko.F?[phase.dko.F]:[])];
+  if(phase.kind==='standard-dko') return dkoMatchesInNumberOrder(phase.dko);
   if(phase.kind==='protected-sko') return [...(phase.prelim?.rounds?.flat()||[]),...(phase.main?.rounds?.flat()||[])];
   return [];
 }
@@ -3014,9 +3099,9 @@ function liveMatchControls(m,loc){
 }
 
 function matchRow(m, loc){
-  const bye = (m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
-  const name=(p)=> p? (p.bye?'<span class="mt-bye">(VO)</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : '<span class="mt-wait">čaká na postup</span>';
-  const done = m.winner!=null && !bye;
+  const walkover=TM.isWalkover(m)||(m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
+  const name=(p)=> p? (p.bye?'<span class="mt-bye">W.O.</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : (walkover?'<span class="mt-bye">W.O.</span>':'<span class="mt-wait">čaká na postup</span>');
+  const done = m.winner!=null && !walkover;
   const w1=m.winner===1, w2=m.winner===2;
   const row=rowForMatch(m,loc);
   const running=row?.status==='live'||row?.status==='in_progress';
@@ -3025,9 +3110,9 @@ function matchRow(m, loc){
   const hasDbScore=row&&(row.score1!=null||row.score2!=null);
   // SMART matches always expose their score in the organizer list, even at
   // 0:0. Manual/unassigned matches keep the old "vs" until a score exists.
-  const showLiveScore=!bye&&(running||smartAssigned||hasDbScore);
-  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
-  const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
+  const showLiveScore=!walkover&&(running||smartAssigned||hasDbScore);
+  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (walkover?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
+  const clickable = !isPublicReadOnly && !walkover && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}" data-match-number="${Number(m.number)||''}">
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
@@ -3049,6 +3134,7 @@ function getMatchByLoc(loc){
   if(k==='sko') return curT.bracket.rounds[+a][+b];
   if(k==='dkoA') return curT.dko.W[+a]?.[+b]||null;
   if(k==='dkoB') return curT.dko.L[+a]?.[+b]||null;
+  if(k==='dkoQ') return curT.dko.QF[+b]||null;
   if(k==='dkoS') return curT.dko.SF[+b]||null;
   if(k==='dkoF') return curT.dko.F||null;
   if(k==='grp') return curT.grp.groups[+a].matches[+b];
@@ -3057,6 +3143,7 @@ function getMatchByLoc(loc){
   if(k==='p2m') return curT.phase2.main.rounds[+a][+b];
   if(k==='p2dA') return curT.phase2.dko.W[+a]?.[+b]||null;
   if(k==='p2dB') return curT.phase2.dko.L[+a]?.[+b]||null;
+  if(k==='p2dQ') return curT.phase2.dko.QF[+b]||null;
   if(k==='p2dS') return curT.phase2.dko.SF[+b]||null;
   if(k==='p2dF') return curT.phase2.dko.F||null;
   return null;
@@ -3064,11 +3151,11 @@ function getMatchByLoc(loc){
 function recomputeFor(loc){
   const k=loc.split(':')[0];
   if(k==='sko') TM.recomputeSKO(curT.bracket);
-  else if(['dkoA','dkoB','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
+  else if(['dkoA','dkoB','dkoQ','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
   else if(k==='p2s') TM.recomputeSKO(curT.phase2.bracket);
   else if(k==='p2p') TM.recomputeSKO(curT.phase2.prelim);
   else if(k==='p2m') TM.recomputeSKO(curT.phase2.main);
-  else if(['p2dA','p2dB','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
+  else if(['p2dA','p2dB','p2dQ','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
 
@@ -3325,7 +3412,7 @@ const DISCIPLINES={
 const FORMATS={
   rr:{ic:'🔄',t:'Round Robin',d:'Každý s každým. Konečné poradie podľa tabuľky.',struct:['Skupina / liga']},
   sko:{ic:'🎯',t:'Single KO',d:'Vyraďovací pavúk — jedna prehra a koniec.',struct:['Pavúk']},
-  dko:{ic:'🔁',t:'Double KO',d:'Pavúk s vetvou porazených (víťazná A + loser B vetva).',struct:['Pavúk A+B']},
+  dko:{ic:'🔁',t:'Double KO',d:'Dynamický pavúk 16–256 s vetvou porazených a W.O.',struct:['Pavúk A+B','TOP 8']},
   rr_sko:{ic:'🏆',t:'Skupiny → Single KO',d:'Najprv skupiny (RR), postupujúci do Single KO pavúka.',struct:['Skupiny','Single KO']},
   rr_dko:{ic:'🏆',t:'Skupiny → Double KO',d:'Najprv skupiny (RR), postupujúci do Double KO pavúka.',struct:['Skupiny','Double KO']},
 };
@@ -3619,7 +3706,7 @@ function renderWiz(){
         <button class="btn btn-ghost" style="margin-top:8px" onclick="addBulk()">Pridať všetkých zo zoznamu</button></div>`:''}` }
       <div class="player-stats">
         <span class="player-count"><b>${presentCount}/${wiz.players.length}</b> prítomných</span>
-        ${wiz.players.length&&!wiz.structureLocked?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
+        ${wiz.players.length&&!wiz.structureLocked?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} W.O.`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
       </div>
       ${wiz.players.length&&!wiz.structureLocked?`<div class="seed-control">
         <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
@@ -3780,7 +3867,8 @@ function refreshGroupNote(){
   const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total));
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
   const protectedNote=wiz.format==='rr_sko'&&wiz.protectedSeeds?`<br><b>K = ${wiz.protectedSeeds}:</b> top ${wiz.protectedSeeds} celkovo chránených hráčov čaká na hlavný pavúk; ostatní odohrajú predkolo.`:'';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} bye)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (1. zo skupiny A vs 3. zo skupiny B…) finalizujeme v engine.${protectedNote}`;
+  const capacityNote=wiz.format==='rr_dko'&&total>TM.MAX_DKO_PLAYERS?`<br><b>Limit:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} postupujúcich.`:'';
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} W.O.)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (1. zo skupiny A vs 3. zo skupiny B…) finalizujeme v engine.${protectedNote}${capacityNote}`;
 }
 
 function renderPreview(){
@@ -3792,13 +3880,17 @@ function renderPreview(){
     el.innerHTML=demoNote+`<div class="note-box"><b>Karty — ${wiz.discipline}:</b> ${wiz.players.length} hráčov. Po vytvorení ťa presmerujeme do Generátora stolov, kde sa rozdelia do stolov a hrajú sa kolá — žiadny pavúk ani tabuľka RR sa tu negeneruje.</div>`;
   }
   else if(wiz.format==='sko'||wiz.format==='dko'){
+    if(wiz.format==='dko'&&players.length>TM.MAX_DKO_PLAYERS){
+      el.innerHTML=demoNote+`<div class="note-box"><b>Príliš veľa hráčov:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS}. Zníž počet hráčov pred spustením turnaja.</div>`;
+      return;
+    }
     const bracket=wiz.format==='dko'?TM.buildDKO(players):TM.buildSKO(players);
     const firstRound=wiz.format==='dko'?(bracket.W?.[0]||[]):(bracket.rounds?.[0]||[]);
     const N=bracket.N;
     let html=`<div class="preview"><h4>${wiz.format==='dko'?'Double KO':'Single KO'} · pavúk ${N} — prvé kolo</h4>`;
     firstRound.forEach(m=>{
       const a=m.p1,b=m.p2,key=matchDisplayKey(m);
-      if(a?.bye||b?.bye){ const adv=a?.bye?b:a; html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${adv?.name||'—'}</span><span class="mt-bye">bye → postupuje</span></div>`; }
+      if(a?.bye||b?.bye){ const adv=a?.bye?b:a; html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${adv?.name||'—'}</span><span class="mt-bye">W.O. → postupuje</span></div>`; }
       else html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${a?.name||'—'}</span><span class="mt-vs">vs</span><span class="mt-p" style="text-align:right">${b?.name||'—'}</span></div>`;
     });
     html+=`</div>`;
@@ -3819,6 +3911,11 @@ function renderPreview(){
 
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
+  const dkoSize=wiz.format==='dko'?wiz.players.length:(wiz.format==='rr_dko'?wiz.groups*wiz.advance:0);
+  if(dkoSize>TM.MAX_DKO_PLAYERS){
+    toast(`Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} hráčov.`,true);
+    return;
+  }
   const formatChanged=!!wiz.editId && !!wiz.originalFormat && wiz.format!==wiz.originalFormat;
   if(formatChanged && wiz.formatLocked){
     toast('Formát nie je možné zmeniť po začiatku prvého zápasu.',true);
