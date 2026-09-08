@@ -102,41 +102,6 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
 .meta{font-size:.8rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
 .badge{padding:5px 8px;border-radius:999px;border:1px solid var(--line);font-size:.7rem;font-weight:800}
 .open{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
-.series-card{grid-column:1/-1;display:block;padding:0;overflow:hidden}
-.series-main-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
-.series-toggle{
-  width:100%;min-height:0;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) auto auto;
-  align-items:center;gap:22px;border:0;border-radius:0;background:transparent;color:var(--text);
-  text-align:left;cursor:pointer
-}
-.series-toggle:hover{background:rgba(255,255,255,.018)}
-.series-copy{min-width:0}
-.series-label{color:var(--gold);font-size:.67rem;font-weight:900;letter-spacing:.1em;margin-bottom:7px}
-.series-period{min-width:170px}
-.series-period small{display:block;color:var(--muted);font-size:.62rem;font-weight:900;letter-spacing:.08em;margin-bottom:4px}
-.series-period strong{font-size:.84rem}
-.series-action{color:var(--green);font-size:.8rem;font-weight:900;white-space:nowrap}
-.series-action i{display:inline-block;margin-left:6px;font-style:normal;transition:transform .16s ease}
-.series-toggle[aria-expanded="true"] .series-action i{transform:rotate(180deg)}
-.series-standings{
-  display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-right:18px;padding:0 14px;
-  border-radius:10px;background:var(--green);color:var(--greenText);font-size:.78rem;font-weight:900;white-space:nowrap
-}
-.series-standings:hover{filter:brightness(1.06)}
-.series-rounds{border-top:1px solid var(--line);padding:8px 18px 16px;background:rgba(0,0,0,.16)}
-.series-round{
-  display:grid;grid-template-columns:92px 125px minmax(0,1fr) auto;align-items:center;gap:14px;
-  min-height:52px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.065);border-radius:10px
-}
-.series-round:last-child{border-bottom:0}
-.series-round:hover{background:rgba(255,255,255,.025)}
-.series-round.is-next{background:rgba(34,211,107,.06);border-color:rgba(34,211,107,.18)}
-.round-number{font-size:.74rem;font-weight:900;color:var(--gold)}
-.round-date{font-size:.82rem;font-weight:900}
-.round-note{font-size:.72rem;color:var(--muted)}
-.round-note strong{color:var(--green);font-size:.62rem;letter-spacing:.08em;margin-right:7px}
-.round-open{color:var(--green);font-size:.76rem;font-weight:900;white-space:nowrap}
-.round-open.detail{color:var(--muted)}
 .empty{padding:35px;border:1px solid var(--line);border-radius:16px;color:var(--muted);text-align:center;grid-column:1/-1}
 @media(max-width:1000px){
   .content-layout{grid-template-columns:1fr}
@@ -154,14 +119,6 @@ button{background:var(--green);color:var(--greenText);font-weight:900;border-col
   .filters{grid-template-columns:1fr}
   .card{grid-template-columns:1fr}
   .open{justify-self:start}
-  .series-toggle{grid-template-columns:1fr;gap:12px;padding:16px}
-  .series-main-row{grid-template-columns:1fr}
-  .series-period{min-width:0}
-  .series-action{justify-self:start}
-  .series-standings{justify-self:start;margin:0 16px 16px}
-  .series-rounds{padding:7px 10px 12px}
-  .series-round{grid-template-columns:76px 1fr auto;gap:8px;padding:10px 7px}
-  .round-note{grid-column:2/-1}
   .mini-calendar{padding:14px}
   .calendar-day{min-height:38px}
 }
@@ -244,11 +201,6 @@ function cspFmtDate(value){
   const d = new Date(value + 'T12:00:00');
   return new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
 }
-function cspFmtRange(from,to){
-  if(!from&&!to)return 'Termíny neuvedené';
-  if(from===to)return cspFmtDate(from);
-  return `${cspFmtDate(from)} – ${cspFmtDate(to)}`;
-}
 function cspRegistrationOpen(round){
   if(round?.registration_enabled!==true)return false;
   if(round.event_date && round.event_date<cspDateKey(new Date()))return false;
@@ -263,7 +215,6 @@ function cspRoundHref(round){
 
 let allGroups=[];
 let allCalendarRounds=[];
-const expandedSeries=new Set();
 
 let calendarCursor=new Date();
 calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth(),1);
@@ -316,9 +267,8 @@ function showCalendarTooltip(el,dateKey){
     const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
     const place=calendarTooltipPlace(t);
     const meta=[sport,place].filter(Boolean).join(' · ');
-    const round=t.is_series&&t.series_round_number?` · ${t.series_round_number}. kolo`:'';
     return `<div class="calendar-tooltip-item">
-      <strong>${cspEsc(t.name||'Turnaj')}${round}</strong>
+      <strong>${cspEsc(t.name||'Turnaj')}</strong>
       ${meta?`<span>${cspEsc(meta)}</span>`:''}
     </div>`;
   }).join('');
@@ -428,66 +378,6 @@ function fillSelect(el,values){
     const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o);
   });
 }
-function roundLabel(round,index){
-  const number=Number(round?.series_round_number)||index+1;
-  return `${number}. kolo`;
-}
-function nextRoundIndex(rounds){
-  const today=cspDateKey(new Date());
-  const next=rounds.findIndex(round=>round.event_date && round.event_date>=today);
-  return next>=0?next:Math.max(0,rounds.length-1);
-}
-function renderSeriesCard(group,isExpanded){
-  const rounds=Array.isArray(group.rounds)?group.rounds:[];
-  const p=cspTournamentPlace(group);
-  const place=[p.city,p.country].filter(Boolean).join(', ') || group.venue || 'Miesto neuvedené';
-  const nextIndex=nextRoundIndex(rounds);
-  const seriesId=String(group.series_id||group.group_id||'');
-  const roundWord=group.round_count===1?'KOLO':group.round_count>=2&&group.round_count<=4?'KOLÁ':'KÔL';
-
-  const roundRows=isExpanded?`
-    <div class="series-rounds">
-      ${rounds.map((round,index)=>{
-        const href=cspRoundHref(round);
-        const registrationOpen=cspRegistrationOpen(round);
-        const isNext=index===nextIndex && round.event_date>=cspDateKey(new Date());
-        const customName=round.name&&round.name!==group.name?round.name:'';
-        const note=customName || (registrationOpen?'Predregistrácia je otvorená':'Detail kola');
-        const content=`
-          <span class="round-number">${cspEsc(roundLabel(round,index))}</span>
-          <span class="round-date">${cspFmtDate(round.event_date)}</span>
-          <span class="round-note">${isNext?'<strong>NAJBLIŽŠIE</strong>':''}${cspEsc(note)}</span>
-          <span class="round-open ${registrationOpen?'':'detail'}">${registrationOpen?'Predregistrácia →':'Detail →'}</span>`;
-        return href
-          ? `<a class="series-round ${isNext?'is-next':''}" href="${cspEsc(href)}">${content}</a>`
-          : `<div class="series-round ${isNext?'is-next':''}">${content}</div>`;
-      }).join('')}
-    </div>`:'';
-
-  return `<article class="card series-card">
-    <div class="series-main-row">
-      <button class="series-toggle" type="button" data-series-toggle="${cspEsc(seriesId)}" aria-expanded="${isExpanded?'true':'false'}">
-        <div class="series-copy">
-          <div class="series-label">SÉRIA · ${group.round_count} ${roundWord}</div>
-          <div class="name">${cspEsc(group.name||'Séria turnajov')}</div>
-          <div class="meta">
-            <span class="badge">${cspEsc(group.sport||'Šport')}</span>
-            ${group.discipline?`<span>${cspEsc(group.discipline)}</span>`:''}
-            <span>${cspEsc(place)}</span>
-            ${group.organizer_name?`<span>${cspEsc(group.organizer_name)}</span>`:''}
-          </div>
-        </div>
-        <div class="series-period">
-          <small>TERMÍNY</small>
-          <strong>${cspFmtRange(group.first_event_date,group.last_event_date)}</strong>
-        </div>
-        <span class="series-action">${isExpanded?'Skryť kolá':'Zobraziť kolá'} <i>⌄</i></span>
-      </button>
-      ${seriesId?`<a class="series-standings" href="/seria/?id=${encodeURIComponent(seriesId)}">Celkové poradie →</a>`:''}
-    </div>
-    ${roundRows}
-  </article>`;
-}
 function render(){
   const country=document.getElementById('countryFilter').value;
   const city=document.getElementById('cityFilter').value;
@@ -507,8 +397,8 @@ function render(){
   });
 
   document.getElementById('summary').textContent=selectedCalendarDate
-    ? `Nájdené turnaje a série: ${rows.length} · ${cspFmtDate(selectedCalendarDate)}`
-    : `Nájdené turnaje a série: ${rows.length}`;
+    ? `Nájdené turnaje: ${rows.length} · ${cspFmtDate(selectedCalendarDate)}`
+    : `Nájdené turnaje: ${rows.length}`;
   const grid=document.getElementById('calendarGrid');
   if(!rows.length){
     grid.innerHTML='<div class="empty">Pre zvolený filter nie sú evidované žiadne turnaje.</div>';
@@ -516,15 +406,11 @@ function render(){
   }
 
   grid.innerHTML=rows.map(group=>{
-    if(group.is_series){
-      return renderSeriesCard(group,expandedSeries.has(String(group.group_id)));
-    }
-
     const round=(group.rounds||[])[0]||{};
     const t={...group,...round,name:group.name||round.name};
     const p=cspTournamentPlace(group);
     const place=[p.city,p.country].filter(Boolean).join(', ') || group.venue || 'Miesto neuvedené';
-    const href=cspTournamentHref(round);
+    const href=group.series_id?cspRoundHref(round):cspTournamentHref(round);
     const content=`
       <div class="date">${cspFmtDate(t.event_date)}</div>
       <div>
@@ -541,15 +427,6 @@ function render(){
       ? `<a class="card" href="${cspEsc(href)}">${content}</a>`
       : `<div class="card">${content}</div>`;
   }).join('');
-
-  grid.querySelectorAll('[data-series-toggle]').forEach(button=>{
-    button.addEventListener('click',()=>{
-      const id=button.dataset.seriesToggle;
-      if(expandedSeries.has(id))expandedSeries.delete(id);
-      else expandedSeries.add(id);
-      render();
-    });
-  });
 }
 
 (async()=>{
@@ -558,33 +435,36 @@ function render(){
     const {data,error}=await cspAuth.client.rpc('get_grouped_tournament_calendar');
     if(error) throw error;
     const today=cspDateKey(new Date());
-    allGroups=(data||[]).map(group=>{
+    allGroups=(data||[]).flatMap(group=>{
       const allRounds=Array.isArray(group.rounds)?group.rounds:[];
       const sortedRounds=(group.is_series
         ? allRounds.filter(round=>isCurrentOrUpcomingRound(round,today))
         : allRounds
       ).sort((a,b)=>String(a.event_date||'').localeCompare(String(b.event_date||'')));
-      const rounds=group.is_series?sortedRounds.slice(0,2):sortedRounds;
-      return {
+      const visibleRounds=group.is_series?sortedRounds.slice(0,2):sortedRounds;
+      return visibleRounds.map((round,index)=>({
         ...group,
-        round_count:Number(group.round_count)||0,
-        rounds,
-        first_event_date:group.is_series?(rounds[0]?.event_date||''):group.first_event_date,
-        last_event_date:group.is_series?(rounds[rounds.length-1]?.event_date||''):group.last_event_date
-      };
-    }).filter(group=>!group.is_series||group.rounds.length>0);
+        group_id:round.event_id||`${group.group_id||'event'}-${index}`,
+        is_series:false,
+        round_count:1,
+        rounds:[{...round,name:round.name||group.name}],
+        name:round.name||group.name,
+        first_event_date:round.event_date||'',
+        last_event_date:round.event_date||''
+      }));
+    });
     allCalendarRounds=allGroups.flatMap(group=>group.rounds.map((round,index)=>({
       ...round,
-      name:group.name,
+      name:round.name||group.name,
       sport:group.sport,
       discipline:group.discipline,
       venue:group.venue,
       city:group.city,
       country:group.country,
       organizer_name:group.organizer_name,
-      is_series:group.is_series,
+      is_series:false,
       series_id:group.series_id,
-      series_round_number:round.series_round_number||(group.is_series?index+1:null)
+      series_round_number:round.series_round_number||null
     })));
     fillSelect(document.getElementById('countryFilter'),allGroups.map(t=>cspTournamentPlace(t).country));
     fillSelect(document.getElementById('cityFilter'),allGroups.map(t=>cspTournamentPlace(t).city));
