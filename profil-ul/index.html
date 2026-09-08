@@ -1551,6 +1551,7 @@ function adminTournamentBucket(t){
     const now=Date.now();
     const start=t?.starts_at ? new Date(t.starts_at).getTime() : NaN;
     const end=t?.ends_at ? new Date(t.ends_at).getTime() : NaN;
+    if(!Number.isFinite(start)) return 'unscheduled';
     const effectiveEnd=Number.isFinite(end)?end:(Number.isFinite(start)?start+(24*60*60*1000):NaN);
 
     if(Number.isFinite(effectiveEnd) && effectiveEnd < now) return 'archive';
@@ -1558,14 +1559,18 @@ function adminTournamentBucket(t){
     return 'upcoming';
   }
 
-  if(status==='active') return 'active';
   if(status==='archived' || status==='completed' || status==='cancelled') return 'archive';
   if(t?.date){
     const today=new Date();today.setHours(0,0,0,0);
     const eventDate=new Date(String(t.date).slice(0,10)+'T00:00:00');
-    if(!Number.isNaN(eventDate.getTime()) && eventDate<today)return 'archive';
+    if(!Number.isNaN(eventDate.getTime())){
+      if(eventDate>today) return 'upcoming';
+      if(status==='active' || eventDate.getTime()===today.getTime()) return 'active';
+      return 'archive';
+    }
   }
-  return 'upcoming';
+  if(status==='active') return 'active';
+  return 'unscheduled';
 }
 function adminTournamentStatusLabel(t){
   const bucket=adminTournamentBucket(t);
@@ -1603,23 +1608,19 @@ function adminTournamentTarget(t){
   const id=encodeURIComponent(t.id);
   return t._source==='event' ? '/udalost/?id='+id : '/turnament/?id='+id;
 }
-function limitRecurringTournamentRows(items){
-  const standalone=[];
-  const recurring=new Map();
-  items.forEach(item=>{
-    if(!item._series_id){standalone.push(item);return;}
-    const key=String(item._series_id);
-    if(!recurring.has(key))recurring.set(key,[]);
-    recurring.get(key).push(item);
-  });
-  recurring.forEach(group=>{
-    const sorted=[...group].sort((a,b)=>adminTournamentSortValue(a)-adminTournamentSortValue(b));
-    const active=sorted.filter(item=>adminTournamentBucket(item)==='active');
-    const upcoming=sorted.find(item=>adminTournamentBucket(item)==='upcoming');
-    standalone.push(...active);
-    if(upcoming)standalone.push(upcoming);
-  });
-  return standalone;
+function selectCurrentOrNextTournamentRow(items){
+  const visible=(Array.isArray(items)?items:[])
+    .filter(item=>{
+      const bucket=adminTournamentBucket(item);
+      return bucket==='active'||bucket==='upcoming';
+    })
+    .sort((a,b)=>adminTournamentSortValue(a)-adminTournamentSortValue(b));
+
+  const current=visible.find(item=>adminTournamentBucket(item)==='active');
+  if(current) return [current];
+
+  const next=visible.find(item=>adminTournamentBucket(item)==='upcoming');
+  return next?[next]:[];
 }
 function renderAdminTournamentDashboard(){
   const list=document.getElementById('adminTournamentList');
@@ -1627,10 +1628,18 @@ function renderAdminTournamentDashboard(){
   const loading=document.getElementById('adminTournamentsLoading');
   if(!list||!empty||!loading)return;
 
+  const selected=adminTournamentRows[0]||null;
+  if(selected) adminTournamentFilter=adminTournamentBucket(selected);
+
   const counts={upcoming:0,active:0};
   adminTournamentRows.forEach(t=>counts[adminTournamentBucket(t)]++);
   document.getElementById('adminTournamentUpcomingCount').textContent=String(counts.upcoming);
   document.getElementById('adminTournamentActiveCount').textContent=String(counts.active);
+  document.querySelectorAll('[data-admin-tournament-filter]').forEach(button=>{
+    const bucket=button.dataset.adminTournamentFilter;
+    button.hidden=!counts[bucket];
+    button.classList.toggle('active',bucket===adminTournamentFilter);
+  });
 
   let rows=adminTournamentRows.filter(t=>adminTournamentBucket(t)===adminTournamentFilter);
   rows.sort((a,b)=>adminTournamentSortValue(a)-adminTournamentSortValue(b));
@@ -1720,11 +1729,7 @@ async function loadAdminTournaments(){
       .filter(e=>!linkedEventIds.has(String(e.id)))
       .map(e=>({...e,_source:'event',_series_id:e.series_id||null,_series_round_number:e.series_round_number||null}));
 
-    adminTournamentRows=limitRecurringTournamentRows([...tournaments,...eventTournaments]
-      .filter(item=>{
-        const bucket=adminTournamentBucket(item);
-        return bucket==='active'||bucket==='upcoming';
-      }));
+    adminTournamentRows=selectCurrentOrNextTournamentRow([...tournaments,...eventTournaments]);
     renderAdminTournamentDashboard();
   }catch(err){
     console.error('[profil-ul] tournaments/events:',err);
