@@ -27,10 +27,10 @@ button{font:inherit}
 .hidden{display:none!important}
 .error{border-color:rgba(255,107,107,.32);color:#ffd1d1}
 .hero{margin-top:28px;border:1px solid var(--line);border-radius:24px;overflow:hidden;background:radial-gradient(circle at 100% 0,rgba(212,168,67,.15),transparent 35%),linear-gradient(145deg,#111116,#09090c 68%)}
-.hero-main{padding:28px 30px 24px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+.hero-main{padding:22px 24px 20px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
 .eyebrow{display:flex;align-items:center;gap:9px;margin-bottom:10px;color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
 .eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 5px rgba(34,211,107,.09)}
-h1{font-size:clamp(2rem,5vw,4.25rem);line-height:.98;letter-spacing:-.055em;margin:0;max-width:900px}
+h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1;letter-spacing:-.045em;margin:0;max-width:900px}
 .hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:16px;color:#b2b2bb;font-size:.88rem}
 .badge{display:inline-flex;align-items:center;min-height:29px;padding:0 9px;border:1px solid var(--line-strong);border-radius:999px;font-size:.75rem;font-weight:850;color:#ededf0;background:rgba(255,255,255,.025)}
 .hero-actions{display:flex;flex-wrap:wrap;gap:9px;justify-content:flex-end}
@@ -56,6 +56,12 @@ h1{font-size:clamp(2rem,5vw,4.25rem);line-height:.98;letter-spacing:-.055em;marg
 .panel-head{display:flex;align-items:end;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid var(--line)}
 .panel-head h2{margin:0 0 3px;font-size:1.2rem;letter-spacing:-.02em}
 .panel-head p{margin:0;color:var(--muted);font-size:.8rem}
+.standings-tools{display:flex;align-items:center;gap:10px}
+.player-search{position:relative;display:block;min-width:240px}
+.player-search span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gold);pointer-events:none}
+.player-search input{width:100%;height:42px;padding:0 38px;border:1px solid var(--line-strong);border-radius:10px;background:#09090c;color:var(--text);outline:0}
+.player-search input:focus{border-color:rgba(34,211,107,.55);box-shadow:0 0 0 3px rgba(34,211,107,.08)}
+.matrix-hint{display:none;padding:9px 15px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.75rem}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;min-width:850px}
 th{padding:12px 16px;color:#777781;font-size:.66rem;letter-spacing:.08em;text-align:left;text-transform:uppercase;background:#09090c;border-bottom:1px solid var(--line)}
@@ -63,6 +69,18 @@ th.num,td.num{text-align:right}
 td{padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.065);vertical-align:middle;font-size:.88rem}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:rgba(255,255,255,.02)}
+.matrix-scroll{max-width:100%;overflow:auto;overscroll-behavior-inline:contain}
+.matrix-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}
+.matrix-table th{position:sticky;top:0;z-index:3;height:86px;padding:10px 11px;background:#09090d;vertical-align:bottom;white-space:nowrap}
+.matrix-table td{height:58px;padding:8px 11px;background:var(--surface);white-space:nowrap}
+.matrix-table tbody tr:nth-child(even) td{background:#0f0f14}.matrix-table tbody tr:hover td{background:#15151b}
+.matrix-rank{position:sticky!important;left:0;z-index:5!important;width:58px;min-width:58px;text-align:center!important;border-right:1px solid var(--line)}
+.matrix-player{position:sticky!important;left:58px;z-index:5!important;width:220px;min-width:220px;border-right:1px solid var(--line)}
+.matrix-points{position:sticky!important;left:278px;z-index:5!important;width:84px;min-width:84px;text-align:right!important;border-right:1px solid var(--line-strong)}
+.matrix-table tbody .matrix-rank,.matrix-table tbody .matrix-player,.matrix-table tbody .matrix-points{z-index:2!important}
+.matrix-total{min-width:88px;text-align:center!important}.matrix-round{width:132px;min-width:132px;text-align:center!important;border-left:1px solid rgba(255,255,255,.045)}
+.round-head-btn{width:100%;padding:0;border:0;background:transparent;color:var(--text);cursor:pointer;text-align:center}.round-head-btn strong,.round-head-btn span,.round-head-btn small{display:block}.round-head-btn strong{color:var(--gold);font-size:.75rem}.round-head-btn span{margin:5px 0 3px;font-size:.72rem}.round-head-btn small{max-width:112px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:.65rem}.round-head-btn:hover strong{color:var(--green)}
+.matrix-player .player{min-width:0}.matrix-points .points{font-size:1rem}.round-result{display:flex;align-items:center;justify-content:center;gap:8px}.result-place{display:grid;place-items:center;min-width:27px;height:27px;padding:0 5px;border-radius:8px;background:var(--surface3);font-weight:950}.result-place.top-1{color:#161006;background:linear-gradient(135deg,#f0ca62,#b98a2c)}.result-place.top-2{color:#17181b;background:linear-gradient(135deg,#e5e7eb,#8e949e)}.result-place.top-3{color:#1c1008;background:linear-gradient(135deg,#d59a68,#8c5935)}.result-points{color:var(--gold);font-size:.78rem;font-weight:900}.round-result.not-counted{opacity:.4}.round-missing{color:#55555f}.matrix-no-result td{padding:28px!important;text-align:center;color:var(--muted)}
 .rank{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--surface3);font-weight:950}
 .rank.top-1{color:#171006;background:linear-gradient(135deg,#f0ca62,#b98a2c)}
 .rank.top-2{color:#17181b;background:linear-gradient(135deg,#e5e7eb,#8e949e)}
@@ -111,6 +129,8 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   .round-date{grid-column:2}
   .round-copy{grid-column:2}
   .round-link{grid-column:3;grid-row:1/4}
+  .panel-head{align-items:stretch;flex-direction:column}
+  .player-search{min-width:0;width:100%}
 }
 @media(max-width:560px){
   .page{width:min(100% - 20px,1240px)}
@@ -129,6 +149,11 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   .round-list{padding:5px 12px 12px}
   .round-row{grid-template-columns:70px minmax(0,1fr);gap:8px;padding:14px 2px}
   .round-link{grid-column:2;grid-row:auto;justify-self:start;margin-top:4px}
+  .matrix-hint{display:block}
+  .matrix-player{left:52px;width:154px;min-width:154px}
+  .matrix-rank{width:52px;min-width:52px}
+  .matrix-points{left:206px;width:72px;min-width:72px}
+  .matrix-table .player{min-width:0;gap:7px}.matrix-table .avatar{display:none}.matrix-table .player small{display:none}
 }
 </style>
 </head>
@@ -180,10 +205,12 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       <section class="panel" id="standingsPanel">
         <div class="panel-head">
           <div><h2>Rebríček</h2><p id="standingsNote">Aktualizuje sa po ukončení každého kola.</p></div>
+          <div class="standings-tools"><label class="player-search"><span>⌕</span><input id="playerSearch" type="search" autocomplete="off" placeholder="Hľadaj hráča" aria-label="Hľadať hráča v rebríčku"></label></div>
         </div>
-        <div class="table-wrap" id="standingsTableWrap">
-          <table>
-            <thead><tr><th>Poradie</th><th>Hráč</th><th class="num">Body</th><th class="num">Odohrané</th><th class="num">Víťazstvá</th><th class="num">2. miesta</th><th class="num">3. miesta</th><th>Posledné kolo</th></tr></thead>
+        <div class="matrix-hint">Tabuľku môžeš posúvať do strán. Meno hráča a body zostanú viditeľné.</div>
+        <div class="table-wrap matrix-scroll" id="standingsTableWrap">
+          <table class="matrix-table">
+            <thead id="standingsHead"></thead>
             <tbody id="standingsBody"></tbody>
           </table>
         </div>
@@ -212,6 +239,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
   const uuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   const initials=name=>String(name||'?').trim().split(/\s+/).map(part=>part[0]||'').join('').slice(0,2).toUpperCase();
+  const normalize=value=>String(value||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
   const date=value=>value?new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value)):'—';
   const dateTime=value=>value?new Intl.DateTimeFormat('sk-SK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)):'—';
 
@@ -299,27 +327,17 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     button.setAttribute('aria-expanded',String(opening));
     button.textContent=opening?'Zavrieť výsledky ↑':'Výsledková listina ↓';
   }
+  function playerKey(row){return String(row?.player_identity_id||row?.profile_id||normalize(row?.player_name||''))}
   function renderStandings(){
-    const empty=!standings.length;
-    $('standingsTableWrap').classList.toggle('hidden',empty);
-    $('standingsEmpty').classList.toggle('hidden',!empty);
-    $('standingsState').textContent=empty?'Čaká na výsledky':`${standings.length} hráčov`;
-    $('standingsBody').innerHTML=standings.map(row=>{
-      const position=Number(row.standing_position)||0;
-      const playerName=row.player_name||'Hráč';
-      const playerInner=`<span class="avatar">${esc(initials(playerName))}</span><span><strong>${esc(playerName)}</strong><small>${row.counted_rounds===row.rounds_played?`${Number(row.rounds_played)||0} započítaných kôl`:`${Number(row.counted_rounds)||0} z ${Number(row.rounds_played)||0} započítaných`}</small></span>`;
-      const player=row.profile_id?`<a class="player" href="/profil/?id=${encodeURIComponent(row.profile_id)}">${playerInner}</a>`:`<div class="player">${playerInner}</div>`;
-      return `<tr>
-        <td><span class="rank ${position<=3?`top-${position}`:''}">${position}</span></td>
-        <td>${player}</td>
-        <td class="num"><span class="points">${Number(row.total_points)||0}</span></td>
-        <td class="num">${Number(row.rounds_played)||0}</td>
-        <td class="num">${Number(row.victories)||0}</td>
-        <td class="num">${Number(row.runner_up_finishes)||0}</td>
-        <td class="num">${Number(row.third_places)||0}</td>
-        <td><span class="latest">${row.latest_round_number?`${Number(row.latest_round_number)}. kolo · +${Number(row.latest_round_points)||0} b`:'—'}</span></td>
-      </tr>`;
-    }).join('');
+    const empty=!standings.length,q=normalize($('playerSearch').value),visible=standings.filter(row=>!q||normalize(row.player_name).includes(q));
+    $('standingsTableWrap').classList.toggle('hidden',empty);$('standingsEmpty').classList.toggle('hidden',!empty);$('standingsState').textContent=empty?'Čaká na výsledky':`${standings.length} hráčov`;
+    $('standingsHead').innerHTML=`<tr><th class="matrix-rank">#</th><th class="matrix-player">Hráč</th><th class="matrix-points">Body</th><th class="matrix-total">Odohrané</th><th class="matrix-total">Výhry</th><th class="matrix-total">Pódiá</th>${rounds.map(round=>{const number=Number(round.series_round_number)||0,state=roundStatus(round);return`<th class="matrix-round"><button class="round-head-btn" type="button" data-matrix-round="${number}" title="Otvoriť ${number}. kolo"><strong>${number}. kolo</strong><span>${esc(date(round.starts_at))}</span><small>${esc(state.label)}</small></button></th>`}).join('')}</tr>`;
+    const resultMap=new Map(roundResults.map(result=>[`${playerKey(result)}:${Number(result.series_round_number)||0}`,result]));
+    $('standingsBody').innerHTML=visible.map(row=>{
+      const position=Number(row.standing_position)||0,playerName=row.player_name||'Hráč',podiums=(Number(row.victories)||0)+(Number(row.runner_up_finishes)||0)+(Number(row.third_places)||0),playerInner=`<span class="avatar">${esc(initials(playerName))}</span><span><strong>${esc(playerName)}</strong><small>${Number(row.counted_rounds)||0} započítaných výsledkov</small></span>`,player=row.profile_id?`<a class="player" href="/profil/?id=${encodeURIComponent(row.profile_id)}">${playerInner}</a>`:`<div class="player">${playerInner}</div>`;
+      const cells=rounds.map(round=>{const result=resultMap.get(`${playerKey(row)}:${Number(round.series_round_number)||0}`);if(!result)return'<td class="matrix-round"><span class="round-missing">—</span></td>';const place=Number(result.final_position)||0,points=Number(result.points)||0,counted=result.is_counted!==false;return`<td class="matrix-round" title="${counted?'Započítaný výsledok':'Nezapočítaný výsledok'}"><div class="round-result ${counted?'':'not-counted'}"><span class="result-place ${place<=3?`top-${place}`:''}">${place}.</span><span class="result-points">${points} b</span></div></td>`}).join('');
+      return`<tr><td class="matrix-rank"><span class="rank ${position<=3?`top-${position}`:''}">${position}</span></td><td class="matrix-player">${player}</td><td class="matrix-points"><span class="points">${Number(row.total_points)||0}</span></td><td class="matrix-total">${Number(row.rounds_played)||0}</td><td class="matrix-total">${Number(row.victories)||0}</td><td class="matrix-total">${podiums}</td>${cells}</tr>`;
+    }).join('')||`<tr class="matrix-no-result"><td colspan="${6+rounds.length}">Hráč s týmto menom sa v rebríčku nenašiel.</td></tr>`;
   }
   function renderHeader(meta){
     const completed=rounds.filter(round=>round.round_status==='completed').length;
@@ -378,15 +396,21 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   }
   function bindTabs(){
     document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+    $('playerSearch').addEventListener('input',renderStandings);
+    $('standingsHead').addEventListener('click',event=>{
+      const button=event.target.closest('[data-matrix-round]');
+      if(button)openRoundDetail(Number(button.dataset.matrixRound)||0);
+    });
   }
-  function openRequestedRound(){
-    if(!requestedRound)return;
+  function openRoundDetail(roundNumber){
+    if(!roundNumber)return;
     activateTab('rounds');
-    const roundItem=document.querySelector(`[data-series-round="${requestedRound}"]`);
-    const button=document.querySelector(`[data-round-results][data-round-number="${requestedRound}"]`);
+    const roundItem=document.querySelector(`[data-series-round="${roundNumber}"]`);
+    const button=document.querySelector(`[data-round-results][data-round-number="${roundNumber}"]`);
     if(button)setRoundResultsOpen(button,true);
     if(roundItem)roundItem.scrollIntoView({behavior:'auto',block:'start'});
   }
+  function openRequestedRound(){if(requestedRound)openRoundDetail(requestedRound)}
   async function optionalNames(){
     const tasks=[];
     if(series.owner_id)tasks.push(db.from('profiles').select('full_name').eq('id',series.owner_id).maybeSingle().then(result=>({ownerName:result.data?.full_name||''})).catch(()=>({})));
@@ -401,7 +425,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
         db.from('event_series').select('id,owner_id,club_id,title,event_type,sport,discipline,total_rounds,status,visibility,ranking_config').eq('id',seriesId).maybeSingle(),
         db.from('event_series_public_rounds').select('*').eq('series_id',seriesId).order('series_round_number',{ascending:true}),
         db.from('event_series_standings').select('*').eq('series_id',seriesId).order('standing_position',{ascending:true}),
-        db.from('event_series_round_results').select('series_round_number,tournament_id,profile_id,player_name,final_position,points,is_counted').eq('series_id',seriesId).order('series_round_number',{ascending:true}).order('final_position',{ascending:true}),
+        db.from('event_series_round_results').select('series_round_number,tournament_id,player_identity_id,profile_id,player_name,final_position,points,is_counted').eq('series_id',seriesId).order('series_round_number',{ascending:true}).order('final_position',{ascending:true}),
         db.from('event_series_social_counts').select('follower_count,like_count').eq('series_id',seriesId).maybeSingle()
       ]);
       if(seriesResult.error)throw seriesResult.error;
