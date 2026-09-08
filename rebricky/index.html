@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050505">
+<meta name="description" content="Turnajové rebríčky klubu alebo zväzu v Connect Sports Pro.">
+<title>Rebríčky · Connect Sports Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#050505;--panel:#0d0d10;--panel2:#131318;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);--text:#f4f4f5;--muted:#92929c;--gold:#d6ab48;--green:#21d66b;--green-ink:#041b0c;--danger:#ff6b6b}
+*{box-sizing:border-box}
+html{color-scheme:dark;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.45}
+a{color:inherit;text-decoration:none}button{font:inherit}.hidden{display:none!important}
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;padding:24px 18px;border-right:1px solid var(--line);background:#080809;z-index:30}
+.brand{display:block;padding:2px 8px 24px}.brand img{display:block;width:210px;max-width:100%;height:auto}
+.nav-section{margin:20px 11px 8px;color:#696972;font-size:.65rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:11px;min-height:46px;margin:3px 0;padding:0 13px;border:1px solid transparent;border-radius:12px;color:#babac1;font-size:.88rem;font-weight:800}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.025)}.nav-item.active{color:var(--green);border-color:rgba(33,214,107,.25);background:rgba(33,214,107,.075)}
+.nav-item .icon{display:grid;place-items:center;width:20px;color:inherit}
+.main{min-width:0}.topbar{min-height:76px;padding:0 34px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.mobile-toggle{display:none;width:44px;height:44px;border:1px solid var(--line);border-radius:11px;background:var(--panel);color:var(--text);cursor:pointer}
+.profile-pill{display:flex;align-items:center;gap:10px;color:#c9c9ce;font-size:.8rem;font-weight:850}.avatar{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#202028;border:1px solid var(--line);color:var(--gold);font-weight:950}
+.page{width:min(1120px,calc(100% - 56px));margin:42px auto 80px}
+.eyebrow{color:var(--gold);font-size:.68rem;font-weight:950;letter-spacing:.13em;text-transform:uppercase;margin-bottom:9px}
+h1{margin:0;font-size:clamp(2.3rem,5vw,4.4rem);line-height:1;letter-spacing:-.055em}.intro{margin:14px 0 0;max-width:680px;color:var(--muted);font-size:.95rem}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:30px 0 14px}
+.filters{display:flex;gap:7px;padding:5px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.filter{min-height:42px;padding:0 15px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:900;cursor:pointer}.filter.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}.filter b{margin-left:5px;color:var(--gold)}
+.new-season{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 15px;border-radius:11px;background:var(--green);color:var(--green-ink);font-size:.82rem;font-weight:950}
+.loading,.empty,.error{padding:46px 24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);text-align:center;color:var(--muted)}.error{border-color:rgba(255,107,107,.28);color:#ffd0d0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.ranking-card{position:relative;display:flex;flex-direction:column;min-height:225px;padding:21px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#111115,#0a0a0d);transition:.16s ease;overflow:hidden}
+.ranking-card::after{content:'';position:absolute;right:-55px;top:-70px;width:170px;height:170px;border-radius:50%;background:rgba(214,171,72,.075);pointer-events:none}.ranking-card:hover{transform:translateY(-2px);border-color:rgba(214,171,72,.38)}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.status{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-size:.65rem;font-weight:950;letter-spacing:.09em;text-transform:uppercase}.status::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}.status.completed{color:#9d9da6}.sport{position:relative;z-index:1;color:#b7b7bf;font-size:.7rem;font-weight:850}
+.ranking-card h2{position:relative;z-index:1;margin:18px 0 8px;font-size:1.42rem;line-height:1.14;letter-spacing:-.025em}.meta{position:relative;z-index:1;color:var(--muted);font-size:.78rem}
+.card-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto;padding-top:22px}.stat{padding-right:8px;border-right:1px solid var(--line)}.stat:last-child{border:0}.stat small{display:block;color:#777781;font-size:.6rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.stat strong{display:block;margin-top:4px;font-size:.94rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat strong.gold{color:var(--gold)}
+.card-link{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);color:var(--green);font-size:.78rem;font-weight:950}
+.backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.shell{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:0;width:min(300px,86vw);transform:translateX(-102%);transition:.2s ease;box-shadow:24px 0 70px rgba(0,0,0,.7)}body.menu-open .sidebar{transform:none}body.menu-open .backdrop{display:block}.mobile-toggle{display:grid;place-items:center}.topbar{padding:0 20px}.page{width:min(100% - 32px,1120px);margin-top:30px}}
+@media(max-width:560px){.page{width:min(100% - 20px,1120px);margin-top:24px}.topbar{min-height:66px;padding:0 10px}.profile-pill span:last-child{display:none}.toolbar{align-items:stretch;flex-direction:column}.filters{width:100%}.filter{flex:1;padding:0 9px}.new-season{width:100%}.ranking-card{min-height:215px;padding:18px}.card-stats{gap:5px}.stat strong{font-size:.84rem}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/" aria-label="Connect Sports Pro"><img src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
+    <a href="/" class="nav-item"><span class="icon">⌂</span>Domov</a>
+    <a href="/profil-ul/" class="nav-item"><span class="icon">●</span>Profil</a>
+    <div class="nav-section">Súťaž</div>
+    <a href="/ligy/" class="nav-item"><span class="icon">◆</span>Ligy</a>
+    <a href="/turnament/" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
+    <a href="/rebricky/" class="nav-item active" aria-current="page"><span class="icon">▤</span>Rebríčky</a>
+    <div class="nav-section">Klub</div>
+    <a href="#" class="nav-item"><span class="icon">□</span>Rezervácie</a>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="mobile-toggle" id="mobileToggle" type="button" aria-label="Otvoriť menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <div></div>
+      <div class="profile-pill"><span class="avatar" id="avatar">CSP</span><span id="profileName">Profil</span></div>
+    </header>
+    <main class="page">
+      <div class="eyebrow">Turnajová história a body</div>
+      <h1>Rebríčky</h1>
+      <p class="intro">Dlhodobé poradie a výsledky turnajových kôl, ktoré organizuje váš klub alebo zväz.</p>
+      <div class="toolbar">
+        <div class="filters" aria-label="Filtrovať rebríčky">
+          <button class="filter active" type="button" data-filter="active">Aktívne <b id="activeCount">0</b></button>
+          <button class="filter" type="button" data-filter="completed">Ukončené <b id="completedCount">0</b></button>
+        </div>
+        <a class="new-season" href="/udalost/">+ Vytvoriť sezónu</a>
+      </div>
+      <div class="loading" id="loading">Načítavam rebríčky…</div>
+      <div class="error hidden" id="errorBox"></div>
+      <div class="grid hidden" id="rankingGrid"></div>
+      <div class="empty hidden" id="emptyBox">V tejto časti zatiaľ nie sú žiadne rebríčky.</div>
+    </main>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  const db=window.cspAuth?.client;
+  const $=id=>document.getElementById(id);
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+  const initials=value=>String(value||'CSP').trim().split(/\s+/).map(part=>part[0]||'').join('').slice(0,2).toUpperCase();
+  let rows=[],filter='active';
+
+  function toggleMenu(open){
+    document.body.classList.toggle('menu-open',open);
+    $('mobileToggle').setAttribute('aria-expanded',String(open));
+  }
+  $('mobileToggle').addEventListener('click',()=>toggleMenu(!document.body.classList.contains('menu-open')));
+  $('backdrop').addEventListener('click',()=>toggleMenu(false));
+
+  function normalizedState(item){
+    const total=Number(item.total_rounds)||Number(item.roundCount)||0;
+    if(total>0 && Number(item.completedRounds)>=total)return 'completed';
+    return ['completed','archived'].includes(String(item.status||'').toLowerCase())?'completed':'active';
+  }
+  function render(){
+    const counts={active:0,completed:0};
+    rows.forEach(row=>counts[normalizedState(row)]++);
+    $('activeCount').textContent=String(counts.active);
+    $('completedCount').textContent=String(counts.completed);
+    const visible=rows.filter(row=>normalizedState(row)===filter);
+    $('rankingGrid').classList.toggle('hidden',!visible.length);
+    $('emptyBox').classList.toggle('hidden',!!visible.length);
+    $('emptyBox').textContent=filter==='active'?'Nemáte žiadny aktívny rebríček.':'Nemáte žiadny ukončený rebríček.';
+    $('rankingGrid').innerHTML=visible.map(row=>{
+      const state=normalizedState(row);
+      const total=Number(row.total_rounds)||row.roundCount||0;
+      const leader=row.leader||'Čaká na výsledky';
+      const sport=[row.sport,row.discipline].filter(Boolean).join(' · ')||row.event_type||'Turnaj';
+      return `<a class="ranking-card" href="/rebricek/?id=${encodeURIComponent(row.id)}">
+        <div class="card-top"><span class="status ${state}">${state==='completed'?'Ukončený':'Aktívny'}</span><span class="sport">${esc(sport)}</span></div>
+        <h2>${esc(row.title||'Turnajový rebríček')}</h2>
+        <div class="meta">Priebežne sa aktualizuje po uzavretí každého turnaja.</div>
+        <div class="card-stats">
+          <div class="stat"><small>Odohrané</small><strong>${Number(row.completedRounds)||0} / ${total}</strong></div>
+          <div class="stat"><small>Hráči</small><strong>${Number(row.playerCount)||0}</strong></div>
+          <div class="stat"><small>Vedie</small><strong class="gold">${esc(leader)}</strong></div>
+        </div>
+        <div class="card-link"><span>Otvoriť rebríček</span><span>→</span></div>
+      </a>`;
+    }).join('');
+  }
+
+  document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
+    filter=button.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));
+    render();
+  }));
+
+  async function init(){
+    if(!db){$('loading').classList.add('hidden');$('errorBox').textContent='Pripojenie k Connect Sports Pro nie je dostupné.';$('errorBox').classList.remove('hidden');return;}
+    try{
+      const auth=await cspAuth.withTimeout(cspAuth.getSession(),8000,'getSession()');
+      const session=auth.data?.session;
+      if(!session){location.replace('/login/?returnTo='+encodeURIComponent('/rebricky/'));return;}
+      const profileResult=await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user),8000,'getCurrentProfile()');
+      if(profileResult.error)throw profileResult.error;
+      const profile=profileResult.data||{};
+      const role=String(profile.role||'player').toLowerCase();
+      const canManage=profile.is_admin===true||role==='admin'||role==='club'||role==='organization'||String(profile.plan||'').toLowerCase()==='ultra';
+      if(!canManage){location.replace('/profil/');return;}
+      $('profileName').textContent=profile.full_name||session.user.email||'Profil';
+      $('avatar').textContent=initials(profile.full_name||session.user.email);
+
+      const rankingResult=await db.from('event_series').select('id,title,event_type,sport,discipline,total_rounds,status,visibility,ranking_config,created_at').eq('owner_id',session.user.id).order('created_at',{ascending:false});
+      if(rankingResult.error)throw rankingResult.error;
+      const definitions=(rankingResult.data||[]).filter(item=>String(item.status||'').toLowerCase()!=='cancelled');
+      const ids=definitions.map(item=>item.id);
+      let rounds=[],standings=[];
+      if(ids.length){
+        const [roundResult,standingResult]=await Promise.all([
+          db.from('event_series_public_rounds').select('series_id,round_status').in('series_id',ids),
+          db.from('event_series_standings').select('series_id,player_name,standing_position').in('series_id',ids).order('standing_position',{ascending:true})
+        ]);
+        if(roundResult.error)throw roundResult.error;
+        if(standingResult.error)throw standingResult.error;
+        rounds=roundResult.data||[];standings=standingResult.data||[];
+      }
+      rows=definitions.map(item=>{
+        const itemRounds=rounds.filter(round=>String(round.series_id)===String(item.id));
+        const itemStandings=standings.filter(row=>String(row.series_id)===String(item.id));
+        return {...item,roundCount:itemRounds.length,completedRounds:itemRounds.filter(round=>round.round_status==='completed').length,playerCount:itemStandings.length,leader:itemStandings.find(row=>Number(row.standing_position)===1)?.player_name||''};
+      });
+      $('loading').classList.add('hidden');
+      render();
+    }catch(error){
+      console.error('[rankings]',error);
+      $('loading').classList.add('hidden');$('rankingGrid').classList.add('hidden');$('emptyBox').classList.add('hidden');
+      $('errorBox').textContent='Rebríčky sa nepodarilo načítať. Skúste stránku obnoviť.';$('errorBox').classList.remove('hidden');
+    }
+  }
+  init();
+})();
+</script>
+<script src="/assets/csp-translate.js?v=20260814-3" defer></script>
+</body>
+</html>
