@@ -60,6 +60,10 @@ textarea{min-height:110px;resize:vertical}
 .series-dates{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 .series-date-row{padding:11px;border:1px solid var(--line);border-radius:11px;background:var(--field)}
 .series-date-row label{color:var(--gold)}
+.series-scoring{margin-top:14px;padding:14px;border:1px solid rgba(30,200,106,.24);border-radius:11px;background:rgba(30,200,106,.055)}
+.series-scoring strong{display:block;color:var(--green);margin-bottom:7px}
+.series-scoring-points{font-weight:900;color:var(--text);line-height:1.55}
+.series-scoring-note{margin-top:6px;color:var(--soft);font-size:12px;line-height:1.45}
 .series-schedule{display:grid;gap:7px;margin-top:10px}
 .series-schedule a{display:flex;justify-content:space-between;gap:12px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#0d0d11}
 .series-schedule a.current{border-color:rgba(212,168,67,.48);color:var(--gold)}
@@ -155,6 +159,11 @@ textarea{min-height:110px;resize:vertical}
             <button class="btn btn-dark" id="weeklyDatesBtn" type="button">Nastaviť týždenne</button>
           </div>
           <div class="series-dates" id="seriesDatesList"></div>
+          <div class="series-scoring" id="seriesScoringPanel">
+            <strong>Bodovanie série</strong>
+            <div class="series-scoring-points" id="seriesScoringPoints"></div>
+            <div class="series-scoring-note" id="seriesScoringNote"></div>
+          </div>
         </div>
 
         <div>
@@ -284,6 +293,17 @@ textarea{min-height:110px;resize:vertical}
   };
 
   const seriesEnabled = () => $('multiDateEnabled').value === 'true';
+  const isCardSport = () => ['karty','cards','card'].includes($('sport').value.trim().toLowerCase());
+
+  function updateSeriesScoring(){
+    const card=isCardSport();
+    $('seriesScoringPoints').textContent=card
+      ? '1. 80 · 2. 60 · 3. 48 · 4. 40 · 5.–6. 28 · 7.–8. 20 · 9.+ 12 bodov'
+      : '1. 200 · 2. 150 · 3. 120 · 4. 100 · 5.–6. 70 · 7.–8. 50 · 9.+ 30 bodov';
+    $('seriesScoringNote').textContent=card
+      ? 'Kartové bodovanie sa nastaví automaticky. Bez bonusu za samotnú účasť.'
+      : 'Športové bodovanie CSP. Bez bonusu za samotnú účasť.';
+  }
 
   function friendlyError(error){
     const raw = String(error?.message || error || 'Udalosť sa nepodarilo uložiť.');
@@ -334,6 +354,7 @@ textarea{min-height:110px;resize:vertical}
     if(enabled){
       if(!$('roundCount').value) $('roundCount').value = '2';
       renderSeriesDateInputs(values);
+      updateSeriesScoring();
     }else{
       $('seriesDatesList').innerHTML = '';
       $('roundCount').value = '';
@@ -557,7 +578,7 @@ textarea{min-height:110px;resize:vertical}
     if(currentEvent.series_id){
       const [seriesResult,scheduleResult] = await Promise.all([
         db.from('event_series')
-          .select('id,total_rounds,title,status,visibility')
+          .select('id,total_rounds,title,status,visibility,ranking_config')
           .eq('id',currentEvent.series_id)
           .maybeSingle(),
         db.from('events')
@@ -855,6 +876,7 @@ textarea{min-height:110px;resize:vertical}
   $('shareBtn').addEventListener('click', shareEvent);
   $('copyLinkBtn').addEventListener('click', copyLink);
   $('multiDateEnabled').addEventListener('change',()=>syncSeriesControls());
+  $('sport').addEventListener('input',updateSeriesScoring);
   $('roundCount').addEventListener('input',()=>{
     if(seriesEnabled()) renderSeriesDateInputs();
   });
@@ -867,6 +889,21 @@ textarea{min-height:110px;resize:vertical}
   $('weeklyDatesBtn').addEventListener('click',setWeeklyDates);
 
   resetSeriesControls();
+
+  if(!params.get('id')){
+    const presetSport=params.get('sport');
+    const presetDiscipline=params.get('discipline');
+    if(presetSport)$('sport').value=presetSport;
+    if(presetDiscipline)$('discipline').value=presetDiscipline;
+    if(params.get('series')==='1'){
+      $('eventType').value='Turnaj';
+      $('multiDateEnabled').value='true';
+      syncSeriesControls();
+      $('pageTitle').textContent='Vytvoriť sezónu';
+      $('pageSubtitle').textContent='Každý termín vytvorí samostatné kolo s vlastným turnajom a výsledkami.';
+    }
+    updateSeriesScoring();
+  }
 
   if(!db){
     show('Supabase klient nie je dostupný.', true);
