@@ -153,14 +153,14 @@ textarea{min-height:110px;resize:vertical}
         <div class="full series-box hidden" id="seriesDatesPanel">
           <div class="series-box-head">
             <div>
-              <div class="series-box-title">Termíny série</div>
+              <div class="series-box-title">Termíny sezóny</div>
               <div class="series-box-note">Prvý termín je uvedený vyššie. Každé kolo bude samostatná udalosť s vlastnou predregistráciou.</div>
             </div>
             <button class="btn btn-dark" id="weeklyDatesBtn" type="button">Nastaviť týždenne</button>
           </div>
           <div class="series-dates" id="seriesDatesList"></div>
           <div class="series-scoring" id="seriesScoringPanel">
-            <strong>Bodovanie série</strong>
+            <strong>Bodovanie rebríčka</strong>
             <div class="series-scoring-points" id="seriesScoringPoints"></div>
             <div class="series-scoring-note" id="seriesScoringNote"></div>
           </div>
@@ -314,7 +314,7 @@ textarea{min-height:110px;resize:vertical}
       SERIES_DATES_MUST_BE_ASCENDING:'Termíny musia nasledovať chronologicky od prvého po posledné kolo.',
       REGISTRATION_DEADLINE_AFTER_FIRST_ROUND:'Deadline predregistrácie musí byť pred začiatkom prvého kola.',
       AUTHENTICATION_REQUIRED:'Pre vytvorenie alebo úpravu udalosti sa musíš prihlásiť.',
-      SERIES_NOT_FOUND_OR_ACCESS_DENIED:'Sériu sa nepodarilo nájsť alebo ju nemôžeš upravovať.'
+      SERIES_NOT_FOUND_OR_ACCESS_DENIED:'Sezónu sa nepodarilo nájsť alebo ju nemôžeš upravovať.'
     };
     const direct = Object.entries(messages).find(([code]) => raw.includes(code));
     if(direct) return direct[1];
@@ -375,7 +375,7 @@ textarea{min-height:110px;resize:vertical}
     if(rawDates.some(value=>!value)) throw Error('Vyplň dátum a čas každého kola.');
 
     const dates = rawDates.map(value=>new Date(value));
-    if(dates.some(date=>Number.isNaN(date.getTime()))) throw Error('Niektorý termín série nie je platný.');
+    if(dates.some(date=>Number.isNaN(date.getTime()))) throw Error('Niektorý termín sezóny nie je platný.');
     for(let i=1;i<dates.length;i++){
       if(dates[i].getTime()<=dates[i-1].getTime()){
         throw Error('Termíny musia nasledovať chronologicky od prvého po posledné kolo.');
@@ -493,7 +493,7 @@ textarea{min-height:110px;resize:vertical}
 
     const seriesMarkup = eventRow.series_id && currentSeries
       ? `<div class="item full">
-          <small>Séria</small>
+          <small>Sezóna</small>
           <strong>${esc(`${eventRow.series_round_number}. kolo z ${currentSeries.total_rounds}`)}</strong>
           <details style="margin-top:10px">
             <summary>Zobraziť všetky termíny</summary>
@@ -532,7 +532,7 @@ textarea{min-height:110px;resize:vertical}
 
     $('authorTools').classList.toggle('hidden', !isOwner);
     $('preregTools').classList.toggle('hidden', !isOwner);
-    $('deleteBtn').textContent = eventRow.series_id ? 'Zmazať celú sériu' : 'Zmazať udalosť';
+    $('deleteBtn').textContent = eventRow.series_id ? 'Zmazať celú sezónu' : 'Zmazať udalosť';
 
     if(isOwner){
       const preregUrl = new URL('/predregistracia/', window.location.origin);
@@ -729,7 +729,7 @@ textarea{min-height:110px;resize:vertical}
           Number(result.round_count || 1)
         );
         const targetId = result.event_ids?.[round-1] || result.first_event_id;
-        show('Séria a všetky jej termíny boli aktualizované.');
+        show('Sezóna a všetky jej termíny boli aktualizované.');
         window.location.href = `/udalost/?id=${encodeURIComponent(targetId)}`;
         return;
       }else if(editingEventId){
@@ -757,7 +757,7 @@ textarea{min-height:110px;resize:vertical}
 
         $('eventForm').reset();
         resetSeriesControls();
-        show(`Séria s ${insertSeries.data.round_count} termínmi bola vytvorená.`);
+        show(`Sezóna s ${insertSeries.data.round_count} termínmi bola vytvorená.`);
         window.location.href = `/udalost/?id=${encodeURIComponent(insertSeries.data.first_event_id)}`;
         return;
       }else{
@@ -795,7 +795,7 @@ textarea{min-height:110px;resize:vertical}
 
     const isSeries = !!currentEvent.series_id;
     const confirmed = window.confirm(isSeries
-      ? `Naozaj chceš natrvalo zmazať celú sériu „${currentEvent.title}“ vrátane všetkých jej kôl a predregistrácií?`
+      ? `Naozaj chceš natrvalo zmazať celú sezónu „${currentEvent.title}“ vrátane všetkých jej kôl a predregistrácií?`
       : `Naozaj chceš natrvalo zmazať udalosť „${currentEvent.title}“?`
     );
 
@@ -813,7 +813,7 @@ textarea{min-height:110px;resize:vertical}
 
       if(result.error) throw result.error;
 
-      show(isSeries ? 'Celá séria bola zmazaná.' : 'Udalosť bola zmazaná.');
+      show(isSeries ? 'Celá sezóna bola zmazaná.' : 'Udalosť bola zmazaná.');
       currentEvent = null;
 
       setTimeout(() => {
@@ -822,7 +822,7 @@ textarea{min-height:110px;resize:vertical}
     }catch(error){
       show(friendlyError(error), true);
       $('deleteBtn').disabled = false;
-      $('deleteBtn').textContent = isSeries ? 'Zmazať celú sériu' : 'Zmazať udalosť';
+      $('deleteBtn').textContent = isSeries ? 'Zmazať celú sezónu' : 'Zmazať udalosť';
     }
   }
 
