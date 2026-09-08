@@ -32,16 +32,8 @@ body{
 
 /* LEFT: brand + benefity */
 .left{display:flex;flex-direction:column;gap:30px}
-.brand-row{display:flex;align-items:center;gap:10px}
-.brand-mark{
-  width:44px;height:44px;border-radius:11px;
-  background:linear-gradient(135deg,var(--gold),#a8862e);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-size:1.5rem;color:#1a1000;letter-spacing:.04em;
-  box-shadow:0 6px 20px rgba(212,168,67,.25);
-}
-.brand-text{font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
-.brand-text .gold{color:var(--gold)}
+.brand-logo-link{display:block;width:min(100%,420px);line-height:0}
+.brand-logo{display:block;width:100%;height:auto;object-fit:contain}
 
 .headline{
   font-family:var(--display);
@@ -120,10 +112,9 @@ body{
 
     <!-- LEFT -->
     <div class="left">
-      <div class="brand-row">
-        <div class="brand-mark">C</div>
-        <div class="brand-text"><span class="gold">Connect</span><span class="white">Sports</span> <span class="gold">Pro</span></div>
-      </div>
+      <a class="brand-logo-link" href="/" aria-label="Connect Sports Pro – domov">
+        <img class="brand-logo" src="./csp-logo.png" width="2048" height="512" alt="Connect Sports Pro"/>
+      </a>
 
       <div>
         <div class="headline">Pripoj sa<br>k <span class="gold">CSP komunite</span></div>
