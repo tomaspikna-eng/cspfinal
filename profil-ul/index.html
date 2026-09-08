@@ -688,8 +688,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
   font-family:var(--mono);font-size:.66rem
 }
 .admin-tournament-list{display:flex;flex-direction:column}
-.admin-tournament-series{border-bottom:1px solid var(--line2)}
-.admin-tournament-series:last-child{border-bottom:none}
 .admin-tournament-row{
   display:grid;grid-template-columns:minmax(0,1.4fr) minmax(120px,.7fr) minmax(120px,.7fr) auto;
   gap:14px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line2);
@@ -697,25 +695,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
 }
 .admin-tournament-row:last-child{border-bottom:none}
 .admin-tournament-row:hover{background:rgba(255,255,255,.025)}
-.admin-tournament-series > .admin-tournament-row{border-bottom:none}
-.admin-series-summary{grid-template-columns:minmax(0,1.4fr) minmax(120px,.7fr) minmax(120px,.7fr) auto auto}
-.admin-series-arrow{
-  width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);
-  border-radius:8px;color:var(--gold);font-size:.82rem;transition:.16s
-}
-.admin-tournament-series.open .admin-series-arrow{transform:rotate(180deg)}
-.admin-series-rounds{display:none;border-top:1px solid var(--line2);background:rgba(0,0,0,.2);padding:5px 16px 9px}
-.admin-tournament-series.open .admin-series-rounds{display:block}
-.admin-series-round{
-  display:grid;grid-template-columns:76px minmax(0,1fr) minmax(120px,.7fr) auto;
-  gap:12px;align-items:center;padding:11px 8px;border-bottom:1px solid var(--line2);cursor:pointer
-}
-.admin-series-round:last-child{border-bottom:none}
-.admin-series-round:hover{background:rgba(255,255,255,.025)}
-.admin-series-round-no{font-family:var(--mono);font-size:.72rem;font-weight:800;color:var(--gold)}
-.admin-series-round-name{min-width:0;font-size:.8rem;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.admin-series-round-date{font-family:var(--mono);font-size:.72rem;color:var(--text-soft)}
-.admin-series-count{color:var(--muted2);font-family:var(--mono);font-size:.68rem;margin-top:4px}
 .admin-tournament-name{font-size:.92rem;font-weight:800;color:var(--text);margin-bottom:4px}
 .admin-tournament-meta{
   font-family:var(--mono);font-size:.69rem;color:var(--muted2);letter-spacing:.03em
@@ -747,13 +726,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
   .admin-tournament-row{grid-template-columns:1fr auto;gap:7px 12px}
   .admin-tournament-date,.admin-tournament-place{grid-column:1/2}
   .admin-tournament-status{grid-column:2/3;grid-row:1/3}
-  .admin-series-summary{grid-template-columns:1fr auto auto}
-  .admin-series-summary .admin-tournament-date,.admin-series-summary .admin-tournament-place{grid-column:1/2}
-  .admin-series-summary .admin-tournament-status{grid-column:2/3;grid-row:1/3}
-  .admin-series-arrow{grid-column:3/4;grid-row:1/3}
-  .admin-series-round{grid-template-columns:62px minmax(0,1fr) auto}
-  .admin-series-round-date{grid-column:2/3}
-  .admin-series-round .admin-tournament-status{grid-column:3/4;grid-row:1/3}
 }
 
 </style>
@@ -792,6 +764,7 @@ body.admin-dashboard-mode .content-side{display:none!important}
     <div class="nav-section">Súťaž</div>
     <a href="/ligy/" class="nav-item"><span class="icon">🏅</span>Ligy</a>
     <a href="/turnament/" class="nav-item"><span class="icon">🏆</span>Turnaje</a>
+    <a href="/rebricky/" class="nav-item"><span class="icon">▤</span>Rebríčky</a>
 
     <div class="nav-section">Klub</div>
     <a href="#" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
@@ -912,7 +885,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
               <div class="admin-tournament-filters">
                 <button class="admin-tournament-filter active" type="button" data-admin-tournament-filter="upcoming">Nasledujúce <b id="adminTournamentUpcomingCount">0</b></button>
                 <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="active">Aktívne <b id="adminTournamentActiveCount">0</b></button>
-                <button class="admin-tournament-filter" type="button" data-admin-tournament-filter="archive">Archív <b id="adminTournamentArchiveCount">0</b></button>
               </div>
             </div>
             <div class="admin-tournaments-loading" id="adminTournamentsLoading">Načítavam turnaje…</div>
@@ -1230,7 +1202,8 @@ function renderIdentity(){
     cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
 
-    document.body.classList.toggle('admin-dashboard-mode', isAdmin);
+    const canManageCompetitions = isAdmin || role === 'club' || role === 'organization' || plan === 'ultra';
+    document.body.classList.toggle('admin-dashboard-mode', canManageCompetitions);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
@@ -1573,35 +1546,29 @@ let adminTournamentFilter='upcoming';
 function adminTournamentBucket(t){
   const status=String(t?.status||'').toLowerCase();
 
-  if(t?._source==='series'){
-    const roundBuckets=(Array.isArray(t._rounds)?t._rounds:[]).map(adminTournamentBucket);
-    if(roundBuckets.includes('active')) return 'active';
-    if(roundBuckets.includes('upcoming')) return 'upcoming';
-    return 'archive';
-  }
-
   if(t?._source==='event'){
     if(status==='completed' || status==='cancelled') return 'archive';
     const now=Date.now();
     const start=t?.starts_at ? new Date(t.starts_at).getTime() : NaN;
     const end=t?.ends_at ? new Date(t.ends_at).getTime() : NaN;
+    const effectiveEnd=Number.isFinite(end)?end:(Number.isFinite(start)?start+(24*60*60*1000):NaN);
 
-    if(Number.isFinite(end) && end < now) return 'archive';
-    if(Number.isFinite(start) && start <= now && (!Number.isFinite(end) || end >= now)) return 'active';
+    if(Number.isFinite(effectiveEnd) && effectiveEnd < now) return 'archive';
+    if(Number.isFinite(start) && start <= now && effectiveEnd >= now) return 'active';
     return 'upcoming';
   }
 
   if(status==='active') return 'active';
   if(status==='archived' || status==='completed' || status==='cancelled') return 'archive';
+  if(t?.date){
+    const today=new Date();today.setHours(0,0,0,0);
+    const eventDate=new Date(String(t.date).slice(0,10)+'T00:00:00');
+    if(!Number.isNaN(eventDate.getTime()) && eventDate<today)return 'archive';
+  }
   return 'upcoming';
 }
 function adminTournamentStatusLabel(t){
   const bucket=adminTournamentBucket(t);
-  if(t?._source==='series'){
-    if(bucket==='active') return 'AKTÍVNA SÉRIA';
-    if(bucket==='archive') return 'UKONČENÁ SÉRIA';
-    return 'SÉRIA';
-  }
   if(bucket==='active') return 'AKTÍVNY';
   if(bucket==='archive'){
     const status=String(t?.status||'').toLowerCase();
@@ -1628,67 +1595,29 @@ function escAdminTournament(v){
   return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
 }
 function adminTournamentSortValue(t){
-  if(t?._source==='series'){
-    const rounds=Array.isArray(t._rounds)?t._rounds:[];
-    const bucket=adminTournamentBucket(t);
-    const candidates=rounds
-      .filter(round=>bucket==='archive' || adminTournamentBucket(round)===bucket)
-      .map(adminTournamentSortValue)
-      .filter(Number.isFinite);
-    if(!candidates.length) return 0;
-    return bucket==='archive' ? Math.max(...candidates) : Math.min(...candidates);
-  }
   const raw=t?._source==='event' ? t.starts_at : t.date;
   const ts=raw ? new Date(raw).getTime() : NaN;
   return Number.isFinite(ts) ? ts : 0;
 }
-function adminTournamentHasFinalResult(t){
-  const status=String(t?.status||'').toLowerCase();
-  return status==='completed' || status==='archived';
-}
 function adminTournamentTarget(t){
-  if(t?._series_id && t?._series_round_number && adminTournamentHasFinalResult(t)){
-    return '/seria/?id='+encodeURIComponent(t._series_id)+'&round='+encodeURIComponent(t._series_round_number);
-  }
   const id=encodeURIComponent(t.id);
   return t._source==='event' ? '/udalost/?id='+id : '/turnament/?id='+id;
 }
-function adminSeriesRows(t){
-  return (Array.isArray(t._rounds)?t._rounds:[]).map(round=>{
-    const bucket=adminTournamentBucket(round);
-    const dateValue=round._source==='event'?round.starts_at:round.date;
-    return `<div class="admin-series-round" data-admin-tournament-id="${escAdminTournament(round.id)}" data-admin-tournament-source="${escAdminTournament(round._source)}" data-admin-tournament-target="${escAdminTournament(adminTournamentTarget(round))}" role="link" tabindex="0">
-      <div class="admin-series-round-no">${Number(round._series_round_number)||'—'}. KOLO</div>
-      <div class="admin-series-round-name">${escAdminTournament(round.name||round.title||'Turnaj')}</div>
-      <div class="admin-series-round-date">${escAdminTournament(adminTournamentDateLabel(dateValue))}</div>
-      <div class="admin-tournament-status ${bucket}">${escAdminTournament(adminTournamentStatusLabel(round))}</div>
-    </div>`;
-  }).join('');
-}
-function groupAdminTournamentSeries(items,seriesRows){
-  const seriesById=new Map((Array.isArray(seriesRows)?seriesRows:[]).map(s=>[String(s.id),s]));
-  const grouped=new Map();
+function limitRecurringTournamentRows(items){
   const standalone=[];
+  const recurring=new Map();
   items.forEach(item=>{
-    const seriesId=item?._series_id?String(item._series_id):'';
-    if(!seriesId){standalone.push(item);return;}
-    if(!grouped.has(seriesId))grouped.set(seriesId,[]);
-    grouped.get(seriesId).push(item);
+    if(!item._series_id){standalone.push(item);return;}
+    const key=String(item._series_id);
+    if(!recurring.has(key))recurring.set(key,[]);
+    recurring.get(key).push(item);
   });
-  grouped.forEach((rounds,seriesId)=>{
-    rounds.sort((a,b)=>(Number(a._series_round_number)||0)-(Number(b._series_round_number)||0));
-    const definition=seriesById.get(seriesId)||{};
-    const first=rounds[0]||{};
-    standalone.push({
-      id:seriesId,
-      _source:'series',
-      _rounds:rounds,
-      title:definition.title||first._series_title||first.title||first.name||'Séria turnajov',
-      sport:definition.sport||first.sport||'',
-      discipline:definition.discipline||first.discipline||'',
-      total_rounds:Number(definition.total_rounds)||rounds.length,
-      status:definition.status||'active'
-    });
+  recurring.forEach(group=>{
+    const sorted=[...group].sort((a,b)=>adminTournamentSortValue(a)-adminTournamentSortValue(b));
+    const active=sorted.filter(item=>adminTournamentBucket(item)==='active');
+    const upcoming=sorted.find(item=>adminTournamentBucket(item)==='upcoming');
+    standalone.push(...active);
+    if(upcoming)standalone.push(upcoming);
   });
   return standalone;
 }
@@ -1698,24 +1627,19 @@ function renderAdminTournamentDashboard(){
   const loading=document.getElementById('adminTournamentsLoading');
   if(!list||!empty||!loading)return;
 
-  const counts={upcoming:0,active:0,archive:0};
+  const counts={upcoming:0,active:0};
   adminTournamentRows.forEach(t=>counts[adminTournamentBucket(t)]++);
   document.getElementById('adminTournamentUpcomingCount').textContent=String(counts.upcoming);
   document.getElementById('adminTournamentActiveCount').textContent=String(counts.active);
-  document.getElementById('adminTournamentArchiveCount').textContent=String(counts.archive);
 
   let rows=adminTournamentRows.filter(t=>adminTournamentBucket(t)===adminTournamentFilter);
-  rows.sort((a,b)=>{
-    const av=adminTournamentSortValue(a),bv=adminTournamentSortValue(b);
-    return adminTournamentFilter==='archive' ? bv-av : av-bv;
-  });
+  rows.sort((a,b)=>adminTournamentSortValue(a)-adminTournamentSortValue(b));
 
   loading.style.display='none';
   if(!rows.length){
     list.style.display='none';
     empty.style.display='block';
-    empty.textContent=adminTournamentFilter==='upcoming'?'Žiadne nasledujúce turnaje.':
-      adminTournamentFilter==='active'?'Žiadne aktívne turnaje.':'Archív je prázdny.';
+    empty.textContent=adminTournamentFilter==='upcoming'?'Žiadne nasledujúce turnaje.':'Žiadne aktívne turnaje.';
     return;
   }
 
@@ -1724,27 +1648,6 @@ function renderAdminTournamentDashboard(){
   list.innerHTML=rows.map(t=>{
     const bucket=adminTournamentBucket(t);
     const sport=[t.sport,t.discipline].filter(Boolean).join(' · ');
-    if(t._source==='series'){
-      const roundCount=Array.isArray(t._rounds)?t._rounds.length:0;
-      const totalRounds=Number(t.total_rounds)||roundCount;
-      const next=t._rounds.find(round=>adminTournamentBucket(round)==='active')||t._rounds.find(round=>adminTournamentBucket(round)==='upcoming')||t._rounds[t._rounds.length-1];
-      const dateValue=next?(next._source==='event'?next.starts_at:next.date):null;
-      const nextLabel=bucket==='archive'?'Posledné kolo':bucket==='active'?'Aktuálne kolo':'Najbližšie kolo';
-      return `<section class="admin-tournament-series" data-admin-series-id="${escAdminTournament(t.id)}">
-        <div class="admin-tournament-row admin-series-summary" data-admin-series-toggle="${escAdminTournament(t.id)}" role="button" tabindex="0" aria-expanded="false">
-          <div>
-            <div class="admin-tournament-name">${escAdminTournament(t.title||'Séria turnajov')} <span class="admin-tournament-origin">SÉRIA</span></div>
-            <div class="admin-tournament-meta">${escAdminTournament(sport||'')}</div>
-            <div class="admin-series-count">${roundCount} z ${totalRounds} kôl vytvorených</div>
-          </div>
-          <div class="admin-tournament-date">${escAdminTournament(nextLabel)} · ${escAdminTournament(adminTournamentDateLabel(dateValue))}</div>
-          <div class="admin-tournament-place">Kliknutím rozbalíš všetky kolá</div>
-          <div class="admin-tournament-status ${bucket}">${escAdminTournament(adminTournamentStatusLabel(t))}</div>
-          <div class="admin-series-arrow" aria-hidden="true">⌄</div>
-        </div>
-        <div class="admin-series-rounds">${adminSeriesRows(t)}</div>
-      </section>`;
-    }
     const place=t._source==='event'
       ? [t.city,t.location_text].filter(Boolean).join(' · ')
       : [t.city,t.venue].filter(Boolean).join(' · ');
@@ -1763,18 +1666,6 @@ function renderAdminTournamentDashboard(){
     </article>`;
   }).join('');
 
-  list.querySelectorAll('[data-admin-series-toggle]').forEach(row=>{
-    const toggle=()=>{
-      const wrapper=row.closest('.admin-tournament-series');
-      const open=!wrapper.classList.contains('open');
-      wrapper.classList.toggle('open',open);
-      row.setAttribute('aria-expanded',String(open));
-    };
-    row.addEventListener('click',toggle);
-    row.addEventListener('keydown',event=>{
-      if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle();}
-    });
-  });
   list.querySelectorAll('[data-admin-tournament-id]').forEach(row=>{
     const open=()=>location.href=row.dataset.adminTournamentTarget||adminTournamentTarget({id:row.dataset.adminTournamentId,_source:row.dataset.adminTournamentSource});
     row.addEventListener('click',open);
@@ -1790,7 +1681,7 @@ async function loadAdminTournaments(){
     loading.textContent='Načítavam turnaje…';
   }
   try{
-    const [tournamentRes,eventRes,seriesRes]=await Promise.all([
+    const [tournamentRes,eventRes]=await Promise.all([
       cspAuth.client
         .from('tournaments')
         .select('id,name,sport,discipline,date,venue,city,status,visibility,source_event_id,created_at,updated_at')
@@ -1802,15 +1693,10 @@ async function loadAdminTournaments(){
         .eq('owner_id',currentSession.user.id)
         .ilike('event_type','turnaj')
         .order('starts_at',{ascending:true,nullsFirst:false}),
-      cspAuth.client
-        .from('event_series')
-        .select('id,title,sport,discipline,total_rounds,status')
-        .eq('owner_id',currentSession.user.id)
     ]);
 
     if(tournamentRes.error) throw tournamentRes.error;
     if(eventRes.error) throw eventRes.error;
-    if(seriesRes.error) throw seriesRes.error;
 
     const events=Array.isArray(eventRes.data)?eventRes.data:[];
     const eventsById=new Map(events.map(event=>[String(event.id),event]));
@@ -1834,7 +1720,11 @@ async function loadAdminTournaments(){
       .filter(e=>!linkedEventIds.has(String(e.id)))
       .map(e=>({...e,_source:'event',_series_id:e.series_id||null,_series_round_number:e.series_round_number||null}));
 
-    adminTournamentRows=groupAdminTournamentSeries([...tournaments,...eventTournaments],seriesRes.data||[]);
+    adminTournamentRows=limitRecurringTournamentRows([...tournaments,...eventTournaments]
+      .filter(item=>{
+        const bucket=adminTournamentBucket(item);
+        return bucket==='active'||bucket==='upcoming';
+      }));
     renderAdminTournamentDashboard();
   }catch(err){
     console.error('[profil-ul] tournaments/events:',err);
@@ -1977,7 +1867,7 @@ const authGateReady = (async function initAuthGate(){
     renderMemberSince();
     loadFollowCounts();
     bindUltraSocial(currentProfile).catch(err=>console.error("[profil-ul] social:",err));
-    if(resolvedAdmin) loadAdminTournaments();
+    loadAdminTournaments();
     window.cspNotifications?.bind({
       client:cspAuth.client,
       button:document.getElementById('notificationsBtn')
