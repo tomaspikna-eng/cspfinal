@@ -113,9 +113,6 @@ input:focus,select:focus{border-color:var(--gold)}
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
 .page-head h1{font-size:1.8rem;font-weight:800}
 .page-head p{color:var(--muted);font-size:.9rem;margin-top:3px}
-.tournament-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.series-ranking-cta{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 12px;border:1px solid rgba(38,208,125,.42);border-radius:9px;background:var(--green-dim);color:var(--green);font-size:.76rem;font-weight:900;white-space:nowrap}
-.series-ranking-cta:hover{background:var(--green);color:#04150b;border-color:var(--green)}
 .social-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-8px 0 22px}.social-like.liked{background:var(--green-dim);border-color:rgba(38,208,125,.45);color:var(--green)}
 .t-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .t-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;transition:.15s}
@@ -146,18 +143,6 @@ input:focus,select:focus{border-color:var(--gold)}
 .bracket-column{display:flex;flex-direction:column;gap:12px;min-width:210px}
 .bracket-column-title{font-family:var(--mono);font-size:.68rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;padding-bottom:8px;border-bottom:1px solid var(--gold-b)}
 .bracket-column-matches{display:flex;flex-direction:column;justify-content:space-around;gap:12px;min-height:100%}
-.dko-bracket-scroll{scroll-behavior:smooth;overscroll-behavior-inline:contain;scrollbar-gutter:stable}
-.dko-bracket-grid{grid-auto-columns:210px;align-items:stretch}
-.dko-bracket-column{min-height:100%;scroll-snap-align:center}
-.dko-bracket-column .bracket-column-matches{flex:1;min-height:0}
-.dko-column-side{min-height:18px;margin-bottom:4px;font-family:var(--mono);font-size:.56rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.dko-bracket-column.loser .dko-column-side,.dko-bracket-column.loser .bracket-column-title{color:var(--red)}
-.dko-bracket-column.loser .bracket-column-title{border-color:rgba(255,76,88,.34)}
-.dko-bracket-column.start{padding:0 8px;border-left:1px solid var(--gold-b);border-right:1px solid var(--gold-b);background:linear-gradient(180deg,rgba(212,168,67,.055),transparent 42%)}
-.dko-bracket-column.start .dko-column-side{color:var(--gold)}
-.dko-bracket-column.winner .dko-column-side{color:var(--green)}
-.dko-bracket-column.final .dko-column-side,.dko-bracket-column.final .bracket-column-title{color:var(--green)}
-.dko-bracket-column.final .bracket-column-title{border-color:rgba(38,208,125,.34)}
 .bracket-match{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--bg-2);overflow:hidden;cursor:pointer;transition:.12s}
 .bracket-match:hover{border-color:var(--gold-b);transform:translateY(-1px)}
 .bracket-match.disabled{cursor:default;opacity:.72}.bracket-match.disabled:hover{transform:none;border-color:var(--line)}
@@ -354,13 +339,13 @@ input:focus,select:focus{border-color:var(--gold)}
 .ihs-settings .pill{cursor:pointer}
 .ihs-settings .pill.sel{border-color:var(--green);background:var(--green-dim);color:var(--green)}
 
-.presence-toggle{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;font:inherit;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
-.presence-toggle:focus-visible{outline:2px solid var(--green);outline-offset:4px;border-radius:99px}
+.presence-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+.presence-toggle input{position:absolute;opacity:0;pointer-events:none}
 .presence-switch{width:36px;height:20px;border-radius:99px;background:var(--line);border:1px solid var(--line-2);position:relative;transition:.15s}
 .presence-switch:after{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;border-radius:50%;background:var(--muted);transition:.15s}
-.presence-toggle.is-present .presence-switch{background:rgba(38,208,125,.18);border-color:var(--green)}
-.presence-toggle.is-present .presence-switch:after{left:18px;background:var(--green)}
-.presence-toggle.is-present .presence-label{color:var(--green)}
+.presence-toggle input:checked + .presence-switch{background:rgba(38,208,125,.18);border-color:var(--green)}
+.presence-toggle input:checked + .presence-switch:after{left:18px;background:var(--green)}
+.presence-toggle input:checked ~ .presence-label{color:var(--green)}
 .pl-move{display:flex;gap:3px}.pl-move button{width:24px;height:24px;border-radius:6px;color:var(--muted);font-size:.72rem}.pl-move button:hover{background:var(--gold-dim);color:var(--gold)}
 .seed-control{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:14px;align-items:end;margin:14px 0}
 .seed-control .field{margin:0}.seed-info{font-size:.78rem;color:var(--muted);line-height:1.45}
@@ -438,46 +423,28 @@ input:focus,select:focus{border-color:var(--gold)}
 .status-chip{display:inline-block;font-family:var(--mono);font-size:.62rem;font-weight:800;letter-spacing:.07em;padding:5px 9px;border-radius:99px;background:var(--card-2);color:var(--muted-2)}
 .status-chip.active{color:var(--green);background:var(--green-dim)}.status-chip.ready{color:var(--gold);background:var(--gold-dim)}
 
-/* ── PROJEKTORTV / MULTISCREEN ── */
+/* ── DISPLAY CENTRE / MULTISCREEN ── */
 .display-center-overlay{position:fixed;inset:0;z-index:450;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:18px}
-.display-center{width:min(1180px,96vw);max-height:92vh;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.display-center{width:min(1060px,96vw);max-height:92vh;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
 .display-center-head{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--line);background:rgba(13,16,14,.97);backdrop-filter:blur(10px)}
 .display-center-head h2{font-size:1.25rem;margin:0 0 4px}.display-center-head p{font-size:.78rem;color:var(--muted);margin:0}
 .display-center-body{padding:20px 22px 24px}
-.display-tabs{display:flex;gap:6px;padding:5px;margin-bottom:18px;border:1px solid var(--line);border-radius:12px;background:var(--card);width:max-content;max-width:100%}
-.display-tab{border:0;border-radius:8px;background:transparent;color:var(--muted);padding:10px 16px;font-family:var(--mono);font-size:.68rem;font-weight:850;letter-spacing:.05em;cursor:pointer}
-.display-tab.active{background:var(--green);color:#03150b}.display-tab:hover:not(.active){color:var(--text);background:var(--card-2)}
-.display-overview-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:center;padding:28px;border:1px solid rgba(38,208,125,.22);border-radius:16px;background:linear-gradient(135deg,rgba(38,208,125,.08),rgba(212,168,67,.04))}
-.display-overview-card h3{font-size:1.25rem;margin:0 0 8px}.display-overview-card p{max-width:680px;color:var(--muted);font-size:.82rem;line-height:1.65;margin:0}
-.display-overview-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.display-overview-actions .btn{white-space:nowrap}
-.display-board{display:grid;grid-template-columns:minmax(270px,.82fr) minmax(440px,1.35fr);gap:16px;align-items:start}
-.display-board-column{min-width:0}.display-board-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
-.display-board-head h3{font-size:.92rem;margin:0}.display-board-head span{font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.05em}
-.display-match-list{display:grid;gap:8px;max-height:500px;overflow:auto;padding-right:3px}
-.display-match-card{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);cursor:grab;user-select:none}
-.display-match-card:hover{border-color:rgba(212,168,67,.38);background:var(--card-2)}.display-match-card.dragging{opacity:.42;border-color:var(--gold)}
-.display-match-grip{font-size:1rem;color:var(--gold);text-align:center}.display-match-main{min-width:0}.display-match-number{font-family:var(--mono);font-size:.56rem;font-weight:850;letter-spacing:.06em;color:var(--gold);margin-bottom:4px}
-.display-match-players{font-size:.78rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.display-match-state{font-family:var(--mono);font-size:.55rem;font-weight:850;color:var(--muted);white-space:nowrap}
-.display-pair-box{display:grid;grid-template-columns:minmax(150px,190px) minmax(180px,1fr) auto;gap:10px;align-items:end;padding:14px;border:1px solid rgba(212,168,67,.23);border-radius:13px;background:var(--gold-dim);margin-bottom:14px}
+.display-pair-box{display:grid;grid-template-columns:minmax(150px,190px) minmax(180px,1fr) auto;gap:10px;align-items:end;padding:16px;border:1px solid rgba(212,168,67,.23);border-radius:13px;background:var(--gold-dim);margin-bottom:18px}
 .display-pair-box label,.display-screen-field label{display:block;font-family:var(--mono);font-size:.58rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .display-pair-code{font-family:var(--mono);font-size:1.2rem;font-weight:900;letter-spacing:.16em;text-align:center}
-.display-screens{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.display-screens{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .display-screen-card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px}
-.display-screen-card.offline{border-color:rgba(227,81,73,.28)}.display-screen-card.disabled{opacity:.68}.display-screen-card.drag-over{border-color:var(--green);box-shadow:0 0 0 3px rgba(38,208,125,.12);background:rgba(38,208,125,.07)}
+.display-screen-card.offline{border-color:rgba(227,81,73,.28)}.display-screen-card.disabled{opacity:.68}
 .display-screen-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
 .display-screen-name{font-weight:850;font-size:.94rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .display-screen-state{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.56rem;font-weight:850;letter-spacing:.07em;color:var(--red)}
 .display-screen-state i{width:7px;height:7px;border-radius:50%;background:currentColor}.display-screen-state.online{color:var(--green)}.display-screen-state.disabled{color:var(--muted)}
-.display-screen-drop{min-height:104px;display:grid;place-items:center;padding:14px;border:1px dashed rgba(212,168,67,.3);border-radius:10px;background:var(--bg-2);text-align:center;margin-bottom:12px}
-.display-screen-drop.assigned{border-style:solid;border-color:rgba(38,208,125,.25);background:rgba(38,208,125,.06)}
-.display-screen-drop strong{display:block;font-size:.8rem}.display-screen-drop small{display:block;margin-top:6px;color:var(--muted);font-size:.66rem;line-height:1.45}.display-screen-drop .display-match-number{margin-bottom:6px}
 .display-screen-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}.display-screen-field.wide{grid-column:1/-1}
 .display-screen-field input,.display-screen-field select{width:100%;padding:9px 10px;font-size:.76rem;border-radius:8px}
 .display-screen-actions{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}.display-screen-actions .match-op{flex:1;min-width:78px}
 .display-screen-empty{grid-column:1/-1;padding:34px;border:1px dashed var(--line);border-radius:13px;text-align:center;color:var(--muted)}
-.display-help{font-size:.7rem;color:var(--muted);line-height:1.55;margin:0 0 14px}
-@media(max-width:900px){.display-board{grid-template-columns:1fr}.display-match-list{max-height:300px}.display-overview-card{grid-template-columns:1fr}.display-overview-actions{justify-content:flex-start}}
-@media(max-width:680px){.display-pair-box{grid-template-columns:1fr}.display-screen-form{grid-template-columns:1fr}.display-screen-field.wide{grid-column:auto}.display-center-body{padding:16px}.display-center-head{padding:16px}.display-tabs{width:100%}.display-tab{flex:1;padding:9px 8px}.display-screen-card{padding:13px}}
+.display-help{font-size:.72rem;color:var(--muted);line-height:1.55;margin:0 0 16px}
+@media(max-width:680px){.display-pair-box{grid-template-columns:1fr}.display-screen-form{grid-template-columns:1fr}.display-screen-field.wide{grid-column:auto}.display-center-body{padding:16px}.display-center-head{padding:16px}}
 
 </style>
 </head>
@@ -493,7 +460,7 @@ input:focus,select:focus{border-color:var(--gold)}
     <div class="tb-right">
       <div class="tb-user" id="tbUser" style="display:none"><span class="tb-av" id="tbUserAv">?</span><span id="tbUserNameText">…</span></div>
       <button class="link-btn" id="signOutBtn" style="display:none">Odhlásiť</button>
-      <a class="link-btn" id="profileBackLink" href="/profil-ul/">← Profil</a>
+      <a class="link-btn" id="profileBackLink" href="/profil/">← Profil</a>
     </div>
   </div>
 </div>
@@ -518,44 +485,17 @@ input:focus,select:focus{border-color:var(--gold)}
 <div class="display-center-overlay hidden" id="displayCenterOverlay" onclick="if(event.target===this)closeDisplayCenter()">
   <section class="display-center" role="dialog" aria-modal="true" aria-labelledby="displayCenterTitle">
     <header class="display-center-head">
-      <div><h2 id="displayCenterTitle">ProjektorTV</h2><p>Hlavný prehľad haly a samostatné monitory pre konkrétne zápasy.</p></div>
+      <div><h2 id="displayCenterTitle">Display centrum</h2><p>Hlavná obrazovka, stoly, terče a samostatné zápasy.</p></div>
       <button class="btn btn-ghost" style="padding:7px 10px" onclick="closeDisplayCenter()">✕</button>
     </header>
     <div class="display-center-body">
-      <div class="display-tabs" role="tablist" aria-label="Režim ProjektorTV">
-        <button class="display-tab active" id="displayOverviewTab" role="tab" aria-selected="true" aria-controls="displayOverviewPane" onclick="switchDisplayTab('overview')">Hlavná obrazovka</button>
-        <button class="display-tab" id="displayMultiscreenTab" role="tab" aria-selected="false" aria-controls="displayMultiscreenPane" onclick="switchDisplayTab('multiscreen')">Multiscreen</button>
+      <div class="display-pair-box">
+        <div><label for="displayPairCode">Kód z monitora</label><input class="display-pair-code" id="displayPairCode" inputmode="numeric" maxlength="6" placeholder="000000"></div>
+        <div><label for="displayPairName">Názov obrazovky</label><input id="displayPairName" maxlength="80" placeholder="Napr. Terč 1 alebo Hlavná hala"></div>
+        <button class="btn btn-primary" id="displayPairBtn" onclick="pairDisplayScreen()">＋ Spárovať</button>
       </div>
-      <div id="displayOverviewPane" role="tabpanel" aria-labelledby="displayOverviewTab">
-        <div class="display-overview-card">
-          <div>
-            <h3>Všetky stoly a terče na jednom monitore</h3>
-            <p>Hlavná obrazovka automaticky zobrazuje všetky aktívne športoviská, hráčov, skóre a stav zápasu. Nepotrebuje párovanie ani samostatné nastavovanie monitorov.</p>
-          </div>
-          <div class="display-overview-actions">
-            <button class="btn btn-green" onclick="openMainProjectorTV()">▣ Otvoriť ProjektorTV</button>
-            <button class="btn btn-ghost" onclick="copyMainProjectorTVLink()">Kopírovať link</button>
-          </div>
-        </div>
-      </div>
-      <div class="hidden" id="displayMultiscreenPane" role="tabpanel" aria-labelledby="displayMultiscreenTab">
-        <div class="display-pair-box">
-          <div><label for="displayPairCode">Kód z monitora</label><input class="display-pair-code" id="displayPairCode" inputmode="numeric" maxlength="6" placeholder="000000"></div>
-          <div><label for="displayPairName">Názov monitora</label><input id="displayPairName" maxlength="80" placeholder="Napr. Terč 1 alebo TV 2"></div>
-          <button class="btn btn-primary" id="displayPairBtn" onclick="pairDisplayScreen()">＋ Pridať monitor</button>
-        </div>
-        <p class="display-help">Na novom monitore otvor <b>/projektortv/</b>. Zobrazený šesťmiestny kód zadaj sem iba pri prvom pripojení.</p>
-        <div class="display-board">
-          <section class="display-board-column" aria-labelledby="displayMatchesTitle">
-            <div class="display-board-head"><h3 id="displayMatchesTitle">Zápasy</h3><span>Potiahni na monitor</span></div>
-            <div class="display-match-list" id="displayMatchList"><div class="display-screen-empty">Načítavam zápasy…</div></div>
-          </section>
-          <section class="display-board-column" aria-labelledby="displayScreensTitle">
-            <div class="display-board-head"><h3 id="displayScreensTitle">Monitory</h3><span id="displayScreensCount">0 pripojených</span></div>
-            <div class="display-screens" id="displayScreens"><div class="display-screen-empty">Načítavam monitory…</div></div>
-          </section>
-        </div>
-      </div>
+      <p class="display-help">Na novom monitore otvor <b>/displayview/</b>. Zobrazí sa šesťmiestny kód, ktorý sem zadáš iba pri prvom pripojení.</p>
+      <div class="display-screens" id="displayScreens"><div class="display-screen-empty">Načítavam obrazovky…</div></div>
     </div>
   </section>
 </div>
@@ -565,7 +505,6 @@ input:focus,select:focus{border-color:var(--gold)}
    CSP TOURNAMENT ENGINE — zamknuté vzorce
 ════════════════════════════════════════════════════════════ */
 const TM = {
-  MAX_DKO_PLAYERS:256,
   // Seedovanie čistého KO (overené proti zväzu 16/32/64/128/256)
   seedKO(n){
     let seq=[1,2];
@@ -577,9 +516,7 @@ const TM = {
     return seq; // pozícia -> seed
   },
   nextPow2(q){ let n=2; while(n<q) n*=2; return n; },
-  // Pavúk s W.O.: hráči v poradí nasadenia, N je najbližšia mocnina 2.
-  // Prázdne pozície zostávajú interne označené `bye`, používateľ však
-  // všade vidí športový názov W.O. (walkover / voľný los).
+  // Pavúk s bye: qualifiers v poradí nasadenia (najlepší prvý), N=mocnina2
   bracketWithByes(qualifiers, N){
     const Q=qualifiers.length, order=this.seedKO(N);
     return order.map(s => s<=Q ? qualifiers[s-1] : {bye:true});
@@ -645,11 +582,10 @@ const TM = {
       R[r].forEach((m,i)=>{
         // ak sa zmenili účastníci od zadania výsledku -> zruš výsledok
         if(m.resultSig && m.resultSig!==this.matchSig(m)){ m.winner=null; m.s1=null; m.s2=null; m.resultSig=null; }
-        m._walkover=false;
-        // Automatický W.O. v prvom kole.
+        // auto bye (len 1. kolo)
         if(r===0){
-          if(m.p1&&m.p1.bye&&m.p2&&!m.p2.bye){m.winner=2;m._walkover=true;}
-          else if(m.p2&&m.p2.bye&&m.p1&&!m.p1.bye){m.winner=1;m._walkover=true;}
+          if(m.p1&&m.p1.bye&&m.p2&&!m.p2.bye) m.winner=2;
+          else if(m.p2&&m.p2.bye&&m.p1&&!m.p1.bye) m.winner=1;
         }
         // posuň víťaza do ďalšieho kola
         if(r+1<R.length){
@@ -667,79 +603,43 @@ const TM = {
   mkMatch(number,p1,p2){
     return {key:this.matchKey(number),number:Number(number),p1:p1||null,p2:p2||null,s1:null,s2:null,winner:null,resultSig:null,_resolvedEmpty:false};
   },
-  dkoDrawOrder(count,drawKey){
-    const order=Array.from({length:count},(_,i)=>i);
-    let hash=2166136261;
-    const source=String(drawKey||'csp-dko');
-    for(let i=0;i<source.length;i++){
-      hash^=source.charCodeAt(i);
-      hash=Math.imul(hash,16777619)>>>0;
-    }
-    for(let i=order.length-1;i>0;i--){
-      hash=(Math.imul(hash,1664525)+1013904223)>>>0;
-      const j=hash%(i+1);
-      [order[i],order[j]]=[order[j],order[i]];
-    }
-    return order;
-  },
-  // CueScore-style crossing porazených. Pole je vždy mocnina dvoch:
-  // 16 → 8, 32 → 8, 64 → 8, 128 → 8 a 256 → 8.
-  // XOR masky krížia vzdialené vetvy, obmedzujú skoré odvety a zodpovedajú
-  // overenému CueScore poradiu pre 16/32/64 aj veľkým 256-player schémam.
-  dkoDropMap(count,level){
-    if(count<=1)return [0];
-    const mask=level===1
-      ? count-1
-      : (level%2===0 ? Math.max(1,count/2-1) : Math.max(1,count/2));
-    return Array.from({length:count},(_,i)=>i^mask);
-  },
-  buildDKO(players,startNumber=1,drawKey=''){
-    if(players.length>this.MAX_DKO_PLAYERS)throw new RangeError(`Double KO podporuje najviac ${this.MAX_DKO_PLAYERS} hráčov.`);
+  buildDKO(players,startNumber=1){
     const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
     const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.bracketWithByes(seeded,N);
     const total=Math.log2(N);
-    const koSize=N>=16?8:Math.max(2,N/2);
-    const winnerQualifierCount=koSize/2;
-    const winnerRoundCount=Math.log2(N/winnerQualifierCount);
     const W=[],L=[];
     let matchNo=Math.max(1,Number(startNumber)||1);
 
     // Úvodné zápasy štartového poľa.
     W.push(Array.from({length:N/2},(_,i)=>this.mkMatch(matchNo++,slots[2*i],slots[2*i+1])));
 
-    // DKO N/8 podľa štandardného crossing modelu. Každé ďalšie kolo
-    // víťaznej strany dopĺňajú dve kolá prehratej strany: zúženie a
-    // krížové prijatie porazených. Pri 32/8 tak vzniknú presne 4 loser kolá.
-    for(let level=1;level<winnerRoundCount;level++){
+    // Ďalšie kolá: winner vetva a loser vetva. Čísla zápasov pokračujú
+    // bez resetu naprieč celým turnajom.
+    for(let level=1;level<=total-2;level++){
       const count=N/Math.pow(2,level+1);
       W.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
       L.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
-      L.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
     }
 
-    const QF=koSize===8?Array.from({length:4},()=>this.mkMatch(matchNo++,null,null)):[];
-    const SF=koSize>=4?Array.from({length:2},()=>this.mkMatch(matchNo++,null,null)):[];
+    const SF=[
+      this.mkMatch(matchNo++,null,null),
+      this.mkMatch(matchNo++,null,null)
+    ];
     const F=this.mkMatch(matchNo++,null,null);
-    const stableDrawKey=drawKey||seeded.map(p=>p.id||p.name).join('|');
-    const koDraw=this.dkoDrawOrder(winnerQualifierCount,stableDrawKey);
-    const dropMaps=Array.from({length:Math.max(0,winnerRoundCount-1)},(_,i)=>
-      this.dkoDropMap(W[i+1].length,i+1)
-    );
 
-    const dko={type:'dko',schemaVersion:6,N,total,koSize,winnerRoundCount,W,L,QF,SF,F,koDraw,dropMaps};
+    const dko={type:'dko',schemaVersion:4,N,total,W,L,SF,F};
     this.recomputeDKO(dko);
     return dko;
   },
   recomputeDKO(dko){
-    const {W,L,QF=[],SF=[],F}=dko;
+    const {W,L,SF,F}=dko;
     const inval=m=>{
       if(!m)return;
       if(m.resultSig && m.resultSig!==this.matchSig(m)){
         m.winner=null;m.s1=null;m.s2=null;m.resultSig=null;
       }
       m._resolvedEmpty=false;
-      m._walkover=false;
     };
     const wOf=m=>{
       const p=m&&m.winner?(m.winner===1?m.p1:m.p2):null;
@@ -754,18 +654,12 @@ const TM = {
       inval(m);
       if(!inputsResolved)return;
       const a=!!(m.p1&&!m.p1.bye),b=!!(m.p2&&!m.p2.bye);
-      if(a&&!b){
-        if(!m.winner){m.winner=1;m.resultSig=this.matchSig(m);}
-        m._walkover=true;
-      }
-      else if(b&&!a){
-        if(!m.winner){m.winner=2;m.resultSig=this.matchSig(m);}
-        m._walkover=true;
-      }
+      if(a&&!b&&!m.winner){m.winner=1;m.resultSig=this.matchSig(m);}
+      else if(b&&!a&&!m.winner){m.winner=2;m.resultSig=this.matchSig(m);}
       else if(!a&&!b){m._resolvedEmpty=true;m.resultSig=null;}
     };
 
-    // Víťazná strana.
+    // A vetva.
     W[0].forEach(m=>resolve(m,true));
     for(let r=1;r<W.length;r++){
       W[r].forEach((m,i)=>{
@@ -775,78 +669,50 @@ const TM = {
       });
     }
 
-    // Prehratá strana. Každé prijímacie kolo má vlastnú pevnú crossing mapu;
-    // pri 64–256 hráčoch nestačí jednoduché striedanie susedných vetiev.
-    // Mapy sa ukladajú do pavúka, takže zostanú stabilné po každom načítaní.
-    if(!Array.isArray(dko.dropMaps))dko.dropMaps=[];
-    for(let level=1;level<W.length;level++){
-      const narrowIndex=2*level-2;
-      const crossIndex=narrowIndex+1;
-      const narrow=L[narrowIndex]||[];
-      if(level===1){
-        narrow.forEach((m,i)=>{
-          const a=W[0][2*i],b=W[0][2*i+1];
-          m.p1=lOf(a);m.p2=lOf(b);
-          resolve(m,resolved(a)&&resolved(b));
-        });
-      }else{
-        const previousCross=L[narrowIndex-1]||[];
-        narrow.forEach((m,i)=>{
-          const a=previousCross[2*i],b=previousCross[2*i+1];
+    // Prvé loser kolo dostane porazených z úvodných zápasov. Ďalšie loser kolá
+    // pokračujú iba víťazmi predchádzajúceho loser kola — žiadne duplicitné medzikolá.
+    if(L.length){
+      L[0].forEach((m,i)=>{
+        const a=W[0][2*i],b=W[0][2*i+1];
+        m.p1=lOf(a);m.p2=lOf(b);
+        resolve(m,resolved(a)&&resolved(b));
+      });
+      for(let r=1;r<L.length;r++){
+        L[r].forEach((m,i)=>{
+          const a=L[r-1][2*i],b=L[r-1][2*i+1];
           m.p1=wOf(a);m.p2=wOf(b);
           resolve(m,resolved(a)&&resolved(b));
         });
       }
-
-      const cross=L[crossIndex]||[];
-      const winnerRound=W[level]||[];
-      const storedMap=dko.dropMaps[level-1];
-      const dropMap=Array.isArray(storedMap)&&storedMap.length===winnerRound.length
-        ? storedMap
-        : this.dkoDropMap(winnerRound.length,level);
-      dko.dropMaps[level-1]=dropMap;
-      cross.forEach((m,i)=>{
-        const source=narrow[i];
-        const incomingIndex=dropMap[i];
-        const incoming=winnerRound[incomingIndex];
-        m.p1=wOf(source);m.p2=lOf(incoming);
-        resolve(m,resolved(source)&&resolved(incoming));
-      });
     }
 
-    // Do Single KO fázy postupuje polovica hráčov z každej strany.
+    // Semifinále: 2 víťazi A + 2 víťazi B, krížom.
     const aLast=W[W.length-1]||[];
-    const bLast=L[L.length-1]||[];
-    const entryRound=QF.length?QF:(SF.length?SF:[F]);
-    const draw=Array.isArray(dko.koDraw)&&dko.koDraw.length===entryRound.length
-      ? dko.koDraw
-      : Array.from({length:entryRound.length},(_,i)=>i);
-    entryRound.forEach((m,i)=>{
-      const a=aLast[i],b=bLast[draw[i]];
-      m.p1=wOf(a);m.p2=wOf(b);
-      resolve(m,resolved(a)&&resolved(b));
-    });
-
-    const koRounds=[];
-    if(QF.length)koRounds.push(QF);
-    if(SF.length)koRounds.push(SF);
-    koRounds.push([F]);
-    for(let r=1;r<koRounds.length;r++){
-      koRounds[r].forEach((m,i)=>{
-        const a=koRounds[r-1][2*i],b=koRounds[r-1][2*i+1];
-        m.p1=wOf(a);m.p2=wOf(b);
-        resolve(m,resolved(a)&&resolved(b));
-      });
+    let bFinalists=[],bResolved=[];
+    if(L.length){
+      const bLast=L[L.length-1];
+      bFinalists=bLast.map(wOf);
+      bResolved=bLast.map(resolved);
+    }else{
+      // 4-hráčový fallback: porazení úvodných zápasov tvoria loser finalistov priamo.
+      bFinalists=W[0].map(lOf);
+      bResolved=W[0].map(resolved);
     }
+
+    if(SF?.length===2){
+      SF[0].p1=wOf(aLast[0]);SF[0].p2=bFinalists[1]||null;
+      resolve(SF[0],resolved(aLast[0])&&!!bResolved[1]);
+      SF[1].p1=wOf(aLast[1]);SF[1].p2=bFinalists[0]||null;
+      resolve(SF[1],resolved(aLast[1])&&!!bResolved[0]);
+    }
+
+    // Jedno finále.
+    F.p1=wOf(SF[0]);F.p2=wOf(SF[1]);
+    resolve(F,resolved(SF[0])&&resolved(SF[1]));
   },
   dkoChampion(dko){
     const m=dko?.F;
     return m&&m.winner?(m.winner===1?m.p1:m.p2):null;
-  },
-  isWalkover(m){
-    if(!m)return false;
-    const a=!!(m.p1&&!m.p1.bye),b=!!(m.p2&&!m.p2.bye);
-    return !!m._walkover || (!!m.winner && a!==b);
   },
   dkoStandings(dko){
     const wOf=m=>m&&m.winner?(m.winner===1?m.p1:m.p2):null;
@@ -854,16 +720,8 @@ const TM = {
     const rank=this.dkoRanking(dko);
     return {first:wOf(dko?.F),second:lOf(dko?.F),third:rank[2]||null};
   },
-  dkoRoundName(branch,ri,roundCount){
-    if(branch==='W'){
-      if(ri===0)return '1. kolo';
-      if(ri===roundCount-1)return 'Kvalifikácia víťazov';
-      return `${ri}. kolo víťazov`;
-    }
-    if(branch==='L'){
-      if(ri===roundCount-1)return 'Kvalifikácia porazených';
-      return `${ri+1}. kolo porazených`;
-    }
+  dkoRoundName(branch,ri,total){
+    if(branch==='W'||branch==='L')return `${ri+1}. kolo`;
     return '';
   },
   // Zdieľaný rebríček: primárne výhry, potom fáza, rozdiel hier, %
@@ -889,7 +747,7 @@ const TM = {
     return arr;
   },
   dkoRanking(dko){
-    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.QF||[]),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
+    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
     const base=this.rankFrom(allMatches.map((m,i)=>({m,phase:i+1})));
     if(!dko?.F?.winner)return base;
 
@@ -907,18 +765,22 @@ const TM = {
     const enrich=p=>p?({...p,...(byName.get(p.name)||{})}):null;
     const result=[];
     const pushBand=players=>{
-      const bandPlace=result.length+1;
-      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>result.push({...p,place:bandPlace}));
+      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>result.push({...p,place:result.length+1}));
     };
 
     pushBand([wOf(dko.F)]);
     pushBand([lOf(dko.F)]);
     pushBand((dko.SF||[]).map(lOf));
-    pushBand((dko.QF||[]).map(lOf));
-    for(let level=(dko.L?.length||0)-1;level>=0;level--)pushBand((dko.L[level]||[]).map(lOf));
+
+    const maxLevel=Math.max(0,(dko.W?.length||1)-1);
+    for(let level=maxLevel;level>=1;level--){
+      const aLosers=(dko.W?.[level]||[]).map(lOf);
+      const bLosers=(dko.L?.[level-1]||[]).map(lOf);
+      pushBand([...aLosers,...bLosers]);
+    }
 
     // Defensive fallback for any player not captured in the completed
-    // elimination bands (e.g. unusual W.O.-heavy small fields).
+    // elimination bands (e.g. unusual BYE-heavy small fields).
     const seen=new Set(result.map(r=>r.name));
     pushBand(base.filter(r=>!seen.has(r.name)).map(r=>({name:r.name,seed:r.seed})));
     return result;
@@ -936,11 +798,9 @@ function dkoMatchesInNumberOrder(dko){
   if(dko.W?.[0])out.push(...dko.W[0]);
   for(let level=1;level<(dko.W?.length||0);level++){
     out.push(...(dko.W[level]||[]));
-    const narrowIndex=2*level-2;
-    if(dko.L?.[narrowIndex])out.push(...dko.L[narrowIndex]);
-    if(dko.L?.[narrowIndex+1])out.push(...dko.L[narrowIndex+1]);
+    if(dko.L?.[level-1])out.push(...dko.L[level-1]);
   }
-  out.push(...(dko.QF||[]));
+  for(let i=Math.max(0,(dko.W?.length||0)-1);i<(dko.L?.length||0);i++)out.push(...(dko.L[i]||[]));
   out.push(...(dko.SF||[]));
   if(dko.F)out.push(dko.F);
   return out;
@@ -1045,12 +905,11 @@ async function canonicalizeLoadedMatchRows(matchRows){
    tournament_players / tournament_groups (migrations 0003, 0011).
 
    Tournament setup, match rows and bracket progress are persisted
-   against the real tournament id in Supabase. The Karty →
-   Generátor stolov handoff (openTableGen) is untouched.
+   against the real tournament id in Supabase. Kartové turnaje sa
+   otvárajú priamo v synchronizovanom Generátore stolov.
 ════════════════════════════════════════════════════════════ */
 const UPGRADE_URL="/upgrade/";
 const TABLEGEN_URL="/generator-stolov/"; // Generátor stolov — kartové hry (routing z wizardu)
-const KARTY_HANDOFF_PREFIX="csp_karty_turnaj_"; // + tournament id, zdieľaný localStorage kľúč s Generátorom stolov
 
 let currentSession = null;
 let currentProfile = null;
@@ -1068,7 +927,6 @@ let resourceRefreshTimer = null;
 let tournamentOperations=[];
 let groupResourceAssignments=new Map();
 let displayScreens=[];
-let displayMatchRows=[];
 let displayCenterTimer=null;
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1125,22 +983,14 @@ async function saveBracketState(id,state){
 }
 
 
-function profileHomePath(profile,user){
-  const source=new URLSearchParams(location.search).get('from');
-  if(source==='profil-ul')return '/profil-ul/';
-
-  // Authorization data may live either on the profile row or in trusted
-  // app_metadata. Never use user_metadata for role-based routing.
-  const appMeta=user?.app_metadata||{};
-  const role=String(profile?.role||appMeta.role||'player').toLowerCase();
-  const plan=String(profile?.plan||appMeta.plan||'').toLowerCase();
-  const isAdmin=profile?.is_admin===true || appMeta.is_admin===true || role==='admin';
-  const ultraRole=isAdmin || role==='club' || role==='organization' || plan==='ultra';
+function profileHomePath(profile){
+  const role=String(profile?.role||'player').toLowerCase();
+  const ultraRole=role==='admin' || role==='club' || role==='organization' || profile?.is_admin===true;
   return ultraRole ? '/profil-ul/' : '/profil/';
 }
-function setProfileBackLink(profile,user){
+function setProfileBackLink(profile){
   const link=document.getElementById('profileBackLink');
-  if(link)link.href=profileHomePath(profile,user);
+  if(link)link.href=profileHomePath(profile);
 }
 
 (async function initAuth(){
@@ -1156,7 +1006,7 @@ function setProfileBackLink(profile,user){
       const { data: profile, error: profileError } = await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user), 8000, 'getCurrentProfile()');
       if(profileError){ console.error('[turnament] Could not load profile:', profileError); }
       currentProfile = profile;
-      setProfileBackLink(profile,session.user);
+      setProfileBackLink(profile);
 
       const displayName = (profile && profile.full_name) || session.user.email;
       const initials = (displayName.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()) || '??';
@@ -1345,9 +1195,6 @@ async function handleRealtimeMatch(payload,tournamentId){
   const row={...(previous||{}),...incoming};
   if(!row.round_key){ await silentSyncMatches(tournamentId); return; }
   realMatchesByKey.set(row.round_key,row);
-  const displayIndex=displayMatchRows.findIndex(item=>item.id===row.id);
-  if(displayIndex>=0)displayMatchRows[displayIndex]=row;else displayMatchRows.push(row);
-  if(!document.getElementById('displayCenterOverlay')?.classList.contains('hidden'))renderDisplayCenter();
 
   const justCompleted=row.status==='completed' && previous?.status!=='completed';
   if(justCompleted){
@@ -1541,10 +1388,6 @@ async function openTournament(id){
   }
 }
 function openTableGen(t){
-  localStorage.setItem(KARTY_HANDOFF_PREFIX+t.id, JSON.stringify({
-    tournamentId:t.id, tournamentName:t.name, discipline:t.discipline,
-    players:(t.players||[]).map(p=>p.name)
-  }));
   location.href = TABLEGEN_URL+'?t='+encodeURIComponent(t.id);
 }
 
@@ -1620,7 +1463,7 @@ function ensureBracket(t){
     if(!t.bracket || t.bracket.type!=='sko' || !t.bracket.rounds) t.bracket=TM.buildSKO(players);
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
-    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players,1,t.id||'');
+    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==4 || !t.dko.W || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players);
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
@@ -1714,7 +1557,7 @@ function createProtectedPhase2(crossSeeded,k){
   // too early.
   // For 4→2 this is preliminary round 0; for the confirmed 6→2 case
   // (from 8 total advancers, K=2) it is round 1, using the engine's
-  // ordinary non-power-of-two W.O. positions rather than special-case math.
+  // ordinary non-power-of-two byes rather than special-case math.
   let cutoff=prelim.rounds.length-2;
   for(let r=0;r<prelim.rounds.length-1;r++){
     if(prelim.rounds[r+1].length*2===survivorCount){ cutoff=r; break; }
@@ -1744,7 +1587,7 @@ function maybeGenerateComboPhase(t){
     }else if(t.format==='rr_sko'){
       t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
     }else{
-      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`)};
+      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player))};
     }
   }
   if(t.phase2.kind==='protected-sko'){
@@ -1754,7 +1597,7 @@ function maybeGenerateComboPhase(t){
         .flatMap(m=>[m.p1,m.p2]).filter(p=>p&&!p.bye);
       // The preliminary cutoff is chosen so exactly survivorCount slots
       // exist; filter defensively in case a malformed legacy database state
-      // contained an extra W.O. placeholder.
+      // contained an extra bye placeholder.
       t.phase2.main=TM.buildSKO([...t.phase2.protected,...survivors.slice(0,t.phase2.survivorCount)]);
     }
   }else if(t.phase2.kind==='standard-sko'){
@@ -1848,121 +1691,64 @@ function persistT(){
 }
 
 
-function mainProjectorTVPath(){return `/projektortv/?id=${encodeURIComponent(curT?.id||'')}`}
-function displayScreenPath(token){return `/projektortv/?screen=${encodeURIComponent(token)}`}
+function displayScreenPath(token){return `/displayview/?screen=${encodeURIComponent(token)}`}
 function displayScreenOnline(screen){
   return !!screen?.is_enabled&&!!screen?.last_seen_at&&(Date.now()-new Date(screen.last_seen_at).getTime())<35000;
 }
 function displayPlayerName(playerId){
   return (curT?.players||[]).find(player=>player.id===playerId)?.name||'Čaká';
 }
-function displayMatchStateLabel(status){
-  return ({pending:'ČAKÁ',waiting_for_table:'ČAKÁ',ready:'PRIPRAVENÝ',called:'VOLANÝ',player_arriving:'PRICHÁDZA',live:'LIVE',in_progress:'LIVE'})[status]||String(status||'').toUpperCase();
-}
-function displayAllMatches(){
+function displayMatchOptions(){
   const unique=new Map();
-  displayMatchRows.forEach(row=>{if(row?.id)unique.set(row.id,row)});
-  return [...unique.values()];
+  [...realMatchesByKey.values()].forEach(row=>{if(row?.id)unique.set(row.id,row)});
+  return [...unique.values()].sort((a,b)=>Number(a.match_number||999999)-Number(b.match_number||999999));
 }
-function displayAssignableMatches(){
-  const rank={live:0,in_progress:0,called:1,player_arriving:1,ready:2,waiting_for_table:3,pending:4};
-  return displayAllMatches()
-    .filter(row=>row.player1_id&&row.player2_id&&!row.winner_id&&!row.completed_at&&!['completed','forfeited'].includes(row.status))
-    .sort((a,b)=>(rank[a.status]??9)-(rank[b.status]??9)||Number(a.match_number||999999)-Number(b.match_number||999999));
-}
-function displayMatchById(matchId){return displayAllMatches().find(row=>row.id===matchId)||null}
-function displayMatchNames(row){
-  return {
-    p1:row?.player1_name||displayPlayerName(row?.player1_id),
-    p2:row?.player2_name||displayPlayerName(row?.player2_id)
-  };
-}
-function switchDisplayTab(tab){
-  const overview=tab!=='multiscreen';
-  document.getElementById('displayOverviewPane')?.classList.toggle('hidden',!overview);
-  document.getElementById('displayMultiscreenPane')?.classList.toggle('hidden',overview);
-  document.getElementById('displayOverviewTab')?.classList.toggle('active',overview);
-  document.getElementById('displayMultiscreenTab')?.classList.toggle('active',!overview);
-  document.getElementById('displayOverviewTab')?.setAttribute('aria-selected',String(overview));
-  document.getElementById('displayMultiscreenTab')?.setAttribute('aria-selected',String(!overview));
-  if(!overview)renderDisplayCenter();
-}
-function openMainProjectorTV(){if(curT?.id)window.open(mainProjectorTVPath(),'_blank','noopener')}
-async function copyProjectorLink(link,successText){
-  try{await navigator.clipboard.writeText(link);toast(successText)}
-  catch{const area=document.createElement('textarea');area.value=link;document.body.append(area);area.select();document.execCommand('copy');area.remove();toast(successText)}
-}
-function copyMainProjectorTVLink(){if(curT?.id)return copyProjectorLink(new URL(mainProjectorTVPath(),location.origin).href,'Link ProjektorTV skopírovaný ✓')}
-function displayMatchDragStart(event,matchId){
-  event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',matchId);
-  event.currentTarget.classList.add('dragging');
-}
-function displayMatchDragEnd(event){
-  event.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.display-screen-card.drag-over').forEach(card=>card.classList.remove('drag-over'));
-}
-function displayScreenDragOver(event){event.preventDefault();event.dataTransfer.dropEffect='move';event.currentTarget.classList.add('drag-over')}
-function displayScreenDragLeave(event){if(!event.currentTarget.contains(event.relatedTarget))event.currentTarget.classList.remove('drag-over')}
-function displayScreenDrop(event,screenId){
-  event.preventDefault();event.currentTarget.classList.remove('drag-over');
-  const matchId=event.dataTransfer.getData('text/plain');if(matchId)assignDisplayMatch(screenId,matchId);
-}
-function renderDisplayMatchQueue(){
-  const root=document.getElementById('displayMatchList');if(!root)return;
-  const rows=displayAssignableMatches();
-  if(!rows.length){root.innerHTML='<div class="display-screen-empty">Momentálne nie je pripravený žiadny zápas na priradenie.</div>';return}
-  root.innerHTML=rows.map(row=>{
-    const {p1,p2}=displayMatchNames(row);
-    const assigned=displayScreens.find(screen=>screen.display_mode==='match'&&screen.match_id===row.id);
-    const state=assigned?`→ ${assigned.name}`:displayMatchStateLabel(row.status||'pending');
-    return `<article class="display-match-card" draggable="true" ondragstart="displayMatchDragStart(event,'${row.id}')" ondragend="displayMatchDragEnd(event)">
-      <span class="display-match-grip" aria-hidden="true">⠿</span>
-      <div class="display-match-main"><div class="display-match-number">ZÁPAS #${Number(row.match_number||0)}</div><div class="display-match-players">${esc(p1)} – ${esc(p2)}</div></div>
-      <span class="display-match-state">${esc(state)}</span>
-    </article>`;
-  }).join('');
+function renderDisplayTarget(screen){
+  if(screen.display_mode==='resource'){
+    const options=tournamentOperations.map(resource=>`<option value="${esc(resource.resource_id)}" ${screen.resource_id===resource.resource_id?'selected':''}>${esc(resource.resource_label)}</option>`).join('');
+    return `<div class="display-screen-field wide"><label>Športovisko</label><select onchange="changeDisplayScreenTarget('${screen.id}','resource',this.value)">${options||'<option value="">Žiadne športovisko</option>'}</select></div>`;
+  }
+  if(screen.display_mode==='match'){
+    const options=displayMatchOptions().map(row=>{
+      const p1=row.player1_name||displayPlayerName(row.player1_id),p2=row.player2_name||displayPlayerName(row.player2_id);
+      return `<option value="${esc(row.id)}" ${screen.match_id===row.id?'selected':''}>#${Number(row.match_number||0)} · ${esc(p1)} – ${esc(p2)}</option>`;
+    }).join('');
+    return `<div class="display-screen-field wide"><label>Konkrétny zápas</label><select onchange="changeDisplayScreenTarget('${screen.id}','match',this.value)">${options||'<option value="">Žiadny zápas</option>'}</select></div>`;
+  }
+  return '';
 }
 function renderDisplayScreenCard(screen){
   const online=displayScreenOnline(screen);
   const state=!screen.is_enabled?'disabled':online?'online':'offline';
-  const stateLabel=!screen.is_enabled?'VYPNUTÝ':online?'ONLINE':'OFFLINE';
-  const source=displayMatchById(screen.match_id);
-  const assigned=screen.display_mode==='match'&&screen.match_id?{
-    id:screen.match_id,match_number:source?.match_number||screen.match_number,
-    player1_name:source?.player1_name||screen.player1_name,player2_name:source?.player2_name||screen.player2_name,
-    player1_id:source?.player1_id,player2_id:source?.player2_id,status:source?.status
-  }:null;
-  const names=assigned?displayMatchNames(assigned):null;
-  const candidates=displayAssignableMatches();
-  if(assigned&&!candidates.some(row=>row.id===assigned.id))candidates.unshift(assigned);
-  const options=candidates.map(row=>{const n=displayMatchNames(row);return `<option value="${row.id}" ${assigned?.id===row.id?'selected':''}>#${Number(row.match_number||0)} · ${esc(n.p1)} – ${esc(n.p2)}</option>`}).join('');
-  return `<article class="display-screen-card ${state}" data-display-screen-id="${screen.id}" ondragover="displayScreenDragOver(event)" ondragleave="displayScreenDragLeave(event)" ondrop="displayScreenDrop(event,'${screen.id}')">
+  const stateLabel=!screen.is_enabled?'VYPNUTÁ':online?'ONLINE':'OFFLINE';
+  return `<article class="display-screen-card ${state}" data-display-screen-id="${screen.id}">
     <div class="display-screen-top"><div class="display-screen-name">${esc(screen.name)}</div><span class="display-screen-state ${state}"><i></i>${stateLabel}</span></div>
-    <div class="display-screen-drop ${assigned?'assigned':''}">
-      ${assigned?`<div><div class="display-match-number">ZÁPAS #${Number(assigned.match_number||0)}</div><strong>${esc(names.p1)} – ${esc(names.p2)}</strong><small>${esc(displayMatchStateLabel(assigned.status||'priradený'))}</small></div>`:'<div><strong>Potiahni zápas sem</strong><small>Monitor zostane prázdny, kým mu nepriradíš konkrétny zápas.</small></div>'}
-    </div>
     <div class="display-screen-form">
       <div class="display-screen-field wide"><label>Názov obrazovky</label><input maxlength="80" value="${esc(screen.name)}" onchange="changeDisplayScreenName('${screen.id}',this.value)"></div>
-      <div class="display-screen-field wide"><label>Vybrať zápas bez potiahnutia</label><select onchange="changeDisplayScreenMatch('${screen.id}',this.value)"><option value="">— Bez zápasu —</option>${options}</select></div>
-      <div class="display-screen-field wide"><label>Orientácia</label><select onchange="changeDisplayScreenLayout('${screen.id}',this.value)">
+      <div class="display-screen-field"><label>Režim</label><select onchange="changeDisplayScreenMode('${screen.id}',this.value)">
+        <option value="overview" ${screen.display_mode==='overview'?'selected':''}>Prehľad haly</option>
+        <option value="resource" ${screen.display_mode==='resource'?'selected':''}>Športovisko</option>
+        <option value="match" ${screen.display_mode==='match'?'selected':''}>Konkrétny zápas</option>
+        <option value="idle" ${screen.display_mode==='idle'?'selected':''}>Pozastavená</option>
+      </select></div>
+      <div class="display-screen-field"><label>Orientácia</label><select onchange="changeDisplayScreenLayout('${screen.id}',this.value)">
         <option value="auto" ${screen.layout==='auto'?'selected':''}>Automatická</option>
         <option value="landscape" ${screen.layout==='landscape'?'selected':''}>Na šírku</option>
         <option value="portrait" ${screen.layout==='portrait'?'selected':''}>Na výšku</option>
       </select></div>
+      ${renderDisplayTarget(screen)}
+      <div class="display-screen-field wide"><label>Stav</label><select onchange="changeDisplayScreenEnabled('${screen.id}',this.value==='true')"><option value="true" ${screen.is_enabled?'selected':''}>Zapnutá</option><option value="false" ${!screen.is_enabled?'selected':''}>Vypnutá</option></select></div>
     </div>
     <div class="display-screen-actions">
       <button class="match-op" onclick="openDisplayScreen('${screen.public_token}')">▣ Otvoriť</button>
-      ${assigned?`<button class="match-op qr" onclick="releaseDisplayScreen('${screen.id}')">Uvoľniť</button>`:''}
-      <button class="match-op" onclick="changeDisplayScreenEnabled('${screen.id}',${!screen.is_enabled})">${screen.is_enabled?'Vypnúť':'Zapnúť'}</button>
+      <button class="match-op qr" onclick="copyDisplayScreenLink('${screen.public_token}')">Kopírovať link</button>
       <button class="match-op stop" onclick="deleteDisplayScreen('${screen.id}')">✕ Odpojiť</button>
     </div>
   </article>`;
 }
 function renderDisplayCenter(){
-  renderDisplayMatchQueue();
   const root=document.getElementById('displayScreens');if(!root)return;
-  root.innerHTML=displayScreens.length?displayScreens.map(renderDisplayScreenCard).join(''):'<div class="display-screen-empty"><b>Zatiaľ nie je pripojený žiadny samostatný monitor.</b><br><br>Na monitore otvor /projektortv/ a zadaj zobrazený kód vyššie.</div>';
-  const count=document.getElementById('displayScreensCount');if(count)count.textContent=`${displayScreens.length} ${displayScreens.length===1?'pripojený':displayScreens.length>1&&displayScreens.length<5?'pripojené':'pripojených'}`;
+  root.innerHTML=displayScreens.length?displayScreens.map(renderDisplayScreenCard).join(''):'<div class="display-screen-empty"><b>Zatiaľ nie je spárovaná žiadna obrazovka.</b><br><br>Na monitore otvor /displayview/ a zadaj zobrazený kód vyššie.</div>';
 }
 async function loadDisplayScreens(){
   if(!curT?.id)return;
@@ -1974,14 +1760,13 @@ async function loadDisplayScreens(){
 async function openDisplayCenter(tournamentId){
   if(!tournamentId||!curT||curT.id!==tournamentId)return;
   document.getElementById('displayCenterOverlay')?.classList.remove('hidden');
-  switchDisplayTab('overview');
   document.getElementById('displayPairCode').value='';
   document.getElementById('displayPairName').value='';
   try{
     if(!tournamentOperations.length)await loadTournamentOperations(tournamentId);
     await loadDisplayScreens();
   }catch(err){
-    console.error('[turnament] projektortv:',err);
+    console.error('[turnament] display centre:',err);
     document.getElementById('displayScreens').innerHTML=`<div class="display-screen-empty">${esc(cspErrorMessage(err))}</div>`;
   }
   clearInterval(displayCenterTimer);
@@ -2001,9 +1786,9 @@ async function pairDisplayScreen(){
     const {error}=await tournamentRpc('pair_tournament_display_screen',{p_tournament_id:curT.id,p_pairing_code:code,p_name:name});
     if(error)throw error;
     document.getElementById('displayPairCode').value='';document.getElementById('displayPairName').value='';
-    await loadDisplayScreens();switchDisplayTab('multiscreen');toast(`${name} pripojený ✓`);
+    await loadDisplayScreens();toast(`${name} pripojená ✓`);
   }catch(err){console.error('[turnament] display pairing:',err);toast(cspErrorMessage(err),true)}
-  finally{button.disabled=false;button.textContent='＋ Pridať monitor'}
+  finally{button.disabled=false;button.textContent='＋ Spárovať'}
 }
 async function persistDisplayScreen(screen){
   const {data,error}=await tournamentRpc('update_tournament_display_screen',{
@@ -2021,24 +1806,30 @@ async function mutateDisplayScreen(id,mutator,successText='Obrazovka aktualizova
   try{await persistDisplayScreen(screen);toast(successText)}
   catch(err){Object.assign(screen,previous);renderDisplayCenter();console.error('[turnament] display update:',err);toast(cspErrorMessage(err),true)}
 }
-async function assignDisplayMatch(screenId,matchId){
-  if(!screenId||!matchId)return;
-  const match=displayMatchById(matchId);if(!match)return;
-  try{
-    const {error}=await tournamentRpc('assign_tournament_display_match',{p_screen_id:screenId,p_match_id:matchId});
-    if(error)throw error;
-    await loadDisplayScreens();
-    const names=displayMatchNames(match);toast(`${names.p1} – ${names.p2} priradený ✓`);
-  }catch(err){console.error('[turnament] display assignment:',err);toast(cspErrorMessage(err),true)}
+function changeDisplayScreenMode(id,mode){
+  mutateDisplayScreen(id,screen=>{
+    screen.display_mode=mode;screen.resource_id=null;screen.match_id=null;
+    if(mode==='resource'){
+      if(tournamentOperations[0])screen.resource_id=tournamentOperations[0].resource_id;
+      else screen.display_mode='idle';
+    }
+    if(mode==='match'){
+      const first=displayMatchOptions()[0];if(first)screen.match_id=first.id;else screen.display_mode='idle';
+    }
+  });
 }
-function releaseDisplayScreen(id){
-  return mutateDisplayScreen(id,screen=>{screen.display_mode='idle';screen.resource_id=null;screen.match_id=null},'Monitor je voľný ✓');
+function changeDisplayScreenTarget(id,type,value){
+  mutateDisplayScreen(id,screen=>{if(type==='resource')screen.resource_id=value||null;else screen.match_id=value||null});
 }
-function changeDisplayScreenMatch(id,value){return value?assignDisplayMatch(id,value):releaseDisplayScreen(id)}
 function changeDisplayScreenName(id,value){mutateDisplayScreen(id,screen=>{screen.name=String(value||'').trim()})}
 function changeDisplayScreenLayout(id,value){mutateDisplayScreen(id,screen=>{screen.layout=value})}
 function changeDisplayScreenEnabled(id,value){mutateDisplayScreen(id,screen=>{screen.is_enabled=!!value},value?'Obrazovka zapnutá ✓':'Obrazovka vypnutá ✓')}
 function openDisplayScreen(token){window.open(displayScreenPath(token),'_blank','noopener')}
+async function copyDisplayScreenLink(token){
+  const link=new URL(displayScreenPath(token),location.origin).href;
+  try{await navigator.clipboard.writeText(link);toast('Link obrazovky skopírovaný ✓')}
+  catch{const area=document.createElement('textarea');area.value=link;document.body.append(area);area.select();document.execCommand('copy');area.remove();toast('Link obrazovky skopírovaný ✓')}
+}
 async function deleteDisplayScreen(id){
   const screen=displayScreens.find(item=>item.id===id);if(!screen)return;
   if(!confirm(`Odpojiť obrazovku „${screen.name}“? Na monitore sa následne zobrazí nový párovací kód.`))return;
@@ -2050,22 +1841,18 @@ async function deleteDisplayScreen(id){
 }
 
 async function viewDetail(id){
-  let t, matchRows=[], eventSeries=null;
+  let t, matchRows=[];
   try {
     const { data: tournament, error: tErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
       8000, 'load tournament'
     );
     if(tErr) throw tErr;
-    isPublicReadOnly = !(currentSession && tournament.owner_id === currentSession.user.id);
-    if(tournament.source_event_id){
-      const {data:sourceEvent,error:sourceEventError}=await cspAuth.withTimeout(
-        cspAuth.client.from('events').select('series_id,series_round_number').eq('id',tournament.source_event_id).maybeSingle(),
-        8000,'load tournament series'
-      );
-      if(sourceEventError)console.warn('[turnament] Could not load series link:',sourceEventError);
-      else eventSeries=sourceEvent||null;
+    if(t.format==='karty' && t.status==='active'){
+      openTableGen(t);
+      return;
     }
+    isPublicReadOnly = !(currentSession && tournament.owner_id === currentSession.user.id);
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
       8000, 'load tournament players'
@@ -2073,8 +1860,7 @@ async function viewDetail(id){
     if(pErr) throw pErr;
     // id carried through so the bracket engine's player objects can
     // reference their real tournament_players row when a match is saved.
-    t = { ...tournament, series_id:eventSeries?.series_id||null, series_round_number:eventSeries?.series_round_number||null,
-          groups: tournament.groups_count, advance: tournament.advance_count,
+    t = { ...tournament, groups: tournament.groups_count, advance: tournament.advance_count,
           players: (players||[]).map(p=>({ id: p.id, name: p.name, user_id:p.user_id||null, seed: p.seed })) };
 
     const { data: matches, error: mErr } = await cspAuth.withTimeout(
@@ -2083,7 +1869,6 @@ async function viewDetail(id){
     );
     if(mErr) throw mErr;
     matchRows = matches || [];
-    displayMatchRows = matchRows;
     realMatchesByKey = new Map(matchRows.map(row => [row.round_key, row]));
 
     const { data: phases, error: phaseErr } = await cspAuth.withTimeout(
@@ -2169,10 +1954,7 @@ async function viewDetail(id){
     <div class="page-head">
       <div>
         <span class="fmt" style="display:inline-block;margin-bottom:8px">${FMT_LABEL[curT.format]||curT.format}</span>
-        <div class="tournament-title-row">
-          <h1>${esc(curT.name)}</h1>
-          ${curT.series_id?`<a class="series-ranking-cta" href="/seria/?id=${encodeURIComponent(curT.series_id)}">Celkové poradie série →</a>`:''}
-        </div>
+        <h1>${esc(curT.name)}</h1>
         <p>${esc(curT.sport)}${curT.discipline?' · '+esc(curT.discipline):''}${curT.date?' · '+esc(curT.date):''}${curT.venue?' · '+esc(curT.venue):''} · <span class="status-chip ${esc(curT.status)}">${statusLabel(curT.status)}</span></p>
       </div>
       ${isPublicReadOnly?'':`<div style="display:flex;gap:10px">
@@ -2180,7 +1962,7 @@ async function viewDetail(id){
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
-        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayCenter('${curT.id}')">▣ ProjektorTV</button>`:''}
+        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayCenter('${curT.id}')">▣ Display centrum</button>`:''}
         ${['draft','ready','active'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
@@ -2288,8 +2070,6 @@ async function editTournament(id){
 
 /* ── Prepínanie zoznam / pavúk ── */
 function setMatchView(view){
-  const enteringBracket=view==='bracket'&&matchViewMode!=='bracket';
-  if(enteringBracket)dkoBracketScrollLeft=null;
   matchViewMode=view==='bracket'?'bracket':'list';
   const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
   const title=document.getElementById('matchViewTitle');if(title)title.textContent=matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov';
@@ -2298,12 +2078,11 @@ function setMatchView(view){
 }
 function renderMatchArea(t){
   const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
-  if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
   return body + renderTournamentEvaluation(t);
 }
 
-function bracketPlayerLine(player,score,isWinner,isWalkoverSlot=false){
-  const label=player?(player.bye?'W.O.':esc(player.name)):(isWalkoverSlot?'W.O.':'Čaká na postup');
+function bracketPlayerLine(player,score,isWinner){
+  const label=player?(player.bye?'VO':esc(player.name)):'Čaká na postup';
   return `<div class="bracket-player ${isWinner?'win':''}"><span>${label}</span><span class="bracket-score">${score??'–'}</span></div>`;
 }
 function matchDisplayKey(m){
@@ -2314,11 +2093,10 @@ function matchDisplayKey(m){
 
 function bracketMatchCard(m,loc){
   const playable=!isPublicReadOnly&&m?.p1&&m?.p2&&!m.p1.bye&&!m.p2.bye;
-  const walkover=TM.isWalkover(m);
   return `<article class="bracket-match ${playable?'':'disabled'}" ${playable?`onclick="openMatch('${loc}')"`:''}>
     <div class="bracket-match-key">${esc(matchDisplayKey(m))}</div>
-    ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1,walkover&&!m?.p1)}
-    ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2,walkover&&!m?.p2)}
+    ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1)}
+    ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2)}
   </article>`;
 }
 function bracketColumns(rounds,names,prefix){
@@ -2326,57 +2104,17 @@ function bracketColumns(rounds,names,prefix){
     <section class="bracket-column">
       <div class="bracket-column-title">${esc(names?.[ri]||`Kolo ${ri+1}`)}</div>
       <div class="bracket-column-matches">${round.map((m,mi)=>bracketMatchCard(m,`${prefix}:${ri}:${mi}`)).join('')}</div>
-  </section>`).join('')}</div></div>`;
-}
-let dkoBracketScrollLeft=null;
-function rememberDkoBracketScroll(scroller){
-  dkoBracketScrollLeft=scroller.scrollLeft;
-}
-function restoreDkoBracketScroll(){
-  const scroller=document.querySelector('.dko-bracket-scroll');
-  if(!scroller)return;
-  const max=Math.max(0,scroller.scrollWidth-scroller.clientWidth);
-  if(dkoBracketScrollLeft===null){
-    const start=scroller.querySelector('[data-dko-start]');
-    if(start)dkoBracketScrollLeft=Math.max(0,Math.min(max,start.offsetLeft+(start.offsetWidth/2)-(scroller.clientWidth/2)));
-  }
-  scroller.scrollLeft=Math.max(0,Math.min(max,dkoBracketScrollLeft||0));
-}
-function dkoBracketColumn(round,title,prefix,roundIndex,side){
-  const sideLabel=side==='loser'?'Prehratá strana':side==='start'?'Štart':side==='winner'?'Víťazná strana':'Finálová fáza';
-  return `<section class="bracket-column dko-bracket-column ${side}" ${side==='start'?'data-dko-start="true"':''}>
-    <div class="dko-column-side">${sideLabel}</div>
-    <div class="bracket-column-title">${esc(title)}</div>
-    <div class="bracket-column-matches">${(round||[]).map((m,mi)=>bracketMatchCard(m,`${prefix}:${roundIndex}:${mi}`)).join('')}</div>
-  </section>`;
-}
-function dkoBracketColumns(dko,phase2=false){
-  if(!dko?.W?.length)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
-  const p=phase2?{w:'p2dA',l:'p2dB',q:'p2dQ',s:'p2dS',f:'p2dF'}:{w:'dkoA',l:'dkoB',q:'dkoQ',s:'dkoS',f:'dkoF'};
-  const columns=[];
-
-  // Chronologicky posledné loser kolo je úplne vľavo. Prvé loser kolo
-  // zostáva pri štartovom kole, rovnako ako v klasickom DKO pavúku.
-  for(let ri=(dko.L?.length||0)-1;ri>=0;ri--){
-    columns.push(dkoBracketColumn(dko.L[ri],TM.dkoRoundName('L',ri,dko.L.length),p.l,ri,'loser'));
-  }
-
-  columns.push(dkoBracketColumn(dko.W[0],TM.dkoRoundName('W',0,dko.W.length),p.w,0,'start'));
-  for(let ri=1;ri<dko.W.length;ri++){
-    columns.push(dkoBracketColumn(dko.W[ri],TM.dkoRoundName('W',ri,dko.W.length),p.w,ri,'winner'));
-  }
-  if(dko.QF?.length)columns.push(dkoBracketColumn(dko.QF,'Štvrťfinále',p.q,0,'final'));
-  if(dko.SF?.length)columns.push(dkoBracketColumn(dko.SF,'Semifinále',p.s,0,'final'));
-  columns.push(dkoBracketColumn([dko.F],'Finále',p.f,0,'final'));
-
-  return `<div class="bracket-scroll dko-bracket-scroll" onscroll="rememberDkoBracketScroll(this)"><div class="bracket-grid dko-bracket-grid">${columns.join('')}</div></div>`;
+    </section>`).join('')}</div></div>`;
 }
 function renderBracketView(t){
   if(t.format==='sko'&&t.bracket){
     return bracketColumns(t.bracket.rounds,t.bracket.rounds.map((_,ri)=>TM.roundName(ri,t.bracket.total)),'sko');
   }
   if(t.format==='dko'&&t.dko){
-    return dkoBracketColumns(t.dko);
+    return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(t.dko.W,t.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,t.dko.total)),'dkoA')}
+      <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${t.dko.L.length?bracketColumns(t.dko.L,t.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,t.dko.total)),'dkoB'):''}
+      <div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([t.dko.SF],['Semifinále'],'dkoS')}
+      <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[t.dko.F]],['Finále'],'dkoF')}`;
   }
   if(t.format==='rr'){
     return `<div class="note-box">Round Robin nemá vyraďovací pavúk. Použi zobrazenie Zoznam, kde sú zápasy rozdelené podľa kôl.</div>`;
@@ -2387,7 +2125,10 @@ function renderBracketView(t){
   const phase=t.phase2;
   if(!phase)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
   if(phase.kind==='standard-sko')return bracketColumns(phase.bracket.rounds,phase.bracket.rounds.map((_,ri)=>TM.roundName(ri,phase.bracket.total)),'p2s');
-  if(phase.kind==='standard-dko')return dkoBracketColumns(phase.dko,true);
+  if(phase.kind==='standard-dko')return `<div class="bracket-branch">▲ VÍŤAZNÁ VETVA</div>${bracketColumns(phase.dko.W,phase.dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,phase.dko.total)),'p2dA')}
+    <div class="bracket-branch">▼ VETVA PORAZENÝCH</div>${phase.dko.L.length?bracketColumns(phase.dko.L,phase.dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,phase.dko.total)),'p2dB'):''}
+    <div class="bracket-branch">◆ SEMIFINÁLE</div>${bracketColumns([phase.dko.SF],['Semifinále'],'p2dS')}
+    <div class="bracket-branch">◆ FINÁLE</div>${bracketColumns([[phase.dko.F]],['Finále'],'p2dF')}`;
   const activeBracket=phase.main||phase.prelim;
   const prefix=phase.main?'p2m':'p2p';
   return bracketColumns(activeBracket.rounds,activeBracket.rounds.map((_,ri)=>TM.roundName(ri,activeBracket.total)),prefix);
@@ -2423,10 +2164,9 @@ function renderMatchList(t){
       });
       return h;
     };
-    html+=sect('▲ VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'dkoA');
-    if(dko.L.length)html+=sect('▼ VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
-    if(dko.QF.length)html+=sect('◆ TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'dkoQ');
-    if(dko.SF.length)html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
+    html+=sect('▲ VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'dkoA');
+    if(dko.L.length)html+=sect('▼ VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'dkoB');
+    html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
     html+=sect('◆ FINÁLE','conv',[[dko.F]],['Finále'],'dkoF');
     const champ=TM.dkoChampion(dko);if(champ) html=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${champ.name}</b></div>`+html;
     if(played && !tournamentFlowFinished(t)) html+=renderRankTable(rank);
@@ -2503,10 +2243,9 @@ function renderPhaseDKO(dko){
     });
     return h;
   };
-  return sect('▲ Phase 2 · VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'p2dA')+
-    (dko.L.length?sect('▼ Phase 2 · VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
-    (dko.QF.length?sect('◆ Phase 2 · TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'p2dQ'):'')+
-    (dko.SF.length?sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS'):'')+
+  return sect('▲ Phase 2 · VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.total)),'p2dA')+
+    (dko.L.length?sect('▼ Phase 2 · VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.total)),'p2dB'):'')+
+    sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS')+
     sect('◆ Phase 2 · FINÁLE','conv',[[dko.F]],['Finále'],'p2dF');
 }
 function renderComboPhase2(phase){
@@ -2579,7 +2318,7 @@ function phase2Ranking(t){
 function collectPhase2Matches(phase){
   if(!phase) return [];
   if(phase.kind==='standard-sko') return phase.bracket.rounds.flat();
-  if(phase.kind==='standard-dko') return dkoMatchesInNumberOrder(phase.dko);
+  if(phase.kind==='standard-dko') return [...phase.dko.W.flat(),...phase.dko.L.flat(),...phase.dko.SF,...(phase.dko.F?[phase.dko.F]:[])];
   if(phase.kind==='protected-sko') return [...(phase.prelim?.rounds?.flat()||[]),...(phase.main?.rounds?.flat()||[])];
   return [];
 }
@@ -2802,7 +2541,6 @@ async function refreshRealMatch(loc){
 async function reloadRealMatches(){
   const {data,error}=await cspAuth.client.from('matches').select('*').eq('tournament_id',curT.id);
   if(error)throw error;
-  displayMatchRows=data||[];
   realMatchesByKey=new Map((data||[]).map(row=>[row.round_key,row]));
   return data||[];
 }
@@ -3149,9 +2887,9 @@ function liveMatchControls(m,loc){
 }
 
 function matchRow(m, loc){
-  const walkover=TM.isWalkover(m)||(m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
-  const name=(p)=> p? (p.bye?'<span class="mt-bye">W.O.</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : (walkover?'<span class="mt-bye">W.O.</span>':'<span class="mt-wait">čaká na postup</span>');
-  const done = m.winner!=null && !walkover;
+  const bye = (m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
+  const name=(p)=> p? (p.bye?'<span class="mt-bye">(VO)</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : '<span class="mt-wait">čaká na postup</span>';
+  const done = m.winner!=null && !bye;
   const w1=m.winner===1, w2=m.winner===2;
   const row=rowForMatch(m,loc);
   const running=row?.status==='live'||row?.status==='in_progress';
@@ -3160,9 +2898,9 @@ function matchRow(m, loc){
   const hasDbScore=row&&(row.score1!=null||row.score2!=null);
   // SMART matches always expose their score in the organizer list, even at
   // 0:0. Manual/unassigned matches keep the old "vs" until a score exists.
-  const showLiveScore=!walkover&&(running||smartAssigned||hasDbScore);
-  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (walkover?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
-  const clickable = !isPublicReadOnly && !walkover && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
+  const showLiveScore=!bye&&(running||smartAssigned||hasDbScore);
+  const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (bye?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
+  const clickable = !isPublicReadOnly && !bye && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}" data-match-number="${Number(m.number)||''}">
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
@@ -3184,7 +2922,6 @@ function getMatchByLoc(loc){
   if(k==='sko') return curT.bracket.rounds[+a][+b];
   if(k==='dkoA') return curT.dko.W[+a]?.[+b]||null;
   if(k==='dkoB') return curT.dko.L[+a]?.[+b]||null;
-  if(k==='dkoQ') return curT.dko.QF[+b]||null;
   if(k==='dkoS') return curT.dko.SF[+b]||null;
   if(k==='dkoF') return curT.dko.F||null;
   if(k==='grp') return curT.grp.groups[+a].matches[+b];
@@ -3193,7 +2930,6 @@ function getMatchByLoc(loc){
   if(k==='p2m') return curT.phase2.main.rounds[+a][+b];
   if(k==='p2dA') return curT.phase2.dko.W[+a]?.[+b]||null;
   if(k==='p2dB') return curT.phase2.dko.L[+a]?.[+b]||null;
-  if(k==='p2dQ') return curT.phase2.dko.QF[+b]||null;
   if(k==='p2dS') return curT.phase2.dko.SF[+b]||null;
   if(k==='p2dF') return curT.phase2.dko.F||null;
   return null;
@@ -3201,11 +2937,11 @@ function getMatchByLoc(loc){
 function recomputeFor(loc){
   const k=loc.split(':')[0];
   if(k==='sko') TM.recomputeSKO(curT.bracket);
-  else if(['dkoA','dkoB','dkoQ','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
+  else if(['dkoA','dkoB','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
   else if(k==='p2s') TM.recomputeSKO(curT.phase2.bracket);
   else if(k==='p2p') TM.recomputeSKO(curT.phase2.prelim);
   else if(k==='p2m') TM.recomputeSKO(curT.phase2.main);
-  else if(['p2dA','p2dB','p2dQ','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
+  else if(['p2dA','p2dB','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
 
@@ -3462,7 +3198,7 @@ const DISCIPLINES={
 const FORMATS={
   rr:{ic:'🔄',t:'Round Robin',d:'Každý s každým. Konečné poradie podľa tabuľky.',struct:['Skupina / liga']},
   sko:{ic:'🎯',t:'Single KO',d:'Vyraďovací pavúk — jedna prehra a koniec.',struct:['Pavúk']},
-  dko:{ic:'🔁',t:'Double KO',d:'Dynamický pavúk 16–256 s vetvou porazených a W.O.',struct:['Pavúk A+B','TOP 8']},
+  dko:{ic:'🔁',t:'Double KO',d:'Pavúk s vetvou porazených (víťazná A + loser B vetva).',struct:['Pavúk A+B']},
   rr_sko:{ic:'🏆',t:'Skupiny → Single KO',d:'Najprv skupiny (RR), postupujúci do Single KO pavúka.',struct:['Skupiny','Single KO']},
   rr_dko:{ic:'🏆',t:'Skupiny → Double KO',d:'Najprv skupiny (RR), postupujúci do Double KO pavúka.',struct:['Skupiny','Double KO']},
 };
@@ -3756,7 +3492,7 @@ function renderWiz(){
         <button class="btn btn-ghost" style="margin-top:8px" onclick="addBulk()">Pridať všetkých zo zoznamu</button></div>`:''}` }
       <div class="player-stats">
         <span class="player-count"><b>${presentCount}/${wiz.players.length}</b> prítomných</span>
-        ${wiz.players.length&&!wiz.structureLocked?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} W.O.`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
+        ${wiz.players.length&&!wiz.structureLocked?`<span class="player-bracket">${wiz.players.length>=2?`pavúk ${N}${N>wiz.players.length?` · ${N-wiz.players.length} bye`:''} · `:''}<button class="clear-all" onclick="clearPlayers()">vymazať všetkých</button></span>`:''}
       </div>
       ${wiz.players.length&&!wiz.structureLocked?`<div class="seed-control">
         <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
@@ -3766,7 +3502,7 @@ function renderWiz(){
         ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
         <span class="pl-name">${esc(pl.name)}${cspWizardBadge(pl)}</span>
-        <button type="button" class="presence-toggle ${pl.present?'is-present':''}" role="switch" aria-checked="${pl.present?'true':'false'}" title="Potvrdiť prítomnosť hráča" onclick="setPlayerPresent(${i},!wiz.players[${i}].present,this)"><span class="presence-switch" aria-hidden="true"></span><span class="presence-label">Prítomný</span></button>
+        <label class="presence-toggle" title="Potvrdiť prítomnosť hráča"><input type="checkbox" ${pl.present?'checked':''} onchange="setPlayerPresent(${i},this.checked)"><span class="presence-switch"></span><span class="presence-label">Prítomný</span></label>
         ${wiz.structureLocked?'':`<span class="pl-move"><button type="button" title="Posunúť vyššie" onclick="movePlayer(${i},-1)">▲</button><button type="button" title="Posunúť nižšie" onclick="movePlayer(${i},1)">▼</button></span>
         <button class="pl-del" onclick="removePlayer(${i})">✕</button>`}
       </div>`).join('')}</div>`
@@ -3852,13 +3588,13 @@ async function addBulk(){
   wiz.showBulk=false; renderWiz();
   toast(blocked?`Pridaných ${added} hráčov · ${blocked} blokovaných CSP IHS`:`Pridaných ${added} hráčov`,blocked>0);
 }
-function setPlayerPresent(index,present,control){
+function setPlayerPresent(index,present){
   if(!wiz.players[index]) return;
   wiz.players[index].present=!!present;
-  if(control){
-    control.classList.toggle('is-present',!!present);
-    control.setAttribute('aria-checked',present?'true':'false');
-  }
+
+  // Do not rebuild the whole wizard here. Re-rendering step 2 focused
+  // the add-player input at the top of the page and forced the scroll
+  // position back to the beginning of the attendance list.
   const countEl=document.querySelector('.player-count b');
   if(countEl){
     const presentCount=wiz.players.filter(pl=>pl.present).length;
@@ -3917,8 +3653,7 @@ function refreshGroupNote(){
   const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total));
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
   const protectedNote=wiz.format==='rr_sko'&&wiz.protectedSeeds?`<br><b>K = ${wiz.protectedSeeds}:</b> top ${wiz.protectedSeeds} celkovo chránených hráčov čaká na hlavný pavúk; ostatní odohrajú predkolo.`:'';
-  const capacityNote=wiz.format==='rr_dko'&&total>TM.MAX_DKO_PLAYERS?`<br><b>Limit:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} postupujúcich.`:'';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} W.O.)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (1. zo skupiny A vs 3. zo skupiny B…) finalizujeme v engine.${protectedNote}${capacityNote}`;
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} bye)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (1. zo skupiny A vs 3. zo skupiny B…) finalizujeme v engine.${protectedNote}`;
 }
 
 function renderPreview(){
@@ -3930,17 +3665,13 @@ function renderPreview(){
     el.innerHTML=demoNote+`<div class="note-box"><b>Karty — ${wiz.discipline}:</b> ${wiz.players.length} hráčov. Po vytvorení ťa presmerujeme do Generátora stolov, kde sa rozdelia do stolov a hrajú sa kolá — žiadny pavúk ani tabuľka RR sa tu negeneruje.</div>`;
   }
   else if(wiz.format==='sko'||wiz.format==='dko'){
-    if(wiz.format==='dko'&&players.length>TM.MAX_DKO_PLAYERS){
-      el.innerHTML=demoNote+`<div class="note-box"><b>Príliš veľa hráčov:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS}. Zníž počet hráčov pred spustením turnaja.</div>`;
-      return;
-    }
     const bracket=wiz.format==='dko'?TM.buildDKO(players):TM.buildSKO(players);
     const firstRound=wiz.format==='dko'?(bracket.W?.[0]||[]):(bracket.rounds?.[0]||[]);
     const N=bracket.N;
     let html=`<div class="preview"><h4>${wiz.format==='dko'?'Double KO':'Single KO'} · pavúk ${N} — prvé kolo</h4>`;
     firstRound.forEach(m=>{
       const a=m.p1,b=m.p2,key=matchDisplayKey(m);
-      if(a?.bye||b?.bye){ const adv=a?.bye?b:a; html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${adv?.name||'—'}</span><span class="mt-bye">W.O. → postupuje</span></div>`; }
+      if(a?.bye||b?.bye){ const adv=a?.bye?b:a; html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${adv?.name||'—'}</span><span class="mt-bye">bye → postupuje</span></div>`; }
       else html+=`<div class="mt-match"><span class="mt-key">${key}</span><span class="mt-p">${a?.name||'—'}</span><span class="mt-vs">vs</span><span class="mt-p" style="text-align:right">${b?.name||'—'}</span></div>`;
     });
     html+=`</div>`;
@@ -3961,11 +3692,6 @@ function renderPreview(){
 
 async function createTournament(){
   if(wiz.players.length<2){ toast('Pridaj aspoň 2 hráčov.',true); return; }
-  const dkoSize=wiz.format==='dko'?wiz.players.length:(wiz.format==='rr_dko'?wiz.groups*wiz.advance:0);
-  if(dkoSize>TM.MAX_DKO_PLAYERS){
-    toast(`Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} hráčov.`,true);
-    return;
-  }
   const formatChanged=!!wiz.editId && !!wiz.originalFormat && wiz.format!==wiz.originalFormat;
   if(formatChanged && wiz.formatLocked){
     toast('Formát nie je možné zmeniť po začiatku prvého zápasu.',true);
@@ -3996,6 +3722,7 @@ async function createTournament(){
       venue: wiz.venue || null,
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
+      source_event_id: wiz.source_event_id || null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
       config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
