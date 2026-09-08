@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Nastavenie turnaja | CardScoresPro</title>
+<title>Kartový turnaj | Connect Sports Pro</title>
+  <script src="/assets/csp-auth.js"></script>
   <style>
     :root{
       --bg:#05070d;
@@ -105,6 +106,12 @@
     .winner-banner{padding:18px;border-radius:18px;border:1px solid rgba(216,176,75,.36);background:rgba(216,176,75,.10);color:#f4df9c;font-size:1.05rem;line-height:1.55}
     .winner-banner strong{color:var(--gold);font-size:1.2rem}
     .footer-note{margin-top:18px;color:rgba(255,255,255,.54);font-size:.9rem;line-height:1.5}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+    .hero-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+    .sync-line{display:flex;align-items:center;gap:8px;margin-top:10px;color:rgba(255,255,255,.58);font-size:.86rem}
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:#5a9a38;box-shadow:0 0 12px rgba(90,154,56,.65)}
+    .sync-line.offline .sync-dot{background:var(--danger);box-shadow:none}
+    .busy{pointer-events:none;opacity:.62}
     @media (max-width: 920px){
       .grid{grid-template-columns:1fr}
       textarea{min-height:260px}
@@ -117,16 +124,22 @@
   <main class="page">
     <div class="brand">
       <div class="logo-mark">CSP</div>
-      <div class="brand-title"><span class="gold">CardScores</span><span class="white">Pro</span></div>
+      <div class="brand-title"><span class="gold">Connect Sports</span><span class="white"> Pro</span></div>
     </div>
 
     <section class="hero">
       <h1>Nastavenie turnaja</h1>
-      <p>Pridaj hráčov, skontroluj duplicity a priprav automatické rozdelenie stolov.</p>
+      <p>Rozdeľ hráčov k stolom, označ postupujúcich a veď turnaj až po finálové poradie.</p>
       <div id="tournamentContext" style="display:none;margin-top:14px;padding:12px 14px;border:1px solid rgba(216,176,75,.28);background:rgba(216,176,75,.07);border-radius:14px;color:var(--muted)">
         <strong id="tournamentContextName" style="color:var(--gold)"></strong>
         <span id="tournamentContextDiscipline"></span>
       </div>
+      <div class="hero-actions">
+        <a class="btn btn-secondary" id="backTournamentBtn" href="/turnament/">Späť na turnaj</a>
+        <a class="btn btn-secondary" id="projectorBtn" href="/displayview/">ProjektorTV</a>
+        <a class="btn btn-secondary" id="seriesBtn" href="/udalost/?sport=Karty&series=1">Vytvoriť sezónu</a>
+      </div>
+      <div class="sync-line" id="syncLine"><span class="sync-dot"></span><span id="syncText">Pripájam turnaj…</span></div>
     </section>
 
     <section class="card">
@@ -138,11 +151,11 @@
             <h3>Mená hráčov</h3>
             <div class="field">
               <label for="playerNames">Mená hráčov (1 meno na riadok)</label>
-              <textarea id="playerNames" placeholder="Napr.
+              <textarea id="playerNames" disabled placeholder="Napr.
 Ján Novák
 Peter Kováč
 Martin Horváth"></textarea>
-              <div class="helper">Hráčov zadávaj po jednom mene na riadok. Duplicity systém zvýrazní automaticky.</div>
+              <div class="helper">Zoznam sa načíta z Tournament Managera. Zmenu hráčov urob pred spustením turnaja v jeho nastaveniach.</div>
             </div>
 
             <div class="stats">
@@ -185,7 +198,7 @@ Martin Horváth"></textarea>
             </div>
 
             <div class="helper">
-              Po každom kole označíš vypadávajúcich hráčov a ukončíš všetky stoly. Ďalšie kolo sa vygeneruje iba z postupujúcich. Finále má vždy presne 4 hráčov.
+              Po každom kole označíš vypadávajúcich hráčov a ukončíš všetky stoly. Ďalšie kolo vznikne iba z postupujúcich. Finále má presne 4 hráčov.
             </div>
 
             <div class="actions">
@@ -199,13 +212,13 @@ Martin Horváth"></textarea>
         <div class="tables-output" id="tablesOutput"></div>
 
         <div class="footer-note">
-          Kartový turnaj pokračuje cez jednotlivé kolá až po finálový stôl so štyrmi hráčmi. Rozbehnutý stav sa priebežne ukladá v tomto zariadení.
+          Priebeh sa ukladá do CSP a je dostupný na všetkých zariadeniach. Po ukončení turnaja sa výsledky automaticky započítajú do poradia sezóny.
         </div>
       </div>
     </section>
   </main>
 
-  <script>
+  <script type="text/plain" id="legacyCardGenerator">
     const playerNamesEl = document.getElementById('playerNames');
     const playersPerTableEl = document.getElementById('playersPerTable');
     const tableCountEl = document.getElementById('tableCount');
@@ -818,6 +831,7 @@ Martin Horváth"></textarea>
     loadTournamentHandoff();
     if (!restoreState()) updateStats();
   </script>
+  <script src="/generator-stolov/app.js"></script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
