@@ -173,8 +173,9 @@ button,input,select{font:inherit}
 .landing-tournament-row{display:grid;grid-template-columns:105px 1fr auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line2);border-radius:14px;background:#0a0a0a}
 .landing-tournament-row:hover{border-color:rgba(212,168,67,.32)}.landing-tournament-date{font-family:var(--mono);font-size:.7rem;color:var(--gold)}.landing-tournament-name{font-weight:800}.landing-tournament-meta{font-size:.75rem;color:var(--muted);margin-top:4px}.landing-tournament-open{font-size:.75rem;color:#858b91}.landing-tournament-empty{padding:22px;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
 
-.pricing{padding:28px}.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pricing{padding:28px}.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .pricing-card{padding:22px;border:1px solid var(--line);border-radius:20px;background:#0a0a0a;display:grid;gap:14px}
+.pricing-card.pro-plus{background:linear-gradient(180deg,rgba(212,168,67,.12),rgba(10,18,12,.98));border-color:rgba(212,168,67,.36);box-shadow:inset 0 1px 0 rgba(24,201,100,.22)}
 .pricing-card.ultra{background:linear-gradient(180deg,rgba(24,201,100,.15),rgba(10,18,12,.98));border-color:rgba(24,201,100,.32)}
 .pricing-card h3{margin:0;color:var(--gold);font-size:1.25rem}.price-row{display:flex;align-items:baseline;gap:7px}.price{font-size:2.45rem;font-weight:900;letter-spacing:-.05em}.per{color:var(--muted);font-size:.8rem}.subline{color:var(--muted);line-height:1.55;font-size:.88rem}
 .list{display:grid;gap:7px}.list div{padding:9px 10px;border-radius:11px;background:#111;border:1px solid var(--line2);font-size:.82rem;color:#d2d2d2}
@@ -235,6 +236,7 @@ button,input,select{font:inherit}
     <div class="nav-links" id="siteNavLinks">
       <a href="/kalendar-turnajov/">Turnaje</a>
       <a href="/magazin/">Novinky</a>
+      <a href="/cennik/">Cenník</a>
       <a href="/login/">Prihlásiť</a>
       <a class="primary" href="/registracia/">Pridaj sa zadarmo</a>
       <div class="lang-wrap"><span>🌐</span><select id="cspLanguageSelect" aria-label="Jazyk" translate="no" data-no-translate="true">
@@ -344,7 +346,7 @@ button,input,select{font:inherit}
 </section>
 
 <section class="panel pricing">
-  <div class="section-head"><div><h2 class="section-title">Cenník</h2><p>Začni zadarmo. Vyšší plán si vyber až vtedy, keď ho potrebuješ.</p></div></div>
+  <div class="section-head"><div><h2 class="section-title">Cenník</h2><p>Začni zadarmo. Vyšší plán si vyber až vtedy, keď ho potrebuješ.</p></div><a class="btn btn-dark" href="/cennik/">Podrobné porovnanie</a></div>
   <div class="pricing-grid">
     <article class="pricing-card free">
       <h3>Free</h3><div class="price-row"><div class="price">0 €</div><div class="per">/ navždy</div></div>
@@ -353,15 +355,21 @@ button,input,select{font:inherit}
       <a href="/registracia/" class="btn btn-dark">Začať zadarmo</a>
     </article>
     <article class="pricing-card pro">
-      <h3>Pro</h3><div class="price-row"><div class="price">9,90 €</div><div class="per">/ mesiac</div></div>
+      <h3>Pro</h3><div class="price-row"><div class="price">5,99 €</div><div class="per">/ mesiac</div></div>
       <div class="subline">Pre aktívneho hráča, ktorý chce tréning, štatistiky a rozšírené funkcie.</div>
-      <div class="list"><div>Všetko z Free</div><div>Tréningové režimy a scoreboardy</div><div>Rozšírený profil</div><div>Pokročilé štatistiky</div><div>Vlastný turnaj podľa aktuálneho plánu</div></div>
+      <div class="list"><div>Všetko z Free</div><div>Tréningové režimy a scoreboardy</div><div>Rozšírený profil</div><div>Pokročilé štatistiky</div><div>História zápasov a výkonu</div></div>
       <a href="/login/" class="btn btn-green">Vybrať Pro</a>
+    </article>
+    <article class="pricing-card pro-plus">
+      <h3>Pro+</h3><div class="price-row"><div class="price">9,99 €</div><div class="per">/ mesiac</div></div>
+      <div class="subline">Pre externého organizátora, ktorý robí turnaje bez vlastného klubu.</div>
+      <div class="list"><div>Všetko z Pro</div><div>Nový turnaj a turnajový engine</div><div>Nová udalosť alebo sezóna</div><div>Vlastné ligy</div><div>Bez rezervácií a Club Managera</div></div>
+      <a href="/login/" class="btn btn-gold">Vybrať Pro+</a>
     </article>
     <article class="pricing-card ultra">
       <h3>Ultra</h3><div class="price-row"><div class="price">24,90 €</div><div class="per">/ mesiac</div></div>
       <div class="subline">Pre klub alebo organizátora, ktorý chce riadiť športové dianie v jednom systéme.</div>
-      <div class="list"><div>Klubový a organizačný profil</div><div>Turnajový manažment</div><div>Rezervácie a udalosti</div><div>Ligy a klubové rebríčky</div><div>Club Manager a live prevádzka</div></div>
+      <div class="list"><div>Všetko z Pro+</div><div>Klubový a organizačný profil</div><div>Rezervácie</div><div>Ligy a klubové rebríčky</div><div>Club Manager a live prevádzka</div></div>
       <a href="/login/" class="btn btn-gold">Vybrať Ultra</a>
     </article>
   </div>
@@ -377,7 +385,7 @@ button,input,select{font:inherit}
   <div class="footer-grid">
     <div><h3>Connect Sports Pro</h3><p>Connects the world around sport. Jeden systém pre hráča, súťaž, klub a športovú komunitu.</p></div>
     <div><h3>Informácie</h3><ul><li><a href="/obchodne-podmienky/">Obchodné podmienky</a></li><li><a href="/ochrana-osobnych-udajov/">Ochrana osobných údajov</a></li><li><a href="/cookies/">Cookies</a></li></ul></div>
-    <div><h3>Connect Sports Pro</h3><ul><li><a href="/login/">Prihlásenie</a></li><li><a href="/registracia/">Registrácia</a></li><li><a href="/kalendar-turnajov/">Turnaje</a></li><li><a href="/magazin/">Magazín</a></li></ul></div>
+    <div><h3>Connect Sports Pro</h3><ul><li><a href="/login/">Prihlásenie</a></li><li><a href="/registracia/">Registrácia</a></li><li><a href="/cennik/">Cenník</a></li><li><a href="/kalendar-turnajov/">Turnaje</a></li><li><a href="/magazin/">Magazín</a></li></ul></div>
   </div>
   <div class="copy">© 2026 Connect Sports Pro</div>
 </footer>
