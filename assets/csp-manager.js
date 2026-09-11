@@ -8,7 +8,7 @@
  * second Supabase client.
  *
  * Usage — include AFTER csp-auth.js:
- *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
  *   <script src="/assets/csp-auth.js"></script>
  *   <script src="/assets/csp-manager.js"></script>
  *

@@ -24,3 +24,15 @@
   background:rgba(255,255,255,.025);color:inherit;cursor:pointer
 }
 .notification-button:hover{background:rgba(255,255,255,.06)}
+.nav-section{margin:13px 12px 3px;color:var(--gold);font-size:9px;font-weight:850;letter-spacing:.14em}
+
+@media(max-width:780px){
+  .nav-link{min-height:44px;font-size:14px}
+  .nav-sub a{min-height:44px;font-size:13px}
+  .page-intro p,.empty{font-size:14px;line-height:1.55}
+  .button{min-height:44px;padding:11px 14px;font-size:13px}
+  .metric>span,.metric small,.smart-card span,.label,.eyebrow{font-size:11px}
+  .timeline-card>span,.timeline-card p,.table-head,.table-row,.tournament-card time,.tournament-card p,.friend-card p{font-size:12px}
+  .timeline-card h3,.tournament-card h3,.friend-card h3{font-size:14px}
+  .panel-heading>a{min-height:44px;display:inline-flex;align-items:center;font-size:12px}
+}

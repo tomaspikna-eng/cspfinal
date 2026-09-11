@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
 :root{
@@ -126,6 +126,9 @@ input:focus,select:focus{border-color:var(--gold)}
 .backdrop.show{display:block}
 @media(min-width:881px){.backdrop{display:none!important}}
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 
@@ -155,7 +158,7 @@ input:focus,select:focus{border-color:var(--gold)}
       </div>
     </div>
     <nav class="sb-nav">
-      <a class="sb-item active" href="#"><span class="ico">📝</span> Články</a>
+      <a class="sb-item active" href="/cms/"><span class="ico">📝</span> Články</a>
       <a class="sb-item" href="/cms/editor/"><span class="ico">➕</span> Nový článok</a>
       <a class="sb-item" href="/magazin/" target="_blank"><span class="ico">🌐</span> Verejný magazín</a>
     </nav>
@@ -215,6 +218,13 @@ input:focus,select:focus{border-color:var(--gold)}
 <script>
 let currentSession = null;
 let articles = [];
+const escHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+function safeImageUrl(value){
+  try{
+    const url=new URL(String(value||''),location.origin);
+    return ['http:','https:'].includes(url.protocol)?url.href:'';
+  }catch(_){return''}
+}
 
 /* ── Real auth + admin gate (replaces mock login) ── */
 (async function initAuth(){
@@ -236,7 +246,11 @@ let articles = [];
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   const displayName = currentSession.user.email;
-  document.querySelector('.tb-user').innerHTML = `<span class="tb-av">${(displayName[0]||'?').toUpperCase()}</span> ${displayName}`;
+  const userNode=document.querySelector('.tb-user');
+  const avatar=document.createElement('span');
+  avatar.className='tb-av';
+  avatar.textContent=(displayName[0]||'?').toUpperCase();
+  userNode.replaceChildren(avatar,document.createTextNode(' '+displayName));
   await loadArticles();
 })();
 
@@ -260,7 +274,8 @@ async function loadArticles(){
 
 /* ── Cover thumbnail (SVG fallback when no cover_image_url) ── */
 function coverThumb(a){
-  if(a.cover_image_url) return `<img src="${a.cover_image_url}" alt="" style="width:100%;height:100%;object-fit:cover"/>`;
+  const cover=safeImageUrl(a.cover_image_url);
+  if(cover) return `<img src="${escHtml(cover)}" alt="" style="width:100%;height:100%;object-fit:cover"/>`;
   const G='#d4a843',FD='#16301f';
   return `<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="60" fill="${FD}"/><g transform="translate(40,30)" stroke="${G}" stroke-width="2" fill="none"><line x1="-16" y1="12" x2="10" y2="-13"/><line x1="16" y1="12" x2="-10" y2="-13"/></g></svg>`;
 }
@@ -295,20 +310,22 @@ function renderArticles(){
     <span></span><span>Článok</span><span class="col-cat">Kategória</span><span>Stav</span><span class="col-date">Dátum</span><span style="text-align:right">Akcie</span>
   </div>`+list.map(a=>{
     const statusLabel={published:'Publikované',draft:'Koncept'}[a.status]||a.status;
+    const statusClass=['published','draft'].includes(a.status)?a.status:'draft';
     const dateLabel = a.published_at || a.created_at ? new Date(a.published_at||a.created_at).toLocaleDateString('sk-SK') : '—';
+    const safeId=encodeURIComponent(String(a.id||''));
     return `<div class="art-row">
       <div class="art-cover">${coverThumb(a)}</div>
       <div>
-        <div class="art-title">${a.title}</div>
-        <div class="art-excerpt">${a.excerpt||''}</div>
+        <div class="art-title">${escHtml(a.title)}</div>
+        <div class="art-excerpt">${escHtml(a.excerpt||'')}</div>
       </div>
-      <div class="col-cat"><span class="cat-tag">${CAT_LABEL[a.category]||a.category||'—'}</span></div>
-      <div><span class="status-badge ${a.status}">${statusLabel}</span></div>
-      <div class="col-date art-date">${dateLabel}</div>
+      <div class="col-cat"><span class="cat-tag">${escHtml(CAT_LABEL[a.category]||a.category||'—')}</span></div>
+      <div><span class="status-badge ${statusClass}">${escHtml(statusLabel)}</span></div>
+      <div class="col-date art-date">${escHtml(dateLabel)}</div>
       <div class="art-actions">
-        <button class="act-btn" title="Upraviť" onclick="editArticle('${a.id}')">✎</button>
-        <button class="act-btn" title="${a.status==='published'?'Stiahnuť':'Publikovať'}" onclick="togglePublish('${a.id}')">${a.status==='published'?'⏸':'▲'}</button>
-        <button class="act-btn del" title="Zmazať" onclick="deleteArticle('${a.id}')">🗑</button>
+        <button class="act-btn" title="Upraviť" onclick="editArticle('${safeId}')">✎</button>
+        <button class="act-btn" title="${a.status==='published'?'Stiahnuť':'Publikovať'}" onclick="togglePublish('${safeId}')">${a.status==='published'?'⏸':'▲'}</button>
+        <button class="act-btn del" title="Zmazať" onclick="deleteArticle('${safeId}')">🗑</button>
       </div>
     </div>`;
   }).join('');

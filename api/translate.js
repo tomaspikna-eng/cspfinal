@@ -4,6 +4,12 @@ const POOL_ID = 'vercel';
 const PROVIDER_ID = 'vercel';
 const SERVICE_ACCOUNT = 'csp-translation@connectsportpro.iam.gserviceaccount.com';
 const CLOUD_SCOPE = 'https://www.googleapis.com/auth/cloud-platform';
+const SUPABASE_URL = 'https://lcmoykaqvvfybtobhtqg.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_h3_yK3K_GUahLdz13dDWDg_PzxGE6xR';
+const MAX_ITEMS = 60;
+const MAX_ITEM_CODE_POINTS = 2000;
+const MAX_REQUEST_CODE_POINTS = 28000;
+const REQUEST_TIMEOUT_MS = 12000;
 
 const ALLOWED_LANGS = new Set(['sk', 'cs', 'en', 'de', 'pl', 'ru']);
 
@@ -20,6 +26,54 @@ function getOidcToken(req) {
   return header || process.env.VERCEL_OIDC_TOKEN || '';
 }
 
+function getBearerToken(req) {
+  const raw = Array.isArray(req.headers.authorization)
+    ? req.headers.authorization[0]
+    : req.headers.authorization;
+  const match = /^Bearer\s+(.+)$/i.exec(String(raw || ''));
+  return match ? match[1] : '';
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function requireSupabaseUser(accessToken) {
+  if (!accessToken) return null;
+  const response = await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  if (!response.ok) return null;
+  const user = await response.json().catch(() => null);
+  return user && user.id ? user : null;
+}
+
+async function consumeTranslationQuota(accessToken, characterCount) {
+  const response = await fetchWithTimeout(
+    `${SUPABASE_URL}/rest/v1/rpc/consume_translation_quota`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_character_count: characterCount }),
+    }
+  );
+  if (!response.ok) return false;
+  return (await response.json().catch(() => false)) === true;
+}
+
 async function getGoogleAccessToken(vercelOidcToken) {
   const audience =
     `//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/` +
@@ -34,7 +88,7 @@ async function getGoogleAccessToken(vercelOidcToken) {
     subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
   });
 
-  const stsResponse = await fetch('https://sts.googleapis.com/v1/token', {
+  const stsResponse = await fetchWithTimeout('https://sts.googleapis.com/v1/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: stsBody,
@@ -51,7 +105,7 @@ async function getGoogleAccessToken(vercelOidcToken) {
     `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/` +
     `${encodeURIComponent(SERVICE_ACCOUNT)}:generateAccessToken`;
 
-  const impersonationResponse = await fetch(impersonationUrl, {
+  const impersonationResponse = await fetchWithTimeout(impersonationUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${sts.access_token}`,
@@ -81,15 +135,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const oidcToken = getOidcToken(req);
-    if (!oidcToken) {
-      return sendJson(res, 500, { error: 'Vercel OIDC token is not available' });
+    const accessToken = getBearerToken(req);
+    const user = await requireSupabaseUser(accessToken);
+    if (!user) {
+      return sendJson(res, 401, { error: 'Prihlásenie je potrebné.' });
     }
 
-    const body =
-      typeof req.body === 'string'
-        ? JSON.parse(req.body || '{}')
-        : (req.body || {});
+    const oidcToken = getOidcToken(req);
+    if (!oidcToken) {
+      return sendJson(res, 503, { error: 'Preklad momentálne nie je dostupný.' });
+    }
+
+    let body;
+    try {
+      body =
+        typeof req.body === 'string'
+          ? JSON.parse(req.body || '{}')
+          : (req.body || {});
+    } catch {
+      return sendJson(res, 400, { error: 'Neplatný JSON.' });
+    }
 
     const texts = Array.isArray(body.texts) ? body.texts : [];
     const target = String(body.target || '').toLowerCase();
@@ -99,29 +164,39 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'Unsupported language' });
     }
 
-    if (!texts.length || texts.length > 100) {
-      return sendJson(res, 400, { error: 'texts must contain 1 to 100 items' });
+    if (!texts.length || texts.length > MAX_ITEMS) {
+      return sendJson(res, 400, { error: `Povolených je 1 až ${MAX_ITEMS} textov.` });
     }
 
     const normalized = texts.map(v => String(v ?? '').trim());
-    if (normalized.some(v => !v || v.length > 5000)) {
-      return sendJson(res, 400, { error: 'Invalid text payload' });
+    const codePointLengths = normalized.map(v => Array.from(v).length);
+    const totalCodePoints = codePointLengths.reduce((sum, length) => sum + length, 0);
+    if (
+      normalized.some((v, index) => !v || codePointLengths[index] > MAX_ITEM_CODE_POINTS) ||
+      totalCodePoints > MAX_REQUEST_CODE_POINTS
+    ) {
+      return sendJson(res, 400, { error: 'Text je príliš dlhý.' });
     }
 
     if (target === source) {
       return sendJson(res, 200, { translations: normalized });
     }
 
-    const accessToken = await getGoogleAccessToken(oidcToken);
+    const quotaAllowed = await consumeTranslationQuota(accessToken, totalCodePoints);
+    if (!quotaAllowed) {
+      return sendJson(res, 429, { error: 'Denný limit prekladov bol vyčerpaný.' });
+    }
+
+    const googleAccessToken = await getGoogleAccessToken(oidcToken);
 
     const translationUrl =
       `https://translation.googleapis.com/v3/projects/${PROJECT_ID}` +
       `/locations/global:translateText`;
 
-    const response = await fetch(translationUrl, {
+    const response = await fetchWithTimeout(translationUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${googleAccessToken}`,
         'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify({
@@ -146,8 +221,6 @@ export default async function handler(req, res) {
     return sendJson(res, 200, { translations });
   } catch (error) {
     console.error('[api/translate]', error);
-    return sendJson(res, 500, {
-      error: error instanceof Error ? error.message : 'Translation failed',
-    });
+    return sendJson(res, 500, { error: 'Preklad sa nepodarilo dokončiť.' });
   }
 }

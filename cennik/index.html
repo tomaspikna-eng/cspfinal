@@ -24,6 +24,14 @@
     @media(max-width:760px){.page{width:calc(100% - 16px);margin:8px auto 24px}.topbar{min-height:66px;padding:9px 10px;position:relative}.brand-logo{width:min(172px,48vw);height:42px}.menu-toggle{display:block}.nav{display:none;position:absolute;right:8px;top:calc(100% + 8px);z-index:20;width:min(310px,calc(100vw - 16px));padding:8px;border:1px solid rgba(212,168,67,.28);border-radius:16px;background:#0b0d0b;box-shadow:0 24px 70px rgba(0,0,0,.72)}.topbar.open .nav{display:grid}.nav a{width:100%;min-height:48px;justify-content:flex-start}.nav a.primary{justify-content:center}.intro{align-items:flex-start;flex-direction:column;padding:27px 20px}.annual-message{flex-basis:auto;width:100%}.plans{grid-template-columns:1fr}.plan-target{min-height:0}.billing-notice{align-items:flex-start;flex-direction:column}.section-head{align-items:flex-start;flex-direction:column}.footer{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<link rel="canonical" href="https://connectsportspro.com/cennik/">
+<meta property="og:title" content="Cenník | Connect Sports Pro">
+<meta property="og:description" content="Porovnanie plánov Free, PRO, PRO+ a Ultra v Connect Sports Pro.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://connectsportspro.com/cennik/">
+<meta property="og:image" content="https://connectsportspro.com/assets/csp-logo-full.png">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
   <div class="page">
@@ -53,7 +61,7 @@
         <div class="billing-switch" role="group" aria-label="Fakturácia plánu Pro"><button class="active" type="button" data-billing="monthly" aria-pressed="true">Mesačne</button><button type="button" data-billing="annual" aria-pressed="false">Ročne</button></div>
         <div class="price-block"><div class="price-line"><strong class="price" data-price>5,99 €</strong><span class="period" data-period>/ mesiac</span></div><div class="price-note" data-note>Platba každý mesiac.</div><span class="saving" data-saving-label hidden></span></div>
         <ul class="feature-list"><li><span class="check">✓</span>Všetko z Free</li><li><span class="check">✓</span>Tréningové režimy a scoreboardy</li><li><span class="check">✓</span>Rozšírený hráčsky profil</li><li><span class="check">✓</span>Pokročilé štatistiky</li><li><span class="check">✓</span>História zápasov a výkonu</li><li class="no"><span>—</span>Bez tvorby turnajov, udalostí a líg</li></ul>
-        <a class="plan-cta green" data-plan-cta href="/upgrade/?plan=pro&billing=monthly">Vybrať PRO</a><div class="plan-meta" data-billing-meta>Zrušenie pred ďalším mesačným obdobím</div>
+        <button class="plan-cta green" data-plan-cta type="button" disabled>Platby čoskoro</button><div class="plan-meta" data-billing-meta>Plán zatiaľ nemožno objednať</div>
       </article>
 
       <article class="plan pro-plus" id="pro-plus" data-plan="pro_plus" data-monthly="9,99 €" data-yearly="99,90 €" data-effective="8,33 €" data-saving="19,98 €">
@@ -61,7 +69,7 @@
         <div class="billing-switch" role="group" aria-label="Fakturácia plánu Pro plus"><button class="active" type="button" data-billing="monthly" aria-pressed="true">Mesačne</button><button type="button" data-billing="annual" aria-pressed="false">Ročne</button></div>
         <div class="price-block"><div class="price-line"><strong class="price" data-price>9,99 €</strong><span class="period" data-period>/ mesiac</span></div><div class="price-note" data-note>Platba každý mesiac.</div><span class="saving" data-saving-label hidden></span></div>
         <ul class="feature-list"><li><span class="check">✓</span>Všetko z PRO</li><li><span class="check">✓</span>Neobmedzená tvorba turnajov</li><li><span class="check">✓</span>Turnajový engine a generátor stolov</li><li><span class="check">✓</span>Udalosti a sezóny</li><li><span class="check">✓</span>Vlastné ligy</li><li class="no"><span>—</span>Bez rezervácií a Club Managera</li></ul>
-        <a class="plan-cta gold" data-plan-cta href="/upgrade/?plan=pro_plus&billing=monthly">Vybrať PRO+</a><div class="plan-meta" data-billing-meta>Zrušenie pred ďalším mesačným obdobím</div>
+        <button class="plan-cta gold" data-plan-cta type="button" disabled>Platby čoskoro</button><div class="plan-meta" data-billing-meta>Plán zatiaľ nemožno objednať</div>
       </article>
 
       <article class="plan ultra" id="ultra" data-plan="ultra" data-monthly="24,90 €" data-yearly="249 €" data-effective="20,75 €" data-saving="49,80 €">
@@ -69,7 +77,7 @@
         <div class="billing-switch" role="group" aria-label="Fakturácia plánu Ultra"><button class="active" type="button" data-billing="monthly" aria-pressed="true">Mesačne</button><button type="button" data-billing="annual" aria-pressed="false">Ročne</button></div>
         <div class="price-block"><div class="price-line"><strong class="price" data-price>24,90 €</strong><span class="period" data-period>/ mesiac</span></div><div class="price-note" data-note>Platba každý mesiac.</div><span class="saving" data-saving-label hidden></span></div>
         <ul class="feature-list"><li><span class="check">✓</span>Všetko z PRO+</li><li><span class="check">✓</span>Klubový a organizačný profil</li><li><span class="check">✓</span>Správa členov a klubových rebríčkov</li><li><span class="check">✓</span>Rezervačný systém</li><li><span class="check">✓</span>Club Manager a live prevádzka</li><li><span class="check">✓</span>Vlastná stránka klubu</li></ul>
-        <a class="plan-cta gold" data-plan-cta href="/upgrade/?plan=ultra&billing=monthly">Vybrať ULTRA</a><div class="plan-meta" data-billing-meta>Zrušenie pred ďalším mesačným obdobím</div>
+        <button class="plan-cta gold" data-plan-cta type="button" disabled>Platby čoskoro</button><div class="plan-meta" data-billing-meta>Plán zatiaľ nemožno objednať</div>
       </article>
     </main>
 
@@ -117,8 +125,7 @@
         note.textContent=annual?`V prepočte ${card.dataset.effective} / mesiac. Ročná platba naraz.`:'Platba každý mesiac.';
         saving.hidden=!annual;
         saving.textContent=annual?`Ušetríš ${card.dataset.saving} ročne`:'';
-        meta.textContent=annual?'12 mesiacov za cenu 10':'Zrušenie pred ďalším mesačným obdobím';
-        cta.href=`/upgrade/?plan=${encodeURIComponent(card.dataset.plan)}&billing=${annual?'annual':'monthly'}`;
+        meta.textContent=annual?'12 mesiacov za cenu 10 · po spustení platieb':'Plán zatiaľ nemožno objednať';
         buttons.forEach(button=>{const active=button.dataset.billing===billing;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active))});
       };
       buttons.forEach(button=>button.addEventListener('click',()=>render(button.dataset.billing)));

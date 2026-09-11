@@ -23,7 +23,7 @@
  * for the QR code library in manager/stanice/index.html.
  *
  * Usage — include AFTER the supabase-js CDN script tag:
- *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
  *   <script src="/assets/csp-auth.js"></script>
  *
  * Exposes a single global: window.cspAuth

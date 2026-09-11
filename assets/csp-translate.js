@@ -15,7 +15,7 @@
     pl:'/assets/csp-locale-pl.json',
     ru:'/assets/csp-locale-ru.json'
   };
-  const MAX_BATCH_SIZE=100;
+  const MAX_BATCH_SIZE=60;
   const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
   const TRANSLATABLE_ATTRIBUTES=['title','aria-label','placeholder','alt'];
 
@@ -165,7 +165,10 @@
   }
 
   async function requestTranslations(texts,targetLanguage){
-    const response=await fetch(API_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texts,source:SOURCE_LANGUAGE,target:targetLanguage})});
+    const sessionResult=window.cspAuth?.getSession?await window.cspAuth.getSession():null;
+    const accessToken=sessionResult?.data?.session?.access_token;
+    if(!accessToken) throw new Error('Translation fallback requires sign-in.');
+    const response=await fetch(API_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${accessToken}`},body:JSON.stringify({texts,source:SOURCE_LANGUAGE,target:targetLanguage})});
     const payload=await response.json().catch(()=>({}));
     if(!response.ok) throw new Error(payload.error||`Translation request failed with status ${response.status}.`);
     if(!Array.isArray(payload.translations)||payload.translations.length!==texts.length) throw new Error('Invalid translation response.');
