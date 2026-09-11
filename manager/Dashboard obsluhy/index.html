@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <script src="/assets/csp-manager.js"></script>
 <style>
@@ -173,6 +173,8 @@ td.muted{color:var(--muted-2)}
 .backdrop.show{display:block}
 @media(min-width:901px){.backdrop{display:none!important}}
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 
@@ -189,25 +191,25 @@ td.muted{color:var(--muted-2)}
     </div>
 
     <nav class="sb-nav">
-      <a class="sb-item active" href="#"><span class="ico">📊</span> Dashboard</a>
+      <a class="sb-item active" href="/manager/Dashboard%20obsluhy/"><span class="ico">📊</span> Dashboard</a>
 
       <div class="sb-cta">
-        <a href="#"><span style="font-size:1rem">▶</span> Manažér klubu</a>
+        <a href="/manager/Dashboard%20obsluhy/"><span style="font-size:1rem">▶</span> Manažér klubu</a>
       </div>
 
       <div class="sb-section">Prevádzka</div>
-      <a class="sb-item" href="#"><span class="ico">🎮</span> Manažér</a>
-      <a class="sb-item" href="#"><span class="ico">🖥️</span> Scoreboardy</a>
+      <a class="sb-item" href="/manager/Dashboard%20obsluhy/"><span class="ico">🎮</span> Manažér</a>
+      <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
       <a class="sb-item" href="/manager/rezervacie/"><span class="ico">📅</span> Rezervácie</a>
 
       <div class="sb-section">Správa</div>
-      <a class="sb-item" href="#"><span class="ico">🎱</span> Športoviská</a>
-      <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
-      <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
+      <a class="sb-item" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
+      <span class="sb-item" aria-disabled="true" style="opacity:.45"><span class="ico">👥</span> Zákazníci · pripravujeme</span>
+      <span class="sb-item" aria-disabled="true" style="opacity:.45"><span class="ico">💰</span> Ekonomika · pripravujeme</span>
     </nav>
 
     <div class="sb-foot">
-      <button class="sb-signout" onclick="alert('Odhlásenie — napojí sa na auth.')"><span>↪</span> Odhlásiť sa</button>
+      <button class="sb-signout" type="button"><span>↪</span> Odhlásiť sa</button>
     </div>
   </aside>
   <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
@@ -217,11 +219,11 @@ td.muted{color:var(--muted-2)}
     <div class="topbar">
       <div class="tb-left">
         <button class="tb-toggle" onclick="toggleSidebar()">☰</button>
-        <div class="tb-title"><span class="club">ŠK Pohoda</span> · Obsluha</div>
+        <div class="tb-title"><span class="club">Club Manager</span> · Obsluha</div>
       </div>
       <div class="tb-right">
         <span class="tb-clock" id="clock">00:00:00</span>
-        <div class="tb-user"><span class="tb-av">JN</span> Ján Novák</div>
+        <div class="tb-user"><span class="tb-av">—</span> Používateľ</div>
       </div>
     </div>
 
@@ -265,193 +267,7 @@ td.muted{color:var(--muted-2)}
   </main>
 </div>
 
-<script>
-/* ════════════════════════════════════════════════
-   MOCK DÁTA — neskôr nahradí Supabase fetch
-   tabuľky: stations, sessions, staff_calls, reservations
-════════════════════════════════════════════════ */
-const SPORT_ICON={billiard:'🎱',darts:'🎯',bowling:'🎳'};
-const SPORT_LABEL={billiard:'Biliard',darts:'Šípky',bowling:'Bowling'};
-const STATUS_LABEL={available:'Voľné',occupied:'Obsadené',maintenance:'Mimo prevádzky'};
-
-const now0=Date.now();
-let stations=[
-  {id:'s1',name:'Biliard 1',sport_type:'billiard',status:'occupied'},
-  {id:'s2',name:'Biliard 2',sport_type:'billiard',status:'available'},
-  {id:'s3',name:'Biliard 3',sport_type:'billiard',status:'occupied'},
-  {id:'s4',name:'Šípky 1',sport_type:'darts',status:'available'},
-  {id:'s5',name:'Šípky 2',sport_type:'darts',status:'occupied'},
-  {id:'s6',name:'Bowling 1',sport_type:'bowling',status:'maintenance'},
-];
-let sessions=[
-  {id:'ses1',station_id:'s1',started_at:new Date(now0-1000*60*42).toISOString()},
-  {id:'ses2',station_id:'s3',started_at:new Date(now0-1000*60*18).toISOString()},
-  {id:'ses3',station_id:'s5',started_at:new Date(now0-1000*60*5-1000*23).toISOString()},
-];
-let calls=[
-  {id:'c1',station_id:'s1',reason:'Žiada nápoje',created_at:new Date(now0-1000*60*2).toISOString()},
-];
-const reservations=[
-  {id:'r1',station_id:'s2',customer_name:'Peter Horváth',customer_phone:'0905 123 456',start_at:new Date(now0+1000*60*60).toISOString(),end_at:new Date(now0+1000*60*120).toISOString()},
-  {id:'r2',station_id:'s4',customer_name:'Mária Kováčová',customer_phone:'0911 222 333',start_at:new Date(now0+1000*60*90).toISOString(),end_at:new Date(now0+1000*60*150).toISOString()},
-  {id:'r3',station_id:'s1',customer_name:'Ján Novák',customer_phone:'0918 444 555',start_at:new Date(now0+1000*60*180).toISOString(),end_at:new Date(now0+1000*60*240).toISOString()},
-];
-
-function fmtDur(ms){
-  const t=Math.max(0,Math.floor(ms/1000));
-  const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
-  return [h,m,s].map(n=>String(n).padStart(2,'0')).join(':');
-}
-function sessionOf(id){return sessions.find(s=>s.station_id===id&&!s.ended_at)}
-function callsOf(id){return calls.filter(c=>c.station_id===id&&!c.resolved_at)}
-
-/* ── Render stations ── */
-function renderStations(){
-  const wrap=document.getElementById('stations');
-  wrap.innerHTML=stations.map(st=>{
-    const ses=sessionOf(st.id);
-    const cs=callsOf(st.id);
-    const calling=cs.length>0;
-    // Scoreboard podporuje biliard a šípky (bowling má vlastnú logiku neskôr)
-    const hasScoreboard = st.sport_type==='billiard' || st.sport_type==='darts';
-    let action;
-    if(ses){
-      action=`<div class="station-timer" data-started="${ses.started_at}">00:00:00</div>
-        <button class="btn-block btn-end" onclick="endSession('${st.id}')">Ukončiť hru</button>`;
-    } else {
-      const dis=st.status==='maintenance'?'disabled':'';
-      action=`<button class="btn-block btn-start" ${dis} onclick="startSession('${st.id}')">Spustiť hru</button>`;
-    }
-    const scoreboardBtn = hasScoreboard
-      ? `<button class="btn-block btn-scoreboard" onclick="openScoreboard('${st.id}')">🖥️ Otvoriť scoreboard</button>`
-      : '';
-    return `<div class="station${calling?' calling':''}">
-      <div class="station-top">
-        <div>
-          <div class="station-icon">${SPORT_ICON[st.sport_type]}</div>
-          <div class="station-name">${st.name}</div>
-          <div class="station-sport">${SPORT_LABEL[st.sport_type]}</div>
-        </div>
-        <span class="badge ${st.status}">${STATUS_LABEL[st.status]}</span>
-      </div>
-      ${action}
-      ${scoreboardBtn}
-    </div>`;
-  }).join('');
-}
-
-/* ── Otvor scoreboard pre stanicu (Club Manager → scoreboard handoff) ── */
-function openScoreboard(stationId){
-  const st=stations.find(s=>s.id===stationId);
-  if(!st)return;
-  // Biliard → biliardový scoreboard. Šípky → (neskôr) šípkový scoreboard.
-  // Zlúčený scoreboard — šport sa odovzdá parametrom
-  const file = '/scoreboard/';
-  const params=new URLSearchParams({
-    station: st.name,
-    sport: st.sport_type,
-    race: '5',
-    players: '2',
-    from: location.href,
-  });
-  window.open(`${file}?${params.toString()}`,'_blank');
-}
-
-/* ── Render staff calls ── */
-function renderCalls(){
-  const open=calls.filter(c=>!c.resolved_at);
-  const box=document.getElementById('callsBox');
-  if(open.length===0){box.innerHTML='';return}
-  box.innerHTML=`<div class="calls-box">
-    <h2>🔔 Otvorené volania obsluhy</h2>
-    <div class="calls-list">
-      ${open.map(c=>{
-        const st=stations.find(s=>s.id===c.station_id);
-        return `<div class="call-row">
-          <div class="call-info"><span class="call-station">${st?st.name:'—'}</span><span class="call-reason">${c.reason||'Privolanie obsluhy'}</span></div>
-          <button class="btn-resolve" onclick="resolveCall('${c.id}')">Vybavené</button>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-/* ── Render reservations ── */
-function renderReservations(){
-  const wrap=document.getElementById('reservations');
-  if(reservations.length===0){wrap.innerHTML='<p class="empty">Žiadne rezervácie.</p>';return}
-  wrap.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>Športovisko</th><th>Zákazník</th><th>Telefón</th><th>Od</th><th>Do</th></tr></thead>
-    <tbody>${reservations.map(r=>{
-      const st=stations.find(s=>s.id===r.station_id);
-      const od=new Date(r.start_at).toLocaleString('sk-SK',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const dod=new Date(r.end_at).toLocaleString('sk-SK',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return `<tr>
-        <td class="station-cell">${st?st.name:'—'}</td>
-        <td>${r.customer_name}</td>
-        <td class="muted">${r.customer_phone}</td>
-        <td>${od}</td><td>${dod}</td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table></div>`;
-}
-
-/* ── Stats ── */
-function renderStats(){
-  const occ=stations.filter(s=>s.status==='occupied').length;
-  const active=sessions.filter(s=>!s.ended_at).length;
-  const open=calls.filter(c=>!c.resolved_at).length;
-  document.getElementById('statOccupied').textContent=`${occ} / ${stations.length}`;
-  document.getElementById('statSessions').textContent=active;
-  document.getElementById('statCalls').textContent=open;
-  document.getElementById('statCallsCard').classList.toggle('alert',open>0);
-}
-
-/* ── Actions (mock — upravujú lokálny stav) ── */
-function startSession(id){
-  const st=stations.find(s=>s.id===id);
-  if(!st||st.status==='maintenance')return;
-  sessions.push({id:'ses'+Date.now(),station_id:id,started_at:new Date().toISOString()});
-  st.status='occupied';
-  renderAll();
-}
-function endSession(id){
-  const ses=sessionOf(id);if(ses)ses.ended_at=new Date().toISOString();
-  const st=stations.find(s=>s.id===id);if(st)st.status='available';
-  renderAll();
-}
-function resolveCall(cid){
-  const c=calls.find(c=>c.id===cid);if(c)c.resolved_at=new Date().toISOString();
-  renderAll();
-}
-function renderAll(){renderStats();renderCalls();renderStations();renderReservations();tickTimers()}
-
-/* ── Live timers (1s) ── */
-function tickTimers(){
-  document.querySelectorAll('.station-timer').forEach(el=>{
-    el.textContent=fmtDur(Date.now()-new Date(el.dataset.started).getTime());
-  });
-}
-setInterval(tickTimers,1000);
-
-/* ── Topbar clock ── */
-function tickClock(){
-  document.getElementById('clock').textContent=new Date().toLocaleTimeString('sk-SK');
-}
-setInterval(tickClock,1000);tickClock();
-
-/* ── Sidebar (mobile) ── */
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('backdrop').classList.toggle('show');
-}
-
-(async function initManagerDashboard(){
-  const ctx=await cspManager.requireClubManagerAccess({allowNoClub:true});
-  if(!ctx)return;
-  renderAll();
-})();
-</script>
+<script src="/assets/csp-manager-dashboard.js" defer></script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>

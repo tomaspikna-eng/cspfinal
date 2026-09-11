@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <script src="/assets/csp-translate.js" defer></script>
 <style>
@@ -951,6 +951,9 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 }
 
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 <div class="modal-overlay hidden" id="matchWonOverlay">
@@ -1258,7 +1261,7 @@ function applyUrlParams(){
   if(STATION_NAME){
     $("pageTitle").textContent=STATION_NAME;
     const from=URL_PARAMS.get("from");
-    if(from){const a=document.createElement("a");a.href=decodeURIComponent(from);a.textContent="← Späť do Club Managera";a.style.cssText="display:inline-block;margin-top:6px;font-size:.78rem";$("pageTitle").parentNode.appendChild(a);}
+    if(from){try{const destination=new URL(decodeURIComponent(from),location.origin);if(destination.origin===location.origin){const a=document.createElement("a");a.href=destination.pathname+destination.search+destination.hash;a.textContent="← Späť do Club Managera";a.style.cssText="display:inline-block;margin-top:6px;font-size:.78rem";$("pageTitle").parentNode.appendChild(a);}}catch(_error){}}
   }
 }
 
@@ -1838,7 +1841,7 @@ function render(){
   $("stageRow").classList.toggle("split-keypad", m==="points");
   $("stageRow").classList.toggle("darts-keypad-layout", m==="darts" && state.playerCount===2);
   if(keypad){
-    $("keypadLabel").innerHTML = (m==="darts"?"Hod (súčet 3 šípok)":"Aktuálny run")+' — <span id="keypadPlayer">'+activePlayers()[state.currentIndex].name+'</span>';
+    $("keypadLabel").innerHTML = (m==="darts"?"Hod (súčet 3 šípok)":"Aktuálny run")+' — <span id="keypadPlayer">'+escapeScoreText(activePlayers()[state.currentIndex].name)+'</span>';
     $("runDisplay").textContent=state.runInput;
     renderFrameActions(m);
   }
@@ -1850,7 +1853,7 @@ function render(){
   activePlayers().forEach((p,i)=>wrap.appendChild(playerCard(p,i,m)));
   wireCardButtons(m);
 
-  $("logList").innerHTML=state.log.slice(-30).reverse().map(l=>`<div class="log-item">${l}</div>`).join("");
+  $("logList").innerHTML=state.log.slice(-30).reverse().map(l=>`<div class="log-item">${escapeScoreText(l)}</div>`).join("");
   saveState();
 }
 
@@ -1933,7 +1936,7 @@ function playerCard(p,i,m){
       <button class="plus" data-act="plus" data-i="${i}">+1</button>
       <button data-act="minus" data-i="${i}">−1</button>
     </div>
-    <div class="pm"><button class="set-btn" data-act="set" data-i="${i}">🏆 Set pre ${p.name}</button></div>`;
+    <div class="pm"><button class="set-btn" data-act="set" data-i="${i}">🏆 Set pre ${escapeScoreText(p.name)}</button></div>`;
     stats=`<div class="stat-grid">
       <div class="stat"><span>Sety</span><strong>${p.sets}</strong></div>
     </div>`;
@@ -1972,7 +1975,7 @@ function wireCardButtons(m){
 function renderFrameActions(m){
   const fa=$("frameActions");
   if(m==="points"){
-    fa.innerHTML=activePlayers().map((p,i)=>`<button class="frame-award-btn" data-fi="${i}">🏆 Frame pre ${p.name}</button>`).join("");
+    fa.innerHTML=activePlayers().map((p,i)=>`<button class="frame-award-btn" data-fi="${i}">🏆 Frame pre ${escapeScoreText(p.name)}</button>`).join("");
     fa.querySelectorAll("[data-fi]").forEach(b=>b.onclick=()=>awardFrame(+b.dataset.fi));
   } else { fa.innerHTML=""; }
 }
@@ -2274,7 +2277,7 @@ function openManualEndDialog(){
     return;
   }
   const wrap=$("winnerChoiceButtons");
-  wrap.innerHTML=activePlayers().slice(0,2).map((p,i)=>`<button class="modal-btn primary" data-winner="${i}">Vyhral ${p.name}</button>`).join("");
+  wrap.innerHTML=activePlayers().slice(0,2).map((p,i)=>`<button class="modal-btn primary" data-winner="${i}">Vyhral ${escapeScoreText(p.name)}</button>`).join("");
   wrap.querySelectorAll("[data-winner]").forEach(b=>b.onclick=()=>confirmManualWinner(+b.dataset.winner));
   $("manualEndOverlay").classList.remove("hidden");
 }

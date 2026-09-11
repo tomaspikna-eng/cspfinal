@@ -6,8 +6,8 @@
 <title>Stanice — nastavenie scoreboardov · Connect Sports Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <script src="/assets/csp-manager.js"></script>
 <style>
@@ -56,6 +56,9 @@ h1{font-size:2rem;font-weight:800;margin-top:4px}
 .gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .gate-loading{color:var(--muted);text-align:center;padding:60px 20px}
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 <div class="gate-overlay" id="loadingGate">
@@ -125,18 +128,24 @@ function buildUrl(base, station, sport){
   return base + params;
 }
 
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+
 function makeBoard(base, name, sport, icon){
   const url = buildUrl(base, name, sport);
   const card = document.createElement('div');
   card.className = 'board';
   card.innerHTML = `
-    <div class="bname">${icon} ${name}</div>
-    <div class="qr" data-url="${url.replace(/"/g,'&quot;')}"></div>
+    <div class="bname">${escapeHtml(icon)} ${escapeHtml(name)}</div>
+    <div class="qr" data-url="${escapeHtml(url)}"></div>
     <div class="btns">
-      <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">Otvoriť</button>
-      <button onclick="copyUrl('${url.replace(/'/g,"\\'")}')">Kopírovať</button>
+      <button type="button" data-open-url>Otvoriť</button>
+      <button type="button" data-copy-url>Kopírovať</button>
     </div>
-    <div class="url">${url}</div>`;
+    <div class="url">${escapeHtml(url)}</div>`;
+  card.querySelector('[data-open-url]').onclick=()=>window.open(url,'_blank','noopener');
+  card.querySelector('[data-copy-url]').onclick=()=>copyUrl(url);
   return card;
 }
 

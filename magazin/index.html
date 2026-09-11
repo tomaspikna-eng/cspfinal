@@ -144,6 +144,14 @@ input:focus,select:focus{border-color:var(--gold)}
 .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250}
 .backdrop.show{display:block}
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<link rel="canonical" href="https://connectsportspro.com/magazin/">
+<meta property="og:title" content="CSP Magazine — Novinky, recenzie, história a pravidlá zo sveta športu">
+<meta property="og:description" content="Športové novinky, príbehy klubov a turnajov v Connect Sports Pro.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://connectsportspro.com/magazin/">
+<meta property="og:image" content="https://connectsportspro.com/assets/csp-logo-full.png">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <header class="header">
@@ -225,7 +233,7 @@ input:focus,select:focus{border-color:var(--gold)}
 </nav>
 <div class="toast" id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
   <script src="/assets/csp-auth.js"></script>
 <script>
 const CAT_LABEL={novinky:'Novinky',recenzie:'Recenzie',historia:'História',pravidla:'Pravidlá',navody:'Návody'};
@@ -250,6 +258,12 @@ function escHtml(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[ch]));
+}
+function safeImageUrl(value){
+  try{
+    const url=new URL(String(value||''),location.origin);
+    return ['http:','https:'].includes(url.protocol)?url.href:'';
+  }catch(_){return''}
 }
 async function waitForCspClient(timeoutMs=8000){
   const started=Date.now();
@@ -311,8 +325,9 @@ function render(){
   const wrap=document.getElementById('articles');
   if(!list.length){wrap.innerHTML='<div class="empty">Zatiaľ tu nie sú žiadne články.<br><span style="font-size:.82rem;color:var(--muted)">Publikuj prvý cez CMS.</span></div>';return;}
   wrap.innerHTML=list.map(a=>{
-    const cover=a.cover?`<img src="${escHtml(a.cover)}" alt=""/>`:'';
-    const bg=a.cover?'':`style="background:${CAT_GRAD[a.category]||CAT_GRAD.novinky}"`;
+    const coverUrl=safeImageUrl(a.cover);
+    const cover=coverUrl?`<img src="${escHtml(coverUrl)}" alt=""/>`:'';
+    const bg=coverUrl?'':`style="background:${CAT_GRAD[a.category]||CAT_GRAD.novinky}"`;
     return `<article class="art" onclick="openArticle('${encodeURIComponent(a.slug)}')">
       <div class="art-cover" ${bg}>${cover}<span class="cov-label">${escHtml(SPORT_LABEL[a.sport]||a.sport||'CSP')}</span></div>
       <div class="art-body">
@@ -338,7 +353,9 @@ function setCat(cat){
 function setSport(sp){curSport=sp;document.querySelectorAll('.sp').forEach(s=>s.classList.toggle('active',s.dataset.sp===sp));render();}
 function buildSportFilter(){
   const sports=['all',...new Set(articles.filter(a=>a.status==='published').map(a=>a.sport).filter(s=>s&&s!=='general'))];
-  document.getElementById('sportFilter').innerHTML=sports.map(s=>`<button class="sp ${s==='all'?'active':''}" data-sp="${s}" onclick="setSport('${s}')">${s==='all'?'Všetky športy':(SPORT_LABEL[s]||s)}</button>`).join('');
+  const root=document.getElementById('sportFilter');
+  root.innerHTML=sports.map(s=>`<button class="sp ${s==='all'?'active':''}" data-sp="${escHtml(s)}">${escHtml(s==='all'?'Všetky športy':(SPORT_LABEL[s]||s))}</button>`).join('');
+  root.querySelectorAll('[data-sp]').forEach(button=>button.addEventListener('click',()=>setSport(button.dataset.sp)));
 }
 function buildMobileCats(){
   const cats=[['all','Všetko'],['novinky','Novinky'],['recenzie','Recenzie'],['historia','História'],['pravidla','Pravidlá'],['navody','Návody']];
@@ -359,7 +376,8 @@ function renderTournaments(){
   const M=['JAN','FEB','MAR','APR','MÁJ','JÚN','JÚL','AUG','SEP','OKT','NOV','DEC'];
   const wrap=document.getElementById('tournaments');
   if(!TOURNAMENTS.length){wrap.innerHTML='<div style="padding:28px 16px;text-align:center;color:var(--muted);font-size:.8rem">Zatiaľ žiadne turnaje.<br>Pridajú ich kluby a zväzy.</div>';return;}
-  wrap.innerHTML=TOURNAMENTS.slice(0,10).map(t=>{const p=t.date.split('-');return `<div class="titem" onclick="eventsSoon(event)"><div class="tdate"><div class="d">${+p[2]}</div><div class="m">${M[+p[1]-1]}</div></div><div class="tinfo"><div class="tn">${t.name}</div><div class="tl">${t.sport} · ${t.city}</div></div></div>`;}).join('');
+  wrap.innerHTML=TOURNAMENTS.slice(0,10).map(t=>{const p=String(t.date||'').split('-');return `<div class="titem" data-upcoming-event><div class="tdate"><div class="d">${Number(p[2])||'—'}</div><div class="m">${escHtml(M[Number(p[1])-1]||'')}</div></div><div class="tinfo"><div class="tn">${escHtml(t.name||'Turnaj')}</div><div class="tl">${escHtml(t.sport||'Šport')} · ${escHtml(t.city||'')}</div></div></div>`;}).join('');
+  wrap.querySelectorAll('[data-upcoming-event]').forEach(item=>item.addEventListener('click',eventsSoon));
 }
 function eventsSoon(e){if(e)e.preventDefault();toast('Vyhľadávač udalostí a turnajov pripravujeme (ULTRA).');return false;}
 function rezSubmit(){const c=document.getElementById('rezClub').value,t=document.getElementById('rezTime').value;toast(`Rezervácia ${c} o ${t} — potvrdenie pošleme e-mailom (ULTRA).`);}

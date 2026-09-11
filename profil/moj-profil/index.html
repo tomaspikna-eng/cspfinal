@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Upraviť verejný profil | Connect Sports Pro</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <style>
 :root{
@@ -71,6 +71,9 @@ button{cursor:pointer}
   .sport-row{grid-template-columns:1fr}.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory}.photo{min-width:82%;scroll-snap-align:start}
 }
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 <div id="loading" class="state"><div><div class="spinner"></div><div>Načítavam profil…</div></div></div>
@@ -409,7 +412,7 @@ async function init(){
     const {data:{session:currentSession},error:sessionError}=await db.auth.getSession();
     if(sessionError)throw sessionError;
     if(!currentSession){
-      location.replace("/login/?redirect=/profil/moj-profil/");
+      location.replace("/login/?returnTo=/profil/moj-profil/");
       return;
     }
     session=currentSession;

@@ -729,10 +729,13 @@ body.admin-dashboard-mode .content-side{display:none!important}
 }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <script src="/assets/csp-social.js?v=20260827-1" defer></script>
 <script src="/assets/csp-notifications.js"></script>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 
@@ -745,8 +748,8 @@ body.admin-dashboard-mode .content-side{display:none!important}
       <div class="logo-text"><span class="g">Connect</span> <span class="w">Sports</span> <span class="g">Pro</span></div>
     </div>
 
-    <a href="#" class="nav-item"><span class="icon">🏠</span>Domov</a>
-    <a href="#" class="nav-item active"><span class="icon">👤</span>Profil</a>
+    <a href="/" class="nav-item"><span class="icon">🏠</span>Domov</a>
+    <a href="/profil-ul/" class="nav-item active"><span class="icon">👤</span>Profil</a>
 
     <div class="nav-cta-green">
       <button class="nav-cta-green-btn" onclick="location.href='/turnament/'">
@@ -767,7 +770,7 @@ body.admin-dashboard-mode .content-side{display:none!important}
     <a href="/rebricky/?scope=mine" class="nav-item"><span class="icon">▤</span>Rebríčky</a>
 
     <div class="nav-section">Klub</div>
-    <a href="#" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
+    <a href="/manager/rezervacie/" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
 
   </aside>
 
@@ -793,8 +796,8 @@ body.admin-dashboard-mode .content-side{display:none!important}
         </button>
         <div class="user-menu" id="userMenu">
           <a href="#" class="mi" id="openSettingsBtn">⚙️ Nastavenia profilu</a>
-          <a href="#" class="mi">🎨 Téma a vzhľad</a>
-          <a href="#" class="mi">⭐ Upgrade plán</a>
+          <span class="mi" aria-disabled="true" style="opacity:.48">🎨 Téma a vzhľad · pripravujeme</span>
+          <a href="/cennik/" class="mi">⭐ Upgrade plán</a>
           <div class="mi-divider"></div>
           <a href="#" class="mi mi-danger" id="logoutLink">↪ Odhlásiť sa</a>
         </div>
@@ -1186,6 +1189,9 @@ function renderIdentity(){
     if(isAdmin){
       badgeEl.textContent = 'ADMIN';
       badgeEl.classList.add('admin');
+    }else if(plan === 'pro_plus'){
+      badgeEl.textContent = 'PRO+';
+      badgeEl.classList.add('ultra');
     }else if(role === 'club' || role === 'organization' || plan === 'ultra'){
       badgeEl.textContent = 'ULTRA';
       badgeEl.classList.add('ultra');
@@ -1202,14 +1208,18 @@ function renderIdentity(){
     cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
     adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
 
-    const canManageCompetitions = isAdmin || role === 'club' || role === 'organization' || plan === 'ultra';
+    const canManageCompetitions = isAdmin || role === 'club' || role === 'organization' || plan === 'ultra' || plan === 'pro_plus';
     document.body.classList.toggle('admin-dashboard-mode', canManageCompetitions);
   }
 
   // Real avatar image if the user has one (profiles.avatar_url, wired up
   // by the storage migration — see supabase/migrations/0007); otherwise
   // fall back to the initials placeholder, never a fake photo.
-  const avatarUrl = currentProfile && currentProfile.avatar_url;
+  let avatarUrl = '';
+  try{
+    const candidate=new URL(String(currentProfile?.avatar_url||''),location.origin);
+    if(['http:','https:'].includes(candidate.protocol))avatarUrl=candidate.href.replaceAll('"','%22');
+  }catch(_){}
   [document.getElementById('profileAvatarInitials'), document.getElementById('topbarAvatarInitials'), document.getElementById('settingsAvatarPreview')].forEach(el => {
     if(!el) return;
     if(avatarUrl){
@@ -1373,7 +1383,7 @@ function openSettings(){
 
   const plan = (currentProfile && currentProfile.plan) || 'free';
   const planBadge = document.getElementById('settingsPlanBadge');
-  planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+  planBadge.textContent = plan === 'pro_plus' ? 'PRO+' : plan.charAt(0).toUpperCase() + plan.slice(1);
   planBadge.classList.toggle('plan-ultra', plan === 'ultra');
   document.getElementById('settingsUpgradeLink').style.display = plan === 'ultra' ? 'none' : '';
 
@@ -1793,15 +1803,21 @@ function renderPublicUltraProfile(profile){
   if(badge){
     const role=String(profile.role||"").toLowerCase();
     badge.classList.remove("hidden","admin","ultra");
-    if(role==="club" || role==="organization"){badge.textContent="ULTRA";badge.classList.add("ultra");}
+    if(String(profile.plan||"").toLowerCase()==="pro_plus"){badge.textContent="PRO+";badge.classList.add("ultra");}
+    else if(role==="club" || role==="organization"){badge.textContent="ULTRA";badge.classList.add("ultra");}
     else{badge.classList.add("hidden");}
   }
   const initials=computeInitials(displayName);
   const avatar=document.getElementById("profileAvatarInitials");
   if(avatar){
     avatar.textContent=initials;
-    if(profile.avatar_url){
-      avatar.style.backgroundImage=`url("${String(profile.avatar_url).replaceAll('"','%22')}")`;
+    let publicAvatarUrl="";
+    try{
+      const candidate=new URL(String(profile.avatar_url||""),location.origin);
+      if(["http:","https:"].includes(candidate.protocol))publicAvatarUrl=candidate.href.replaceAll('"',"%22");
+    }catch(_){}
+    if(publicAvatarUrl){
+      avatar.style.backgroundImage=`url("${publicAvatarUrl}")`;
       avatar.style.backgroundSize="cover";avatar.style.backgroundPosition="center";
       avatar.textContent="";
     }

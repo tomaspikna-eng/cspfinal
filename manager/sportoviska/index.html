@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 <script src="/assets/csp-manager.js"></script>
 <style>
@@ -113,6 +113,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 .gate-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .gate-loading{color:var(--muted-2);text-align:center;padding:60px 20px}
 </style>
+<link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+<meta name="robots" content="noindex,nofollow">
 </head>
 <body>
 <div class="gate-overlay" id="loadingGate">
@@ -129,13 +131,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
     <nav class="sb-nav">
       <a class="sb-item" href="/manager/Dashboard%20obsluhy/"><span class="ico">📊</span> Dashboard</a>
       <div class="sb-section">Prevádzka</div>
-      <a class="sb-item" href="#"><span class="ico">🎮</span> Manažér</a>
+      <a class="sb-item" href="/manager/Dashboard%20obsluhy/"><span class="ico">🎮</span> Manažér</a>
       <a class="sb-item" href="/scoreboard/"><span class="ico">🖥️</span> Scoreboardy</a>
       <a class="sb-item" href="/manager/rezervacie/"><span class="ico">📅</span> Rezervácie</a>
       <div class="sb-section">Správa</div>
-      <a class="sb-item active" href="#"><span class="ico">🎱</span> Športoviská</a>
-      <a class="sb-item" href="#"><span class="ico">👥</span> Zákazníci</a>
-      <a class="sb-item" href="#"><span class="ico">💰</span> Ekonomika</a>
+      <a class="sb-item active" href="/manager/sportoviska/"><span class="ico">🎱</span> Športoviská</a>
+      <span class="sb-item" aria-disabled="true" style="opacity:.45"><span class="ico">👥</span> Zákazníci · pripravujeme</span>
+      <span class="sb-item" aria-disabled="true" style="opacity:.45"><span class="ico">💰</span> Ekonomika · pripravujeme</span>
     </nav>
     <div class="sb-foot"><button class="sb-signout" id="signOutBtn"><span>↪</span> Odhlásiť sa</button></div>
   </aside>
