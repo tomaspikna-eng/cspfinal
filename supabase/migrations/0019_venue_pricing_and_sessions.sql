@@ -19,6 +19,7 @@
 -- issue DROP TRIGGER ... ON a table that may not exist yet; DROP TABLE ...
 -- CASCADE removes any prior trigger state safely on a rerun.
 drop table if exists public.venue_sessions cascade;
+
 drop table if exists public.venue_pricing_rules cascade;
 
 -- ----------------------------------------------------------------------------
@@ -45,12 +46,16 @@ create table public.venue_pricing_rules (
 
 comment on table public.venue_pricing_rules is
   'Organizer-defined venue pricing rules. Guest tier is selected manually by staff at session start; no member database exists. Overlapping rules are intentionally resolved by manually configured priority (higher first).';
+
 comment on column public.venue_pricing_rules.day_of_week is
   '0-6 day-of-week filter; NULL means every day.';
+
 comment on column public.venue_pricing_rules.time_start is
   'Optional time-window start; NULL means no start restriction.';
+
 comment on column public.venue_pricing_rules.time_end is
   'Optional time-window end; NULL means no end restriction.';
+
 comment on column public.venue_pricing_rules.priority is
   'Manual overlap resolution. Higher priority rules are checked first; never auto-computed.';
 
@@ -83,15 +88,19 @@ create table public.venue_sessions (
 
 comment on table public.venue_sessions is
   'Start/Stop billable venue sessions. stopped_at NULL means still running for a future live-occupancy view. Rate and total are snapshots retained after pricing rules change.';
+
 comment on column public.venue_sessions.hourly_rate_applied is
   'Rate snapshot actually used on Stop; nullable while running.';
+
 comment on column public.venue_sessions.total_amount is
   'Amount calculated on Stop; nullable while running.';
+
 comment on column public.venue_sessions.entered_to_till is
   'Manual staff confirmation that the completed session was recorded in the till.';
 
 create index venue_sessions_venue_id_idx
   on public.venue_sessions (venue_id);
+
 create index venue_sessions_running_venue_id_idx
   on public.venue_sessions (venue_id)
   where stopped_at is null;
@@ -104,6 +113,7 @@ create index venue_sessions_running_venue_id_idx
 -- ownership is the club organizer's scope, regardless of which staff member
 -- recorded a particular session.
 alter table public.venue_pricing_rules enable row level security;
+
 alter table public.venue_sessions enable row level security;
 
 create policy venue_pricing_rules_owner_all
@@ -153,4 +163,6 @@ create policy venue_sessions_owner_all
   );
 
 grant select, insert, update, delete on public.venue_pricing_rules to authenticated;
+
 grant select, insert, update, delete on public.venue_sessions to authenticated;
+

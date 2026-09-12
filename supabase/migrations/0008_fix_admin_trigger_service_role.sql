@@ -50,3 +50,4 @@ $$;
 
 comment on function public.protect_admin_only_columns() is
   'Blocks non-admin, non-service_role callers from changing plan/is_admin/plan_updated_at/plan_source on their own profile row. service_role (backend automation) and admins may change these on any row. Updated in migration 0008 to add the service_role bypass -- BEFORE UPDATE triggers apply to every role, so without it even the service_role key was blocked, same as any other non-admin caller.';
+

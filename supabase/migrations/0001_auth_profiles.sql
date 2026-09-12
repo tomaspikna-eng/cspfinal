@@ -26,21 +26,28 @@
 drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists public.handle_new_user() cascade;
+
 drop function if exists public.set_updated_at() cascade;
+
 drop function if exists public.protect_admin_only_columns() cascade;
+
 drop function if exists public.is_admin(uuid) cascade;
+
 drop function if exists public.current_plan(uuid) cascade;
+
 drop function if exists public.has_plan_at_least(uuid, text) cascade;
 
 drop table if exists public.profiles cascade;
 
 drop type if exists public.profile_role cascade;
+
 drop type if exists public.profile_plan cascade;
 
 -- ----------------------------------------------------------------------------
 -- 1. ENUM TYPES
 -- ----------------------------------------------------------------------------
 create type public.profile_role as enum ('player', 'club', 'organization');
+
 create type public.profile_plan as enum ('free', 'pro', 'ultra');
 
 -- ----------------------------------------------------------------------------
@@ -66,22 +73,30 @@ create table public.profiles (
 
 comment on table public.profiles is
   'One row per auth.users account. Single unified profile shared across the whole CSP ecosystem (no separate player/club/org tables) — role only changes what the UI shows.';
+
 comment on column public.profiles.email is
   'Mirrored from auth.users at signup time for convenient joins/queries. Not kept in sync automatically if the user later changes their auth email (out of scope for this prompt).';
+
 comment on column public.profiles.role is
   'UI-facing role only (player/club/organization). Does not affect table structure or create duplicate profiles.';
+
 comment on column public.profiles.plan is
   'Subscription tier: free/pro/ultra. Admin is intentionally NOT a plan value — see is_admin below, which is an orthogonal override.';
+
 comment on column public.profiles.is_admin is
   'Cross-cutting super-user flag, independent of plan tier. Expected to be true for a very small number of accounts.';
+
 comment on column public.profiles.plan_updated_at is
   'Timestamp of the last plan change. Auto-stamped by the protect_admin_only_columns trigger whenever an admin changes plan/plan_source.';
+
 comment on column public.profiles.plan_source is
   'Where the current plan came from. Defaults to ''manual'' since there is no billing integration yet; leaves room for a future value such as ''stripe'' without a schema change.';
+
 comment on column public.profiles.avatar_url is
   'Storage wiring lands in a later prompt (7); this column is just reserved for it now.';
 
 create index profiles_plan_idx on public.profiles (plan);
+
 create index profiles_role_idx on public.profiles (role);
 
 -- ----------------------------------------------------------------------------
@@ -279,4 +294,6 @@ create policy profiles_update_admin
 -- via the auth.users -> profiles ON DELETE CASCADE (account deletion flow).
 
 grant select on public.profiles to authenticated;
+
 grant update on public.profiles to authenticated;
+

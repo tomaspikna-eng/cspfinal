@@ -116,3 +116,4 @@ $$;
 
 comment on function public.has_plan_at_least(uid uuid, required text) is
   'Encodes tier ordering free < pro < ultra < elite so later code writes has_plan_at_least(auth.uid(), ''pro'') instead of re-deriving ordering. Admins satisfy any tier via current_plan() mapping them to elite (the top tier).';
+

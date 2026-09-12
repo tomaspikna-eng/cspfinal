@@ -20,9 +20,11 @@
 -- on a truly fresh run. `DROP TABLE ... CASCADE` below removes any
 -- triggers for free.
 drop function if exists public.get_station_by_token(text) cascade;
+
 drop function if exists public.enforce_club_manager_access() cascade;
 
 drop table if exists public.stations cascade;
+
 drop table if exists public.clubs cascade;
 
 -- ----------------------------------------------------------------------------
@@ -102,8 +104,10 @@ create table public.stations (
 
 comment on table public.stations is
   'One row per physical table/dart board. token is an unguessable 32-char hex string (never a sequential id) used in that station''s QR code URL; regenerate it (update the column) to invalidate a previously issued code. No public read access here either — see get_station_by_token() for how an anonymous tablet reads a station instead.';
+
 comment on column public.stations.token is
   'Unguessable lookup key for anonymous QR-code access via get_station_by_token(). Unique constraint below also provides its lookup index.';
+
 comment on column public.stations.lock_mode is
   'True once a tablet has scanned this station''s code and should stay locked to it.';
 
@@ -178,4 +182,6 @@ comment on function public.get_station_by_token(text) is
   'The only anonymous read path onto stations: returns public-safe fields for exactly one token match (or zero rows if no match), never a list. Called by the anon role from the QR-code landing page.';
 
 grant usage on schema public to anon;
+
 grant execute on function public.get_station_by_token(text) to anon, authenticated;
+

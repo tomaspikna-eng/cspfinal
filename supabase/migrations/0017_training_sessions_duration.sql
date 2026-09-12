@@ -26,4 +26,5 @@ comment on column public.training_sessions.duration_seconds is
 
 -- No RLS changes needed: RLS is row-level, not column-level. The existing
 -- owner-only select/insert/delete policies from migration 0016 already
--- cover this new column automatically.
+-- cover this new column automatically.;
+

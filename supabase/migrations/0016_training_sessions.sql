@@ -54,12 +54,16 @@ create table public.training_sessions (
 
 comment on table public.training_sessions is
   'Finished personal scoreboard sessions (scoreboard/index.html), saved to a logged-in user''s own history. Deliberately standalone - no relationship to tournaments/matches, same reasoning as events being kept separate from tournaments. Anonymous club-station usage (migration 0005) never writes here, since there is no owner to attribute a session to.';
+
 comment on column public.training_sessions.player_names is
   '2-3 names exactly as typed into the scoreboard at play time - not necessarily other CSP accounts, no FK to profiles/tournament_players.';
+
 comment on column public.training_sessions.final_score is
   'Flexible shape: frames/legs/sets/points per player, varies by sport/mode. Deliberately jsonb, not normalized columns, so it isn''t over-constrained to one scoring shape.';
+
 comment on column public.training_sessions.winner_name is
   'Nullable - a session could theoretically be saved without a clearly resolved winner name.';
+
 comment on column public.training_sessions.race_to is
   'The target score/race configured for the session, if the mode used one. Nullable for modes without a fixed target.';
 
@@ -97,3 +101,4 @@ create policy training_sessions_delete_owner
   using (owner_id = auth.uid());
 
 grant select, insert, delete on public.training_sessions to authenticated;
+

@@ -21,8 +21,11 @@
 -- handled via ON CONFLICT DO NOTHING instead of a drop/recreate, so
 -- existing files are never wiped out by re-running this migration.
 drop policy if exists avatars_select_public on storage.objects;
+
 drop policy if exists avatars_write_own on storage.objects;
+
 drop policy if exists article_covers_select_public on storage.objects;
+
 drop policy if exists article_covers_write_admin on storage.objects;
 
 -- ----------------------------------------------------------------------------
@@ -103,4 +106,5 @@ create policy article_covers_write_admin
 -- - File size / MIME-type restrictions beyond Supabase's platform
 --   defaults, and image resizing/thumbnails (frontend/CDN concern, not a
 --   database one).
--- ----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------;
+

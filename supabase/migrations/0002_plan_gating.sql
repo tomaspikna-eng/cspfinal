@@ -15,9 +15,13 @@
 -- Guarded so this migration can be re-run safely on top of a matching
 -- 0001_auth_profiles.sql without needing to touch profiles/auth.users.
 drop function if exists public.can_access_magazine_cms(uuid) cascade;
+
 drop function if exists public.can_create_tournament(uuid) cascade;
+
 drop function if exists public.remaining_tournament_quota(uuid) cascade;
+
 drop function if exists public.has_feature_access(uuid, text) cascade;
+
 drop table if exists public.feature_gates cascade;
 
 -- ----------------------------------------------------------------------------
@@ -78,6 +82,7 @@ create policy feature_gates_write_admin
   with check (public.is_admin(auth.uid()));
 
 grant select on public.feature_gates to authenticated;
+
 grant insert, update, delete on public.feature_gates to authenticated;
 
 -- ----------------------------------------------------------------------------
@@ -192,3 +197,4 @@ $$;
 
 comment on function public.can_access_magazine_cms(uuid) is
   'Magazine CMS write access is admin-only, independent of plan tier (ultra does not unlock it). Self-documenting alias for is_admin() used by prompt 6''s CMS RLS policies.';
+

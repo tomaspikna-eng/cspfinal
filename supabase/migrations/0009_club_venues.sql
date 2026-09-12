@@ -36,10 +36,13 @@ create table public.venues (
 
 comment on table public.venues is
   'A club''s actual playing areas (courts/lanes/rooms) — informational/descriptive, independent of the stations QR-scoreboard system (migration 0005). No FK between the two tables by design.';
+
 comment on column public.venues.sport is
   'Free text, not a fixed enum — clubs may host any discipline, including ones CSP hasn''t formally modeled yet.';
+
 comment on column public.venues.description is
   'What the venue is / what''s in it (e.g. "2 stoly, klimatizované").';
+
 comment on column public.venues.tip is
   'Optional hint shown to members, e.g. booking advice ("Rezervuj cez recepciu do 18:00").';
 
@@ -77,3 +80,4 @@ create policy venues_owner_all
   );
 
 grant select, insert, update, delete on public.venues to authenticated;
+

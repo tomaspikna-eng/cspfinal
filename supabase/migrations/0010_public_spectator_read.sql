@@ -26,10 +26,15 @@
 -- (0003, 0005, 0009), so unlike 0001's fresh-project caveat, dropping
 -- these policies by name is always safe here.
 drop policy if exists tournaments_select_published on public.tournaments;
+
 drop policy if exists tournament_players_select on public.tournament_players;
+
 drop policy if exists tournament_groups_select on public.tournament_groups;
+
 drop policy if exists matches_select on public.matches;
+
 drop policy if exists clubs_select_public on public.clubs;
+
 drop policy if exists venues_select_public on public.venues;
 
 -- ----------------------------------------------------------------------------
@@ -131,4 +136,5 @@ grant select on public.venues to anon;
 -- No statement in this migration references public.stations at all.
 -- It keeps its migration-0005 access model: owner-only CRUD, plus the
 -- anonymous get_station_by_token() function for exact-token lookups —
--- never a listable/enumerable SELECT for anon or authenticated.
+-- never a listable/enumerable SELECT for anon or authenticated.;
+

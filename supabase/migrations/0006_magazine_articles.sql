@@ -39,12 +39,16 @@ create table public.articles (
 
 comment on table public.articles is
   'Magazine CMS articles. Write access is admin-only (can_access_magazine_cms), not per-author — any admin may edit/unpublish any article regardless of author_id. Published articles are publicly readable, including by anonymous visitors.';
+
 comment on column public.articles.author_id is
   'Who wrote it, for display only. Nullable and ON DELETE SET NULL so deleting an admin account never deletes their articles.';
+
 comment on column public.articles.content is
   'Article body. Markdown vs HTML is a frontend rendering concern; stored here as plain text either way.';
+
 comment on column public.articles.cover_image_url is
   'Nullable; storage wiring (uploading the actual image) comes in prompt 7. This column is just reserved for it now.';
+
 comment on column public.articles.published_at is
   'Set automatically the first time status becomes ''published'' (see set_article_published_at()); preserved as the original publish date through later edits, even if the article is unpublished and republished.';
 
@@ -112,4 +116,6 @@ create policy articles_admin_all
   with check (public.can_access_magazine_cms(auth.uid()));
 
 grant select on public.articles to anon, authenticated;
+
 grant insert, update, delete on public.articles to authenticated;
+

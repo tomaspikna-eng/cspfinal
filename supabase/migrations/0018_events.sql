@@ -57,10 +57,13 @@ create table public.events (
 
 comment on table public.events is
   'CSP events — tournaments, training days, social competitions, etc. Owner-managed, publicly browsable when status=published. club_id is optional (same event can exist without a club context). No RSVP/attendee list in this migration.';
+
 comment on column public.events.club_id is
   'Optional FK to clubs. When set, must belong to a club owned by the same user who owns the event (enforced via RLS with check, the same pattern used for venues/stations). on delete set null: the event stays visible if its club is deleted.';
+
 comment on column public.events.discipline is
   'Free text, optional. Matches the sport→discipline catalogue already used in Tournament Manager (e.g. sport=Biliard, discipline=8-ball) — not a separate concept, not an enum.';
+
 comment on column public.events.status is
   'draft: only owner can see it. published: anyone (anon+authenticated) can see it. cancelled: only owner can see it.';
 
@@ -73,7 +76,9 @@ create trigger events_set_updated_at
 -- 2. INDEXES
 -- ----------------------------------------------------------------------------
 create index events_owner_id_idx on public.events (owner_id);
+
 create index events_club_id_idx on public.events (club_id);
+
 -- Supports the primary public browse query: "upcoming published events, sorted soonest-first"
 create index events_status_starts_at_idx on public.events (status, starts_at);
 
@@ -116,4 +121,6 @@ create policy events_select_published
 -- policy's USING clause already controls row-level visibility for DELETE;
 -- the table-level grant just needs to allow the operation.
 grant select, insert, update, delete on public.events to authenticated;
+
 grant select on public.events to anon;
+

@@ -23,8 +23,11 @@
 drop function if exists public.increment_tournaments_created_count() cascade;
 
 drop table if exists public.matches cascade;
+
 drop table if exists public.tournament_groups cascade;
+
 drop table if exists public.tournament_players cascade;
+
 drop table if exists public.tournaments cascade;
 
 -- ----------------------------------------------------------------------------
@@ -48,8 +51,10 @@ create table public.tournaments (
 
 comment on table public.tournaments is
   'One row per tournament created via the Tournament Manager frontend. Owner is the creator; draft tournaments are private until published (status changed away from draft).';
+
 comment on column public.tournaments.groups_count is
   'Only meaningful when format is rr_sko / rr_dko; unused/null otherwise.';
+
 comment on column public.tournaments.advance_count is
   'Only meaningful when format is rr_sko / rr_dko; unused/null otherwise.';
 
@@ -115,6 +120,7 @@ comment on table public.matches is
   'One row per bracket/schedule slot. round_key is an opaque string in the frontend''s own addressing scheme (e.g. sko:r1:m1, rr:r1, W:A2:1) — SQL does not parse or validate it, only persists it. The frontend updates a row in place (via the unique (tournament_id, round_key) constraint) rather than inserting duplicates.';
 
 create index matches_tournament_id_idx on public.matches (tournament_id);
+
 -- The unique constraint above already provides an index usable for
 -- (tournament_id, round_key) lookups; matches_tournament_id_idx additionally
 -- supports plain "all matches for this tournament" queries efficiently.
@@ -312,3 +318,4 @@ create policy matches_update_owner
 -- score/status back to pending/live), not removed, until a later prompt
 -- decides deletion is actually needed.
 grant select, insert, update on public.matches to authenticated;
+
