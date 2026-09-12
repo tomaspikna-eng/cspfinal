@@ -99,5 +99,6 @@ begin
 end;
 $function$;
 
-revoke all on function public.complete_organizer_match(uuid,integer,integer,uuid) from public, anon;
+revoke all on function public.complete_organizer_match(uuid,integer,integer,uuid) from public;
 grant execute on function public.complete_organizer_match(uuid,integer,integer,uuid) to authenticated, service_role;
+
