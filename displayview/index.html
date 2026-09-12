@@ -22,12 +22,12 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
 button{font:inherit}
-.shell{height:100dvh;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:14px}
+.shell{height:100dvh;display:grid;grid-template-rows:auto 1fr;gap:10px;padding:10px}
 .header{
-  min-height:72px;display:flex;align-items:center;gap:18px;padding:10px 14px;
-  border:1px solid var(--line);border-radius:16px;background:rgba(12,15,13,.94)
+  min-height:56px;display:flex;align-items:center;gap:14px;padding:8px 12px;
+  border:1px solid var(--line);border-radius:14px;background:rgba(12,15,13,.94)
 }
-.logo{width:230px;max-width:31vw;height:auto;display:block;object-fit:contain;object-position:left center}
+.logo{width:166px;max-width:24vw;height:38px;display:block;object-fit:contain;object-position:left center}
 .tournament{min-width:0;flex:1}
 .tournament h1{font-size:clamp(18px,2vw,34px);line-height:1.05;margin:0;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta{margin-top:5px;color:var(--muted);font-size:clamp(10px,.95vw,14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -40,8 +40,6 @@ button{font:inherit}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(24,201,100,.72)}
 .live-pill.offline{color:var(--red);border-color:rgba(237,91,100,.32);background:rgba(237,91,100,.09)}
 .live-pill.offline .live-dot{background:var(--red);box-shadow:0 0 14px rgba(237,91,100,.55)}
-.live-pill.pairing{color:var(--gold);border-color:rgba(212,168,67,.32);background:rgba(212,168,67,.09)}
-.live-pill.pairing .live-dot{background:var(--gold);box-shadow:0 0 14px rgba(212,168,67,.55)}
 .fullscreen{
   min-height:38px;padding:0 13px;border-radius:9px;border:1px solid var(--line);
   background:#111512;color:#fff;font-weight:800;cursor:pointer
@@ -134,20 +132,9 @@ button{font:inherit}
 .empty p{margin:0;color:var(--muted);font-size:clamp(11px,1.1vw,16px)}
 .error{color:var(--red)}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:800}
-.pairing-screen{
-  height:100%;display:grid;place-items:center;border:1px solid var(--line);border-radius:20px;
-  background:radial-gradient(circle at 50% 10%,rgba(212,168,67,.12),transparent 38%),var(--panel)
-}
-.pairing-card{width:min(680px,92vw);padding:clamp(26px,5vw,58px);text-align:center}
-.pairing-kicker{font-size:12px;font-weight:900;letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
-.pairing-card h2{font-size:clamp(26px,4vw,52px);margin:12px 0 8px}
-.pairing-card p{color:var(--muted);font-size:clamp(13px,1.25vw,18px);line-height:1.55;margin:0 auto;max-width:560px}
-.pairing-code{
-  margin:28px auto 20px;font-family:"JetBrains Mono",ui-monospace,monospace;
-  font-size:clamp(58px,10vw,116px);font-weight:900;line-height:1;letter-spacing:.12em;color:#fff
-}
-.pairing-expiry{margin-top:16px;font-size:12px;color:#727972}
 .hidden{display:none!important}
+:fullscreen .shell{height:100vh;padding:8px}
+:fullscreen .header{min-height:50px}
 
 /* Real reflow, not a scaled landscape layout. */
 @media (orientation:portrait){
@@ -206,39 +193,13 @@ button{font:inherit}
         <p>ProjektorTV sa aktualizuje automaticky.</p>
       </div>
     </div>
-    <div class="pairing-screen hidden" id="pairingState">
-      <div class="pairing-card">
-        <div class="pairing-kicker">PROJEKTORTV · MULTISCREEN</div>
-        <h2>Pripojiť monitor</h2>
-        <p>V Tournament Manageri otvor ProjektorTV → Multiscreen, zadaj tento kód a pomenuj monitor.</p>
-        <div class="pairing-code" id="pairingCode">------</div>
-        <p>Po priradení sa obrazovka spustí automaticky. Kód platí desať minút.</p>
-        <div class="pairing-expiry" id="pairingExpiry">Pripájam obrazovku…</div>
-      </div>
-    </div>
   </main>
 </div>
 
 <script>
 const params=new URLSearchParams(location.search);
-const explicitScreenToken=params.get('screen')||params.get('token')||'';
-const legacyTournamentId=params.get('id')||params.get('tournament_id')||'';
+const tournamentId=params.get('id')||params.get('t')||params.get('tournament_id')||'';
 const $=id=>document.getElementById(id);
-const storage={
-  get(key){try{return localStorage.getItem(key)||''}catch(_){return ''}},
-  set(key,value){try{localStorage.setItem(key,value)}catch(_){}},
-  remove(key){try{localStorage.removeItem(key)}catch(_){}}
-};
-const SCREEN_TOKEN_KEY='csp_display_screen_token';
-const DEVICE_KEY_KEY='csp_display_device_key';
-
-if(params.get('reset')==='1'){
-  storage.remove(SCREEN_TOKEN_KEY);
-  storage.remove(DEVICE_KEY_KEY);
-}
-
-let screenToken=explicitScreenToken||(!legacyTournamentId?storage.get(SCREEN_TOKEN_KEY):'');
-let deviceKey=storage.get(DEVICE_KEY_KEY);
 let client=null;
 let tournamentRow=null;
 let screenRow=null;
@@ -246,27 +207,13 @@ let currentRows=[];
 let viewKind='matches';
 let cardRound=null;
 let cardPageIndex=0;
-let fetchBusy=false;
 let consecutiveErrors=0;
-let pairingExpiresAt=null;
 let matchesChannel=null;
 let displayPollTimer=null;
-let heartbeatTimer=null;
-let pairingPollTimer=null;
 let legacyRefreshTimer=null;
 
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-}
-function makeUuid(){
-  if(globalThis.crypto?.randomUUID)return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,ch=>{
-    const r=Math.random()*16|0,v=ch==='x'?r:(r&3|8);return v.toString(16);
-  });
-}
-function ensureDeviceKey(){
-  if(!deviceKey){deviceKey=makeUuid();storage.set(DEVICE_KEY_KEY,deviceKey)}
-  return deviceKey;
 }
 function statusLabel(status){
   return ({
@@ -282,14 +229,10 @@ function statusClass(status){
   if(status==='completed'||status==='finished')return 'completed';
   return '';
 }
-function modeLabel(mode){
-  return ({overview:'PREHĽAD HALY',resource:'ŠPORTOVISKO',match:'VYBRANÝ ZÁPAS',idle:'ČAKÁ NA ZÁPAS'})[mode]||'PROJEKTORTV';
-}
 function setConnection(state,label){
   const pill=$('connectionPill');
   pill.classList.toggle('offline',state==='offline');
-  pill.classList.toggle('pairing',state==='pairing');
-  $('connectionLabel').textContent=label||(state==='offline'?'OFFLINE':state==='pairing'?'PÁROVANIE':'LIVE');
+  $('connectionLabel').textContent=label||(state==='offline'?'OFFLINE':'LIVE');
 }
 function formatClock(row){
   let seconds=Number(row.match_clock_elapsed_seconds||0);
@@ -308,24 +251,28 @@ function roundText(row){
   return parts.join(' · ');
 }
 function setGridGeometry(count){
-  // ProjektorTV sa riadi skutocnou orientaciou pripojeneho monitora.
-  // Rozlozenie sa pri otoceni obrazovky okamzite prepocita.
-  const portrait=matchMedia('(orientation: portrait)').matches;
-  const single=['resource','match'].includes(screenRow?.display_mode)||count<=1;
-  let cols=1;
-  if(!single){
-    if(portrait)cols=count<=2?1:(count<=6?2:3);
-    else cols=count===2?2:(count<=4?2:(count<=6?3:4));
+  if(!count)return;
+  const box=document.querySelector('.stage').getBoundingClientRect();
+  const portrait=box.height>box.width;
+  const target=viewKind==='cards'?(portrait?1:1.2):(portrait ? .92 : 1.62);
+  let best={cols:1,rows:count,score:-1};
+  const maxCols=Math.min(count,portrait?5:8);
+  for(let cols=1;cols<=maxCols;cols++){
+    const rows=Math.ceil(count/cols);
+    const cellWidth=(box.width-(cols-1)*12)/cols;
+    const cellHeight=(box.height-(rows-1)*12)/rows;
+    const fitted=Math.min(cellWidth/target,cellHeight);
+    const empty=cols*rows-count;
+    const score=fitted-empty*fitted*.025;
+    if(score>best.score)best={cols,rows,score};
   }
-  const rows=Math.max(1,Math.ceil(count/cols));
-  $('matchesGrid').style.setProperty('--cols',cols);
-  $('matchesGrid').style.setProperty('--rows',rows);
+  $('matchesGrid').style.setProperty('--cols',best.cols);
+  $('matchesGrid').style.setProperty('--rows',best.rows);
 }
 function hideStates(){
   $('loading').classList.add('hidden');
   $('matchesGrid').classList.add('hidden');
   $('emptyState').classList.add('hidden');
-  $('pairingState').classList.add('hidden');
 }
 function showEmpty(title,copy,error=false){
   hideStates();
@@ -336,19 +283,12 @@ function showEmpty(title,copy,error=false){
 }
 function render(){
   hideStates();
-  const mode=screenRow?.display_mode||'overview';
-  if(mode==='idle'){
-    showEmpty('Monitor čaká na zápas','Organizátor mu priradí konkrétny zápas v ProjektorTV → Multiscreen.');
-    return;
-  }
   if(viewKind==='cards'){
     renderCardTables();
     return;
   }
   if(!currentRows.length){
-    const title=mode==='match'?'Vybraný zápas nie je dostupný':'Čaká sa na ďalší zápas';
-    const copy=mode==='resource'?'Na tomto športovisku zatiaľ nie je pridelený zápas.':'ProjektorTV sa aktualizuje automaticky.';
-    showEmpty(title,copy);
+    showEmpty('Čaká sa na ďalší zápas','Po pridelení zápasu k stolu alebo terču sa zobrazí automaticky.');
     return;
   }
   const grid=$('matchesGrid');
@@ -427,32 +367,11 @@ function tickClocks(){
     const row=byId.get(el.dataset.clockId);if(row)el.textContent=formatClock(row);
   });
 }
-function applyPayload(payload){
-  viewKind='matches';
-  cardRound=null;
-  cardPageIndex=0;
-  tournamentRow=payload.tournament||{};
-  screenRow=payload.screen||{display_mode:'overview',layout:'auto',name:'ProjektorTV'};
-  currentRows=(Array.isArray(payload.items)?payload.items:[])
-    .filter(row=>row&&row.match_id&&row.has_match!==false)
-    .map(row=>({
-      ...row,
-      id:row.match_id,
-      has_match:true,
-      player1_name:row.player1_name||'—',
-      player2_name:row.player2_name||'—',
-      score1:Number(row.score1||0),score2:Number(row.score2||0),
-      match_clock_elapsed_seconds:Number(row.match_clock_elapsed_seconds||0)
-    }));
-  $('tournamentName').textContent=tournamentRow.name||'Turnaj';
-  $('tournamentMeta').textContent=[screenRow.name,modeLabel(screenRow.display_mode),tournamentRow.sport,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
-  render();
-}
-function applyCardPayload(payload,pairedScreen=null){
+function applyCardPayload(payload){
   const previousTournamentId=tournamentRow?.id;
   viewKind='cards';
   tournamentRow=payload.tournament||{};
-  screenRow=pairedScreen||{name:'Kartové stoly',display_mode:'overview',layout:'auto'};
+  screenRow={name:'Kartové stoly',display_mode:'overview',layout:'auto'};
   cardRound=payload.round||null;
   currentRows=Array.isArray(payload.items)?payload.items:[];
   if(previousTournamentId&&previousTournamentId!==tournamentRow.id)cardPageIndex=0;
@@ -461,119 +380,15 @@ function applyCardPayload(payload,pairedScreen=null){
   $('tournamentMeta').textContent=[screenRow.name,roundLabel,tournamentRow.discipline,tournamentRow.venue,tournamentRow.date].filter(Boolean).join(' · ');
   render();
 }
-function showPairing(data){
-  hideStates();
-  $('pairingState').classList.remove('hidden');
-  $('tournamentName').textContent='ProjektorTV';
-  $('tournamentMeta').textContent='Multiscreen · pripojenie monitora';
-  $('pairingCode').textContent=data?.pairing_code||'------';
-  pairingExpiresAt=data?.expires_at?new Date(data.expires_at):null;
-  updatePairingExpiry();
-  setConnection('pairing','PÁROVANIE');
-}
-function updatePairingExpiry(){
-  if(!pairingExpiresAt){$('pairingExpiry').textContent='Pripájam obrazovku…';return}
-  const seconds=Math.max(0,Math.ceil((pairingExpiresAt.getTime()-Date.now())/1000));
-  const m=Math.floor(seconds/60),s=String(seconds%60).padStart(2,'0');
-  $('pairingExpiry').textContent=seconds?`Platnosť kódu: ${m}:${s}`:'Kód vypršal, vytváram nový…';
-}
-function showDisabled(){
-  $('tournamentName').textContent='ProjektorTV · Multiscreen';
-  $('tournamentMeta').textContent='Obrazovka je vypnutá';
-  showEmpty('Obrazovka je vypnutá','Organizátor ju môže znovu aktivovať v ProjektorTV → Multiscreen.');
-  setConnection('offline','VYPNUTÁ');
-}
-function clearDisplayTimers(){
-  clearInterval(displayPollTimer);displayPollTimer=null;
-  clearInterval(heartbeatTimer);heartbeatTimer=null;
-  if(matchesChannel&&client){client.removeChannel(matchesChannel);matchesChannel=null}
-  clearInterval(legacyRefreshTimer);legacyRefreshTimer=null;
-}
-function clearPairingTimer(){clearInterval(pairingPollTimer);pairingPollTimer=null}
-function adoptScreenToken(token){
-  if(!token)return;
-  screenToken=token;
-  storage.set(SCREEN_TOKEN_KEY,token);
-  const url=new URL(location.href);
-  url.search='';url.searchParams.set('screen',token);
-  history.replaceState(null,'',url);
-  clearPairingTimer();
-  startScreenMode();
-}
-async function requestPairing(){
-  ensureDeviceKey();
-  const {data,error}=await client.rpc('request_display_pairing',{p_device_key:deviceKey});
-  if(error)throw error;
-  if(data?.status==='paired'&&data.screen_token){adoptScreenToken(data.screen_token);return}
-  if(data?.status==='disabled'){showDisabled();startPairingPoll();return}
-  showPairing(data||{});
-  startPairingPoll();
-}
-async function pollPairing(){
-  updatePairingExpiry();
-  const {data,error}=await client.rpc('get_display_pairing_status',{p_device_key:ensureDeviceKey()});
-  if(error)throw error;
-  if(data?.status==='paired'&&data.screen_token){adoptScreenToken(data.screen_token);return}
-  if(data?.status==='disabled'){showDisabled();return}
-  if(data?.status==='expired'||data?.status==='missing'){
-    await requestPairing();return;
-  }
-  if(data?.status==='waiting')showPairing(data);
-}
-function startPairingPoll(){
-  clearPairingTimer();
-  pairingPollTimer=setInterval(()=>pollPairing().catch(err=>setConnection('offline',err?.message?'OFFLINE':'OFFLINE')),2000);
-}
-async function heartbeat(){
-  if(!screenToken)return;
-  const {error}=await client.rpc('touch_tournament_display_screen',{p_screen_token:screenToken});
-  if(error)console.warn('[projektortv] heartbeat:',error);
-}
-async function recoverScreen(){
-  ensureDeviceKey();
-  const {data,error}=await client.rpc('request_display_pairing',{p_device_key:deviceKey});
-  if(error)throw error;
-  if(data?.status==='paired'&&data.screen_token){
-    if(data.screen_token!==screenToken){adoptScreenToken(data.screen_token)}
-    return;
-  }
-  if(data?.status==='disabled'){showDisabled();return}
-  screenToken='';storage.remove(SCREEN_TOKEN_KEY);showPairing(data||{});startPairingPoll();
-}
-async function fetchScreenData(){
-  if(fetchBusy||!screenToken)return;
-  fetchBusy=true;
-  try{
-    const {data,error}=await client.rpc('get_tournament_display_screen_payload',{p_screen_token:screenToken});
-    if(error)throw error;
-    if(!data){await recoverScreen();return}
-    consecutiveErrors=0;
-    setConnection('online','LIVE');
-    if(data?.tournament?.format==='karty'&&data?.screen?.display_mode!=='idle'){
-      const cardResponse=await client.rpc('get_card_display_payload',{p_tournament_id:data.tournament.id});
-      if(cardResponse.error)throw cardResponse.error;
-      if(cardResponse.data){applyCardPayload(cardResponse.data,data.screen);return}
-    }
-    applyPayload(data);
-  }finally{fetchBusy=false}
-}
 function handleScreenError(err){
   consecutiveErrors++;
   console.error('[projektortv]',err);
   setConnection('offline','OFFLINE');
   if(!currentRows.length&&consecutiveErrors>=2)showEmpty('Spojenie bolo prerušené','ProjektorTV sa pokúša znovu pripojiť.',true);
 }
-function startScreenMode(){
-  clearDisplayTimers();
-  clearPairingTimer();
-  fetchScreenData().catch(handleScreenError);
-  displayPollTimer=setInterval(()=>fetchScreenData().catch(handleScreenError),2000);
-  heartbeat();
-  heartbeatTimer=setInterval(heartbeat,15000);
-}
 async function fetchLegacyData(){
-  if(!client||!legacyTournamentId)return;
-  const cardResponse=await client.rpc('get_card_display_payload',{p_tournament_id:legacyTournamentId});
+  if(!client||!tournamentId)return;
+  const cardResponse=await client.rpc('get_card_display_payload',{p_tournament_id:tournamentId});
   if(cardResponse.error)throw cardResponse.error;
   if(cardResponse.data){
     consecutiveErrors=0;
@@ -581,7 +396,7 @@ async function fetchLegacyData(){
     applyCardPayload(cardResponse.data);
     return;
   }
-  const {data,error}=await client.rpc('get_tournament_display_view',{p_tournament_id:legacyTournamentId});
+  const {data,error}=await client.rpc('get_tournament_display_view',{p_tournament_id:tournamentId});
   if(error)throw error;
   const rows=Array.isArray(data)?data:[];
   if(!rows.length)throw new Error('Turnaj sa nenašiel alebo ProjektorTV nemá prístup.');
@@ -608,9 +423,9 @@ function scheduleLegacyRefresh(){
 }
 function startLegacyMode(){
   fetchLegacyData().catch(handleScreenError);
-  matchesChannel=client.channel(`display-legacy-${legacyTournamentId}`)
-    .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${legacyTournamentId}`},scheduleLegacyRefresh)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_resources',filter:`tournament_id=eq.${legacyTournamentId}`},scheduleLegacyRefresh)
+  matchesChannel=client.channel(`display-${tournamentId}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${tournamentId}`},scheduleLegacyRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_resources',filter:`tournament_id=eq.${tournamentId}`},scheduleLegacyRefresh)
     .subscribe();
   displayPollTimer=setInterval(()=>fetchLegacyData().catch(handleScreenError),5000);
 }
@@ -620,15 +435,19 @@ function showFatal(err){
 }
 async function toggleFullscreen(){
   try{
-    if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
+    if(!document.fullscreenElement){
+      try{await document.documentElement.requestFullscreen({navigationUI:'hide'})}
+      catch(_){await document.documentElement.requestFullscreen()}
+    }
     else await document.exitFullscreen();
   }catch(err){console.warn('[projektortv] fullscreen unavailable',err)}
 }
 $('fullscreenBtn').addEventListener('click',toggleFullscreen);
+document.querySelector('.stage').addEventListener('dblclick',toggleFullscreen);
 document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'Ukončiť fullscreen':'Celá obrazovka'});
 window.addEventListener('resize',()=>{if(viewKind==='cards')render();else setGridGeometry(currentRows.length||1)});
 window.addEventListener('orientationchange',()=>setTimeout(()=>{cardPageIndex=0;if(viewKind==='cards')render();else setGridGeometry(currentRows.length||1)},80));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){screenToken?fetchScreenData().catch(handleScreenError):legacyTournamentId&&fetchLegacyData().catch(handleScreenError)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&tournamentId)fetchLegacyData().catch(handleScreenError)});
 setInterval(tickClocks,1000);
 setInterval(()=>{
   if(document.hidden||viewKind!=='cards')return;
@@ -640,9 +459,8 @@ setInterval(()=>{
   try{
     client=window.cspAuth?.client;
     if(!client)throw new Error('CSP pripojenie nie je dostupné.');
-    if(screenToken){storage.set(SCREEN_TOKEN_KEY,screenToken);startScreenMode();return}
-    if(legacyTournamentId){startLegacyMode();return}
-    await requestPairing();
+    if(!tournamentId)throw new Error('ProjektorTV otvor priamo z detailu konkrétneho turnaja.');
+    startLegacyMode();
   }catch(err){showFatal(err)}
 })();
 </script>
