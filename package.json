@@ -1,0 +1,10 @@
+{
+  "name": "connect-sports-pro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/audit-static.mjs",
+    "test": "node scripts/audit-static.mjs && node scripts/test-dko-engine.mjs"
+  }
+}

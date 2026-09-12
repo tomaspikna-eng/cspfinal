@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /cms/
+Disallow: /displayview/
+Disallow: /login/
+Disallow: /manager/
+Disallow: /potvrdenie%20emailu/
+Disallow: /profil/
+Disallow: /profil-ul/
+Disallow: /registracia/
+Disallow: /scoreboard/
+Disallow: /scoreboard-te/
+Disallow: /turnament/
+Disallow: /udalost/
+
+Sitemap: https://connectsportspro.com/sitemap.xml

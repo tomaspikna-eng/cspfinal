@@ -1,0 +1,9 @@
+*.sql
+*.md
+*.txt
+.cursor/
+.github/
+scripts/
+supabase/
+work/
+output/
