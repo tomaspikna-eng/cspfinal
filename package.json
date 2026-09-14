@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/audit-static.mjs",
-    "test": "node scripts/audit-static.mjs && node scripts/test-dko-engine.mjs"
+    "test:rr-ko": "node scripts/test-rr-ko-engine.mjs turnament/index.html",
+    "test": "node scripts/audit-static.mjs && node scripts/test-dko-engine.mjs && node scripts/test-rr-ko-engine.mjs turnament/index.html"
   }
 }
