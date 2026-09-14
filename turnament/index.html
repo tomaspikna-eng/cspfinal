@@ -2875,11 +2875,11 @@ async function loadTournamentOperations(tournamentId){
   }catch(err){
     console.error('[turnament] operations RPC load:',err);
     // Never turn a transient owner-RPC/auth error into "0 stations". The
-    // active tournament resource rows are already public-readable under the
-    // existing RLS policy, so use them as a read-only fallback.
+    // fallback requests only non-secret resource fields; capability tokens
+    // stay behind the authorized owner/device APIs.
     try{
       const {data,error}=await cspAuth.client.from('tournament_resources')
-        .select('*').eq('tournament_id',tournamentId).eq('is_active',true)
+        .select('id,tournament_id,resource_number,label,resource_type,status,current_match_id,is_active,sort_order,created_at,updated_at,tablet_paired_at,tablet_last_seen_at,tablet_name,operating_mode,automation_enabled').eq('tournament_id',tournamentId).eq('is_active',true)
         .order('resource_number',{ascending:true});
       if(error)throw error;
       const players=new Map((curT?.players||[]).map(p=>[p.id,p]));
