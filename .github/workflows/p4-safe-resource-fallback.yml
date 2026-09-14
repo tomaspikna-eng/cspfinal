@@ -1,0 +1,51 @@
+name: P4 safe tournament resource fallback
+
+on:
+  push:
+    paths:
+      - '.github/workflows/p4-safe-resource-fallback.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Restrict tournament resource fallback fields
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('turnament/index.html')
+          text = path.read_text(encoding='utf-8')
+          old = '''    // Never turn a transient owner-RPC/auth error into "0 stations". The
+    // active tournament resource rows are already public-readable under the
+    // existing RLS policy, so use them as a read-only fallback.
+    try{
+      const {data,error}=await cspAuth.client.from('tournament_resources')
+        .select('*').eq('tournament_id',tournamentId).eq('is_active',true)
+        .order('resource_number',{ascending:true});'''
+          new = '''    // Never turn a transient owner-RPC/auth error into "0 stations".
+    // Fallback deliberately requests only non-secret resource fields; capability
+    // tokens must remain available only through the authorized owner/device APIs.
+    try{
+      const {data,error}=await cspAuth.client.from('tournament_resources')
+        .select('id,tournament_id,resource_number,label,resource_type,status,current_match_id,is_active,sort_order,created_at,updated_at,tablet_paired_at,tablet_last_seen_at,tablet_name,operating_mode,automation_enabled')
+        .eq('tournament_id',tournamentId).eq('is_active',true)
+        .order('resource_number',{ascending:true});'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one fallback block, found {count}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add turnament/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Harden tournament resource fallback"
+          git push origin HEAD:main
