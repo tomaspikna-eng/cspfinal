@@ -1,0 +1,43 @@
+name: Captain badge patch
+on:
+  push:
+    paths:
+      - '.github/workflows/captain-badge-patch.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch captain badge
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('ligy/index.html')
+          s=p.read_text(encoding='utf-8')
+          old_css=".badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:800}"
+          new_css=old_css+".captain-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:5px;border-radius:50%;background:rgba(212,168,67,.14);border:1px solid rgba(212,168,67,.5);color:var(--gold);font-size:.68rem;font-weight:900;vertical-align:middle}"
+          if s.count(old_css)!=1:
+              raise SystemExit(f'CSS marker count {s.count(old_css)}')
+          s=s.replace(old_css,new_css,1)
+          old="p.metadata?.captain?`Kapitán: ${esc(p.metadata.captain)}`:'',"
+          new="p.metadata?.captain?`${esc(p.metadata.captain)} <span class=\"captain-badge\" title=\"Kapitán tímu\" aria-label=\"Kapitán tímu\">C</span>`:'',"
+          if s.count(old)!=1:
+              raise SystemExit(f'captain marker count {s.count(old)}')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          grep -q 'captain-badge' ligy/index.html
+          grep -q 'aria-label="Kapitán tímu"' ligy/index.html
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ligy/index.html
+          git commit -m "Mark league team captains with C badge"
+          git push origin main
