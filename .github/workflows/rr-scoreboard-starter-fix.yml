@@ -20,144 +20,73 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          # RR standings: points -> H2H points -> H2H diff -> H2H score-for
-          # -> total diff -> total score-for -> seed.
+          def replace_once(s, old, new, label):
+              n=s.count(old)
+              if n!=1:
+                  raise SystemExit(f'{label}: expected 1, found {n}')
+              return s.replace(old,new,1)
+
           p=Path('turnament/index.html')
           s=p.read_text(encoding='utf-8')
-          old="""  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));
-
-          // Vzájomné zápasy sa rátajú iba medzi hráčmi, ktorí majú rovnaký
-          // počet bodov. Pri troj- a viacčlennej rovnosti tak vznikne minitabuľka.
-          const tiedByPoints=new Map();
-          rows.forEach(row=>{
-            if(!tiedByPoints.has(row.p))tiedByPoints.set(row.p,[]);
-            tiedByPoints.get(row.p).push(row);
-          });
-          tiedByPoints.forEach(tied=>{
-            if(tied.length<2)return;
-            const tiedNames=new Set(tied.map(row=>row.name));
-            const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0}]));
-            matches.forEach(match=>{
-              if(!match.winner||!match.p1||!match.p2||!tiedNames.has(match.p1.name)||!tiedNames.has(match.p2.name))return;
-              const s1=Number(match.s1)||0,s2=Number(match.s2)||0;
-              const winner=match.winner===1?match.p1:match.p2;
-              mini.get(match.p1.name).scoreFor+=s1;
-              mini.get(match.p2.name).scoreFor+=s2;
-              mini.get(winner.name).points+=2;
-            });
-            tied.forEach(row=>{
-              const headToHead=mini.get(row.name);
-              row.h2hPoints=headToHead.points;
-              row.h2hScoreFor=headToHead.scoreFor;
-            });
-          });
-
-          return rows.sort((a,b)=>
-            b.p-a.p ||
-            b.h2hPoints-a.h2hPoints ||
-            b.h2hScoreFor-a.h2hScoreFor ||
-            b.gw-a.gw ||
-            a.seed-b.seed
-          );
-          """
-          new="""  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));
-
-          // Vzájomné zápasy sa rátajú iba medzi hráčmi, ktorí majú rovnaký
-          // počet bodov. Pri troj- a viacčlennej rovnosti tak vznikne minitabuľka.
-          // Poradie: body -> H2H body -> H2H rozdiel -> H2H skóre za ->
-          // celkový rozdiel -> celkové skóre za -> seed.
-          const tiedByPoints=new Map();
-          rows.forEach(row=>{
-            if(!tiedByPoints.has(row.p))tiedByPoints.set(row.p,[]);
-            tiedByPoints.get(row.p).push(row);
-          });
-          tiedByPoints.forEach(tied=>{
-            if(tied.length<2)return;
-            const tiedNames=new Set(tied.map(row=>row.name));
-            const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0,scoreAgainst:0}]));
-            matches.forEach(match=>{
-              if(!match.winner||!match.p1||!match.p2||!tiedNames.has(match.p1.name)||!tiedNames.has(match.p2.name))return;
-              const s1=Number(match.s1)||0,s2=Number(match.s2)||0;
-              const winner=match.winner===1?match.p1:match.p2;
-              mini.get(match.p1.name).scoreFor+=s1;
-              mini.get(match.p1.name).scoreAgainst+=s2;
-              mini.get(match.p2.name).scoreFor+=s2;
-              mini.get(match.p2.name).scoreAgainst+=s1;
-              mini.get(winner.name).points+=2;
-            });
-            tied.forEach(row=>{
-              const headToHead=mini.get(row.name);
-              row.h2hPoints=headToHead.points;
-              row.h2hScoreFor=headToHead.scoreFor;
-              row.h2hScoreAgainst=headToHead.scoreAgainst;
-              row.h2hDiff=headToHead.scoreFor-headToHead.scoreAgainst;
-            });
-          });
-
-          return rows.sort((a,b)=>
-            b.p-a.p ||
-            b.h2hPoints-a.h2hPoints ||
-            b.h2hDiff-a.h2hDiff ||
-            b.h2hScoreFor-a.h2hScoreFor ||
-            (b.gw-b.gl)-(a.gw-a.gl) ||
-            b.gw-a.gw ||
-            a.seed-b.seed
-          );
-          """
-          if s.count(old)!=1:
-              raise SystemExit(f'RR block count={s.count(old)}')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          s=replace_once(s,
+              'const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));',
+              'const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));',
+              'RR row init')
+          s=replace_once(s,
+              'const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0}]));',
+              'const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0,scoreAgainst:0}]));',
+              'RR mini init')
+          s=replace_once(s,
+              'mini.get(match.p1.name).scoreFor+=s1;\n      mini.get(match.p2.name).scoreFor+=s2;',
+              'mini.get(match.p1.name).scoreFor+=s1;\n      mini.get(match.p1.name).scoreAgainst+=s2;\n      mini.get(match.p2.name).scoreFor+=s2;\n      mini.get(match.p2.name).scoreAgainst+=s1;',
+              'RR mini score')
+          s=replace_once(s,
+              'row.h2hScoreFor=headToHead.scoreFor;',
+              'row.h2hScoreFor=headToHead.scoreFor;\n      row.h2hScoreAgainst=headToHead.scoreAgainst;\n      row.h2hDiff=headToHead.scoreFor-headToHead.scoreAgainst;',
+              'RR H2H assign')
+          s=replace_once(s,
+              'b.h2hPoints-a.h2hPoints ||\n    b.h2hScoreFor-a.h2hScoreFor ||\n    b.gw-a.gw ||',
+              'b.h2hPoints-a.h2hPoints ||\n    b.h2hDiff-a.h2hDiff ||\n    b.h2hScoreFor-a.h2hScoreFor ||\n    (b.gw-b.gl)-(a.gw-a.gl) ||\n    b.gw-a.gw ||',
+              'RR sort')
+          p.write_text(s,encoding='utf-8')
 
           for rel in ['scoreboard/index.html','scoreboard-te/index.html']:
               p=Path(rel); s=p.read_text(encoding='utf-8')
-              old_break='const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;'
-              new_break='const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;'
-              if s.count(old_break)!=1:
-                  raise SystemExit(f'{rel}: breaker count={s.count(old_break)}')
-              s=s.replace(old_break,new_break,1)
-
+              s=replace_once(s,
+                  'const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;',
+                  'const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;',
+                  f'{rel} breaker')
               head='    <div class="head">${playerIdentityMarkup(p)}${starterBadge}</div>\n'
               starter='''    <div class="head">${playerIdentityMarkup(p)}${starterBadge}</div>\n    <div class="player-starter-select" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 4px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.025)">\n      <span style="font-size:.68rem;font-weight:850;letter-spacing:.08em;color:${i===state.starter?'var(--gold)':'var(--muted)'}">ZAČÍNA HRU</span>\n      <label class="switch"><input type="checkbox" data-starting-player="${i}" ${i===state.starter?'checked':''}/><span class="slider"></span></label>\n    </div>\n'''
-              if s.count(head)!=1:
-                  raise SystemExit(f'{rel}: player head count={s.count(head)}')
-              s=s.replace(head,starter,1)
-
+              s=replace_once(s,head,starter,f'{rel} starter UI')
               wire='function wireCardButtons(m){\n'
-              select='''function selectStartingPlayer(i){\n  if(!Number.isInteger(i)||i<0||i>=state.playerCount)return;\n  const previous=state.starter;\n  state.starter=i;\n  if(state.period===1&&state.currentIndex===previous)state.currentIndex=i;\n  addLog(`Začína hru: ${activePlayers()[i].name}`);\n  render();\n}\n\nfunction wireCardButtons(m){\n'''
-              if s.count(wire)!=1:
-                  raise SystemExit(f'{rel}: wire count={s.count(wire)}')
-              s=s.replace(wire,select,1)
-
+              selector='''function selectStartingPlayer(i){\n  if(!Number.isInteger(i)||i<0||i>=state.playerCount)return;\n  const previous=state.starter;\n  state.starter=i;\n  if(state.period===1&&state.currentIndex===previous)state.currentIndex=i;\n  addLog(`Začína hru: ${activePlayers()[i].name}`);\n  render();\n}\n\nfunction wireCardButtons(m){\n'''
+              s=replace_once(s,wire,selector,f'{rel} starter selector')
               evt='  document.querySelectorAll("[data-score-event]").forEach(b=>b.onclick=()=>handleScoreEvent(+b.dataset.i,b.dataset.scoreEvent));\n'
-              evt2='  document.querySelectorAll("[data-starting-player]").forEach(b=>b.onchange=()=>selectStartingPlayer(+b.dataset.startingPlayer));\n'+evt
-              if s.count(evt)!=1:
-                  raise SystemExit(f'{rel}: event count={s.count(evt)}')
-              s=s.replace(evt,evt2,1)
-
+              s=replace_once(s,evt,'  document.querySelectorAll("[data-starting-player]").forEach(b=>b.onchange=()=>selectStartingPlayer(+b.dataset.startingPlayer));\n'+evt,f'{rel} starter wire')
               old_keep='const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,names:state.players.map(p=>p.name)};'
               new_keep='const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,starter:state.starter,names:state.players.map(p=>p.name)};'
-              if s.count(old_keep)!=1:
-                  raise SystemExit(f'{rel}: reset keep count={s.count(old_keep)}')
-              s=s.replace(old_keep,new_keep,1)
+              s=replace_once(s,old_keep,new_keep,f'{rel} reset keep')
               old_assign='Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});'
               new_assign='Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak,starter:Math.min(keep.starter,keep.playerCount-1),currentIndex:Math.min(keep.starter,keep.playerCount-1)});'
-              if s.count(old_assign)!=1:
-                  raise SystemExit(f'{rel}: reset assign count={s.count(old_assign)}')
-              s=s.replace(old_assign,new_assign,1)
+              s=replace_once(s,old_assign,new_assign,f'{rel} reset assign')
               p.write_text(s,encoding='utf-8')
 
-          # Regression test follows production RR ordering.
-          p=Path('scripts/test-rr-ko-engine.mjs'); s=p.read_text(encoding='utf-8')
-          old_guard="sourceGuard(/b\\.h2hPoints-a\\.h2hPoints\\s*\\|\\|\\s*b\\.h2hScoreFor-a\\.h2hScoreFor\\s*\\|\\|\\s*b\\.gw-a\\.gw/, 'RR tiebreak must use mini-table points, mini-table score-for, then total score-for');"
-          new_guard="sourceGuard(/b\\.h2hPoints-a\\.h2hPoints\\s*\\|\\|\\s*b\\.h2hDiff-a\\.h2hDiff\\s*\\|\\|\\s*b\\.h2hScoreFor-a\\.h2hScoreFor\\s*\\|\\|\\s*\\(b\\.gw-b\\.gl\\)-\\(a\\.gw-a\\.gl\\)\\s*\\|\\|\\s*b\\.gw-a\\.gw/, 'RR tiebreak must use H2H points, H2H diff, H2H score-for, total diff, then total score-for');"
-          if s.count(old_guard)!=1: raise SystemExit('RR test guard not found')
-          s=s.replace(old_guard,new_guard,1)
-          s=s.replace("const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));","const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));",1)
-          s=s.replace("const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0}]));","const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0,scoreAgainst:0}]));",1)
-          s=s.replace("mini.get(m.p1.name).scoreFor+=s1;\n      mini.get(m.p2.name).scoreFor+=s2;","mini.get(m.p1.name).scoreFor+=s1;mini.get(m.p1.name).scoreAgainst+=s2;\n      mini.get(m.p2.name).scoreFor+=s2;mini.get(m.p2.name).scoreAgainst+=s1;",1)
-          s=s.replace("tied.forEach(r=>{r.h2hPoints=mini.get(r.name).points;r.h2hScoreFor=mini.get(r.name).scoreFor;});","tied.forEach(r=>{const h=mini.get(r.name);r.h2hPoints=h.points;r.h2hScoreFor=h.scoreFor;r.h2hScoreAgainst=h.scoreAgainst;r.h2hDiff=h.scoreFor-h.scoreAgainst;});",1)
-          s=s.replace("return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hScoreFor-a.h2hScoreFor||b.gw-a.gw||a.seed-b.seed);","return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hDiff-a.h2hDiff||b.h2hScoreFor-a.h2hScoreFor||(b.gw-b.gl)-(a.gw-a.gl)||b.gw-a.gw||a.seed-b.seed);",1)
-          s=s.replace("assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by score-for when mini points are equal');","assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by H2H score difference before H2H score-for');",1)
+          p=Path('scripts/test-rr-ko-engine.mjs')
+          s=p.read_text(encoding='utf-8')
+          s=replace_once(s,
+              "sourceGuard(/b\\.h2hPoints-a\\.h2hPoints\\s*\\|\\|\\s*b\\.h2hScoreFor-a\\.h2hScoreFor\\s*\\|\\|\\s*b\\.gw-a\\.gw/, 'RR tiebreak must use mini-table points, mini-table score-for, then total score-for');",
+              "sourceGuard(/b\\.h2hPoints-a\\.h2hPoints\\s*\\|\\|\\s*b\\.h2hDiff-a\\.h2hDiff\\s*\\|\\|\\s*b\\.h2hScoreFor-a\\.h2hScoreFor\\s*\\|\\|\\s*\\(b\\.gw-b\\.gl\\)-\\(a\\.gw-a\\.gl\\)\\s*\\|\\|\\s*b\\.gw-a\\.gw/, 'RR tiebreak must use H2H points, H2H diff, H2H score-for, total diff, then total score-for');",
+              'test source guard')
+          s=replace_once(s,
+              'const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));',
+              'const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));',
+              'test RR row')
+          s=replace_once(s,'const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0}]));','const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0,scoreAgainst:0}]));','test mini')
+          s=replace_once(s,'mini.get(m.p1.name).scoreFor+=s1;\n      mini.get(m.p2.name).scoreFor+=s2;','mini.get(m.p1.name).scoreFor+=s1;mini.get(m.p1.name).scoreAgainst+=s2;\n      mini.get(m.p2.name).scoreFor+=s2;mini.get(m.p2.name).scoreAgainst+=s1;','test mini score')
+          s=replace_once(s,'tied.forEach(r=>{r.h2hPoints=mini.get(r.name).points;r.h2hScoreFor=mini.get(r.name).scoreFor;});','tied.forEach(r=>{const h=mini.get(r.name);r.h2hPoints=h.points;r.h2hScoreFor=h.scoreFor;r.h2hScoreAgainst=h.scoreAgainst;r.h2hDiff=h.scoreFor-h.scoreAgainst;});','test mini assign')
+          s=replace_once(s,'return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hScoreFor-a.h2hScoreFor||b.gw-a.gw||a.seed-b.seed);','return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hDiff-a.h2hDiff||b.h2hScoreFor-a.h2hScoreFor||(b.gw-b.gl)-(a.gw-a.gl)||b.gw-a.gw||a.seed-b.seed);','test sort')
+          s=replace_once(s,"assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by score-for when mini points are equal');","assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by H2H score difference before H2H score-for');",'test message')
           anchor="""{
             const opp=comboFirstRoundOpponents(16);
           """
@@ -184,9 +113,8 @@ jobs:
           {
             const opp=comboFirstRoundOpponents(16);
           """
-          if s.count(anchor)!=1: raise SystemExit(f'RR test anchor count={s.count(anchor)}')
-          s=s.replace(anchor,case,1)
-          s=s.replace("console.log('RR→KO engine tests: OK (7 suites)');","console.log('RR→KO engine tests: OK (8 suites)');",1)
+          s=replace_once(s,anchor,case,'test total diff case')
+          s=replace_once(s,"console.log('RR→KO engine tests: OK (7 suites)');","console.log('RR→KO engine tests: OK (8 suites)');",'test count')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Run RR regression test
