@@ -73,7 +73,7 @@ jobs:
             printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
             echo 'Firebase Android client config installed.'
           else
-            echo 'GOOGLE_SERVICES_JSON not configured: APK will build, but FCM delivery cannot be tested yet.'
+            echo 'GOOGLE_SERVICES_JSON not configured: push plugin is disabled in this test build.'
           fi
 
       - name: Build debug APK
