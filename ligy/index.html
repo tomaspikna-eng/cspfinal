@@ -30,7 +30,7 @@
 <body>
 <header class="wrap top">
   <a class="brand" href="/"><b>Connect</b> Sports Pro</a>
-  <div class="actions"><a class="btn" href="/profil/">Profil</a><button class="btn green" id="newBtn">Vytvoriť ligu</button></div>
+  <div class="actions"><a class="btn" id="profileLink" href="/profil/">Profil</a><button class="btn green" id="newBtn">Vytvoriť ligu</button></div>
 </header>
 
 <main class="wrap">
@@ -123,7 +123,7 @@
 
 <script>
 const db=cspAuth.client;
-let session=null,currentLeague=null,isManager=false,currentFilter='public';
+let session=null,currentProfile=null,currentLeague=null,isManager=false,currentFilter='public';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const panels={list:$('#listPanel'),create:$('#createPanel'),detail:$('#detailPanel')};
 
@@ -135,9 +135,26 @@ function slug(v){return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,''
 function participantType(){return currentLeague?.config?.participant_type==='team'?'team':'player'}
 function isTeam(){return participantType()==='team'}
 function label(one,plural){return isTeam()?(plural==='Hráči'?'Tímy':plural.replace('hráč','tím').replace('Hráč','Tím')):one}
+function profileHomePath(profile,user){
+  const appMeta=user?.app_metadata||{};
+  const role=String(profile?.role||appMeta.role||'player').toLowerCase();
+  const isAdmin=profile?.is_admin===true||appMeta.is_admin===true||role==='admin';
+  return isAdmin||role==='club'||role==='organization'?'/profil-ul/':'/profil/';
+}
 
 async function init(){
-  const r=await cspAuth.getSession();session=r.data?.session||null;bind();
+  const r=await cspAuth.getSession();session=r.data?.session||null;
+  if(session){
+    try{
+      const profileResult=await cspAuth.withTimeout(cspAuth.getCurrentProfile(session.user),8000,'getCurrentProfile()');
+      if(profileResult.error)console.error('[ligy] Nepodarilo sa načítať profil pre návratovú adresu:',profileResult.error);
+      currentProfile=profileResult.data||null;
+    }catch(error){
+      console.error('[ligy] Overenie návratovej adresy zlyhalo:',error);
+    }
+    $('#profileLink').href=profileHomePath(currentProfile,session.user);
+  }
+  bind();
   const id=new URLSearchParams(location.search).get('id');
   if(id)openLeague(id);else loadLeagues();
 }
