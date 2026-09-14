@@ -35,7 +35,7 @@
       await P.addListener('pushNotificationActionPerformed',function(ev){
         var d=ev&&ev.notification&&ev.notification.data||{};
         var u=d.action_url||'/';
-        if(/^https:\/\/connectsportpro\.com\//.test(u)) location.href=u;
+        if(/^https:\/\/connectsportspro\.com\//.test(u)) location.href=u;
         else if(u.charAt(0)==='/') location.href=u;
       });
       await P.register();
