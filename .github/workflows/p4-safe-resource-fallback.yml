@@ -21,25 +21,14 @@ jobs:
           from pathlib import Path
           path = Path('turnament/index.html')
           text = path.read_text(encoding='utf-8')
-          old = '''    // Never turn a transient owner-RPC/auth error into "0 stations". The
-    // active tournament resource rows are already public-readable under the
-    // existing RLS policy, so use them as a read-only fallback.
-    try{
-      const {data,error}=await cspAuth.client.from('tournament_resources')
-        .select('*').eq('tournament_id',tournamentId).eq('is_active',true)
-        .order('resource_number',{ascending:true});'''
-          new = '''    // Never turn a transient owner-RPC/auth error into "0 stations".
-    // Fallback deliberately requests only non-secret resource fields; capability
-    // tokens must remain available only through the authorized owner/device APIs.
-    try{
-      const {data,error}=await cspAuth.client.from('tournament_resources')
-        .select('id,tournament_id,resource_number,label,resource_type,status,current_match_id,is_active,sort_order,created_at,updated_at,tablet_paired_at,tablet_last_seen_at,tablet_name,operating_mode,automation_enabled')
-        .eq('tournament_id',tournamentId).eq('is_active',true)
-        .order('resource_number',{ascending:true});'''
+          old = ".select('*').eq('tournament_id',tournamentId).eq('is_active',true)"
+          new = ".select('id,tournament_id,resource_number,label,resource_type,status,current_match_id,is_active,sort_order,created_at,updated_at,tablet_paired_at,tablet_last_seen_at,tablet_name,operating_mode,automation_enabled').eq('tournament_id',tournamentId).eq('is_active',true)"
           count = text.count(old)
           if count != 1:
-              raise SystemExit(f'Expected exactly one fallback block, found {count}')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+              raise SystemExit(f'Expected exactly one resource fallback query, found {count}')
+          text = text.replace(old, new, 1)
+          text = text.replace('    // active tournament resource rows are already public-readable under the\n    // existing RLS policy, so use them as a read-only fallback.', '    // fallback requests only non-secret resource fields; capability tokens\n    // stay behind the authorized owner/device APIs.')
+          path.write_text(text, encoding='utf-8')
           PY
       - name: Commit patch
         run: |
