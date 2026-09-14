@@ -1,0 +1,96 @@
+name: DKO labels and per-round race-to fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dko-labels-round-race-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch Tournament Manager
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('turnament/index.html')
+          s=p.read_text(encoding='utf-8')
+
+          def one(old,new,label):
+              global s
+              c=s.count(old)
+              if c!=1:
+                  raise SystemExit(f'{label}: expected 1, got {c}')
+              s=s.replace(old,new,1)
+
+          # DKO naming: loser branch = A, winner branch = B.
+          s=s.replace("'▲ VÍŤAZNÁ VETVA'","'B'")
+          s=s.replace("'▼ VETVA PORAZENÝCH'","'A'")
+          s=s.replace("'▲ Phase 2 · VÍŤAZNÁ VETVA'","'Phase 2 · B'")
+          s=s.replace("'▼ Phase 2 · VETVA PORAZENÝCH'","'Phase 2 · A'")
+          one("const sideLabel=side==='loser'?'Prehratá strana':side==='start'?'Štart':side==='winner'?'Víťazná strana':'Finálová fáza';",
+              "const sideLabel=side==='loser'?'A':(side==='start'||side==='winner')?'B':'Finálová fáza';",
+              'DKO visual side label')
+
+          css=""".round-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px;margin-bottom:6px;border-bottom:1px solid var(--line)}\n"""
+          css_new=css+""".round-race-control{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(212,168,67,.35);background:rgba(212,168,67,.09);color:var(--gold);border-radius:8px;padding:5px 8px;font-family:var(--mono);font-size:.64rem;font-weight:900;letter-spacing:.05em;white-space:nowrap}\n.round-race-control input{width:48px!important;min-width:48px;padding:4px 5px!important;border-radius:6px!important;text-align:center;font-family:var(--mono);font-size:.75rem;font-weight:900;color:#fff}\n.bracket-column-title .round-race-control{display:flex;margin-top:6px;width:max-content;letter-spacing:.03em}\n"""
+          one(css,css_new,'round race CSS')
+
+          old="""function matchRaceTo(){\n  return Number(curT?.config?.race_to || 5);\n}\n"""
+          new="""function roundRaceKey(prefix,roundIndex=0){\n  const map={\n    sko:'SKO',dkoA:'W',dkoB:'L',dkoQ:'QF',dkoS:'SF',dkoF:'F',third:'3RD',\n    p2s:'P2SKO',p2p:'P2PRE',p2m:'P2MAIN',p2dA:'P2W',p2dB:'P2L',p2dQ:'P2QF',p2dS:'P2SF',p2dF:'P2F'\n  };\n  return `${map[prefix]||String(prefix||'ROUND').toUpperCase()}:${Number(roundIndex||0)+1}`;\n}\nfunction matchRaceKey(loc,m){\n  const parts=String(loc||'').split(':'),prefix=parts[0];\n  if(prefix==='rr')return `RR:${Number(m?.round||1)}`;\n  if(prefix==='grp')return `G:${Number(m?.round||1)}`;\n  return roundRaceKey(prefix,Number(parts[1]||0));\n}\nfunction raceToForKey(key){\n  const override=Number(curT?.config?.round_race_to?.[key]);\n  return Math.max(1,override||Number(curT?.config?.race_to||5)||5);\n}\nfunction matchRaceTo(loc,m){\n  return raceToForKey(matchRaceKey(loc,m));\n}\nfunction roundRaceControlByKey(key){\n  const value=raceToForKey(key);\n  if(isPublicReadOnly)return `<span class=\"round-race-control\">HRÁ SA NA <b>${value}</b></span>`;\n  return `<label class=\"round-race-control\" onclick=\"event.stopPropagation()\">HRÁ SA NA <input type=\"number\" min=\"1\" max=\"99\" value=\"${value}\" onchange=\"setRoundRaceTo('${key}',this.value,event)\"/></label>`;\n}\nfunction roundRaceControl(prefix,roundIndex=0){\n  return roundRaceControlByKey(roundRaceKey(prefix,roundIndex));\n}\nasync function setRoundRaceTo(key,value,event){\n  event?.stopPropagation?.();\n  if(isPublicReadOnly)return;\n  const race=Math.max(1,Math.min(99,Number(value)||1));\n  const overrides={...(curT?.config?.round_race_to||{}),[key]:race};\n  const config={...(curT?.config||{}),round_race_to:overrides};\n  try{\n    const {error}=await cspAuth.client.from('tournaments').update({config}).eq('id',curT.id);\n    if(error)throw error;\n    const {error:matchError}=await cspAuth.client.from('matches').update({race_to:race}).eq('tournament_id',curT.id).eq('race_to_key',key).is('started_at',null);\n    if(matchError)throw matchError;\n    curT.config=config;\n    realMatchesByKey.forEach(row=>{if(row.race_to_key===key&&!row.started_at)row.race_to=race;});\n    const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);\n    toast(`Hrané na ${race} · nastavené pre toto kolo ✓`);\n  }catch(err){\n    console.error('[turnament] round race-to:',err);\n    toast(cspAuth.formatError?cspAuth.formatError(err):err.message,true);\n  }\n}\n"""
+          one(old,new,'race helper block')
+
+          # Bracket view: show the setting directly in every round column.
+          one("<div class=\"bracket-column-title\">${esc(names?.[ri]||`Kolo ${ri+1}`)}</div>",
+              "<div class=\"bracket-column-title\">${esc(names?.[ri]||`Kolo ${ri+1}`)}${roundRaceControl(prefix,ri)}</div>",
+              'SKO bracket column')
+          one("<div class=\"bracket-column-title\">${esc(title)}</div>",
+              "<div class=\"bracket-column-title\">${esc(title)}${roundRaceControl(prefix,roundIndex)}</div>",
+              'DKO bracket column')
+
+          # List view: show/edit race-to in every KO round header.
+          s=s.replace("<div class=\"round-head\"><span class=\"round-name\">${TM.roundName(ri,br.total)}</span></div>",
+                      "<div class=\"round-head\"><span class=\"round-name\">${TM.roundName(ri,br.total)}</span>${roundRaceControl('sko',ri)}</div>")
+          s=s.replace("<div class=\"round-head\"><span class=\"round-name\">${names[ri]}</span></div>",
+                      "<div class=\"round-head\"><span class=\"round-name\">${names[ri]}</span>${roundRaceControl(prefix,ri)}</div>")
+          s=s.replace("<div class=\"round-head\"><span class=\"round-name\">${TM.roundName(ri,bracket.total)}</span></div>",
+                      "<div class=\"round-head\"><span class=\"round-name\">${TM.roundName(ri,bracket.total)}</span>${roundRaceControl(prefix,ri)}</div>")
+          s=s.replace("<div class=\"round-head\"><span class=\"round-name\">O 3. miesto</span></div>",
+                      "<div class=\"round-head\"><span class=\"round-name\">O 3. miesto</span>${roundRaceControl('third',0)}</div>")
+
+          # RR and group rounds use one override per round across all groups.
+          s=s.replace("html+=`<div class=\"rr-round-label mono\">Kolo ${m.round}</div>`; lastRound=m.round;",
+                      "html+=`<div class=\"round-head\" style=\"margin-top:12px\"><span class=\"round-name\">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round;")
+          s=s.replace("html+=`<div class=\"rr-round-label mono\">Kolo ${m.round}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`);",
+                      "html+=`<div class=\"round-head\" style=\"margin-top:12px\"><span class=\"round-name\">Kolo ${m.round}</span>${roundRaceControlByKey(`G:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`);")
+
+          # Persist effective round race-to on every DB match row used by a scoreboard.
+          one("""  let row=rowForMatch(m,loc);\n  if(row)return row;\n""",
+              """  let row=rowForMatch(m,loc);\n  const desiredRace=matchRaceTo(loc,m),desiredRaceKey=matchRaceKey(loc,m);\n  if(row){\n    const closed=['completed','forfeited'].includes(row.status)||!!row.completed_at||!!row.winner_id;\n    if(!closed&&!row.started_at&&(Number(row.race_to)!==desiredRace||row.race_to_key!==desiredRaceKey)){\n      const {data:updated,error:updateError}=await cspAuth.client.from('matches').update({race_to:desiredRace,race_to_key:desiredRaceKey}).eq('id',row.id).is('started_at',null).select('*').maybeSingle();\n      if(updateError)throw updateError;\n      if(updated){row=updated;realMatchesByKey.set(row.round_key,row);}\n    }\n    return row;\n  }\n""",
+              'ensure existing match race')
+          one("""    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending'\n""",
+              """    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending',race_to:desiredRace,race_to_key:desiredRaceKey\n""",
+              'new match race payload')
+
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify patch
+        run: |
+          node scripts/test-rr-ko-engine.mjs turnament/index.html
+          grep -q "sect('B'" turnament/index.html
+          grep -q "sect('A'" turnament/index.html
+          grep -q "round_race_to" turnament/index.html
+          grep -q "race_to_key:desiredRaceKey" turnament/index.html
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add turnament/index.html
+          git commit -m "Add per-round race-to and rename DKO branches" || exit 0
+          git push origin main
