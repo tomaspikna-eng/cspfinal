@@ -1671,10 +1671,33 @@ function protectedStageSize(k){
   // 4-player semifinal stage, exactly as the owner-confirmed examples.
   return TM.nextPow2(Math.max(2,k+1));
 }
+function isTwoGroupTopThreeCrossing(rows,k){
+  if(k!==2 || rows.length!==6)return false;
+  const groups=[...new Set(rows.map(row=>row.groupIndex))].sort((a,b)=>a-b);
+  if(groups.length!==2)return false;
+  return groups.every(groupIndex=>{
+    const ranks=rows
+      .filter(row=>row.groupIndex===groupIndex)
+      .map(row=>row.rank)
+      .sort((a,b)=>a-b);
+    return ranks.length===3 && ranks.every((rank,index)=>rank===index+1);
+  });
+}
 function createProtectedPhase2(crossSeeded,k){
-  const protectedRows=comboOverallTop(crossSeeded,k);
+  /* Pri dvoch skupinách a troch postupujúcich je športová väzba pevná:
+     A1/B1 idú priamo do semifinále, A2 hrá s B3 a B2 s A3.
+     Bežné KO seedovanie sa nesmie aplikovať na už krížovo zoradený zoznam,
+     inak by znovu spojilo hráčov z rovnakej skupiny. */
+  const twoGroupTopThree=isTwoGroupTopThreeCrossing(crossSeeded,k);
+  const protectedRows=twoGroupTopThree
+    ? crossSeeded.filter(row=>row.rank===1).sort((a,b)=>a.groupIndex-b.groupIndex)
+    : comboOverallTop(crossSeeded,k);
   const protectedIds=new Set(protectedRows.map(r=>r.player.id||r.player.name));
-  const prelimPlayers=crossSeeded.filter(r=>!protectedIds.has(r.player.id||r.player.name)).map(r=>r.player);
+  const prelimRows=crossSeeded.filter(r=>!protectedIds.has(r.player.id||r.player.name));
+  if(twoGroupTopThree){
+    prelimRows.sort((a,b)=>a.groupIndex-b.groupIndex || a.rank-b.rank);
+  }
+  const prelimPlayers=prelimRows.map(r=>r.player);
   const stageSize=protectedStageSize(k);
   const survivorCount=stageSize-k;
   const prelim=TM.buildSKO(prelimPlayers);
@@ -1695,7 +1718,8 @@ function createProtectedPhase2(crossSeeded,k){
     prelim,
     prelimCutoff:cutoff,
     survivorCount,
-    main:null
+    main:null,
+    crossingMode:twoGroupTopThree?'two-groups-top-three':null
   };
 }
 function protectedPrelimComplete(phase){
@@ -1725,7 +1749,14 @@ function maybeGenerateComboPhase(t){
       // The preliminary cutoff is chosen so exactly survivorCount slots
       // exist; filter defensively in case a malformed legacy database state
       // contained an extra W.O. placeholder.
-      t.phase2.main=TM.buildSKO([...t.phase2.protected,...survivors.slice(0,t.phase2.survivorCount)]);
+      const qualifiedSurvivors=survivors.slice(0,t.phase2.survivorCount);
+      const mainPlayers=t.phase2.crossingMode==='two-groups-top-three' &&
+        t.phase2.protected.length===2 && qualifiedSurvivors.length===2
+        // buildSKO uses slot order 1–4 / 3–2. This input produces:
+        // A1 vs winner(A2–B3), B1 vs winner(B2–A3).
+        ? [t.phase2.protected[0],qualifiedSurvivors[1],t.phase2.protected[1],qualifiedSurvivors[0]]
+        : [...t.phase2.protected,...qualifiedSurvivors];
+      t.phase2.main=TM.buildSKO(mainPlayers);
     }
   }else if(t.phase2.kind==='standard-sko'){
     TM.recomputeSKO(t.phase2.bracket);
@@ -2225,15 +2256,8 @@ function renderMatchList(t){
   }
   else if(t.format==='rr'){
     const rr=t.rr; if(!rr||!rr.matches.length) return `<div class="note-box">Žiadne zápasy — potrebuješ aspoň 2 hráčov.</div>`;
-    // tabuľka: výhry/prehry/hry/body/%
-    const tab={};
-    (Array.isArray(t.players)?t.players:[]).forEach((p,i)=>tab[p.name]={name:p.name,seed:i+1,w:0,l:0,gw:0,gl:0,p:0});
-    rr.matches.forEach(m=>{ if(m.winner){ const win=m.winner===1?m.p1:m.p2, lose=m.winner===1?m.p2:m.p1;
-      const s1=m.s1||0,s2=m.s2||0, wgw=Math.max(s1,s2), lgw=Math.min(s1,s2);
-      if(tab[win.name]){tab[win.name].w++;tab[win.name].p+=2;tab[win.name].gw+=wgw;tab[win.name].gl+=lgw;}
-      if(tab[lose.name]){tab[lose.name].l++;tab[lose.name].gw+=lgw;tab[lose.name].gl+=wgw;} }});
-    const standings=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0}))
-      .sort((a,b)=>b.p-a.p||b.w-a.w||(b.gw-b.gl)-(a.gw-a.gl)||a.seed-b.seed);
+    // Rovnaká rozhodovacia logika ako v skupinách kombinovaného formátu.
+    const standings=rrTable(Array.isArray(t.players)?t.players:[],rr.matches);
     let html=`<div class="branch-label conv" style="margin-top:0">Výsledková tabuľka</div>
       <div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
     standings.forEach((s,i)=>html+=`<div class="st-row2"><span class="mono">${i+1}</span><span>${esc(s.name)}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`);
@@ -2507,11 +2531,45 @@ function rrTable(players, matches){
   const tab={};
   players.forEach((p,i)=>tab[p.name]={name:p.name,seed:p.seed||i+1,w:0,l:0,gw:0,gl:0,p:0});
   matches.forEach(m=>{ if(m.winner){ const win=m.winner===1?m.p1:m.p2, lose=m.winner===1?m.p2:m.p1;
-    const s1=m.s1||0,s2=m.s2||0, wgw=Math.max(s1,s2), lgw=Math.min(s1,s2);
+    const s1=Number(m.s1)||0,s2=Number(m.s2)||0;
+    const wgw=m.winner===1?s1:s2,lgw=m.winner===1?s2:s1;
     if(tab[win.name]){tab[win.name].w++;tab[win.name].p+=2;tab[win.name].gw+=wgw;tab[win.name].gl+=lgw;}
     if(tab[lose.name]){tab[lose.name].l++;tab[lose.name].gw+=lgw;tab[lose.name].gl+=wgw;} }});
-  return Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0}))
-    .sort((a,b)=>b.p-a.p||b.w-a.w||(b.gw-b.gl)-(a.gw-a.gl)||a.seed-b.seed);
+  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));
+
+  // Vzájomné zápasy sa rátajú iba medzi hráčmi, ktorí majú rovnaký
+  // počet bodov. Pri troj- a viacčlennej rovnosti tak vznikne minitabuľka.
+  const tiedByPoints=new Map();
+  rows.forEach(row=>{
+    if(!tiedByPoints.has(row.p))tiedByPoints.set(row.p,[]);
+    tiedByPoints.get(row.p).push(row);
+  });
+  tiedByPoints.forEach(tied=>{
+    if(tied.length<2)return;
+    const tiedNames=new Set(tied.map(row=>row.name));
+    const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0}]));
+    matches.forEach(match=>{
+      if(!match.winner||!match.p1||!match.p2||!tiedNames.has(match.p1.name)||!tiedNames.has(match.p2.name))return;
+      const s1=Number(match.s1)||0,s2=Number(match.s2)||0;
+      const winner=match.winner===1?match.p1:match.p2;
+      mini.get(match.p1.name).scoreFor+=s1;
+      mini.get(match.p2.name).scoreFor+=s2;
+      mini.get(winner.name).points+=2;
+    });
+    tied.forEach(row=>{
+      const headToHead=mini.get(row.name);
+      row.h2hPoints=headToHead.points;
+      row.h2hScoreFor=headToHead.scoreFor;
+    });
+  });
+
+  return rows.sort((a,b)=>
+    b.p-a.p ||
+    b.h2hPoints-a.h2hPoints ||
+    b.h2hScoreFor-a.h2hScoreFor ||
+    b.gw-a.gw ||
+    a.seed-b.seed
+  );
 }
 
 
