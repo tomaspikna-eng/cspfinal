@@ -5,6 +5,9 @@ on:
   push:
     paths:
       - '.github/workflows/build-csp-android.yml'
+      - 'mobile/csp-android/**'
+      - 'assets/csp-native-push.js'
+      - 'assets/csp-auth.js'
 
 permissions:
   contents: write
@@ -43,7 +46,6 @@ jobs:
               needle='  global.cspAuth = {'
               if needle not in s:
                   raise SystemExit('cspAuth export marker not found')
-              # Insert loader after the global export block and before IIFE close.
               close='  };\n})(window);'
               loader='''  };\n\n  // Capacitor Android only: attach native push registration/deep-link bridge.\n  if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {\n    var nativePushScript = global.document.createElement('script');\n    nativePushScript.src = '/assets/csp-native-push.js?v=20260914-1';\n    nativePushScript.defer = true;\n    global.document.head.appendChild(nativePushScript);\n  }\n})(window);'''
               if close not in s:
