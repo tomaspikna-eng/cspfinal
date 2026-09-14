@@ -10,7 +10,7 @@ function sourceGuard(pattern, message) {
 }
 
 sourceGuard(/function rrTable\(/, 'rrTable must exist');
-sourceGuard(/b\.h2hPoints-a\.h2hPoints\s*\|\|\s*b\.h2hScoreFor-a\.h2hScoreFor\s*\|\|\s*b\.gw-a\.gw/, 'RR tiebreak must use mini-table points, mini-table score-for, then total score-for');
+sourceGuard(/b\.h2hPoints-a\.h2hPoints\s*\|\|\s*b\.h2hDiff-a\.h2hDiff\s*\|\|\s*b\.h2hScoreFor-a\.h2hScoreFor\s*\|\|\s*\(b\.gw-b\.gl\)-\(a\.gw-a\.gl\)\s*\|\|\s*b\.gw-a\.gw/, 'RR tiebreak must use H2H points, H2H diff, H2H score-for, total diff, then total score-for');
 sourceGuard(/function comboCrossSeed\(/, 'RR→KO seeding function must exist');
 sourceGuard(/function comboFirstRoundOpponents\(/, 'first-round opponent mapping must exist');
 sourceGuard(/function isTwoGroupTopThreeCrossing\(/, 'special 2x3 crossing guard must exist');
@@ -41,24 +41,24 @@ function rrTable(players,matches){
     if(tab[win.name]){tab[win.name].w++;tab[win.name].p+=2;tab[win.name].gw+=wgw;tab[win.name].gl+=lgw;}
     if(tab[lose.name]){tab[lose.name].l++;tab[lose.name].gw+=lgw;tab[lose.name].gl+=wgw;}
   });
-  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));
+  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));
   const tiedByPoints=new Map();
   rows.forEach(row=>{ if(!tiedByPoints.has(row.p))tiedByPoints.set(row.p,[]); tiedByPoints.get(row.p).push(row); });
   tiedByPoints.forEach(tied=>{
     if(tied.length<2)return;
     const names=new Set(tied.map(r=>r.name));
-    const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0}]));
+    const mini=new Map(tied.map(r=>[r.name,{points:0,scoreFor:0,scoreAgainst:0}]));
     matches.forEach(m=>{
       if(!m.winner||!m.p1||!m.p2||!names.has(m.p1.name)||!names.has(m.p2.name))return;
       const s1=Number(m.s1)||0,s2=Number(m.s2)||0;
-      mini.get(m.p1.name).scoreFor+=s1;
-      mini.get(m.p2.name).scoreFor+=s2;
+      mini.get(m.p1.name).scoreFor+=s1;mini.get(m.p1.name).scoreAgainst+=s2;
+      mini.get(m.p2.name).scoreFor+=s2;mini.get(m.p2.name).scoreAgainst+=s1;
       const winner=m.winner===1?m.p1:m.p2;
       mini.get(winner.name).points+=2;
     });
-    tied.forEach(r=>{r.h2hPoints=mini.get(r.name).points;r.h2hScoreFor=mini.get(r.name).scoreFor;});
+    tied.forEach(r=>{const h=mini.get(r.name);r.h2hPoints=h.points;r.h2hScoreFor=h.scoreFor;r.h2hScoreAgainst=h.scoreAgainst;r.h2hDiff=h.scoreFor-h.scoreAgainst;});
   });
-  return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hScoreFor-a.h2hScoreFor||b.gw-a.gw||a.seed-b.seed);
+  return rows.sort((a,b)=>b.p-a.p||b.h2hPoints-a.h2hPoints||b.h2hDiff-a.h2hDiff||b.h2hScoreFor-a.h2hScoreFor||(b.gw-b.gl)-(a.gw-a.gl)||b.gw-a.gw||a.seed-b.seed);
 }
 
 function comboSeedCompare(a,b){
@@ -127,7 +127,27 @@ function comboCrossSeed(rows,drawKey='test'){
     {p1:B,p2:C,s1:3,s2:1,winner:1},
     {p1:C,p2:A,s1:3,s2:2,winner:1},
   ]);
-  assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by score-for when mini points are equal');
+  assert.deepEqual(rows.map(r=>r.name),['A','C','B'], '3-way mini-table must sort by H2H score difference before H2H score-for');
+}
+
+{
+  const A={name:'A',seed:1},B={name:'B',seed:2},C={name:'C',seed:3},D={name:'D',seed:4};
+  const rows=rrTable([A,B,C,D],[
+    {p1:A,p2:B,s1:5,s2:4,winner:1},
+    {p1:B,p2:C,s1:5,s2:4,winner:1},
+    {p1:C,p2:A,s1:5,s2:4,winner:1},
+    {p1:A,p2:D,s1:5,s2:4,winner:1},
+    {p1:B,p2:D,s1:5,s2:1,winner:1},
+    {p1:C,p2:D,s1:5,s2:3,winner:1},
+  ]);
+  const a=rows.find(r=>r.name==='A'),b=rows.find(r=>r.name==='B'),c=rows.find(r=>r.name==='C');
+  assert.equal(a.p,b.p,'fixture requires equal points');
+  assert.equal(b.p,c.p,'fixture requires a 3-way tie');
+  assert.equal(a.h2hPoints,b.h2hPoints,'H2H points must be equal');
+  assert.equal(a.h2hDiff,b.h2hDiff,'H2H difference must be equal');
+  assert.equal(a.h2hScoreFor,b.h2hScoreFor,'H2H score-for must be equal');
+  assert.ok((b.gw-b.gl)>(c.gw-c.gl)&&(c.gw-c.gl)>(a.gw-a.gl),'fixture must differ only on total score difference after H2H');
+  assert.deepEqual(rows.slice(0,3).map(r=>r.name),['B','C','A'],'total score difference must break a fully equal H2H mini-table');
 }
 
 {
@@ -177,4 +197,4 @@ function makeRows(groups=4,advance=4){
   assert.deepEqual(semis,[[A1,'winner(B2-A3)'],[B1,'winner(A2-B3)']]);
 }
 
-console.log('RR→KO engine tests: OK (7 suites)');
+console.log('RR→KO engine tests: OK (8 suites)');

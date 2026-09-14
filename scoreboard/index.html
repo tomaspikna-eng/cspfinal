@@ -1325,7 +1325,7 @@ function mode(){
   return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame";
 }
 const startScore=()=>START_SCORE[state.discipline]||501;
-const breakerIndex=()=>state.alternateBreak ? (state.period-1)%state.playerCount : state.starter;
+const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;
 
 /* ════════════════════ ULOŽENIE ════════════════════ */
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){}}
@@ -2179,10 +2179,23 @@ function playerCard(p,i,m){
   card.classList.toggle("event-busy",scoreActionBusySlot===i);
   card.innerHTML=`
     <div class="head">${playerIdentityMarkup(p)}${starterBadge}</div>
+    <div class="player-starter-select" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 4px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.025)">
+      <span style="font-size:.68rem;font-weight:850;letter-spacing:.08em;color:${i===state.starter?'var(--gold)':'var(--muted)'}">ZAČÍNA HRU</span>
+      <label class="switch"><input type="checkbox" data-starting-player="${i}" ${i===state.starter?'checked':''}/><span class="slider"></span></label>
+    </div>
     <div class="${bigClass}">${bigVal}</div>
     ${bigSub?`<div class="big-sub">${bigSub}</div>`:""}
     ${controls}${stats}${["tabletennis","racket"].includes(m)?"":scoreEventPanel(i)}`;
   return card;
+}
+
+function selectStartingPlayer(i){
+  if(!Number.isInteger(i)||i<0||i>=state.playerCount)return;
+  const previous=state.starter;
+  state.starter=i;
+  if(state.period===1&&state.currentIndex===previous)state.currentIndex=i;
+  addLog(`Začína hru: ${activePlayers()[i].name}`);
+  render();
 }
 
 function wireCardButtons(m){
@@ -2195,6 +2208,7 @@ function wireCardButtons(m){
       else if(m==="universal"){ if(act==="plus")uniAdd(i); if(act==="minus")uniSub(i); if(act==="set")uniWinSet(i); }
     };
   });
+  document.querySelectorAll("[data-starting-player]").forEach(b=>b.onchange=()=>selectStartingPlayer(+b.dataset.startingPlayer));
   document.querySelectorAll("[data-score-event]").forEach(b=>b.onclick=()=>handleScoreEvent(+b.dataset.i,b.dataset.scoreEvent));
   document.querySelectorAll("[data-score-undo]").forEach(b=>b.onclick=undoLastScoreEvent);
 }
@@ -2480,9 +2494,9 @@ function resetAll(){
   pendingTableTennisSet=null;
   $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();pendingTrainingSummary=null;trainingSummarySaved=false;
-  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,names:state.players.map(p=>p.name)};
+  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,starter:state.starter,names:state.players.map(p=>p.name)};
   state=structuredClone(defaultState);
-  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut});
+  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak,starter:Math.min(keep.starter,keep.playerCount-1),currentIndex:Math.min(keep.starter,keep.playerCount-1)});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
   stopTimer(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this. Manual timer -- stays stopped until Štart is pressed.

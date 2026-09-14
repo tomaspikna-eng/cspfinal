@@ -2605,7 +2605,7 @@ function rrTable(players, matches){
     const wgw=m.winner===1?s1:s2,lgw=m.winner===1?s2:s1;
     if(tab[win.name]){tab[win.name].w++;tab[win.name].p+=2;tab[win.name].gw+=wgw;tab[win.name].gl+=lgw;}
     if(tab[lose.name]){tab[lose.name].l++;tab[lose.name].gw+=lgw;tab[lose.name].gl+=wgw;} }});
-  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0}));
+  const rows=Object.values(tab).map(s=>({...s,pct:(s.gw+s.gl)?Math.round(100*s.gw/(s.gw+s.gl)):0,h2hPoints:0,h2hScoreFor:0,h2hScoreAgainst:0,h2hDiff:0}));
 
   // Vzájomné zápasy sa rátajú iba medzi hráčmi, ktorí majú rovnaký
   // počet bodov. Pri troj- a viacčlennej rovnosti tak vznikne minitabuľka.
@@ -2617,26 +2617,32 @@ function rrTable(players, matches){
   tiedByPoints.forEach(tied=>{
     if(tied.length<2)return;
     const tiedNames=new Set(tied.map(row=>row.name));
-    const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0}]));
+    const mini=new Map(tied.map(row=>[row.name,{points:0,scoreFor:0,scoreAgainst:0}]));
     matches.forEach(match=>{
       if(!match.winner||!match.p1||!match.p2||!tiedNames.has(match.p1.name)||!tiedNames.has(match.p2.name))return;
       const s1=Number(match.s1)||0,s2=Number(match.s2)||0;
       const winner=match.winner===1?match.p1:match.p2;
       mini.get(match.p1.name).scoreFor+=s1;
+      mini.get(match.p1.name).scoreAgainst+=s2;
       mini.get(match.p2.name).scoreFor+=s2;
+      mini.get(match.p2.name).scoreAgainst+=s1;
       mini.get(winner.name).points+=2;
     });
     tied.forEach(row=>{
       const headToHead=mini.get(row.name);
       row.h2hPoints=headToHead.points;
       row.h2hScoreFor=headToHead.scoreFor;
+      row.h2hScoreAgainst=headToHead.scoreAgainst;
+      row.h2hDiff=headToHead.scoreFor-headToHead.scoreAgainst;
     });
   });
 
   return rows.sort((a,b)=>
     b.p-a.p ||
     b.h2hPoints-a.h2hPoints ||
+    b.h2hDiff-a.h2hDiff ||
     b.h2hScoreFor-a.h2hScoreFor ||
+    (b.gw-b.gl)-(a.gw-a.gl) ||
     b.gw-a.gw ||
     a.seed-b.seed
   );
