@@ -533,6 +533,12 @@
     }
 
 
+    function usesUltraProfile(profile,user){
+      const appMeta=user?.app_metadata||{};
+      const role=String(profile?.role||appMeta.role||"player").toLowerCase();
+      return profile?.is_admin===true || appMeta.is_admin===true || role==="admin" || role==="club" || role==="organization";
+    }
+
     async function init(){
       try{
         if(!window.supabase) throw new Error("Knižnicu Supabase sa nepodarilo načítať.");
@@ -569,6 +575,10 @@
 
         const {data,error}=await client.rpc("get_my_player_profile_dashboard");
         if(error) throw error;
+        if(usesUltraProfile(data?.profile,userData.user)){
+          location.replace("/profil-ul/");
+          return;
+        }
         const from=new Date();from.setDate(from.getDate()-30);
         const to=new Date();to.setDate(to.getDate()+30);
         const {data:plans,error:plansError}=await client.from("training_plans")
