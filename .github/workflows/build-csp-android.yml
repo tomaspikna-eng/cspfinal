@@ -1,0 +1,102 @@
+name: Build CSP Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-csp-android.yml'
+
+permissions:
+  contents: write
+
+env:
+  APP_DIR: mobile/csp-android
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/csp-android/package-lock.json
+        continue-on-error: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Load native push bridge from CSP pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('assets/csp-auth.js')
+          s=p.read_text(encoding='utf-8')
+          marker='csp-native-push.js?v=20260914-1'
+          if marker not in s:
+              needle='  global.cspAuth = {'
+              if needle not in s:
+                  raise SystemExit('cspAuth export marker not found')
+              # Insert loader after the global export block and before IIFE close.
+              close='  };\n})(window);'
+              loader='''  };\n\n  // Capacitor Android only: attach native push registration/deep-link bridge.\n  if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {\n    var nativePushScript = global.document.createElement('script');\n    nativePushScript.src = '/assets/csp-native-push.js?v=20260914-1';\n    nativePushScript.defer = true;\n    global.document.head.appendChild(nativePushScript);\n  }\n})(window);'''
+              if close not in s:
+                  raise SystemExit('cspAuth closing marker not found')
+              s=s.replace(close,loader,1)
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Install Capacitor dependencies
+        working-directory: ${{ env.APP_DIR }}
+        run: npm install
+
+      - name: Generate and sync Android project
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
+
+      - name: Add Firebase client config when configured
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo 'Firebase Android client config installed.'
+          else
+            echo 'GOOGLE_SERVICES_JSON not configured: APK will build, but FCM delivery cannot be tested yet.'
+          fi
+
+      - name: Build debug APK
+        working-directory: ${{ env.APP_DIR }}
+        run: ./android/gradlew -p android assembleDebug
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist/android
+          cp mobile/csp-android/android/app/build/outputs/apk/debug/app-debug.apk dist/android/Connect-Sports-Pro-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Connect-Sports-Pro-debug-apk
+          path: dist/android/Connect-Sports-Pro-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit reproducible Android project
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/csp-auth.js mobile/csp-android/package.json mobile/csp-android/package-lock.json mobile/csp-android/capacitor.config.json mobile/csp-android/www mobile/csp-android/android
+          git reset -- mobile/csp-android/android/app/google-services.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'Build Android shell and wire native push [skip ci]'
+            git push origin main
+          fi
