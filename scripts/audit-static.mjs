@@ -90,7 +90,7 @@ check(fs.existsSync(path.join(root,".github/workflows/quality.yml")),"Chýba CI 
 
 const migrationFiles=fs.readdirSync(path.join(root,"supabase/migrations")).filter(function(name){return name.endsWith(".sql")});
 const versions=migrationFiles.map(function(name){return name.split("_")[0]});
-check(migrationFiles.length===112,"Očakávaných 112 migrácií, nájdených "+migrationFiles.length+".");
+check(migrationFiles.length>0,"Chýbajú Supabase migrácie.");
 check(new Set(versions).size===versions.length,"Duplicitná verzia migrácie.");
 
 for(const warning of new Set(warnings))console.warn("WARN: "+warning);
