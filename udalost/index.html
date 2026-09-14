@@ -82,7 +82,7 @@ textarea{min-height:110px;resize:vertical}
 <header>
   <div class="top">
     <a class="brand" href="/"><span class="gold">Connect</span>Sports<span class="gold">Pro</span></a>
-    <a class="gold" href="/profil/">Profil</a>
+    <a class="gold" id="profileLink" href="/profil/">Profil</a>
   </div>
 </header>
 
@@ -272,6 +272,7 @@ textarea{min-height:110px;resize:vertical}
   const params = new URLSearchParams(location.search);
 
   let currentSession = null;
+  let currentProfile = null;
   let currentEvent = null;
   let currentSeries = null;
   let currentSeriesEvents = [];
@@ -412,6 +413,13 @@ textarea{min-height:110px;resize:vertical}
     const result = await db.auth.getSession();
     currentSession = result.data.session;
     return currentSession;
+  }
+
+  function profileHomePath(profile,user){
+    const appMeta=user?.app_metadata||{};
+    const role=String(profile?.role||appMeta.role||'player').toLowerCase();
+    const isAdmin=profile?.is_admin===true||appMeta.is_admin===true||role==='admin';
+    return isAdmin||role==='club'||role==='organization'?'/profil-ul/':'/profil/';
   }
 
   async function getClub(userId){
@@ -820,7 +828,7 @@ textarea{min-height:110px;resize:vertical}
       currentEvent = null;
 
       setTimeout(() => {
-        window.location.href = '/profil/';
+        window.location.href = profileHomePath(currentProfile,currentSession?.user);
       }, 700);
     }catch(error){
       show(friendlyError(error), true);
@@ -917,6 +925,16 @@ textarea{min-height:110px;resize:vertical}
 
   (async()=>{
     await getSession();
+    if(currentSession){
+      try{
+        const profileResult=await cspAuth.withTimeout(cspAuth.getCurrentProfile(currentSession.user),8000,'getCurrentProfile()');
+        if(profileResult.error)console.error('[udalost] Nepodarilo sa načítať profil pre návratovú adresu:',profileResult.error);
+        currentProfile=profileResult.data||null;
+      }catch(error){
+        console.error('[udalost] Overenie návratovej adresy zlyhalo:',error);
+      }
+      $('profileLink').href=profileHomePath(currentProfile,currentSession.user);
+    }
 
     if(eventId){
       await detail(eventId);
