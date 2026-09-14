@@ -2236,7 +2236,7 @@ function restoreDkoBracketScroll(){
   scroller.scrollLeft=Math.max(0,Math.min(max,dkoBracketScrollLeft||0));
 }
 function dkoBracketColumn(round,title,prefix,roundIndex,side){
-  const sideLabel=side==='loser'?'A':(side==='start'||side==='winner')?'B':'Finálová fáza';
+  const sideLabel=side==='loser'?'B':(side==='start'||side==='winner')?'A':'Finálová fáza';
   return `<section class="bracket-column dko-bracket-column ${side}" ${side==='start'?'data-dko-start="true"':''}>
     <div class="dko-column-side">${sideLabel}</div>
     <div class="bracket-column-title">${esc(title)}${roundRaceControl(prefix,roundIndex)}</div>
