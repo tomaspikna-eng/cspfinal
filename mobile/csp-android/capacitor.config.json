@@ -1,0 +1,1 @@
+{"appId":"com.connectsportspro.app","appName":"Connect Sports Pro","webDir":"www","server":{"url":"https://connectsportspro.com","cleartext":false},"plugins":{"PushNotifications":{"presentationOptions":["badge","sound","alert"]}}}
