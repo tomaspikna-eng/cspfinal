@@ -1627,11 +1627,10 @@ function renderThirdPlaceMatch(t){
    and feed its qualifiers into the existing KO engines, rather than
    introducing a parallel bracket generator.
 
-   The cross-seed order is a conventional snake by finishing position:
-   1. miesto naprieč skupinami then the next position in reverse group order, then forward
-   again. With two groups this is poradie krížom medzi skupinami; it is the existing
-   UI's promised cross-group cross-group principle (same-group
-   qualifiers are distributed through opposite halves where possible).
+   Qualifiers are split into seed bands: group winners first, runners-up
+   second, lower positions afterward. Lower qualifiers are deterministically
+   shuffled, while first-round same-group rematches are avoided where possible.
+   The special 2-group / top-3 format uses fixed cross-group preliminaries.
 */
 function comboAllGroupsDone(t){
   return !!(t.grp && t.grp.groups && t.grp.groups.every(g=>g.matches.every(m=>m.winner!=null)));
@@ -3855,7 +3854,7 @@ function refreshGroupNote(){
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
   const protectedNote=wiz.format==='rr_sko'&&wiz.protectedSeeds?`<br><b>K = ${wiz.protectedSeeds}:</b> top ${wiz.protectedSeeds} celkovo chránených hráčov čaká na hlavný pavúk; ostatní odohrajú predkolo.`:'';
   const capacityNote=wiz.format==='rr_dko'&&total>TM.MAX_DKO_PLAYERS?`<br><b>Limit:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} postupujúcich.`:'';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} W.O.)`:''}.<br>Víťazi skupín idú do opačných polovíc — stretnú sa najskôr vo finále. Krížové nasadenie (1. zo skupiny A vs 3. zo skupiny B…) finalizujeme v engine.${protectedNote}${capacityNote}`;
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} W.O.)`:''}.<br>Víťazi skupín tvoria prvé seed pásmo a v prvom kole KO sa nestretnú. Druhé miesta tvoria ďalšie seed pásmo; ostatní postupujúci sa rozlosujú do nižších seedov. Zápasom hráčov z rovnakej skupiny sa v prvom kole vyhneme, pokiaľ je to matematicky možné.${protectedNote}${capacityNote}`;
 }
 
 function renderPreview(){
@@ -3892,7 +3891,7 @@ function renderPreview(){
   }
   else {
     const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total)), koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
-    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR). Z každej postupuje ${wiz.advance} → ${total} do ${koType} pavúka ${N}. Krížové nasadenie finalizujeme v engine. Konfigurácia sa uloží.</div>`;
+    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR). Z každej postupuje ${wiz.advance} → ${total} do ${koType} pavúka ${N}. Nasadenie sa vytvorí podľa seed pásiem a ochrany skupín. Konfigurácia sa uloží.</div>`;
   }
 }
 
