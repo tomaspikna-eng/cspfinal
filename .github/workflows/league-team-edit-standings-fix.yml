@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/league-team-edit-standings-fix.yml'
+      - 'scripts/patch_league_team_edit.py'
 permissions:
   contents: write
 jobs:
