@@ -11,8 +11,8 @@ def one(old,new,label):
 
 one('<div class="table"><table><thead><tr><th>#</th><th id="standingsNameHeader">Hráč</th><th>Z</th><th>V</th><th>R</th><th>P</th><th>Skóre</th><th>+/-</th><th>Body</th></tr></thead><tbody id="standingsBody"></tbody></table></div>',
     '<div class="table"><table><thead><tr><th>#</th><th id="standingsNameHeader">Hráč</th><th>Odohrané</th><th>Výhry</th><th>Remízy</th><th>Prehry</th><th>Skóre +</th><th>Skóre −</th><th>Rozdiel</th><th>Úspešnosť</th><th>Body</th><th>Forma</th></tr></thead><tbody id="standingsBody"></tbody></table></div>', 'standings header')
-one("let currentLeague=null,currentFilter='public',session=null,currentProfile=null,isManager=false;",
-    "let currentLeague=null,currentFilter='public',session=null,currentProfile=null,isManager=false,editingParticipantId=null;", 'editing state')
+one("let session=null,currentProfile=null,currentLeague=null,isManager=false,currentFilter='public';",
+    "let session=null,currentProfile=null,currentLeague=null,isManager=false,currentFilter='public',editingParticipantId=null;", 'editing state')
 
 old_modal="""function openParticipantModal(){
   if(!isManager)return;
