@@ -172,6 +172,9 @@ input:focus,select:focus{border-color:var(--gold)}
 .champ-banner b{color:var(--gold)}
 .round-block{margin-bottom:18px}
 .round-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.round-race-control{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(212,168,67,.35);background:rgba(212,168,67,.09);color:var(--gold);border-radius:8px;padding:5px 8px;font-family:var(--mono);font-size:.64rem;font-weight:900;letter-spacing:.05em;white-space:nowrap}
+.round-race-control input{width:48px!important;min-width:48px;padding:4px 5px!important;border-radius:6px!important;text-align:center;font-family:var(--mono);font-size:.75rem;font-weight:900;color:#fff}
+.bracket-column-title .round-race-control{display:flex;margin-top:6px;width:max-content;letter-spacing:.03em}
 .round-name{font-weight:800;font-size:.92rem}
 .round-code{font-size:.66rem;color:var(--muted);background:var(--bg-2);padding:2px 7px;border-radius:5px}
 .rr-round-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px}
@@ -1616,7 +1619,7 @@ function syncThirdPlaceMatch(t){
 function thirdPlaceRequired(t){return thirdPlaceEnabled(t)&&tournamentSemifinals(t).length===2;}
 function renderThirdPlaceMatch(t){
   const match=syncThirdPlaceMatch(t);
-  return match?`<div class="branch-label conv" style="margin-top:18px">🥉 HRA O TRETIE MIESTO</div><div class="round-block"><div class="round-head"><span class="round-name">O 3. miesto</span></div>${matchRow(match,'third:0')}</div>`:'';
+  return match?`<div class="branch-label conv" style="margin-top:18px">🥉 HRA O TRETIE MIESTO</div><div class="round-block"><div class="round-head"><span class="round-name">O 3. miesto</span>${roundRaceControl('third',0)}</div>${matchRow(match,'third:0')}</div>`:'';
 }
 
 /* ── GROUPS → KNOCKOUT TRANSITION ──────────────────────────────────────
@@ -2214,7 +2217,7 @@ function bracketMatchCard(m,loc){
 function bracketColumns(rounds,names,prefix){
   return `<div class="bracket-scroll"><div class="bracket-grid">${(rounds||[]).map((round,ri)=>`
     <section class="bracket-column">
-      <div class="bracket-column-title">${esc(names?.[ri]||`Kolo ${ri+1}`)}</div>
+      <div class="bracket-column-title">${esc(names?.[ri]||`Kolo ${ri+1}`)}${roundRaceControl(prefix,ri)}</div>
       <div class="bracket-column-matches">${round.map((m,mi)=>bracketMatchCard(m,`${prefix}:${ri}:${mi}`)).join('')}</div>
   </section>`).join('')}</div></div>`;
 }
@@ -2233,10 +2236,10 @@ function restoreDkoBracketScroll(){
   scroller.scrollLeft=Math.max(0,Math.min(max,dkoBracketScrollLeft||0));
 }
 function dkoBracketColumn(round,title,prefix,roundIndex,side){
-  const sideLabel=side==='loser'?'Prehratá strana':side==='start'?'Štart':side==='winner'?'Víťazná strana':'Finálová fáza';
+  const sideLabel=side==='loser'?'A':(side==='start'||side==='winner')?'B':'Finálová fáza';
   return `<section class="bracket-column dko-bracket-column ${side}" ${side==='start'?'data-dko-start="true"':''}>
     <div class="dko-column-side">${sideLabel}</div>
-    <div class="bracket-column-title">${esc(title)}</div>
+    <div class="bracket-column-title">${esc(title)}${roundRaceControl(prefix,roundIndex)}</div>
     <div class="bracket-column-matches">${(round||[]).map((m,mi)=>bracketMatchCard(m,`${prefix}:${roundIndex}:${mi}`)).join('')}</div>
   </section>`;
 }
@@ -2291,7 +2294,7 @@ function renderMatchList(t){
     let html='';
     if(champ) html+=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${esc(champ.name)}</b></div>`;
     br.rounds.forEach((round,ri)=>{
-      html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,br.total)}</span></div>`;
+      html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,br.total)}</span>${roundRaceControl('sko',ri)}</div>`;
       round.forEach((m,mi)=>{ html+=matchRow(m,`sko:${ri}:${mi}`); });
       html+=`</div>`;
     });
@@ -2308,14 +2311,14 @@ function renderMatchList(t){
     const sect=(title,cls,rounds,names,prefix)=>{
       let h=`<div class="branch-label ${cls}">${title}</div>`;
       rounds.forEach((round,ri)=>{
-        h+=`<div class="round-block"><div class="round-head"><span class="round-name">${names[ri]}</span></div>`;
+        h+=`<div class="round-block"><div class="round-head"><span class="round-name">${names[ri]}</span>${roundRaceControl(prefix,ri)}</div>`;
         round.forEach((m,mi)=>{ h+=matchRow(m,`${prefix}:${ri}:${mi}`); });
         h+=`</div>`;
       });
       return h;
     };
-    html+=sect('▲ VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'dkoA');
-    if(dko.L.length)html+=sect('▼ VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
+    html+=sect('B','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'dkoA');
+    if(dko.L.length)html+=sect('A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
     if(dko.QF.length)html+=sect('◆ TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'dkoQ');
     if(dko.SF.length)html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
     html+=sect('◆ FINÁLE','conv',[[dko.F]],['Finále'],'dkoF');
@@ -2334,7 +2337,7 @@ function renderMatchList(t){
     html+=`</div>`;
     html+=`<div class="branch-label win" style="margin-top:18px">Zoznam zápasov</div>`;
     let lastRound=0;
-    rr.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="rr-round-label mono">Kolo ${m.round}</div>`; lastRound=m.round; } html+=matchRow(m,`rr:${mi}`); });
+    rr.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`rr:${mi}`); });
     return html;
   }
   else {
@@ -2351,7 +2354,7 @@ function renderMatchList(t){
       html+=`</div>`;
       html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)}</div>`;
       let lastRound=0;
-      g.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="rr-round-label mono">Kolo ${m.round}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`); });
+      g.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`); });
     });
     const allDone=grp.groups.every(g=>g.matches.every(m=>m.winner!=null));
     if(!allDone){
@@ -2373,7 +2376,7 @@ function renderPhaseSKO(bracket,prefix,title,maxRound){
   let html=`<div class="branch-label win" style="margin-top:22px">${title}</div>`;
   if(champ&&maxRound===undefined) html+=`<div class="champ-banner">🏆 Víťaz fázy: <b>${esc(champ.name)}</b></div>`;
   bracket.rounds.slice(0,maxRound===undefined?undefined:maxRound+1).forEach((round,ri)=>{
-    html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,bracket.total)}</span></div>`;
+    html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,bracket.total)}</span>${roundRaceControl(prefix,ri)}</div>`;
     round.forEach((m,mi)=>{ html+=matchRow(m,`${prefix}:${ri}:${mi}`); });
     html+=`</div>`;
   });
@@ -2383,14 +2386,14 @@ function renderPhaseDKO(dko){
   const sect=(title,cls,rounds,names,prefix)=>{
     let h=`<div class="branch-label ${cls}" style="margin-top:22px">${title}</div>`;
     rounds.forEach((round,ri)=>{
-      h+=`<div class="round-block"><div class="round-head"><span class="round-name">${names[ri]}</span></div>`;
+      h+=`<div class="round-block"><div class="round-head"><span class="round-name">${names[ri]}</span>${roundRaceControl(prefix,ri)}</div>`;
       round.forEach((m,mi)=>{ h+=matchRow(m,`${prefix}:${ri}:${mi}`); });
       h+=`</div>`;
     });
     return h;
   };
-  return sect('▲ Phase 2 · VÍŤAZNÁ VETVA','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'p2dA')+
-    (dko.L.length?sect('▼ Phase 2 · VETVA PORAZENÝCH','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
+  return sect('Phase 2 · B','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'p2dA')+
+    (dko.L.length?sect('Phase 2 · A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
     (dko.QF.length?sect('◆ Phase 2 · TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'p2dQ'):'')+
     (dko.SF.length?sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS'):'')+
     sect('◆ Phase 2 · FINÁLE','conv',[[dko.F]],['Finále'],'p2dF');
@@ -2649,8 +2652,53 @@ function rrTable(players, matches){
 }
 
 
-function matchRaceTo(){
-  return Number(curT?.config?.race_to || 5);
+function roundRaceKey(prefix,roundIndex=0){
+  const map={
+    sko:'SKO',dkoA:'W',dkoB:'L',dkoQ:'QF',dkoS:'SF',dkoF:'F',third:'3RD',
+    p2s:'P2SKO',p2p:'P2PRE',p2m:'P2MAIN',p2dA:'P2W',p2dB:'P2L',p2dQ:'P2QF',p2dS:'P2SF',p2dF:'P2F'
+  };
+  return `${map[prefix]||String(prefix||'ROUND').toUpperCase()}:${Number(roundIndex||0)+1}`;
+}
+function matchRaceKey(loc,m){
+  const parts=String(loc||'').split(':'),prefix=parts[0];
+  if(prefix==='rr')return `RR:${Number(m?.round||1)}`;
+  if(prefix==='grp')return `G:${Number(m?.round||1)}`;
+  return roundRaceKey(prefix,Number(parts[1]||0));
+}
+function raceToForKey(key){
+  const override=Number(curT?.config?.round_race_to?.[key]);
+  return Math.max(1,override||Number(curT?.config?.race_to||5)||5);
+}
+function matchRaceTo(loc,m){
+  return raceToForKey(matchRaceKey(loc,m));
+}
+function roundRaceControlByKey(key){
+  const value=raceToForKey(key);
+  if(isPublicReadOnly)return `<span class="round-race-control">HRÁ SA NA <b>${value}</b></span>`;
+  return `<label class="round-race-control" onclick="event.stopPropagation()">HRÁ SA NA <input type="number" min="1" max="99" value="${value}" onchange="setRoundRaceTo('${key}',this.value,event)"/></label>`;
+}
+function roundRaceControl(prefix,roundIndex=0){
+  return roundRaceControlByKey(roundRaceKey(prefix,roundIndex));
+}
+async function setRoundRaceTo(key,value,event){
+  event?.stopPropagation?.();
+  if(isPublicReadOnly)return;
+  const race=Math.max(1,Math.min(99,Number(value)||1));
+  const overrides={...(curT?.config?.round_race_to||{}),[key]:race};
+  const config={...(curT?.config||{}),round_race_to:overrides};
+  try{
+    const {error}=await cspAuth.client.from('tournaments').update({config}).eq('id',curT.id);
+    if(error)throw error;
+    const {error:matchError}=await cspAuth.client.from('matches').update({race_to:race}).eq('tournament_id',curT.id).eq('race_to_key',key).is('started_at',null);
+    if(matchError)throw matchError;
+    curT.config=config;
+    realMatchesByKey.forEach(row=>{if(row.race_to_key===key&&!row.started_at)row.race_to=race;});
+    const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
+    toast(`Hrané na ${race} · nastavené pre toto kolo ✓`);
+  }catch(err){
+    console.error('[turnament] round race-to:',err);
+    toast(cspAuth.formatError?cspAuth.formatError(err):err.message,true);
+  }
 }
 function scoreboardSportFromTournament(){
   const s=String(curT?.sport||'').toLowerCase();
@@ -2675,7 +2723,16 @@ function formatMatchClock(sec){
 async function ensureRealMatch(loc,m){
   normalizeTournamentMatchIdentity(curT);
   let row=rowForMatch(m,loc);
-  if(row)return row;
+  const desiredRace=matchRaceTo(loc,m),desiredRaceKey=matchRaceKey(loc,m);
+  if(row){
+    const closed=['completed','forfeited'].includes(row.status)||!!row.completed_at||!!row.winner_id;
+    if(!closed&&!row.started_at&&(Number(row.race_to)!==desiredRace||row.race_to_key!==desiredRaceKey)){
+      const {data:updated,error:updateError}=await cspAuth.client.from('matches').update({race_to:desiredRace,race_to_key:desiredRaceKey}).eq('id',row.id).is('started_at',null).select('*').maybeSingle();
+      if(updateError)throw updateError;
+      if(updated){row=updated;realMatchesByKey.set(row.round_key,row);}
+    }
+    return row;
+  }
   const p1Id=resolvePlayerId(m.p1),p2Id=resolvePlayerId(m.p2);
   if(m.p1 && !p1Id)throw new Error(`Hráča ${m.p1.name||'1'} sa nepodarilo prepojiť s turnajom.`);
   if(m.p2 && !p2Id)throw new Error(`Hráča ${m.p2.name||'2'} sa nepodarilo prepojiť s turnajom.`);
@@ -2692,7 +2749,7 @@ async function ensureRealMatch(loc,m){
   const payload={
     tournament_id:curT.id,phase_id:phaseId||null,round_key:roundKey,round_number:roundNumber,match_number:matchNumber,
     group_index:isGroup?(Number(parts[1])+1):null,
-    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending'
+    bracket_side:phaseSide,player1_id:p1Id,player2_id:p2Id,status:'pending',race_to:desiredRace,race_to_key:desiredRaceKey
   };
   const {data,error}=await cspAuth.client.from('matches').insert(payload).select('*').single();
   if(error){
