@@ -1,13 +1,10 @@
 name: League team edit and standings fix
-
 on:
   push:
     paths:
       - '.github/workflows/league-team-edit-standings-fix.yml'
-
 permissions:
   contents: write
-
 jobs:
   patch:
     runs-on: ubuntu-latest
@@ -16,149 +13,14 @@ jobs:
         with:
           ref: main
       - name: Patch leagues UI
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('ligy/index.html')
-          s=p.read_text(encoding='utf-8')
-
-          def one(old,new,label):
-              global s
-              c=s.count(old)
-              if c!=1:
-                  raise SystemExit(f'{label}: expected 1, got {c}')
-              s=s.replace(old,new,1)
-
-          # richer standings header
-          one('<div class="table"><table><thead><tr><th>#</th><th id="standingsNameHeader">Hráč</th><th>Z</th><th>V</th><th>R</th><th>P</th><th>Skóre</th><th>+/-</th><th>Body</th></tr></thead><tbody id="standingsBody"></tbody></table></div>',
-              '<div class="table"><table><thead><tr><th>#</th><th id="standingsNameHeader">Hráč</th><th>Odohrané</th><th>Výhry</th><th>Remízy</th><th>Prehry</th><th>Skóre +</th><th>Skóre −</th><th>Rozdiel</th><th>Úspešnosť</th><th>Body</th><th>Forma</th></tr></thead><tbody id="standingsBody"></tbody></table></div>',
-              'standings header')
-
-          # edit state
-          one("let currentLeague=null,currentFilter='public',session=null,currentProfile=null,isManager=false;",
-              "let currentLeague=null,currentFilter='public',session=null,currentProfile=null,isManager=false,editingParticipantId=null;",
-              'editing state')
-
-          # modal supports add/edit
-          old_modal="""function openParticipantModal(){
-  if(!isManager)return;
-  const team=isTeam();
-  $('#modalTitle').textContent=team?'Pridať tím':'Pridať hráča';
-  $('#nameLabel').textContent=team?'Názov tímu':'Meno hráča';
-  $('#saveParticipantBtn').textContent=team?'Pridať tím':'Pridať hráča';
-  $$('.team-only').forEach(x=>x.classList.toggle('hide',!team));
-  $('#memberList').innerHTML='';
-  if(team){addMemberField();addMemberField()}
-  $('#participantForm').reset();hideMsg($('#participantNotice'));$('#participantModal').classList.remove('hide');
-}
-function closeParticipantModal(){$('#participantModal').classList.add('hide')}
-"""
-          new_modal="""function openParticipantModal(participant=null){
-  if(!isManager)return;
-  const team=isTeam();
-  editingParticipantId=participant?.id||null;
-  $('#participantForm').reset();
-  $('#memberList').innerHTML='';
-  $('#modalTitle').textContent=editingParticipantId?(team?'Upraviť tím':'Upraviť hráča'):(team?'Pridať tím':'Pridať hráča');
-  $('#nameLabel').textContent=team?'Názov tímu':'Meno hráča';
-  $('#saveParticipantBtn').textContent=editingParticipantId?'Uložiť zmeny':(team?'Pridať tím':'Pridať hráča');
-  $$('.team-only').forEach(x=>x.classList.toggle('hide',!team));
-  if(participant){
-    $('#participantForm').elements.display_name.value=participant.display_name||'';
-    $('#participantForm').elements.seed.value=participant.seed??'';
-    if(team){
-      $('#participantForm').elements.captain.value=participant.metadata?.captain||'';
-      const members=Array.isArray(participant.metadata?.members)?participant.metadata.members:[];
-      if(members.length)members.forEach(addMemberField);else{addMemberField();addMemberField()}
-    }
-  }else if(team){addMemberField();addMemberField()}
-  hideMsg($('#participantNotice'));$('#participantModal').classList.remove('hide');
-}
-function closeParticipantModal(){editingParticipantId=null;$('#participantModal').classList.add('hide')}
-"""
-          one(old_modal,new_modal,'participant modal')
-
-          # add or update participant
-          old_add="""async function addParticipant(e){
-  e.preventDefault();hideMsg($('#participantNotice'));
-  const f=Object.fromEntries(new FormData(e.target));
-  const metadata=isTeam()?{participant_type:'team',captain:f.captain||null,members:$$('.team-member').map(i=>i.value.trim()).filter(Boolean)}:{participant_type:'player'};
-  const {error}=await db.from('league_players').insert({league_id:currentLeague.id,display_name:f.display_name.trim(),seed:f.seed?Number(f.seed):null,status:'active',metadata});
-  if(error)return msg($('#participantNotice'),error.message,'err');
-  closeParticipantModal();await loadParticipants();
-}
-"""
-          new_add="""async function addParticipant(e){
-  e.preventDefault();hideMsg($('#participantNotice'));
-  const f=Object.fromEntries(new FormData(e.target));
-  const metadata=isTeam()?{participant_type:'team',captain:f.captain||null,members:$$('.team-member').map(i=>i.value.trim()).filter(Boolean)}:{participant_type:'player'};
-  const payload={display_name:f.display_name.trim(),seed:f.seed?Number(f.seed):null,status:'active',metadata};
-  let result;
-  if(editingParticipantId)result=await db.from('league_players').update(payload).eq('id',editingParticipantId).eq('league_id',currentLeague.id);
-  else result=await db.from('league_players').insert({league_id:currentLeague.id,...payload});
-  if(result.error)return msg($('#participantNotice'),result.error.message,'err');
-  closeParticipantModal();await Promise.all([loadParticipants(),loadStandings(),loadMatches()]);
-}
-"""
-          one(old_add,new_add,'participant save')
-
-          # participant rows with Edit + Delete
-          old_row="""    return `<tr><td><b>${esc(p.display_name)}</b></td><td>${p.seed??'–'}</td><td class="muted">${detail||'–'}</td><td>${esc(p.status)}</td><td>${isManager?`<button class="btn red" onclick="removeParticipant('${p.id}')">Odstrániť</button>`:''}</td></tr>`;
-"""
-          new_row="""    const packed=encodeURIComponent(JSON.stringify({id:p.id,display_name:p.display_name,seed:p.seed,metadata:p.metadata||{}}));
-    return `<tr><td><b>${esc(p.display_name)}</b></td><td>${p.seed??'–'}</td><td class="muted">${detail||'–'}</td><td>${esc(p.status)}</td><td>${isManager?`<div class="actions"><button class="btn" onclick="editParticipant('${packed}')">Upraviť</button><button class="btn red" onclick="removeParticipant('${p.id}')">Odstrániť</button></div>`:''}</td></tr>`;
-"""
-          one(old_row,new_row,'participant actions')
-
-          # safe delete even after schedule exists: remove affected league matches first
-          old_remove="""async function removeParticipant(id){
-  if(!isManager||!confirm('Naozaj odstrániť účastníka?'))return;
-  const {error}=await db.from('league_players').delete().eq('id',id);
-  if(error)return msg($('#detailNotice'),error.message,'err');
-  await loadParticipants();
-}
-"""
-          new_remove="""function editParticipant(packed){
-  if(!isManager)return;
-  try{openParticipantModal(JSON.parse(decodeURIComponent(packed)))}catch(err){console.error('[ligy] edit participant decode failed',err)}
-}
-async function removeParticipant(id){
-  if(!isManager||!confirm('Naozaj odstrániť účastníka? Z rozpisu sa odstránia aj jeho neodohrané a odohrané ligové zápasy.'))return;
-  const {error:matchError}=await db.from('league_matches').delete().eq('league_id',currentLeague.id).or(`player1_id.eq.${id},player2_id.eq.${id}`);
-  if(matchError)return msg($('#detailNotice'),matchError.message,'err');
-  const {error}=await db.from('league_players').delete().eq('id',id).eq('league_id',currentLeague.id);
-  if(error)return msg($('#detailNotice'),error.message,'err');
-  await Promise.all([loadParticipants(),loadMatches(),loadStandings()]);
-}
-"""
-          one(old_remove,new_remove,'remove participant')
-
-          # richer standings body incl success + form
-          old_stand="""  $('#standingsBody').innerHTML=(data||[]).map(r=>`<tr><td>${r.standing_position}</td><td><b>${esc(r.display_name)}</b></td><td>${r.played}</td><td>${r.wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.score_for}:${r.score_against}</td><td>${r.score_difference}</td><td><b>${r.points}</b></td></tr>`).join('')||'<tr><td colspan="9" class="empty">Tabuľka sa zobrazí po pridaní účastníkov.</td></tr>';
-"""
-          new_stand="""  $('#standingsBody').innerHTML=(data||[]).map(r=>{
-    const played=Number(r.played||0),wins=Number(r.wins||0);
-    const success=played?Math.round((wins/played)*100):0;
-    const form=Array.isArray(r.form)&&r.form.length?r.form.map(x=>`<span class="badge" style="margin-right:4px">${esc(x)}</span>`).join(''):'–';
-    return `<tr><td>${r.standing_position}</td><td><b>${esc(r.display_name)}</b></td><td>${played}</td><td>${wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.score_for}</td><td>${r.score_against}</td><td>${r.score_difference>0?'+':''}${r.score_difference}</td><td><b>${success}%</b></td><td><b>${r.points}</b></td><td>${form}</td></tr>`;
-  }).join('')||'<tr><td colspan="12" class="empty">Tabuľka sa zobrazí po pridaní účastníkov.</td></tr>';
-"""
-          one(old_stand,new_stand,'standings body')
-
-          one('window.removeParticipant=removeParticipant;window.saveResult=saveResult;',
-              'window.removeParticipant=removeParticipant;window.editParticipant=editParticipant;window.saveResult=saveResult;',
-              'window exports')
-
-          p.write_text(s,encoding='utf-8')
-          PY
-      - name: Verify patch
+        run: python scripts/patch_league_team_edit.py
+      - name: Verify
         run: |
           grep -q "Upraviť tím" ligy/index.html
           grep -q "Skóre +" ligy/index.html
           grep -q "Úspešnosť" ligy/index.html
           grep -q "editParticipant" ligy/index.html
-          grep -q "league_matches').delete()" ligy/index.html
-      - name: Commit fix
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
