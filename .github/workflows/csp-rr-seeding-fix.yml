@@ -20,22 +20,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('turnament/index.html')
           text = path.read_text(encoding='utf-8')
 
-          old = '''function comboCrossSeed(rows,groupCount,advance){
-            const byGroup=Array.from({length:groupCount},()=>[]);
-            rows.forEach(r=>byGroup[r.groupIndex].push(r));
-            const ordered=[];
-            for(let rank=0;rank<advance;rank++){
-              const indexes=Array.from({length:groupCount},(_,i)=>i);
-              if(rank%2===1) indexes.reverse();
-              indexes.forEach(i=>{ if(byGroup[i][rank]) ordered.push(byGroup[i][rank]); });
-            }
-            return ordered;
-          }'''
-
+          start = text.index('function comboCrossSeed(rows,groupCount,advance){')
+          end = text.index('\nfunction comboOverallTop', start)
           new = '''function comboSeedCompare(a,b){
             return b.stat.p-a.stat.p || b.stat.w-a.stat.w ||
               (b.stat.gw-b.stat.gl)-(a.stat.gw-a.stat.gl) ||
@@ -52,7 +43,7 @@ jobs:
             return h>>>0;
           }
           function comboFirstRoundOpponents(N){
-            const order=TM.seedKO(N), map=new Map();
+            const order=TM.seedKO(N),map=new Map();
             for(let i=0;i<order.length;i+=2){
               map.set(order[i],order[i+1]);
               map.set(order[i+1],order[i]);
@@ -76,29 +67,22 @@ jobs:
             const N=TM.nextPow2(Math.max(2,total));
             const opponents=comboFirstRoundOpponents(N);
             const seeded=Array(total).fill(null);
-
             winners.forEach((row,index)=>{if(index<total)seeded[index]=row;});
 
-            const placeBand=(candidates,startSeed,randomBand=false)=>{
+            const placeBand=(candidates,startSeed)=>{
               const pool=[...candidates];
               const endSeed=Math.min(total,startSeed+pool.length-1);
               for(let seed=startSeed;seed<=endSeed;seed++){
                 const opponentSeed=opponents.get(seed);
                 const opponent=opponentSeed&&opponentSeed<=total?seeded[opponentSeed-1]:null;
-                let pick=-1;
-                if(opponent){
-                  pick=pool.findIndex(row=>row.groupIndex!==opponent.groupIndex);
-                }
+                let pick=opponent?pool.findIndex(row=>row.groupIndex!==opponent.groupIndex):-1;
                 if(pick<0)pick=0;
                 seeded[seed-1]=pool.splice(pick,1)[0];
               }
             };
+            placeBand(runners,winners.length+1);
+            placeBand(lower,winners.length+runners.length+1);
 
-            placeBand(runners,winners.length+1,false);
-            placeBand(lower,winners.length+runners.length+1,true);
-
-            // Posledná korekcia: ak sa dá konflikt rovnakej skupiny v 1. kole
-            // odstrániť výmenou iba v rámci rovnakého seed pásma, urob ju.
             const bandOfSeed=seed=>seed<=winners.length?1:(seed<=winners.length+runners.length?2:3);
             const conflictAt=seed=>{
               const opp=opponents.get(seed);
@@ -106,27 +90,22 @@ jobs:
               const a=seeded[seed-1],b=seeded[opp-1];
               return !!(a&&b&&a.groupIndex===b.groupIndex);
             };
-            const allPairs=()=>Array.from({length:total},(_,i)=>i+1).filter(conflictAt);
-            for(const seed of allPairs()){
+            const conflicts=()=>Array.from({length:total},(_,i)=>i+1).filter(conflictAt);
+            for(const seed of conflicts()){
               const opp=opponents.get(seed);
               const movable=bandOfSeed(seed)>=bandOfSeed(opp)?seed:opp;
               const band=bandOfSeed(movable);
               for(let other=1;other<=total;other++){
                 if(other===movable||bandOfSeed(other)!==band)continue;
-                const before=allPairs().length;
+                const before=conflicts().length;
                 [seeded[movable-1],seeded[other-1]]=[seeded[other-1],seeded[movable-1]];
-                const after=allPairs().length;
-                if(after<before)break;
+                if(conflicts().length<before)break;
                 [seeded[movable-1],seeded[other-1]]=[seeded[other-1],seeded[movable-1]];
               }
             }
-
             return seeded.filter(Boolean);
           }'''
-
-          if old not in text:
-            raise SystemExit('comboCrossSeed block not found')
-          text = text.replace(old, new, 1)
+          text = text[:start] + new + text[end:]
 
           text = text.replace(
             'const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance);',
@@ -134,65 +113,42 @@ jobs:
             1
           )
 
-          old_k = '''const k=t.format==='rr_sko'?Math.min(Math.max(0,+t.protectedSeeds||0),Math.max(0,crossSeeded.length-1)):0;'''
-          new_k = '''const twoGroupTopThree=t.format==='rr_sko'&&isTwoGroupTopThreeCrossing(crossSeeded,2);
+          old_k="const k=t.format==='rr_sko'?Math.min(Math.max(0,+t.protectedSeeds||0),Math.max(0,crossSeeded.length-1)):0;"
+          if old_k not in text: raise SystemExit('protected seed line not found')
+          text=text.replace(old_k,"""const twoGroupTopThree=t.format==='rr_sko'&&isTwoGroupTopThreeCrossing(crossSeeded,2);
             const k=t.format==='rr_sko'
               ? (twoGroupTopThree?2:Math.min(Math.max(0,+t.protectedSeeds||0),Math.max(0,crossSeeded.length-1)))
-              : 0;'''
-          if old_k not in text:
-            raise SystemExit('protected seed line not found')
-          text = text.replace(old_k,new_k,1)
+              : 0;""",1)
 
-          old_main = '''const mainPlayers=t.phase2.crossingMode==='two-groups-top-three' &&
-                t.phase2.protected.length===2 && qualifiedSurvivors.length===2
-                // buildSKO uses slot order 1–4 / 3–2. This input produces:
-                // A1 vs winner(A2–B3), B1 vs winner(B2–A3).
-                ? [t.phase2.protected[0],qualifiedSurvivors[1],t.phase2.protected[1],qualifiedSurvivors[0]]
-                : [...t.phase2.protected,...qualifiedSurvivors];'''
-          new_main = '''const mainPlayers=t.phase2.crossingMode==='two-groups-top-three' &&
+          pattern=re.compile(r"const mainPlayers=t\.phase2\.crossingMode==='two-groups-top-three' &&\s+t\.phase2\.protected\.length===2 && qualifiedSurvivors\.length===2\s+// buildSKO uses slot order 1–4 / 3–2\. This input produces:\s+// A1 vs winner\(A2–B3\), B1 vs winner\(B2–A3\)\.\s+\? \[t\.phase2\.protected\[0\],qualifiedSurvivors\[1\],t\.phase2\.protected\[1\],qualifiedSurvivors\[0\]\]\s+: \[\.\.\.t\.phase2\.protected,\.\.\.qualifiedSurvivors\];")
+          repl="""const mainPlayers=t.phase2.crossingMode==='two-groups-top-three' &&
                 t.phase2.protected.length===2 && qualifiedSurvivors.length===2
                 // buildSKO uses slot order 1–4 / 2–3. Required crossing:
                 // A1 vs winner(B2–A3), B1 vs winner(A2–B3).
                 ? [t.phase2.protected[0],t.phase2.protected[1],qualifiedSurvivors[0],qualifiedSurvivors[1]]
-                : [...t.phase2.protected,...qualifiedSurvivors];'''
-          if old_main not in text:
-            raise SystemExit('special semifinal crossing block not found')
-          text = text.replace(old_main,new_main,1)
+                : [...t.phase2.protected,...qualifiedSurvivors];"""
+          text,n=pattern.subn(repl,text,count=1)
+          if n!=1: raise SystemExit('special semifinal crossing block not found')
 
-          old_payload = '''const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance);
-            return ordered.map((row,index)=>({
-              tournament_player_id: row.player.id,
-              source_group: row.groupIndex + 1,
-              source_position: row.rank,
-              qualification_position: index + 1,
-              seed: index + 1
-            }));'''
-          new_payload = '''const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
+          payload=re.compile(r"const ordered=comboCrossSeed\(standings,t\.grp\.groups\.length,t\.grp\.advance\);\s+return ordered\.map\(\(row,index\)=>\(\{\s+tournament_player_id: row\.player\.id,\s+source_group: row\.groupIndex \+ 1,\s+source_position: row\.rank,\s+qualification_position: index \+ 1,\s+seed: index \+ 1\s+\}\)\);")
+          payload_repl="""const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
             return ordered.map((row,index)=>({
               tournament_player_id: row.player.id,
               source_group: row.groupIndex + 1,
               source_position: row.rank,
               qualification_position: index + 1,
               seed: index + 1,
-              metadata:{
-                seed_band:comboSeedBandName(row.rank),
-                seeding_policy:'rr_rank_bands_v1'
-              }
-            }));'''
-          if old_payload not in text:
-            raise SystemExit('qualifier payload block not found')
-          text = text.replace(old_payload,new_payload,1)
+              metadata:{seed_band:comboSeedBandName(row.rank),seeding_policy:'rr_rank_bands_v1'}
+            }));"""
+          text,n=payload.subn(payload_repl,text,count=1)
+          if n!=1: raise SystemExit('qualifier payload block not found')
 
-          text = text.replace(
+          text=text.replace(
             '${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType} pavúk (krížové nasadenie). Najprv dohraj skupiny.',
-            '${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. Najprv dohraj skupiny.',
-            1
-          )
-          text = text.replace(
+            '${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. Najprv dohraj skupiny.',1)
+          text=text.replace(
             'Po dohraní skupín sa postupujúci nasadia krížom do ${koType} pavúka (1. zo skupiny A vs 3. zo skupiny B…).',
-            '${grp.groups.length===2&&grp.advance===3?`Víťazi skupín idú priamo do semifinále. Predkolo: A2 – B3 a B2 – A3; víťaz A2 – B3 ide na B1 a víťaz B2 – A3 na A1.`:`Po dohraní skupín sa vytvoria seed pásma. Víťazi skupín sa v 1. kole nestretnú; druhé miesta sú v ďalšom pásme a ostatní sa rozlosujú s ochranou proti opakovaniu zápasu z rovnakej skupiny, pokiaľ je to matematicky možné.`}',
-            1
-          )
+            '${grp.groups.length===2&&grp.advance===3?`Víťazi skupín idú priamo do semifinále. Predkolo: A2 – B3 a B2 – A3; víťaz A2 – B3 ide na B1 a víťaz B2 – A3 na A1.`:`Po dohraní skupín sa vytvoria seed pásma. Víťazi skupín sa v 1. kole nestretnú; druhé miesta sú v ďalšom pásme a ostatní sa rozlosujú s ochranou proti opakovaniu zápasu z rovnakej skupiny, pokiaľ je to matematicky možné.`}',1)
 
           path.write_text(text,encoding='utf-8')
           PY
