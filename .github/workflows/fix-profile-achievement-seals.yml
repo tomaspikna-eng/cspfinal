@@ -10,80 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch compact profile achievement summary
+      - name: Patch files
+        run: python scripts/fix_profile_achievement_seals.py
+      - name: Commit result
         run: |
-          python <<'PY'
-          from pathlib import Path
-          import re
-
-          social_path=Path('assets/csp-social.js')
-          text=social_path.read_text(encoding='utf-8')
-
-          text=text.replace(
-            'const badgeLabels={first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T"};',
-            'const badgeLabels={first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T",darts_180_1:"180",darts_180_10:"10×",darts_180_50:"50×",darts_180_100:"100×",darts_checkout_100:"100+",darts_checkout_120:"120+",darts_checkout_150:"150+",darts_streak_100x3:"3×100",darts_streak_140x3:"3×140"};'
-          )
-
-          inject_re = re.compile(r'  function injectStyles\(\)\{.*?\n  \}\n\n  function waitForTarget', re.S)
-          inject_new = r'''  function injectStyles(){
-    if(document.getElementById("csp-profile-achievement-style")) return;
-    const style=document.createElement("style");
-    style.id="csp-profile-achievement-style";
-    style.textContent=`
-      .profile-achievement-panel{margin-top:8px;border:1px solid rgba(212,168,67,.28);border-radius:10px;background:linear-gradient(145deg,rgba(212,168,67,.07),#0d0f0e 55%);padding:18px;display:grid;gap:15px}
-      .profile-achievement-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.profile-achievement-head span{font-size:8px;letter-spacing:.17em;color:#d4a843;font-weight:850}.profile-achievement-head h2{font-size:15px;margin:5px 0 0}.profile-achievement-link{font-size:9px;font-weight:800;color:#f0c966;border:1px solid rgba(212,168,67,.35);padding:8px 10px;border-radius:7px}
-      .profile-achievement-stats{display:flex;align-items:baseline;gap:18px}.profile-achievement-stats strong{font-size:30px;color:#f0c966;letter-spacing:-.04em}.profile-achievement-stats b{font-size:11px}.profile-achievement-stats small{display:block;color:#8f958f;font-size:8px;margin-top:2px}
-      .profile-achievement-badges{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.profile-achievement-badge{--seal-a:#e4bd32;--seal-b:#765b08;--seal-c:#f6da69;--seal-ring:#d0a91e;min-width:0;border:1px solid #252925;border-radius:10px;background:#111412;padding:10px 8px;display:grid;grid-template-columns:60px minmax(0,1fr);align-items:center;gap:9px;overflow:hidden}.profile-achievement-badge.bronze{--seal-a:#c8864a;--seal-b:#5d3420;--seal-c:#e3a970;--seal-ring:#a86c3a}.profile-achievement-badge.silver{--seal-a:#dfe4e6;--seal-b:#687176;--seal-c:#fff;--seal-ring:#adb6ba}.profile-achievement-badge.gold{--seal-a:#e4bd32;--seal-b:#765b08;--seal-c:#f6da69;--seal-ring:#d0a91e}.profile-achievement-badge.platinum{--seal-a:#d9f1ea;--seal-b:#6f8580;--seal-c:#fff;--seal-ring:#b7ddd1}
-      .profile-achievement-seal{width:60px;height:60px;position:relative;display:block;color:#f4f6f5;background:conic-gradient(from 0deg,var(--seal-a),var(--seal-b),var(--seal-c),var(--seal-b),var(--seal-a));clip-path:polygon(50% 0,58% 6%,68% 2%,75% 10%,85% 9%,90% 19%,98% 25%,94% 36%,100% 45%,95% 54%,98% 65%,89% 72%,86% 82%,75% 84%,68% 95%,58% 92%,50% 100%,41% 93%,31% 96%,25% 86%,14% 83%,12% 72%,2% 66%,5% 55%,0 45%,6% 36%,2% 26%,11% 20%,15% 9%,25% 10%,32% 2%,42% 6%);filter:drop-shadow(0 7px 9px rgba(0,0,0,.42))}.profile-achievement-seal:before{content:"";position:absolute;inset:5px;border-radius:50%;background:linear-gradient(160deg,#111713,#070a08 72%);box-shadow:inset 0 0 0 1.2px var(--seal-ring),0 0 10px rgba(34,211,107,.08);z-index:1}.profile-achievement-seal-ring{position:absolute;inset:11px;border:1px solid var(--seal-ring);border-radius:50%;z-index:2;box-shadow:0 0 11px rgba(34,211,107,.15)}.profile-achievement-seal-top,.profile-achievement-seal-meta,.profile-achievement-seal-symbol{position:absolute;left:0;width:100%;text-align:center;z-index:3}.profile-achievement-seal-top{top:10px;font-size:4px;line-height:1;font-weight:900;letter-spacing:.17em;color:#aab1ad}.profile-achievement-seal-symbol{top:50%;transform:translateY(-55%);font-size:13px;line-height:1;font-weight:950;letter-spacing:-.05em;color:#fff;text-shadow:0 2px 2px rgba(0,0,0,.55);padding:0 7px}.profile-achievement-seal-meta{bottom:9px;font-size:3.8px;line-height:1;font-weight:900;letter-spacing:.12em;color:#22d36b}.profile-achievement-copy{min-width:0}.profile-achievement-badge b{display:block;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profile-achievement-badge small{display:block;font-size:7px;color:#8f958f;margin-top:4px}.profile-achievement-empty{font-size:10px;color:#8f958f}
-      @media(max-width:1100px){.profile-achievement-badges{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:620px){.profile-achievement-head{align-items:flex-start}.profile-achievement-badges{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-achievement-stats{gap:12px}.profile-achievement-badge{grid-template-columns:54px minmax(0,1fr)}.profile-achievement-seal{width:54px;height:54px}.profile-achievement-seal-ring{inset:10px}.profile-achievement-seal-top{top:9px}.profile-achievement-seal-meta{bottom:8px}}
-    `;
-    document.head.appendChild(style);
-  }
-
-  function waitForTarget'''
-          text,n=inject_re.subn(inject_new,text,count=1)
-          if n!=1:
-            raise SystemExit('injectStyles patch failed')
-
-          render_re = re.compile(r'  function render\(target,payload,publicView\)\{.*?\n  \}\n\n  async function init\(\)\{', re.S)
-          render_new = r'''  function render(target,payload,publicView){
-    if(!target||document.getElementById("profile-achievement-summary")) return;
-    injectStyles();
-    const summary=payload?.summary||{};
-    const items=Array.isArray(payload?.items)?payload.items:[];
-    const unlocked=items.filter(x=>x.unlocked).sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0)).slice(0,6);
-    const panel=document.createElement("section");
-    panel.id="profile-achievement-summary";
-    panel.className="profile-achievement-panel";
-    const detailsHref=publicView?"#":"/profil/achievements/";
-    const cards=unlocked.length?unlocked.map(item=>{
-      const rarity=["bronze","silver","gold","platinum"].includes(String(item.rarity||"").toLowerCase())?String(item.rarity).toLowerCase():"gold";
-      return `<div class="profile-achievement-badge ${rarity}"><span class="profile-achievement-seal" aria-label="${esc(item.name)}"><span class="profile-achievement-seal-ring"></span><span class="profile-achievement-seal-top">CSP</span><span class="profile-achievement-seal-symbol">${esc(badgeLabels[item.code]||"CSP")}</span><span class="profile-achievement-seal-meta">EARNED</span></span><div class="profile-achievement-copy"><b>${esc(item.name)}</b><small>+${Number(item.points)||0} B · ${rarity.toUpperCase()}</small></div></div>`;
-    }).join(""):'<div class="profile-achievement-empty">Zatiaľ bez odomknutých achievementov.</div>';
-    panel.innerHTML=`<div class="profile-achievement-head"><div><span>GLOBAL CORE SERIES 01</span><h2>Achievements</h2></div>${publicView?"":`<a class="profile-achievement-link" href="${detailsHref}">Všetky achievementy →</a>`}</div><div class="profile-achievement-stats"><div><strong>${Number(summary.points)||0}</strong><small>ACHIEVEMENT BODOV</small></div><div><b>${Number(summary.unlocked)||0} / ${Number(summary.total)||items.length}</b><small>ODOMKNUTÉ</small></div></div><div class="profile-achievement-badges">${cards}</div>`;
-    target.insertAdjacentElement("afterend",panel);
-  }
-
-  async function init(){'''
-          text,n=render_re.subn(render_new,text,count=1)
-          if n!=1:
-            raise SystemExit('render patch failed')
-
-          social_path.write_text(text,encoding='utf-8')
-
-          profile=Path('profil/index.html')
-          html=profile.read_text(encoding='utf-8')
-          old='/assets/csp-social.js?v=20260827-1'
-          if old not in html and '/assets/csp-social.js?v=20260915-seal-1' not in html:
-            raise SystemExit('profile social script reference not found')
-          html=html.replace(old,'/assets/csp-social.js?v=20260915-seal-1')
-          profile.write_text(html,encoding='utf-8')
-          PY
-      - name: Remove temporary workflow and commit
-        run: |
+          rm -f scripts/fix_profile_achievement_seals.py
           rm -f .github/workflows/fix-profile-achievement-seals.yml
           git config user.name "CSP UI Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add assets/csp-social.js profil/index.html .github/workflows/fix-profile-achievement-seals.yml
+          git add assets/csp-social.js profil/index.html scripts/fix_profile_achievement_seals.py .github/workflows/fix-profile-achievement-seals.yml
           git commit -m "Use Premium Seal badges on profile achievement summary"
           git push
