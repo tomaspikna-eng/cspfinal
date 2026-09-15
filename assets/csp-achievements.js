@@ -7,7 +7,7 @@ const achievementEsc=value=>String(value??"").replace(/[&<>'"]/g,char=>({"&":"&a
 const achievementPlan=value=>String(value||"free").toLowerCase()==="pro_plus"?"PRO+":String(value||"free").toUpperCase();
 const achievementInitials=name=>String(name||"Hráč").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const achievementDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?"":new Intl.DateTimeFormat("sk-SK",{day:"numeric",month:"short",year:"numeric"}).format(d)};
-const achievementBadgeLabel=code=>({first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",champion_2:"2×",champion_5:"5×",active_weeks_4:"4T",active_weeks_12:"12T",active_weeks_26:"26T"}[code]||"CSP");
+const achievementBadgeLabel=code=>({first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T"}[code]||"CSP");
 const categoryLabel=value=>({zaciatky:"Začiatky",progres:"Progres",konzistencia:"Konzistencia",vykon:"Výkon",vynimocne:"Výnimočné"}[value]||value||"Achievement");
 
 function setAchievementProfile(profile){
@@ -38,13 +38,13 @@ function renderAchievements(payload){
   if(!root)return;
   root.innerHTML=`<div class="achievement-shell">
     <div class="achievement-summary">
-      <section class="achievement-summary-card primary"><span>Achievement body</span><strong>${Number(summary.points)||0}</strong><small>Core Series 01 · beta</small></section>
+      <section class="achievement-summary-card primary"><span>Achievement body</span><strong>${Number(summary.points)||0}</strong><small>Global Core Series 01 · beta</small></section>
       <section class="achievement-summary-card green"><span>Odomknuté</span><strong>${Number(summary.unlocked)||0}</strong><small>z ${Number(summary.total)||items.length} achievementov</small></section>
       <section class="achievement-summary-card"><span>Zostáva</span><strong>${Math.max(0,(Number(summary.total)||items.length)-(Number(summary.unlocked)||0))}</strong><small>ďalších cieľov</small></section>
     </div>
     <div class="achievement-toolbar"><div class="filters"><button class="achievement-filter active" data-achievement-filter="all">Všetky</button><button class="achievement-filter" data-achievement-filter="unlocked">Získané</button><button class="achievement-filter" data-achievement-filter="locked">Rozpracované</button></div><div class="achievement-legend"><span class="bronze"><i></i>Bronze</span><span class="silver"><i></i>Silver</span><span class="gold"><i></i>Gold</span><span class="platinum"><i></i>Platinum</span></div></div>
     <div id="achievement-grid" class="achievement-grid">${items.length?items.map(achievementCard).join(""):'<div class="achievement-empty">Achievementy zatiaľ nie sú dostupné.</div>'}</div>
-    <div class="achievement-note"><b>Beta verzia:</b> body sa udeľujú automaticky z overených CSP dát — oficiálne zápasy, ligy, turnajové výsledky, tréningy a aktivita profilu. Športovo špecifické odznaky doplníme v ďalších aktualizáciách.</div>
+    <div class="achievement-note"><b>Beta verzia:</b> Global Core achievementy sa udeľujú automaticky z overených CSP dát naprieč športmi — oficiálne zápasy, ligy, dvojfázové turnaje, výsledky a tréningy.</div>
   </div>`;
   root.querySelectorAll("[data-achievement-filter]").forEach(button=>button.addEventListener("click",()=>{
     const filter=button.dataset.achievementFilter;
