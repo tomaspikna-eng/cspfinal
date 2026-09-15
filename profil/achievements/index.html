@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070807">
+  <title>Achievements | Connect Sports Pro</title>
+  <meta name="description" content="Connect Sports Pro — achievementy, progres a športové ciele hráča.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/csp-player-profile.css">
+  <link rel="stylesheet" href="/assets/csp-achievements.css">
+  <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous" defer></script>
+  <script src="/assets/csp-achievements.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside id="profile-sidebar" class="sidebar">
+      <button class="mobile-sidebar-close" type="button" data-profile-menu-close aria-label="Zavrieť profilové menu">×</button>
+      <a class="brand" href="/profil/"><span class="brand-mark"><img src="/assets/csp-player-logo.png" alt="CSP monogram"></span><span class="brand-copy"><b>Connect</b><strong>Sports Pro</strong></span></a>
+      <nav class="nav" aria-label="Hlavná navigácia">
+        <a class="nav-link" href="/profil/"><span class="nav-icon">⌂</span>Prehľad</a>
+        <a class="nav-link" href="/profil/moj-profil/"><span class="nav-icon">●</span>Môj profil</a>
+        <a class="nav-link" href="/profil/turnaje/"><span class="nav-icon">▦</span>Turnaje</a>
+        <a class="nav-link" href="/profil/treningy/"><span class="nav-icon">◎</span>Tréningy</a>
+        <a class="nav-link" href="/profil/rebricky/"><span class="nav-icon">≋</span>Rebríčky</a>
+        <a class="nav-link active" href="/profil/achievements/"><span class="nav-icon">◆</span>Achievements</a>
+        <a class="nav-link" href="/profil/priatelia/"><span class="nav-icon">◇</span>Priatelia</a>
+      </nav>
+      <div class="side-spacer"></div>
+      <div class="smart-card"><span>SMART SYSTEM</span><p>Tvoj šport. Tvoje dáta. Tvoj progres.</p></div>
+      <div class="side-user"><span class="mini-avatar" data-achievement-avatar>–</span><div><b data-achievement-player-name>Hráč</b><span data-achievement-plan>Účet</span></div></div>
+    </aside>
+    <div class="sidebar-backdrop" data-profile-menu-backdrop aria-hidden="true"></div>
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu-toggle" type="button" data-profile-menu-toggle aria-controls="profile-sidebar" aria-expanded="false" aria-label="Otvoriť profilové menu"><span></span></button>
+        <span class="mobile-brand"><img src="/assets/csp-player-logo.png" alt="CSP"></span>
+        <div class="topbar-title"><span>CORE SERIES 01</span><b>Achievements</b></div>
+        <div class="topbar-tools"><div class="data-state"><i></i><span>Dáta zo Supabase</span></div></div>
+      </header>
+      <div class="stage">
+        <div class="page-intro"><div><span class="label">BETA SYSTÉM</span><h1>Achievements</h1><p>Prvá univerzálna séria CSP. Body za reálne športové aktivity, progres a výsledky.</p></div></div>
+        <div id="achievement-content"><div class="achievement-boot"><div><span></span>Načítavam achievementy</div></div></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
