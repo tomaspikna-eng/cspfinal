@@ -143,9 +143,16 @@
   };
   global.document.head.appendChild(achievementScript);
 
-  // Darts training: record only metrics that the current aggregate-score
-  // scoreboard can determine reliably (180s, high checkouts and visit streaks).
   if (/^\/scoreboard\/?$/.test(global.location.pathname)) {
+    // Darts training format: custom Best of N legs. Example: Best of 3 ends
+    // at 2:0 or 2:1; Best of 5 ends when a player reaches 3 legs.
+    var dartsFormatScript = global.document.createElement('script');
+    dartsFormatScript.src = '/assets/csp-darts-format.js?v=20260915-1';
+    dartsFormatScript.defer = true;
+    global.document.head.appendChild(dartsFormatScript);
+
+    // Darts achievements: record only metrics that the current aggregate-score
+    // scoreboard can determine reliably (180s, high checkouts and visit streaks).
     var dartsAchievementScript = global.document.createElement('script');
     dartsAchievementScript.src = '/assets/csp-darts-achievements.js?v=20260915-1';
     dartsAchievementScript.defer = true;
