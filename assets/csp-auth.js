@@ -147,7 +147,7 @@
     // Darts training format: custom Best of N legs. Example: Best of 3 ends
     // at 2:0 or 2:1; Best of 5 ends when a player reaches 3 legs.
     var dartsFormatScript = global.document.createElement('script');
-    dartsFormatScript.src = '/assets/csp-darts-format.js?v=20260915-1';
+    dartsFormatScript.src = '/assets/csp-darts-format.js?v=20260915-2';
     dartsFormatScript.defer = true;
     global.document.head.appendChild(dartsFormatScript);
 
