@@ -1,0 +1,69 @@
+name: Completed tournament results first
+on:
+  push:
+    paths:
+      - '.github/workflows/completed-tournament-results-first.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch completed tournament layout
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path=Path('turnament/index.html')
+          text=path.read_text(encoding='utf-8')
+
+          old_css='''.fs-name{font-weight:700;font-size:.95rem}'''
+          new_css='''.fs-name{font-weight:700;font-size:.95rem}
+.completed-match-history{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--card-2);overflow:hidden}
+.completed-match-history summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;font-size:.84rem;font-weight:800;color:var(--muted-2);user-select:none}
+.completed-match-history summary::-webkit-details-marker{display:none}
+.completed-match-history summary::after{content:'+';font-family:var(--mono);font-size:1.05rem;color:var(--gold);transition:transform .15s ease}
+.completed-match-history[open] summary::after{content:'−'}
+.completed-match-history summary:hover{color:var(--fg);background:rgba(255,255,255,.02)}
+.completed-match-history-body{border-top:1px solid var(--line);padding:16px}
+.completed-result-lead{margin-bottom:8px;font-family:var(--mono);font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}'''
+          if old_css not in text:
+            raise SystemExit('CSS anchor not found')
+          text=text.replace(old_css,new_css,1)
+
+          old='''function renderMatchArea(t){
+  const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
+  return body + renderTournamentEvaluation(t);
+}'''
+          new='''function renderMatchArea(t){
+  const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
+
+  const completed=t?.status==='completed';
+  if(!completed)return body + renderTournamentEvaluation(t);
+
+  const rank=finalTournamentRanking(t);
+  const standing=t.format==='rr'
+    ? (rank.length?`<div class="completed-result-lead">Konečný výsledok turnaja</div>${renderRankTable(rank)}`:'')
+    : renderTournamentEvaluation(t);
+
+  return `${standing}<details class="completed-match-history">
+    <summary>Zápasy a priebeh turnaja</summary>
+    <div class="completed-match-history-body">${body}</div>
+  </details>`;
+}'''
+          if old not in text:
+            raise SystemExit('renderMatchArea anchor not found')
+          text=text.replace(old,new,1)
+          path.write_text(text,encoding='utf-8')
+          PY
+      - name: Commit result
+        run: |
+          rm -f .github/workflows/completed-tournament-results-first.yml
+          git config user.name "CSP UI Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add turnament/index.html .github/workflows/completed-tournament-results-first.yml
+          git commit -m "Show final standings first after tournament completion"
+          git push
