@@ -45,37 +45,20 @@
 
   var client = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      // Keep one CSP login shared by every tab on this origin. Navigation
-      // is intentionally handled by the page that performed the explicit
-      // sign-in; restoring/refreshing a session must never redirect a tab.
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
     }
   });
 
-  /** Wraps supabase.auth.signUp(). A `profiles` row is auto-created by the
-   * existing on_auth_user_created DB trigger (migration 0001) — nothing
-   * else to do here. Whether `data.session` comes back populated depends
-   * on the project's email-confirmation setting (currently ON, i.e.
-   * autoconfirm is OFF — see summary): if confirmation is required,
-   * `data.session` will be null until the user clicks the emailed link. */
   function signUp(email, password) {
     return client.auth.signUp({ email: email, password: password });
   }
 
-  /** Wraps supabase.auth.signInWithPassword(). */
   function signIn(email, password) {
     return client.auth.signInWithPassword({ email: email, password: password });
   }
 
-  /** Wraps supabase.auth.signInWithOAuth({ provider: 'google' }).
-   * NOTE: Google OAuth is NOT currently enabled on the csp-staging
-   * Supabase project (Authentication > Providers > Google is off as of
-   * this writing — confirmed via the project's /auth/v1/settings
-   * endpoint). Kept here only for UI parity with the existing "Continue
-   * with Google" button; calling this will return an error until a
-   * Google OAuth client is configured in the Supabase dashboard. */
   function signInWithGoogle(redirectTo) {
     return client.auth.signInWithOAuth({
       provider: 'google',
@@ -83,32 +66,14 @@
     });
   }
 
-  /** Wraps supabase.auth.signOut(). */
   function signOut() {
     return client.auth.signOut();
   }
 
-  /** Wraps supabase.auth.getSession() — use on page load to check whether
-   * someone is already logged in. */
   function getSession() {
     return client.auth.getSession();
   }
 
-  /** After confirming a session exists, fetches that user's own row from
-   * `profiles` (id, role, plan, is_admin, ...) via a normal select — this
-   * is allowed by existing RLS (any authenticated user can read any
-   * profile, including their own). Returns { data: null, error: null } if
-   * there is no active session, in the same { data, error } shape
-   * supabase-js itself uses.
-   *
-   * Optionally accepts an already-known user object (e.g. the one you
-   * already got back from getSession()) to avoid an extra internal
-   * getSession() round trip. Calling supabase-js's getSession() twice in
-   * quick succession has been a real source of hangs in some v2 releases
-   * (its internal session lock can contend with itself) — if the caller
-   * already has the session, pass its `.user` here instead of leaving
-   * this function to re-fetch it. Still safe to call with no argument at
-   * all, matching the original documented API. */
   async function getCurrentProfile(knownUser) {
     var userId;
     if (knownUser && knownUser.id) {
@@ -128,11 +93,6 @@
       .single();
   }
 
-  /** Turns a Supabase Auth error into a short, plain-language Slovak
-   * message. Supabase's own error messages are already descriptive
-   * (in English); this just translates the common cases so the UI reads
-   * naturally, and falls back to the raw message for anything else
-   * rather than a generic "something went wrong". */
   function friendlyError(error) {
     if (!error || !error.message) return 'Nastala neočakávaná chyba. Skús to znova.';
     var msg = error.message;
@@ -182,6 +142,15 @@
     if (global.cspAchievementUnlock) global.cspAchievementUnlock.bind(client);
   };
   global.document.head.appendChild(achievementScript);
+
+  // Darts training: record only metrics that the current aggregate-score
+  // scoreboard can determine reliably (180s, high checkouts and visit streaks).
+  if (/^\/scoreboard\/?$/.test(global.location.pathname)) {
+    var dartsAchievementScript = global.document.createElement('script');
+    dartsAchievementScript.src = '/assets/csp-darts-achievements.js?v=20260915-1';
+    dartsAchievementScript.defer = true;
+    global.document.head.appendChild(dartsAchievementScript);
+  }
 
   // Capacitor Android only: attach native push registration/deep-link bridge.
   if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {
