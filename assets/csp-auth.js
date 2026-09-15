@@ -36,7 +36,7 @@
   // enforced entirely by RLS policies on the database (see
   // supabase/migrations/0001_auth_profiles.sql onward), not by keeping
   // this key secret.
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA';
 
   if (!global.supabase || typeof global.supabase.createClient !== 'function') {
     console.error('[csp-auth] @supabase/supabase-js was not found on window.supabase — make sure the CDN script tag is included BEFORE csp-auth.js.');
@@ -142,6 +142,13 @@
     if (global.cspAchievementUnlock) global.cspAchievementUnlock.bind(client);
   };
   global.document.head.appendChild(achievementScript);
+
+  if (/^\/turnament\/?$/.test(global.location.pathname)) {
+    var completedTournamentLayoutScript = global.document.createElement('script');
+    completedTournamentLayoutScript.src = '/assets/csp-tournament-completed-layout.js?v=20260915-1';
+    completedTournamentLayoutScript.defer = true;
+    global.document.head.appendChild(completedTournamentLayoutScript);
+  }
 
   if (/^\/scoreboard\/?$/.test(global.location.pathname)) {
     // Darts training format: custom Best of N legs. Example: Best of 3 ends
