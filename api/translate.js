@@ -11,7 +11,7 @@ const MAX_ITEM_CODE_POINTS = 2000;
 const MAX_REQUEST_CODE_POINTS = 28000;
 const REQUEST_TIMEOUT_MS = 12000;
 
-const ALLOWED_LANGS = new Set(['sk', 'cs', 'en', 'de', 'pl', 'ru']);
+const ALLOWED_LANGS = new Set(['sk', 'cs', 'en', 'de', 'pl', 'ru', 'hu']);
 
 function sendJson(res, status, body) {
   res.statusCode = status;
