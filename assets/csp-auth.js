@@ -141,28 +141,14 @@
     if (lower.indexOf('email not confirmed') !== -1) return 'E-mail nie je potvrdený. Skontroluj svoju schránku.';
     if (lower.indexOf('already registered') !== -1 || lower.indexOf('already exists') !== -1 || lower.indexOf('user already registered') !== -1) return 'Tento e-mail je už registrovaný.';
     if (lower.indexOf('rate limit') !== -1) return 'Príliš veľa pokusov. Skús to o chvíľu znova.';
-    if (lower.indexOf('password') !== -1 && lower.indexOf('least') !== -1) return msg; // Supabase's own "at least N characters" message is already clear
+    if (lower.indexOf('password') !== -1 && lower.indexOf('least') !== -1) return msg;
     return msg;
   }
 
-  /** Supabase Auth does NOT return an error when signUp() is called with
-   * an email that's already registered — this is deliberate
-   * anti-enumeration behavior (confirmed live against this project: a
-   * duplicate signup responds 200 with an empty `identities` array
-   * instead of an error, indistinguishable from a genuine new signup by
-   * error alone). Pass the `data` object from signUp()'s result to this
-   * helper to detect that case and show an accurate message instead of a
-   * misleading "check your email" success message. */
   function isDuplicateSignup(data) {
     return !!(data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0);
   }
 
-  /** Races a promise against a timeout so a stuck network/auth call can
-   * never hang a page's init logic silently and indefinitely. Rejects
-   * with a clear Error after `ms` if `promise` hasn't settled yet —
-   * callers should wrap this in try/catch (see profil/index.html for the
-   * pattern) so a timeout just logs and falls back gracefully instead of
-   * becoming an unhandled rejection. */
   function withTimeout(promise, ms, label) {
     return Promise.race([
       promise,
@@ -175,8 +161,6 @@
   }
 
   global.cspAuth = {
-    // Raw client, exposed for one-off queries this helper doesn't wrap
-    // (e.g. reading/writing other tables once a session exists).
     client: client,
     signUp: signUp,
     signIn: signIn,
@@ -188,6 +172,16 @@
     isDuplicateSignup: isDuplicateSignup,
     withTimeout: withTimeout
   };
+
+  // Realtime visual reward: on every authenticated CSP page using csp-auth,
+  // listen for newly unlocked achievements and show the Premium Seal popup.
+  var achievementScript = global.document.createElement('script');
+  achievementScript.src = '/assets/csp-achievement-unlock.js?v=20260915-1';
+  achievementScript.defer = true;
+  achievementScript.onload = function () {
+    if (global.cspAchievementUnlock) global.cspAchievementUnlock.bind(client);
+  };
+  global.document.head.appendChild(achievementScript);
 
   // Capacitor Android only: attach native push registration/deep-link bridge.
   if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {
