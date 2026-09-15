@@ -5,6 +5,8 @@ const PROVIDER_ID='vercel';
 const SERVICE_ACCOUNT='csp-translation@connectsportpro.iam.gserviceaccount.com';
 const CLOUD_SCOPE='https://www.googleapis.com/auth/cloud-platform';
 const TIMEOUT_MS=20000;
+const EN_LOCALE_URL='https://raw.githubusercontent.com/tomaspikna-eng/cspfinal/main/assets/csp-locale-en.json';
+const HU_LOCALE_URL='https://raw.githubusercontent.com/tomaspikna-eng/cspfinal/main/assets/csp-locale-hu.json';
 
 async function fetchWithTimeout(url,options={}){
   const controller=new AbortController();
@@ -22,7 +24,7 @@ function getOidcToken(req){
 async function getGoogleAccessToken(vercelOidcToken){
   const audience=`//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/providers/${PROVIDER_ID}`;
   const stsBody=new URLSearchParams({
-    grant_type:'urn:ietf:params:oauth:grant-type:token-exchange',
+    grant_type:'urn:ietf:params:oauth-grant-type:token-exchange'.replace('oauth-grant','oauth:grant'),
     audience,
     scope:CLOUD_SCOPE,
     requested_token_type:'urn:ietf:params:oauth:token-type:access_token',
@@ -51,8 +53,7 @@ async function translateBatch(accessToken,texts,source,target='hu'){
 async function translateAll(accessToken,texts,source){
   const out=[];
   for(let i=0;i<texts.length;i+=40){
-    const batch=texts.slice(i,i+40);
-    out.push(...await translateBatch(accessToken,batch,source));
+    out.push(...await translateBatch(accessToken,texts.slice(i,i+40),source));
   }
   return out;
 }
@@ -62,10 +63,9 @@ export default async function handler(req,res){
   try{
     const oidc=getOidcToken(req);
     if(!oidc) return res.status(503).json({error:'OIDC unavailable'});
-    const origin=`https://${req.headers.host}`;
     const [enResponse,huResponse]=await Promise.all([
-      fetchWithTimeout(`${origin}/assets/csp-locale-en.json`,{cache:'no-store'}),
-      fetchWithTimeout(`${origin}/assets/csp-locale-hu.json`,{cache:'no-store'})
+      fetchWithTimeout(EN_LOCALE_URL,{cache:'no-store'}),
+      fetchWithTimeout(HU_LOCALE_URL,{cache:'no-store'})
     ]);
     if(!enResponse.ok) throw new Error(`EN locale ${enResponse.status}`);
     const en=await enResponse.json();
@@ -75,16 +75,17 @@ export default async function handler(req,res){
     const missing=keys.filter(key=>!(hu.translations&&typeof hu.translations[key]==='string'&&hu.translations[key].trim()));
     const translatedMissing=await translateAll(accessToken,missing,'sk');
     const generated={};
-    keys.forEach(key=>{generated[key]=hu.translations?.[key]||translatedMissing[missing.indexOf(key)]||key;});
+    const translatedByKey=new Map(missing.map((key,index)=>[key,translatedMissing[index]||key]));
+    keys.forEach(key=>{generated[key]=hu.translations?.[key]||translatedByKey.get(key)||key;});
     const enPatterns=Array.isArray(en.patterns)?en.patterns:[];
     const huPatternMap=new Map((Array.isArray(hu.patterns)?hu.patterns:[]).map(p=>[p.source,p.target]));
-    const missingPatternTargets=enPatterns.filter(p=>!huPatternMap.has(p.source)).map(p=>p.target||'');
-    const translatedPatternTargets=await translateAll(accessToken,missingPatternTargets,'en');
-    let patternIndex=0;
+    const missingPatternItems=enPatterns.filter(p=>!huPatternMap.has(p.source));
+    const translatedPatternTargets=await translateAll(accessToken,missingPatternItems.map(p=>p.target||''),'en');
+    const translatedPatternMap=new Map(missingPatternItems.map((p,index)=>[p.source,translatedPatternTargets[index]||p.target||'']));
     const patterns=enPatterns.map(p=>({
       source:p.source,
       ...(p.flags?{flags:p.flags}:{}),
-      target:huPatternMap.get(p.source)||translatedPatternTargets[patternIndex++]||p.target||''
+      target:huPatternMap.get(p.source)||translatedPatternMap.get(p.source)||p.target||''
     }));
     const payload={locale:'hu',name:'Magyar',version:'2026-09-15',translations:generated,patterns};
     res.setHeader('Content-Type','application/json; charset=utf-8');
