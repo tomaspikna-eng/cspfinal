@@ -9,6 +9,7 @@ const achievementInitials=name=>String(name||"Hráč").trim().split(/\s+/).slice
 const achievementDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?"":new Intl.DateTimeFormat("sk-SK",{day:"numeric",month:"short",year:"numeric"}).format(d)};
 const achievementBadgeLabel=code=>({first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T"}[code]||"CSP");
 const categoryLabel=value=>({zaciatky:"Začiatky",progres:"Progres",konzistencia:"Konzistencia",vykon:"Výkon",vynimocne:"Výnimočné"}[value]||value||"Achievement");
+const achievementRarityLabel=value=>({bronze:"BRONZE",silver:"SILVER",gold:"GOLD",platinum:"PLATINUM"}[String(value||"").toLowerCase()]||"CSP");
 
 function setAchievementProfile(profile){
   document.querySelectorAll("[data-achievement-player-name]").forEach(el=>el.textContent=profile.full_name||"Hráč");
@@ -22,8 +23,10 @@ function setAchievementProfile(profile){
 function achievementCard(item){
   const current=Math.max(0,Number(item.current_value)||0),target=Math.max(1,Number(item.target_value)||1),pct=Math.min(100,Math.round(current*100/target)),unlocked=!!item.unlocked;
   const progressText=unlocked?(item.unlocked_at?`Získané ${achievementDate(item.unlocked_at)}`:"Získané"):`${Math.min(current,target)} / ${target}`;
+  const rarityLabel=achievementRarityLabel(item.rarity);
+  const sealState=unlocked?"EARNED":"LOCKED";
   return `<article class="achievement-card ${achievementEsc(item.rarity)} ${unlocked?"unlocked":"locked"}" data-achievement-category="${achievementEsc(item.category)}" data-achievement-state="${unlocked?"unlocked":"locked"}">
-    <div class="card-top"><span class="achievement-badge">${achievementEsc(achievementBadgeLabel(item.code))}</span><span class="achievement-points">+${Number(item.points)||0} B</span></div>
+    <div class="card-top"><span class="achievement-badge" aria-label="${achievementEsc(rarityLabel)} ${unlocked?"získaný":"zamknutý"} achievement"><span class="achievement-badge-ring"></span><span class="achievement-badge-top">CSP</span><span class="achievement-badge-symbol">${achievementEsc(achievementBadgeLabel(item.code))}</span><span class="achievement-badge-meta">${sealState}</span></span><span class="achievement-points">+${Number(item.points)||0} B</span></div>
     <p class="achievement-category">${achievementEsc(categoryLabel(item.category))}</p>
     <h3>${achievementEsc(item.name)}</h3>
     <p>${achievementEsc(item.description)}</p>
