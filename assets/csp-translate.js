@@ -4,7 +4,7 @@
   'use strict';
 
   const SOURCE_LANGUAGE='sk';
-  const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl','ru']);
+  const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl','ru','hu']);
   const LANGUAGE_STORAGE_KEY='csp_language';
   const CACHE_STORAGE_KEY='csp_translation_cache_v2';
   const API_ENDPOINT='/api/translate';
@@ -13,7 +13,8 @@
     en:'/assets/csp-locale-en.json',
     de:'/assets/csp-locale-de.json',
     pl:'/assets/csp-locale-pl.json',
-    ru:'/assets/csp-locale-ru.json'
+    ru:'/assets/csp-locale-ru.json',
+    hu:'/assets/csp-locale-hu.json'
   };
   const MAX_BATCH_SIZE=60;
   const SKIP_TAGS=new Set(['SCRIPT','STYLE','NOSCRIPT','CODE','PRE','TEXTAREA','SVG','PATH','CANVAS','VIDEO','AUDIO']);
@@ -204,10 +205,6 @@
           window[missingKey]=[...new Set([...(window[missingKey]||[]),...missingSlovak])];
         }
 
-        // New UI strings are translated through the already configured
-        // Google Cloud Translation endpoint. Curated locale JSON remains
-        // the first priority; API results are only a fallback and are cached
-        // locally so the same browser does not request them repeatedly.
         try{
           for(let i=0;i<uniqueMissing.length;i+=MAX_BATCH_SIZE){
             const batch=uniqueMissing.slice(i,i+MAX_BATCH_SIZE);
@@ -301,50 +298,34 @@
     }
   }
 
-
   async function translateNewContent(root=document.body){
     if(translating||currentLanguage===SOURCE_LANGUAGE||!root) return;
-
     translating=true;
     document.body?.setAttribute('aria-busy','true');
-
     try{
       const textNodes=collectTextNodes(root).filter(node=>{
         const original=originalTextNodes.get(node);
         return typeof original==='string' && node.nodeValue===original;
       });
-
       const attributeItems=collectAttributeItems(root).filter(item=>{
         const original=originalAttributes.get(item.element)?.[item.attribute];
-        return typeof original==='string' &&
-          item.element.getAttribute(item.attribute)===original;
+        return typeof original==='string' && item.element.getAttribute(item.attribute)===original;
       });
-
-      const textValues=textNodes.map(node=>
-        String(originalTextNodes.get(node)||'').trim()
-      );
-
-      const attributeValues=attributeItems.map(item=>
-        String(originalAttributes.get(item.element)?.[item.attribute]||'').trim()
-      );
-
+      const textValues=textNodes.map(node=>String(originalTextNodes.get(node)||'').trim());
+      const attributeValues=attributeItems.map(item=>String(originalAttributes.get(item.element)?.[item.attribute]||'').trim());
       const allValues=[...textValues,...attributeValues];
       if(!allValues.length) return;
-
       const translated=await translateValues(allValues,currentLanguage);
-
       textNodes.forEach((node,index)=>{
         const original=String(originalTextNodes.get(node)||node.nodeValue||'');
         const lead=original.match(/^\s*/)?.[0]||'';
         const trail=original.match(/\s*$/)?.[0]||'';
         node.nodeValue=lead+(translated[index]||original.trim())+trail;
       });
-
       attributeItems.forEach((item,index)=>{
         const value=translated[textValues.length+index];
         if(value) item.element.setAttribute(item.attribute,value);
       });
-
       document.documentElement.lang=currentLanguage;
     }catch(error){
       console.error('[CSP translate dynamic]',error);
@@ -356,7 +337,16 @@
 
   function bindLanguageSelectors(){
     document.querySelectorAll('#cspLanguageSelect,#cspLangSelect,[data-csp-language-select],.lang-select').forEach(select=>{
-      if(select.tagName!=='SELECT'||select.dataset.cspTranslationBound==='1') return;
+      if(select.tagName!=='SELECT') return;
+      if(!Array.from(select.options).some(option=>String(option.value).toLowerCase()==='hu')){
+        const huOption=document.createElement('option');
+        huOption.value='hu';
+        huOption.textContent='HU';
+        huOption.setAttribute('translate','no');
+        huOption.setAttribute('data-no-translate','true');
+        select.appendChild(huOption);
+      }
+      if(select.dataset.cspTranslationBound==='1') return;
       select.dataset.cspTranslationBound='1';
       select.addEventListener('change',event=>applyLanguage(event.target.value));
     });
@@ -370,20 +360,12 @@
   function startObserver(){
     if(!document.body) return;
     stopObserver();
-
     mutationObserver=new MutationObserver(mutations=>{
       if(translating||currentLanguage===SOURCE_LANGUAGE) return;
-
       const roots=[];
       mutations.forEach(mutation=>{
-        if(mutation.type==='attributes'&&mutation.target?.nodeType===Node.ELEMENT_NODE){
-          roots.push(mutation.target);
-        }
-
-        if(mutation.type==='characterData' && mutation.target?.parentElement){
-          roots.push(mutation.target.parentElement);
-        }
-
+        if(mutation.type==='attributes'&&mutation.target?.nodeType===Node.ELEMENT_NODE) roots.push(mutation.target);
+        if(mutation.type==='characterData' && mutation.target?.parentElement) roots.push(mutation.target.parentElement);
         if(mutation.type==='childList' && mutation.addedNodes?.length){
           mutation.addedNodes.forEach(node=>{
             if(node.nodeType===Node.ELEMENT_NODE) roots.push(node);
@@ -391,19 +373,13 @@
           });
         }
       });
-
       if(!roots.length) return;
-
       if(mutationTimer) clearTimeout(mutationTimer);
       mutationTimer=setTimeout(async()=>{
         bindLanguageSelectors();
-
-        for(const root of [...new Set(roots)]){
-          await translateNewContent(root);
-        }
+        for(const root of [...new Set(roots)]) await translateNewContent(root);
       },150);
     });
-
     mutationObserver.observe(document.body,{
       childList:true,
       subtree:true,
