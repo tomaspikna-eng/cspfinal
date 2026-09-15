@@ -1,0 +1,69 @@
+name: Sync locale parity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/build-locale-audit.js'
+      - '.github/workflows/sync-locale-parity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for production generator
+        run: sleep 20
+
+      - name: Download complete locales
+        run: |
+          set -euo pipefail
+          for lang in cs de pl ru; do
+            curl --fail --retry 8 --retry-delay 5 --max-time 120 \
+              "https://connectsportspro.com/api/build-locale-audit?lang=${lang}" \
+              -o "assets/csp-locale-${lang}.json"
+          done
+
+      - name: Verify parity against EN
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const en=JSON.parse(fs.readFileSync('assets/csp-locale-en.json','utf8'));
+          const canonicalKeys=Object.keys(en.translations||{});
+          const canonicalPatterns=(en.patterns||[]).map(p=>p.source);
+          let failed=false;
+          for(const lang of ['cs','de','pl','ru']){
+            const f=`assets/csp-locale-${lang}.json`;
+            const d=JSON.parse(fs.readFileSync(f,'utf8'));
+            const keys=new Set(Object.keys(d.translations||{}));
+            const patterns=new Set((d.patterns||[]).map(p=>p.source));
+            const missingKeys=canonicalKeys.filter(k=>!keys.has(k));
+            const missingPatterns=canonicalPatterns.filter(k=>!patterns.has(k));
+            console.log(`${lang.toUpperCase()}: ${keys.size}/${canonicalKeys.length} keys, ${patterns.size}/${canonicalPatterns.length} patterns, filled keys=${d._audit?.missing_keys_filled||0}, filled patterns=${d._audit?.missing_patterns_filled||0}`);
+            if(missingKeys.length||missingPatterns.length){failed=true;console.error('Missing',lang,missingKeys,missingPatterns);}
+            delete d._audit;
+            fs.writeFileSync(f,JSON.stringify(d,null,2)+'\n');
+          }
+          if(failed) process.exit(1);
+          NODE
+
+      - name: Remove temporary generator and workflow
+        run: |
+          rm -f api/build-locale-audit.js
+          rm -f .github/workflows/sync-locale-parity.yml
+
+      - name: Commit locale parity
+        run: |
+          git config user.name "CSP Localization Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add assets/csp-locale-cs.json assets/csp-locale-de.json assets/csp-locale-pl.json assets/csp-locale-ru.json api/build-locale-audit.js .github/workflows/sync-locale-parity.yml
+          if git diff --cached --quiet; then
+            echo "No locale changes needed"
+            exit 0
+          fi
+          git commit -m "Align CZ DE PL RU localization packs with EN"
+          git push
