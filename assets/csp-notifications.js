@@ -11,6 +11,7 @@
     return new Intl.DateTimeFormat("sk-SK",{day:"numeric",month:"short"}).format(new Date(iso));
   };
   const iconFor=type=>{
+    if(type==="achievement_unlocked")return"◆";
     if(type==="new_follower")return"👤";
     if(type==="followed_player_training")return"◎";
     if(type==="followed_player_match")return"⚔";
@@ -54,12 +55,24 @@
     document.head.appendChild(style);
   }
 
+  function enableAchievementPopups(client){
+    if(global.cspAchievementUnlock){global.cspAchievementUnlock.bind(client);return}
+    if(document.querySelector('script[data-csp-achievement-unlock]'))return;
+    const script=document.createElement('script');
+    script.src='/assets/csp-achievement-unlock.js?v=20260915-1';
+    script.defer=true;
+    script.dataset.cspAchievementUnlock='1';
+    script.onload=()=>global.cspAchievementUnlock?.bind(client);
+    document.head.appendChild(script);
+  }
+
   async function bind(options={}){
     const client=options.client||global.cspAuth?.client;
     const button=typeof options.button==="string"?document.querySelector(options.button):options.button||document.querySelector("[data-csp-notifications-button]");
     if(!client||!button)return null;
 
     injectStyles();
+    enableAchievementPopups(client);
     button.classList.add("csp-notif-anchor");
     button.dataset.cspNotificationsButton="1";
     let badge=button.querySelector(".csp-notif-count");
