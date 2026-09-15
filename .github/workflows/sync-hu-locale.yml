@@ -1,0 +1,34 @@
+name: Sync HU locale
+
+on:
+  push:
+    paths:
+      - '.github/workflows/sync-hu-locale.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for production generator
+        run: sleep 15
+      - name: Download complete HU locale
+        run: |
+          curl --fail --retry 5 --retry-delay 5 --silent --show-error \
+            https://connectsportspro.com/api/build-hu-locale \
+            -o assets/csp-locale-hu.json
+          node -e "const fs=require('fs'); const hu=JSON.parse(fs.readFileSync('assets/csp-locale-hu.json','utf8')); const en=JSON.parse(fs.readFileSync('assets/csp-locale-en.json','utf8')); const missing=Object.keys(en.translations).filter(k=>!Object.prototype.hasOwnProperty.call(hu.translations,k)); if(missing.length) throw new Error('HU missing '+missing.length+' canonical keys'); console.log('HU canonical keys:',Object.keys(en.translations).length,'HU total keys:',Object.keys(hu.translations).length,'patterns:',hu.patterns.length);"
+      - name: Remove temporary generator and workflow
+        run: |
+          rm -f api/build-hu-locale.js
+          rm -f .github/workflows/sync-hu-locale.yml
+      - name: Commit complete HU locale
+        run: |
+          git config user.name "CSP Localization Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add assets/csp-locale-hu.json api/build-hu-locale.js .github/workflows/sync-hu-locale.yml
+          git commit -m "Complete Hungarian localization pack"
+          git push
