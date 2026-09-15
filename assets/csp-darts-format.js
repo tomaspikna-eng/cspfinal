@@ -12,24 +12,43 @@
 
   function normalizeLegInput(){
     var input=document.getElementById('raceTo');
-    if(!input||!isDarts())return;
+    if(!input||!isDarts())return true;
     input.min='1';
     input.max='99';
     input.step='2';
-    var value=Math.max(1,parseInt(input.value,10)||5);
+
+    // While the user is editing, an empty field must stay empty. The old
+    // implementation converted an empty value straight back to 5, which made
+    // the default look hard-coded and impossible to delete.
+    var raw=String(input.value||'').trim();
+    if(raw==='')return false;
+
+    var parsed=parseInt(raw,10);
+    if(!Number.isFinite(parsed))return false;
+    var value=Math.max(1,Math.min(99,parsed));
     if(value%2===0)value+=1;
+    if(value>99)value=99;
     input.value=String(value);
     try{state.raceTo=value}catch(_e){}
+    return true;
   }
 
   function syncLabels(){
     if(!isDarts())return;
-    var total=Math.max(1,parseInt((document.getElementById('raceTo')||{}).value,10)||Number(state&&state.raceTo)||5);
-    var needed=winsNeeded(total);
+    var input=document.getElementById('raceTo');
+    var raw=input?String(input.value||'').trim():'';
+    var total=raw===''?null:parseInt(raw,10);
     var label=document.getElementById('raceLabel');
     if(label)label.textContent='Počet legov (Best of)';
     var pill=document.getElementById('formatPill');
-    if(pill)pill.textContent='Best of '+total+' · na '+needed+' víťazné legy';
+    if(pill){
+      if(Number.isFinite(total)&&total>0){
+        var needed=winsNeeded(total);
+        pill.textContent='Best of '+total+' · na '+needed+' víťazné legy';
+      }else{
+        pill.textContent='Zadaj počet legov (Best of)';
+      }
+    }
     var nextLabel=document.getElementById('nextSetRaceLabel');
     if(nextLabel)nextLabel.textContent='Počet legov (Best of) pre ďalší set';
     var nextInput=document.getElementById('nextSetRaceTo');
@@ -53,7 +72,13 @@
       var originalApplySettings=global.applySettings;
       global.applySettings=function(){
         var sportSelect=document.getElementById('sportSelect');
-        if((sportSelect&&sportSelect.value==='darts')||isDarts())normalizeLegInput();
+        var dartsSelected=(sportSelect&&sportSelect.value==='darts')||isDarts();
+        if(dartsSelected&&!normalizeLegInput()){
+          var input=document.getElementById('raceTo');
+          if(input)input.focus();
+          syncLabels();
+          return;
+        }
         var result=originalApplySettings.apply(this,arguments);
         syncLabels();
         return result;
@@ -93,19 +118,22 @@
 
     var raceInput=document.getElementById('raceTo');
     if(raceInput){
+      raceInput.addEventListener('input',syncLabels);
       raceInput.addEventListener('change',function(){normalizeLegInput();syncLabels()});
-      raceInput.addEventListener('blur',function(){normalizeLegInput();syncLabels()});
+      // Do not normalize on blur: deleting the value must not restore 5.
     }
     var nextInput=document.getElementById('nextSetRaceTo');
     if(nextInput){
       nextInput.addEventListener('change',function(){
-        var n=Math.max(1,parseInt(nextInput.value,10)||5);
+        var raw=String(nextInput.value||'').trim();
+        if(raw==='')return;
+        var n=Math.max(1,Math.min(99,parseInt(raw,10)||1));
         if(n%2===0)n+=1;
+        if(n>99)n=99;
         nextInput.value=String(n);
       });
     }
 
-    normalizeLegInput();
     syncLabels();
   }
 
