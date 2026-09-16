@@ -1,0 +1,32 @@
+name: CSP quality and security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Security regression audit
+        run: node scripts/security-regression.mjs
+
+      - name: DKO engine tests
+        run: node scripts/test-dko-engine.mjs
+
+      - name: RR to KO engine tests
+        run: node scripts/test-rr-ko-engine.mjs turnament/index.html
