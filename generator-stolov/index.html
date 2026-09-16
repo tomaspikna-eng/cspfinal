@@ -101,6 +101,10 @@
     .table-actions .btn{min-height:42px;padding:0 15px;font-size:.88rem}
     .round-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)}
     .round-summary{color:var(--muted);font-size:.92rem;line-height:1.5}
+    .csp-next-round-control{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+    .csp-next-round-control label{display:flex;align-items:center;gap:8px;margin:0;color:var(--muted);font-size:.85rem;font-weight:800}
+    .csp-next-round-control select{width:auto;min-width:76px;min-height:42px;padding:0 10px}
+    .csp-fair-hint{color:rgba(255,255,255,.72);font-size:.82rem;font-weight:700}
     .final-ranking{display:grid;gap:10px;margin-top:14px}
     .final-ranking-row{display:grid;grid-template-columns:1fr 130px;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
     .final-ranking-row select{min-height:42px;padding:0 10px;border-radius:12px;font-weight:800}
@@ -117,6 +121,7 @@
       .grid{grid-template-columns:1fr}
       textarea{min-height:260px}
       .round-actions{align-items:stretch;flex-direction:column}
+      .csp-next-round-control{margin-left:0;align-items:flex-start;flex-direction:column}
       .final-ranking-row{grid-template-columns:1fr}
     }
   </style>
@@ -141,7 +146,8 @@
       <div class="hero-actions">
         <a class="btn btn-secondary" id="backTournamentBtn" href="/turnament/">Späť na turnaj</a>
         <a class="btn btn-secondary" id="projectorBtn" href="/displayview/">ProjektorTV</a>
-        <a class="btn btn-secondary" id="seriesBtn" href="/udalost/?sport=Karty&series=1">Vytvoriť sezónu</a>
+        <a class="btn btn-secondary" id="seriesBtn" href="/turnament-konverzia/?mode=series">Vytvoriť sériu</a>
+        <a class="btn btn-secondary" id="cspCreateLeagueFromTournament" href="/turnament-konverzia/?mode=league">Vytvoriť ligu</a>
       </div>
       <div class="sync-line" id="syncLine"><span class="sync-dot"></span><span id="syncText">Pripájam turnaj…</span></div>
     </section>
@@ -181,7 +187,7 @@ Martin Horváth"></textarea>
 
             <div class="number-row">
               <div class="field">
-                <label for="playersPerTable">Počet hráčov na stole</label>
+                <label for="playersPerTable">Preferovaný počet hráčov na stole</label>
                 <select id="playersPerTable">
                   <option value="2">2 hráči</option>
                   <option value="3">3 hráči</option>
@@ -264,8 +270,28 @@ Martin Horváth"></textarea>
   }
   function suggestTableCount(playerCount,playersPerTable){
     if(!playerCount||!playersPerTable)return 0;
-    if(playerCount<=FINAL_PLAYER_COUNT+1)return 1;
-    return Math.max(1,Math.min(Math.floor(playerCount/2),Math.ceil(playerCount/playersPerTable)));
+    if(playerCount<=FINAL_PLAYER_COUNT)return 1;
+    const preferred=Math.max(2,Math.min(8,Number(playersPerTable)||4));
+    const minTables=Math.max(1,Math.ceil(playerCount/preferred));
+    const maxTables=Math.min(Math.max(minTables,Math.floor(playerCount/2)),minTables+1);
+    let best=null,bestImbalance=Number.POSITIVE_INFINITY,bestDistance=Number.POSITIVE_INFINITY;
+    for(let tables=minTables;tables<=maxTables;tables++){
+      const minSize=Math.floor(playerCount/tables);
+      const maxSize=Math.ceil(playerCount/tables);
+      if(minSize<Math.max(2,preferred-1)||maxSize>preferred)continue;
+      const imbalance=maxSize-minSize;
+      const distance=Math.abs(playerCount/tables-preferred);
+      if(best===null||imbalance<bestImbalance||(imbalance===bestImbalance&&distance<bestDistance)){
+        best=tables;bestImbalance=imbalance;bestDistance=distance;
+      }
+    }
+    return best??minTables;
+  }
+  function tableDistribution(playerCount,playersPerTable){
+    const count=suggestTableCount(playerCount,playersPerTable);
+    if(!count)return [];
+    const base=Math.floor(playerCount/count),extra=playerCount%count;
+    return Array.from({length:count},(_,index)=>base+(index<extra?1:0));
   }
   function message(text,type=''){
     statusMessage.textContent=text||'';
@@ -353,16 +379,15 @@ Martin Horváth"></textarea>
     $('projectorBtn').href=tournamentId?`/displayview/?id=${encodeURIComponent(tournamentId)}`:'/displayview/';
     const tournament=state?.tournament||{};
     const seriesBtn=$('seriesBtn');
+    const leagueBtn=$('cspCreateLeagueFromTournament');
+    const conversionBase=`/turnament-konverzia/?id=${encodeURIComponent(tournamentId)}`;
+    leagueBtn.href=conversionBase+'&mode=league';
     if(tournament.series_id){
       seriesBtn.textContent='Celkové poradie sezóny';
       seriesBtn.href=`/rebricek/?id=${encodeURIComponent(tournament.series_id)}`;
     }else{
-      seriesBtn.textContent='Vytvoriť sezónu';
-      const seasonUrl=new URL('/udalost/',location.origin);
-      seasonUrl.searchParams.set('sport','Karty');
-      seasonUrl.searchParams.set('discipline',tournament.discipline||'');
-      seasonUrl.searchParams.set('series','1');
-      seriesBtn.href=seasonUrl.pathname+seasonUrl.search;
+      seriesBtn.textContent='Vytvoriť sériu';
+      seriesBtn.href=conversionBase+'&mode=series';
     }
   }
   function setupContext(){
@@ -438,7 +463,31 @@ Martin Horváth"></textarea>
     summary.innerHTML=`Vypadávajúci: <strong>${eliminatedCount(round)}</strong> · Postupuje: <strong>${survivors.length}</strong> · Finále: <strong>${FINAL_PLAYER_COUNT}</strong>`;
     actions.appendChild(summary);
     if(isCurrent){
+      const control=document.createElement('div');
+      control.className='csp-next-round-control';
+      if(survivors.length===FINAL_PLAYER_COUNT){
+        control.innerHTML='<span class="csp-fair-hint">4 hráči · jeden finálový stôl</span>';
+      }else{
+        const preferred=Math.max(2,Number(state.settings?.players_per_table)||4);
+        control.innerHTML=`<label>Hráčov na stole v ďalšom kole
+          <select id="nextRoundPlayersPerTable">
+            <option value="auto">Auto</option>
+            ${[2,3,4,5].map(value=>`<option value="${value}">${value}</option>`).join('')}
+          </select>
+        </label><span class="csp-fair-hint"></span>`;
+        const select=control.querySelector('select');
+        const hint=control.querySelector('.csp-fair-hint');
+        const updateHint=()=>{
+          const selected=select.value==='auto'?preferred:Number(select.value);
+          const sizes=tableDistribution(survivors.length,selected);
+          hint.textContent=`Návrh: ${sizes.length} stolov · ${sizes.join(' + ')} hráči`;
+        };
+        select.addEventListener('change',updateHint);
+        updateHint();
+      }
+      actions.appendChild(control);
       const next=document.createElement('button');next.type='button';next.className='btn btn-primary';
+      next.dataset.cspConfigured='1';
       next.textContent=survivors.length===FINAL_PLAYER_COUNT?'Vygenerovať finálový stôl':'Vygenerovať ďalšie kolo';
       next.disabled=busy||!allTablesClosed(round)||survivors.length<FINAL_PLAYER_COUNT||survivors.length===((round.tables||[]).flatMap(table=>table.players||[]).length);
       next.addEventListener('click',advanceRound);actions.appendChild(next);
@@ -592,7 +641,11 @@ Martin Horváth"></textarea>
     runRpc('set_card_table_status',{p_table_id:tableId,p_status:status});
   }
   function advanceRound(){
-    runRpc('advance_card_round',{p_tournament_id:tournamentId},'Ďalšie kolo bolo vygenerované.');
+    const selected=document.getElementById('nextRoundPlayersPerTable')?.value;
+    runRpc('advance_card_round_configured',{
+      p_tournament_id:tournamentId,
+      p_players_per_table:selected&&selected!=='auto'?Number(selected):null
+    },'Ďalšie kolo bolo vygenerované.');
   }
   function completeTournament(){
     const players=currentRound()?.tables?.[0]?.players||[];

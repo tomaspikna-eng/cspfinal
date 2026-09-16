@@ -3592,14 +3592,17 @@ async function flushWizardAutosave(force=false){
   pendingTournamentWrite=true;
   try{
     const existingConfig=(wiz.config&&typeof wiz.config==='object')?wiz.config:{};
+    const cardSnapshot=snap.format==='karty'||snap.sport==='Karty';
+    const cleanConfig={...existingConfig};
+    if(cardSnapshot)delete cleanConfig.race_to;
     const payload=wiz.structureLocked?{
       name:snap.name||'Nový turnaj',
       date:snap.date||null,
       venue:snap.venue||null,
       ihs_allowed_categories:snap.ihsCategories,
       config:{
-        ...existingConfig,
-        race_to:snap.raceTo,
+        ...cleanConfig,
+        ...(cardSnapshot?{}:{race_to:snap.raceTo}),
         third_place_playoff:snap.thirdPlace,
         present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
         draft_wizard:snap
@@ -3615,8 +3618,8 @@ async function flushWizardAutosave(force=false){
       advance_count:(snap.format==='rr_sko'||snap.format==='rr_dko')?snap.advance:null,
       ihs_allowed_categories:snap.ihsCategories,
       config:{
-        ...existingConfig,
-        race_to:snap.raceTo,
+        ...cleanConfig,
+        ...(cardSnapshot?{}:{race_to:snap.raceTo}),
         third_place_playoff:snap.thirdPlace,
         seed_count:Math.min(snap.players.length,snap.seedCount),
         present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
@@ -3732,7 +3735,7 @@ function renderWiz(){
         <div class="field"><label>Dátum</label><input type="date" id="wDate" value="${wiz.date}" onchange="wiz.date=this.value"/></div>
         <div class="field"><label>Miesto (nepovinné)</label><input id="wVenue" value="${esc(wiz.venue)}" placeholder="napr. ŠK Pohoda" oninput="wiz.venue=this.value"/></div>
       </div>
-      <div class="field"><label>Race to / cieľ zápasu</label><input type="number" id="wRaceTo" min="1" max="99" value="${wiz.raceTo||5}" oninput="wiz.raceTo=Math.max(1,+this.value||1)"/><div class="hint">Prenesie sa aj do QR scoreboardu konkrétneho zápasu.</div></div>
+      ${isKarty()?'':`<div class="field"><label>Hrá sa na</label><input type="number" id="wRaceTo" min="1" max="99" value="${wiz.raceTo||5}" oninput="wiz.raceTo=Math.max(1,+this.value||1)"/><div class="hint">Prenesie sa aj do QR scoreboardu konkrétneho zápasu.</div></div>`}
       <div class="field ihs-settings"><label>CSP IHS · REGISTRÁCIA</label>
         <div class="pill-row">${IHS_CATEGORIES.map(cat=>`<button type="button" class="pill ${(wiz.ihsCategories||IHS_ALL).includes(cat.key)?'sel':''}" onclick="toggleIhsCategory('${cat.key}')">${cat.label}</button>`).join('')}</div>
         <div class="hint">Registrácia iba pre vybrané IHS kategórie.</div>
@@ -3803,7 +3806,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
         <div class="sumrow"><span class="k">Prítomní</span><span class="v">${presentCount}/${wiz.players.length}</span></div>
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
-        <div class="sumrow"><span class="k">Race to</span><span class="v">${wiz.raceTo||5}</span></div>
+        ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
         ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
@@ -3986,6 +3989,8 @@ async function createTournament(){
 
   let createdTournamentId = null;
   try {
+    const baseConfig={...(wiz.config||{})};
+    if(isKarty())delete baseConfig.race_to;
     const payload = {
       name: wiz.name,
       sport: wiz.sport,
@@ -3996,7 +4001,7 @@ async function createTournament(){
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
-      config: { ...(wiz.config || {}), race_to: Number(wiz.raceTo || 5), third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
+      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
@@ -4027,14 +4032,16 @@ async function createTournament(){
           return;
         }
         const currentCfg=(wiz.config&&typeof wiz.config==='object')?wiz.config:{};
+        const safeConfig={...currentCfg};
+        if(isKarty())delete safeConfig.race_to;
         const safePayload={
           name:payload.name,
           date:payload.date,
           venue:payload.venue,
           ihs_allowed_categories:payload.ihs_allowed_categories,
           config:{
-            ...currentCfg,
-            race_to:Number(wiz.raceTo||5),
+            ...safeConfig,
+            ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}),
             third_place_playoff:!!wiz.thirdPlace,
             present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
             draft_wizard:wizardSnapshot()
