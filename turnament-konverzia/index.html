@@ -33,7 +33,6 @@ function notice(text,type=''){const n=document.getElementById('notice');if(!n)re
 function isoFrom(date,time){if(!date||!time)return null;const d=new Date(`${date}T${time}`);return Number.isNaN(d.getTime())?null:d.toISOString()}
 function datePart(v){if(!v)return'';return new Date(v).toLocaleDateString('en-CA')}
 function timePart(v){if(!v)return'';const d=new Date(v);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
-function addDays(dateString,days){if(!dateString)return'';const d=new Date(dateString+'T12:00:00');d.setDate(d.getDate()+days);return d.toLocaleDateString('en-CA')}
 
 function renderLeague(){
   $('eyebrow').textContent='Turnaj → liga';
@@ -58,7 +57,7 @@ function renderSeries(){
     <div class="field full"><label>Názov série</label><input class="input" name="title" value="${esc(tournament.name)}" required></div>
     <div class="field"><label>Počet kôl</label><input class="input" id="roundCount" type="number" min="2" max="52" value="2" required></div>
     <div class="field"><label>Viditeľnosť</label><select class="input" name="visibility"><option value="public">Verejná</option><option value="unlisted">Len cez odkaz</option><option value="private">Súkromná</option></select></div>
-    <div class="field full"><label>Termíny kôl</label><div class="rounds" id="rounds"></div><div class="muted" style="margin-top:8px">Prvé kolo je tento turnaj. Čas zadávame zvlášť, aby CSP nevymýšľal hodinu, ktorú turnaj nemá uloženú.</div></div>
+    <div class="field full"><label>Termíny kôl</label><div class="rounds" id="rounds"></div><div class="muted" style="margin-top:8px">Prvé kolo je tento turnaj. Ak pri ňom CSP pozná iba dátum, čas zadáš ručne. Ďalšie termíny CSP nevymýšľa.</div></div>
     <div class="field full"><div class="actions"><button class="btn green" id="save">Vytvoriť sériu</button><a class="btn" href="/turnament/?id=${encodeURIComponent(tournament.id)}">Späť</a></div><div id="notice" class="notice">Aktuálny turnaj zostane zachovaný a bude 1. kolom série.</div></div>
   </form>`;
   $('roundCount').oninput=renderRounds;
@@ -74,7 +73,7 @@ function renderRounds(){
   const old=[...box.querySelectorAll('.round')].map(r=>({date:r.querySelector('.date')?.value||'',time:r.querySelector('.time')?.value||''}));
   box.innerHTML=Array.from({length:count},(_,i)=>{
     const prev=old[i]||{};
-    const date=prev.date||(i===0?firstDate:(firstDate?addDays(firstDate,i*7):''));
+    const date=prev.date||(i===0?firstDate:'');
     const time=prev.time||(i===0?firstTime:'');
     return `<div class="round"><b>${i+1}. kolo</b><input class="input date" type="date" value="${esc(date)}" required><input class="input time" type="time" value="${esc(time)}" required></div>`;
   }).join('');
