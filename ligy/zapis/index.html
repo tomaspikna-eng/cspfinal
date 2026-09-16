@@ -3,229 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zápis ligového zápasu – Connect Sports Pro</title>
-<meta name="description" content="Kompletný zápis tímového ligového zápasu">
+<title>Ligový zápis – Connect Sports Pro</title>
+<meta name="description" content="Nominácie, konkrétne zápasy a potvrdenia kapitánov tímovej ligy">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
 <style>
-:root{--bg:#07080a;--card:#11141a;--card2:#171b23;--line:rgba(255,255,255,.1);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#e35d55}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1180px,calc(100% - 28px));margin:auto}.top{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b{color:var(--gold)}.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn.red{color:#ff9a94;border-color:rgba(227,93,85,.4);background:rgba(227,93,85,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:38px 0 22px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2rem,5vw,4rem);letter-spacing:-.05em;margin:9px 0}.muted{color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.notice{padding:13px 15px;border-radius:12px;border:1px solid var(--line);margin-bottom:14px;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.4);background:rgba(39,207,125,.06)}.notice.err{color:#ff9a94;border-color:rgba(227,93,85,.4);background:rgba(227,93,85,.06)}.notice.gold{color:#f3d98d;border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.07)}.hide{display:none!important}.meta-grid,.captain-grid,.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.meta-item{padding:13px;border-radius:12px;background:#0b0d12;border:1px solid var(--line)}.meta-item small,.field label{display:block;color:var(--muted);font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}.meta-item b{font-size:1rem}.field{display:grid;gap:6px}.input{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:9px 11px;outline:none}.input:focus{border-color:rgba(212,168,67,.65)}textarea.input{min-height:95px;resize:vertical}.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px}.section-head h2,.team-card h3{margin:0}.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}.team-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:#0b0d12}.team-card.home{border-top:3px solid var(--gold)}.team-card.away{border-top:3px solid var(--green)}.roster{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.chip{padding:6px 8px;border-radius:999px;background:#171b23;border:1px solid var(--line);font-size:.78rem}.rubber{display:grid;grid-template-columns:58px 108px minmax(160px,1fr) minmax(150px,190px) minmax(160px,1fr) 78px 38px;gap:9px;align-items:end;padding:13px 0;border-bottom:1px solid var(--line)}.rubber:last-child{border-bottom:0}.rubber-number{align-self:center;text-align:center;font-weight:900;color:var(--gold)}.player-stack{display:grid;gap:7px}.score-pair{display:grid;grid-template-columns:1fr 18px 1fr;gap:4px;align-items:center}.score-pair span{text-align:center;color:var(--muted);font-weight:900}.score-input{text-align:center;font-weight:900}.rubber-type{min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--line);background:#0b0d12;font-size:.76rem;font-weight:900;text-transform:uppercase}.field-caption{display:block;color:var(--muted);font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}.totals{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:16px;padding:18px;border:1px solid rgba(212,168,67,.32);border-radius:15px;background:rgba(212,168,67,.06)}.total{text-align:center}.total strong{display:block;font-size:2.4rem;color:var(--gold)}.totals>strong{font-size:1.5rem;color:var(--muted)}.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.confirm{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:12px;background:#0b0d12}.confirm input{width:20px;height:20px;accent-color:var(--green)}.submit-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 55px}.status-pill{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:900;text-transform:uppercase}.readonly .editable-only{display:none!important}.readonly input,.readonly select,.readonly textarea{pointer-events:none;opacity:.85}.empty{text-align:center;color:var(--muted);padding:24px}.loading{padding:70px 0;text-align:center;color:var(--muted)}
-@media(max-width:950px){.rubber{grid-template-columns:48px 90px 1fr 1fr}.rubber .discipline-field{grid-column:3}.rubber .away-field{grid-column:4}.rubber .score-field{grid-column:3/5}.rubber .remove-field{grid-column:4;justify-self:end}.rubber-number,.rubber-type{align-self:center}}
-@media(max-width:680px){.top{padding:12px 0}.meta-grid,.captain-grid,.form-grid,.teams,.confirm-grid{grid-template-columns:1fr}.rubber{grid-template-columns:42px 1fr}.rubber-number{grid-row:1/3}.rubber-type{grid-column:2}.rubber .home-field,.rubber .away-field,.rubber .discipline-field,.rubber .score-field{grid-column:1/3}.rubber .remove-field{grid-column:2}.totals{grid-template-columns:1fr auto 1fr}.btn{width:100%}.top .btn,.section-head .btn{width:auto}}
+:root{--bg:#07080a;--card:#11141a;--line:rgba(255,255,255,.1);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#e35d55}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1180px,calc(100% - 28px));margin:auto}.top{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b,.code{color:var(--gold)}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:38px 0 22px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2rem,5vw,4rem);letter-spacing:-.05em;margin:9px 0}.muted{color:var(--muted)}.hide{display:none!important}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.notice{padding:13px 15px;border-radius:12px;border:1px solid var(--line);margin-bottom:14px;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.4)}.notice.err{color:#ff9a94;border-color:rgba(227,93,85,.4)}.notice.gold{color:#f3d98d;border-color:rgba(212,168,67,.4)}.meta-grid,.teams,.lineup-grid,.confirm-grid,.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.meta-item,.team,.lineup{padding:14px;border:1px solid var(--line);border-radius:13px;background:#0b0d12}.meta-item small,.caption,.field label{display:block;color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}.team h3,.section-head h2{margin:0}.team.home,.lineup.home{border-top:3px solid var(--gold)}.team.away,.lineup.away{border-top:3px solid var(--green)}.roster{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.chip,.pill{padding:6px 9px;border-radius:999px;background:#171b23;border:1px solid var(--line);font-size:.78rem}.pill.ok{color:var(--green);border-color:rgba(39,207,125,.4)}.field{display:grid;gap:6px}.input{width:100%;min-height:42px;border-radius:9px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:8px 10px}textarea.input{min-height:90px;resize:vertical}.section-head,.lineup-head,.submit-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.lineup-head{align-items:center;margin-bottom:10px}.nom-row{display:grid;grid-template-columns:48px minmax(130px,1fr) minmax(115px,170px) auto;gap:8px;align-items:center;margin:8px 0}.code{display:grid;place-items:center;min-height:38px;border:1px solid rgba(212,168,67,.35);border-radius:8px;background:rgba(212,168,67,.1);font-weight:900}.double-check{display:flex;gap:6px;align-items:center;font-size:.78rem;font-weight:800}.double-check input{width:18px;height:18px;accent-color:var(--green)}.rubber{display:grid;grid-template-columns:52px 82px minmax(150px,1fr) 128px minmax(150px,1fr);gap:9px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.rubber:last-child{border-bottom:0}.rubber-type{color:var(--muted);font-size:.72rem;font-weight:900;text-transform:uppercase}.side-player.away{text-align:right}.score-buttons{display:grid;grid-template-columns:1fr 1fr;gap:5px}.score-btn{min-height:38px;padding:0 8px}.score-btn.active{background:var(--gold);color:#171005;border-color:transparent}.totals{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:16px;padding:16px;border:1px solid rgba(212,168,67,.32);border-radius:14px;background:rgba(212,168,67,.06);text-align:center}.totals strong{font-size:2rem}.confirm{padding:14px;border:1px solid var(--line);border-radius:12px;background:#0b0d12}.confirm b{display:block;margin-bottom:6px}.submit-row{align-items:center;margin:18px 0 50px}.loading,.empty{text-align:center;color:var(--muted);padding:48px 12px}
+.rubber.focus{margin:4px -8px;padding:12px 8px;border:1px solid var(--gold);border-radius:12px;background:rgba(212,168,67,.06)}.station-control{grid-column:3/6;display:flex;gap:8px;align-items:center}.station-control select{max-width:260px}
+@media(max-width:780px){.meta-grid,.teams,.lineup-grid,.confirm-grid,.form-grid{grid-template-columns:1fr}.rubber{grid-template-columns:40px 70px 1fr}.rubber .away{grid-column:3}.rubber .score-buttons{grid-column:2/4}.station-control{grid-column:2/4}.nom-row{grid-template-columns:42px 1fr}.nom-row .discipline,.nom-row .double-check{grid-column:2}.btn{width:100%}.top .btn,.section-head .btn{width:auto}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
 </head>
 <body>
-<header class="wrap top">
-  <a class="brand" href="/"><b>Connect</b> Sports Pro</a>
-  <div class="actions"><a class="btn" id="backLink" href="/ligy/">← Späť do ligy</a></div>
-</header>
-
-<main class="wrap" id="sheetApp">
+<header class="wrap top"><a class="brand" href="/"><b>Connect</b> Sports Pro</a><a class="btn" id="backLink" href="/ligy/">← Späť do ligy</a></header>
+<main class="wrap">
   <div id="loading" class="loading">Načítavam ligový zápis…</div>
   <div id="content" class="hide">
-    <section class="hero">
-      <div class="eyebrow">Oficiálny zápis</div>
-      <h1>Zápis ligového zápasu</h1>
-      <p class="muted" id="leagueName"></p>
-    </section>
-
+    <section class="hero"><div class="eyebrow">Ligový zápis</div><h1>Zápis ligového zápasu</h1><p class="muted" id="leagueName"></p></section>
     <div id="pageNotice" class="notice hide"></div>
-    <div class="notice gold" id="captainRule">Konkrétne nasadenie hráčov určujú kapitáni. Organizátor po kontrole odošle spoločný zápis do ligovej tabuľky.</div>
-
+    <div class="notice gold" id="accessRule">Zostavy, konkrétne duely a výsledky zapisujú iba priradení kapitáni s vlastným plánom PRO+ alebo vyšším.</div>
     <section class="card">
-      <div class="section-head"><div><h2>Údaje zápasu</h2><div class="muted" id="matchStatus"></div></div><span id="sheetStatus" class="status-pill hide"></span></div>
-      <div class="meta-grid">
-        <div class="meta-item"><small>Kolo</small><b id="roundLabel">–</b></div>
-        <div class="meta-item"><small>Šport a disciplína</small><b id="sportLabel">–</b></div>
-      </div>
-      <div class="form-grid" style="margin-top:12px">
-        <div class="field"><label for="playedOn">Dátum zápasu</label><input class="input" id="playedOn" type="date"></div>
-        <div class="field"><label for="venue">Miesto zápasu</label><input class="input" id="venue" maxlength="160" placeholder="Klub alebo adresa"></div>
-      </div>
+      <div class="section-head"><div><h2>Údaje zápasu</h2><div class="muted" id="matchStatus"></div></div><span class="pill" id="sheetStatus">Bez zápisu</span></div>
+      <div class="meta-grid"><div class="meta-item"><small>Kolo</small><b id="roundLabel">–</b></div><div class="meta-item"><small>Šport a disciplína</small><b id="sportLabel">–</b></div></div>
+      <div class="form-grid" style="margin-top:12px"><div class="field"><label>Dátum</label><input class="input sheet-field" id="playedOn" type="date"></div><div class="field"><label>Miesto konania</label><input class="input sheet-field" id="venue" maxlength="160" placeholder="Klub alebo adresa"></div></div>
     </section>
-
-    <section class="teams">
-      <article class="team-card home"><small class="field-caption">Domáci tím</small><h3 id="homeTeam">–</h3><div class="roster" id="homeRoster"></div></article>
-      <article class="team-card away"><small class="field-caption">Hosťujúci tím</small><h3 id="awayTeam">–</h3><div class="roster" id="awayRoster"></div></article>
-    </section>
-
+    <section class="teams"><article class="team home"><span class="caption">Domáci · D</span><h3 id="homeTeam"></h3><div class="muted" id="homeCaptain"></div><div class="roster" id="homeRoster"></div></article><article class="team away"><span class="caption">Hostia · H</span><h3 id="awayTeam"></h3><div class="muted" id="awayCaptain"></div><div class="roster" id="awayRoster"></div></article></section>
     <section class="card" style="margin-top:14px">
-      <div class="captain-grid">
-        <div class="field"><label for="homeCaptain">Kapitán domácich</label><input class="input" id="homeCaptain" maxlength="120"></div>
-        <div class="field"><label for="awayCaptain">Kapitán hostí</label><input class="input" id="awayCaptain" maxlength="120"></div>
-      </div>
+      <div class="section-head"><div><h2>Nominácie kapitánov</h2><div class="muted">Každý kapitán upravuje iba svoju D/H zostavu a označí presne dvoch hráčov pre doubles.</div></div></div>
+      <div class="lineup-grid"><div class="lineup home" id="homeLineup"></div><div class="lineup away" id="awayLineup"></div></div>
     </section>
-
     <section class="card">
-      <div class="section-head">
-        <div><h2>Priebeh a výsledky</h2><div class="muted">Každý riadok presne určuje, kto proti komu hral.</div></div>
-        <div class="actions editable-only"><button class="btn" id="addSinglesBtn" type="button">+ Dvojhra</button><button class="btn gold" id="addDoublesBtn" type="button">+ Dvojica</button></div>
-      </div>
-      <div id="rubberList"></div>
-      <div class="totals"><div class="total"><span id="homeTotalName">Domáci</span><strong id="homeTotal">0</strong></div><strong>:</strong><div class="total"><span id="awayTotalName">Hostia</span><strong id="awayTotal">0</strong></div></div>
+      <div class="section-head"><div><h2>Konkrétne zápasy</h2><div class="muted">Po uložení oboch nominácií sa vytvoria single zápasy a jeden doubles.</div></div><button class="btn gold hide" id="saveDraftBtn" type="button">Uložiť zápis</button></div>
+      <div id="rubberList"><div class="empty">Čaká sa na obe nominácie.</div></div>
+      <div class="totals"><div><span id="homeTotalName">Domáci</span><br><strong id="homeTotal">0</strong></div><b>:</b><div><span id="awayTotalName">Hostia</span><br><strong id="awayTotal">0</strong></div></div>
     </section>
-
-    <section class="card">
-      <div class="field"><label for="notes">Poznámka k zápasu</label><textarea class="input" id="notes" maxlength="2000" placeholder="Priebeh, námietka, kontumácia alebo iná dôležitá informácia"></textarea></div>
-      <div class="confirm-grid" style="margin-top:14px">
-        <label class="confirm"><input id="homeConfirmed" type="checkbox"><span><b>Potvrdenie domácich</b><br><span class="muted">Kapitán domácich potvrdzuje zostavu a výsledky.</span></span></label>
-        <label class="confirm"><input id="awayConfirmed" type="checkbox"><span><b>Potvrdenie hostí</b><br><span class="muted">Kapitán hostí potvrdzuje zostavu a výsledky.</span></span></label>
-      </div>
-    </section>
-
-    <div class="submit-row">
-      <span class="muted" id="submitHint">Po odoslaní sa výsledok započíta do ligovej tabuľky.</span>
-      <button class="btn green editable-only" id="submitBtn" type="button">Odoslať zápis do tabuľky</button>
-    </div>
+    <section class="card"><div class="field"><label>Poznámka</label><textarea class="input sheet-field" id="notes" maxlength="2000"></textarea></div><div class="confirm-grid" style="margin-top:14px"><div class="confirm"><b id="homeConfirmTitle">Domáci nepotvrdili</b><span class="muted" id="homeConfirmMeta">Čaká sa na kapitána domácich.</span></div><div class="confirm"><b id="awayConfirmTitle">Hostia nepotvrdili</b><span class="muted" id="awayConfirmMeta">Čaká sa na kapitána hostí.</span></div></div></section>
+    <div class="submit-row"><span class="muted">Výsledok sa započíta do tabuľky až po potvrdení oboma kapitánmi.</span><button class="btn green hide" id="confirmBtn" type="button">Potvrdiť za môj tím</button></div>
   </div>
 </main>
-
 <script>
 const db=cspAuth.client;
 const MATCH_ID=new URLSearchParams(location.search).get('match');
 const $=s=>document.querySelector(s);
-let session=null,match=null,sheet=null,isManager=false,homeMembers=[],awayMembers=[],lineups=[];
-
+let session=null,match=null,sheet=null,lineups=[],captainSide=null,isManager=false,resources=[],homeMembers=[],awayMembers=[];
+const FOCUS_RUBBER=Number(new URLSearchParams(location.search).get('rubber'))||null;
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function notice(text,type=''){const el=$('#pageNotice');el.textContent=text;el.className='notice'+(type?' '+type:'')}
 function hideNotice(){$('#pageNotice').className='notice hide'}
-function today(){return new Date().toISOString().slice(0,10)}
 function membersOf(team){return Array.isArray(team?.metadata?.members)?team.metadata.members.map(String).filter(Boolean):[]}
-function captainOf(team){return String(team?.metadata?.captain||'')}
-function disciplineChoices(){
-  const sport=String(match?.league?.sport||'').toLowerCase();let choices=[];
-  if(sport.includes('biliard'))choices=['8-ball','9-ball','10-ball','Heyball'];
-  else if(sport.includes('šípk')||sport.includes('sipk'))choices=['Steel','Elektronické'];
-  else if(sport.includes('bowling'))choices=['Bowling'];
-  else if(sport.includes('kart'))choices=['Žolíky','Mariáš','Sedma'];
-  else if(sport.includes('tenis'))choices=['Dvojhra','Štvorhra'];
-  else if(sport.includes('stoln'))choices=['Dvojhra','Štvorhra'];
-  const primary=match?.league?.discipline;
-  if(primary&&!choices.includes(primary))choices.unshift(primary);
-  return choices.length?choices:['Základná disciplína'];
+function captainOf(team){return team?.captain?.full_name||team?.metadata?.captain||'Kapitán nie je priradený'}
+function today(){return new Date().toISOString().slice(0,10)}
+function disciplines(){const base=['8-ball','9-ball','10-ball','Heyball'];const primary=match?.league?.discipline;return primary&&!base.includes(primary)?[primary,...base]:base}
+function options(values,selected=''){return values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('')}
+function sortedSlots(value){return Array.isArray(value?.slots)?[...value.slots].sort((a,b)=>Number(a.slot)-Number(b.slot)):[]}
+function lineup(side){return lineups.find(x=>x.side===side)||null}
+function codeFor(side,name){const slot=sortedSlots(lineup(side)).find(x=>x.name===name)?.slot;return `${side==='home'?'D':'H'}${slot||'?'}`}
+function renderLineup(side){
+  const own=captainSide===side,team=side==='home'?match.home:match.away,members=side==='home'?homeMembers:awayMembers,prefix=side==='home'?'D':'H',saved=lineup(side);
+  const slots=sortedSlots(saved).length?sortedSlots(saved):members.map((name,i)=>({slot:i+1,name,discipline:match.league.discipline||'8-ball'}));const doubles=(saved?.doubles_slots||[]).map(Number);
+  const rows=slots.map((slot,i)=>`<div class="nom-row" data-slot="${i+1}"><span class="code">${prefix}${i+1}</span><select class="input player" ${own?'':'disabled'}>${options(members,slot.name)}</select><select class="input discipline" ${own?'':'disabled'}>${options(disciplines(),slot.discipline||match.league.discipline||'8-ball')}</select><label class="double-check"><input type="checkbox" ${doubles.includes(Number(slot.slot))?'checked':''} ${own?'':'disabled'}> doubles</label></div>`).join('');
+  return `<div class="lineup-head"><div><b>${esc(team.display_name)}</b><div class="muted">${esc(captainOf(team))}</div></div><span class="pill ${saved?'ok':''}">${saved?'Uložené':'Čaká'}</span></div>${rows||'<div class="empty">Súpiska chýba.</div>'}${own?'<button class="btn green save-lineup" type="button">Uložiť moju nomináciu</button>':''}`;
 }
-function optionList(values,selected=''){
-  const all=selected&&!values.includes(selected)?[selected,...values]:values;
-  return `<option value="">Vyber</option>${all.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('')}`;
+function bindLineups(){['home','away'].forEach(side=>{const root=$('#'+side+'Lineup');root.innerHTML=renderLineup(side);root.querySelectorAll('input[type="checkbox"]').forEach(input=>input.onchange=()=>{const checks=[...root.querySelectorAll('input[type="checkbox"]')];if(checks.filter(x=>x.checked).length>2)input.checked=false});const button=root.querySelector('.save-lineup');if(button)button.onclick=()=>saveLineup(side,button)})}
+async function saveLineup(side,button){
+  hideNotice();const root=$('#'+side+'Lineup'),rows=[...root.querySelectorAll('.nom-row')];const slots=rows.map((row,i)=>({slot:i+1,name:row.querySelector('.player').value,discipline:row.querySelector('.discipline').value}));const doubles=rows.filter(row=>row.querySelector('input').checked).map(row=>Number(row.dataset.slot));
+  if(new Set(slots.map(x=>x.name)).size!==slots.length)return notice('Hráč môže byť v nominácii iba raz.','err');if(doubles.length!==2)return notice('Označ presne dvoch hráčov pre doubles.','err');button.disabled=true;
+  const {error}=await db.rpc('save_league_captain_lineup',{p_match_id:MATCH_ID,p_slots:slots,p_doubles_slots:doubles});button.disabled=false;if(error)return notice(error.message,'err');notice('Tvoja nominácia bola uložená. Staršie potvrdenia zápisu boli zrušené.','ok');await reloadData();
 }
-function playerSelect(side,selected='',className='player-select'){
-  return `<select class="input ${className}">${optionList(side==='home'?homeMembers:awayMembers,selected)}</select>`;
+function draftRubbers(){
+  const hs=sortedSlots(lineup('home')),as=sortedSlots(lineup('away'));if(!hs.length||!as.length||hs.length!==as.length)return [];const rubbers=hs.map((s,i)=>({number:i+1,type:'singles',discipline:s.discipline||as[i]?.discipline||'8-ball',home_players:[s.name],away_players:[as[i].name]}));
+  const hp=(lineup('home').doubles_slots||[]).map(n=>hs.find(x=>Number(x.slot)===Number(n))?.name).filter(Boolean),ap=(lineup('away').doubles_slots||[]).map(n=>as.find(x=>Number(x.slot)===Number(n))?.name).filter(Boolean);if(hp.length===2&&ap.length===2)rubbers.push({number:rubbers.length+1,type:'doubles',discipline:match.league.discipline||'8-ball',home_players:hp,away_players:ap});return rubbers;
 }
-function addRubber(type='singles',data={}){
-  const el=document.createElement('div');el.className='rubber';el.dataset.type=type;
-  const home=Array.isArray(data.home_players)?data.home_players:[];
-  const away=Array.isArray(data.away_players)?data.away_players:[];
-  const doubles=type==='doubles';
-  el.innerHTML=`
-    <div class="rubber-number"></div>
-    <div class="rubber-type">${doubles?'Dvojica':'Dvojhra'}</div>
-    <div class="home-field"><span class="field-caption">Domáci</span><div class="player-stack">${playerSelect('home',home[0]||'')}${doubles?playerSelect('home',home[1]||'','player-select second-player'):''}</div></div>
-    <div class="discipline-field"><span class="field-caption">Disciplína</span><select class="input discipline">${optionList(disciplineChoices(),data.discipline||match?.league?.discipline||'')}</select></div>
-    <div class="away-field"><span class="field-caption">Hostia</span><div class="player-stack">${playerSelect('away',away[0]||'')}${doubles?playerSelect('away',away[1]||'','player-select second-player'):''}</div></div>
-    <div class="score-field"><span class="field-caption">Výsledok</span><div class="score-pair"><input class="input score-input home-score" type="number" min="0" value="${data.home_score??''}"><span>:</span><input class="input score-input away-score" type="number" min="0" value="${data.away_score??''}"></div></div>
-    <div class="remove-field editable-only"><button class="btn red remove-rubber" type="button" title="Odstrániť">×</button></div>`;
-  el.querySelector('.remove-rubber').onclick=()=>{el.remove();renumber();updateTotals()};
-  el.querySelectorAll('input,select').forEach(input=>input.addEventListener('input',updateTotals));
-  $('#rubberList').appendChild(el);renumber();updateTotals();
+function rubberData(){return Array.isArray(sheet?.rubbers)&&sheet.rubbers.length?sheet.rubbers:draftRubbers()}
+function stationOptions(number){const assigned=resources.find(r=>r.current_match_id===MATCH_ID&&Number(r.current_rubber_number)===number)?.id||'';return `<option value="">Vyber stanicu</option>${resources.map(r=>`<option value="${r.id}" ${r.id===assigned?'selected':''}>${esc(r.label)}</option>`).join('')}`}
+function renderRubbers(){
+  const rubbers=rubberData(),editable=!!captainSide;if(!rubbers.length){$('#rubberList').innerHTML='<div class="empty">Čaká sa na obe nominácie s rovnakým počtom hráčov.</div>';$('#saveDraftBtn').classList.add('hide');updateTotals();return}const awaySlots=sortedSlots(lineup('away'));
+  $('#rubberList').innerHTML=rubbers.map((r,i)=>{const number=i+1,single=r.type==='singles',homeName=(r.home_players||[])[0]||'',awayName=(r.away_players||[])[0]||'';const homeLabel=single?`<span class="code">${esc(codeFor('home',homeName))}</span> <b>${esc(homeName)}</b>`:`<b>${(r.home_players||[]).map(n=>`${esc(codeFor('home',n))} ${esc(n)}`).join(' + ')}</b>`;const awayLabel=single&&editable?`<select class="input away-pair">${options(awaySlots.map(x=>x.name),awayName)}</select>`:`<b>${single?`${esc(awayName)} ${esc(codeFor('away',awayName))}`:(r.away_players||[]).map(n=>`${esc(n)} ${esc(codeFor('away',n))}`).join(' + ')}</b>`;const station=(captainSide||isManager)&&resources.length&&Array.isArray(sheet?.rubbers)&&sheet.rubbers.length?`<div class="station-control"><span class="caption" style="margin:0">Stanica</span><select class="input station-select">${stationOptions(number)}</select><button class="btn assign-station" type="button">Priradiť</button></div>`:'';return `<div class="rubber ${FOCUS_RUBBER===number?'focus':''}" data-number="${number}" data-type="${r.type}" data-home="${esc((r.home_players||[]).join('|'))}" data-away="${esc((r.away_players||[]).join('|'))}" data-discipline="${esc(r.discipline||'8-ball')}"><b>#${number}</b><span class="rubber-type">${single?'Single':'Doubles'}</span><div class="side-player">${homeLabel}</div><div class="score-buttons"><button type="button" class="btn score-btn ${Number(r.home_score)===1?'active':''}" data-score="home" ${editable?'':'disabled'}>1 : 0</button><button type="button" class="btn score-btn ${Number(r.away_score)===1?'active':''}" data-score="away" ${editable?'':'disabled'}>0 : 1</button></div><div class="side-player away">${awayLabel}</div>${station}</div>`}).join('');
+  document.querySelectorAll('.score-btn').forEach(button=>button.onclick=()=>{const row=button.closest('.rubber');row.querySelectorAll('.score-btn').forEach(x=>x.classList.remove('active'));button.classList.add('active');updateTotals()});document.querySelectorAll('.assign-station').forEach(button=>button.onclick=()=>assignStation(button.closest('.rubber')));$('#saveDraftBtn').classList.toggle('hide',!editable);updateTotals();if(FOCUS_RUBBER)setTimeout(()=>document.querySelector(`.rubber[data-number="${FOCUS_RUBBER}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),100);
 }
-function renumber(){[...document.querySelectorAll('.rubber')].forEach((row,i)=>row.querySelector('.rubber-number').textContent='#'+(i+1))}
-function collectRubbers(requireComplete=true){
-  return [...document.querySelectorAll('.rubber')].map((row,i)=>{
-    const home=[...row.querySelectorAll('.home-field .player-select')].map(x=>x.value.trim());
-    const away=[...row.querySelectorAll('.away-field .player-select')].map(x=>x.value.trim());
-    const hs=row.querySelector('.home-score').value,as=row.querySelector('.away-score').value;
-    if(requireComplete){
-      if(home.some(x=>!x)||away.some(x=>!x)||!row.querySelector('.discipline').value)throw new Error(`Doplň všetky údaje v dueli č. ${i+1}.`);
-      if(new Set(home).size!==home.length||new Set(away).size!==away.length)throw new Error(`V dvojici č. ${i+1} je ten istý hráč zadaný dvakrát.`);
-      if(hs===''||as==='')throw new Error(`Doplň výsledok duelu č. ${i+1}.`);
-      if(Number(hs)===Number(as))throw new Error(`Duel č. ${i+1} musí mať víťaza.`);
-    }
-    return {number:i+1,type:row.dataset.type,discipline:row.querySelector('.discipline').value,home_players:home,away_players:away,home_score:hs===''?'':Number(hs),away_score:as===''?'':Number(as)};
-  });
+async function assignStation(row){const select=row.querySelector('.station-select');if(!select.value)return notice('Vyber stanicu.','err');const {error}=await db.rpc('assign_league_rubber_station',{p_match_id:MATCH_ID,p_rubber_number:Number(row.dataset.number),p_resource_id:select.value});if(error)return notice(error.message,'err');notice('Stanica bola priradená k duelu.','ok');await reloadData()}
+function collectRubbers(){
+  const rows=[...document.querySelectorAll('.rubber')],usedAway=[];const result=rows.map((row,i)=>{const type=row.dataset.type,home=row.dataset.home.split('|').filter(Boolean),away=type==='singles'?[row.querySelector('.away-pair')?.value||row.dataset.away]:row.dataset.away.split('|').filter(Boolean);if(type==='singles')usedAway.push(away[0]);const active=row.querySelector('.score-btn.active'),item={number:i+1,type,discipline:row.dataset.discipline,home_players:home,away_players:away};if(active){item.home_score=active.dataset.score==='home'?1:0;item.away_score=active.dataset.score==='away'?1:0}return item});if(new Set(usedAway).size!==usedAway.length)throw new Error('Každý hosťujúci hráč musí mať práve jeden single zápas.');return result;
 }
-function updateTotals(){
-  let home=0,away=0;
-  for(const r of collectRubbers(false)){if(r.home_score===''||r.away_score===''||r.home_score===r.away_score)continue;if(r.home_score>r.away_score)home++;else away++}
-  $('#homeTotal').textContent=home;$('#awayTotal').textContent=away;
-}
-function defaultRubbers(){
-  const homeLineup=lineups.find(x=>x.side==='home'),awayLineup=lineups.find(x=>x.side==='away');
-  const hs=Array.isArray(homeLineup?.slots)?[...homeLineup.slots].sort((a,b)=>Number(a.slot)-Number(b.slot)):[];
-  const as=Array.isArray(awayLineup?.slots)?[...awayLineup.slots].sort((a,b)=>Number(a.slot)-Number(b.slot)):[];
-  if(hs.length&&as.length){
-    for(let i=0;i<Math.min(hs.length,as.length);i++)addRubber('singles',{home_players:[hs[i].name],away_players:[as[i].name],discipline:hs[i].discipline||as[i].discipline||match.league.discipline||''});
-    const hd=(homeLineup.doubles_slots||[]).map(slot=>hs.find(x=>Number(x.slot)===Number(slot))?.name).filter(Boolean);
-    const ad=(awayLineup.doubles_slots||[]).map(slot=>as.find(x=>Number(x.slot)===Number(slot))?.name).filter(Boolean);
-    if(hd.length===2&&ad.length===2)addRubber('doubles',{home_players:hd,away_players:ad,discipline:match.league.discipline||''});
-    return;
-  }
-  const count=Math.min(homeMembers.length,awayMembers.length,4);
-  for(let i=0;i<count;i++)addRubber('singles',{home_players:[homeMembers[i]],away_players:[awayMembers[i]],discipline:match.league.discipline||''});
-  if(homeMembers.length>=2&&awayMembers.length>=2)addRubber('doubles',{home_players:homeMembers.slice(0,2),away_players:awayMembers.slice(0,2),discipline:match.league.discipline||''});
-}
+function updateTotals(){let h=0,a=0;document.querySelectorAll('.score-btn.active').forEach(b=>b.dataset.score==='home'?h++:a++);$('#homeTotal').textContent=h;$('#awayTotal').textContent=a}
+async function saveDraft(){hideNotice();let rubbers;try{rubbers=collectRubbers()}catch(error){return notice(error.message,'err')}const button=$('#saveDraftBtn');button.disabled=true;const {error}=await db.rpc('save_league_billiard_sheet',{p_match_id:MATCH_ID,p_played_on:$('#playedOn').value,p_venue:$('#venue').value.trim(),p_rubbers:rubbers,p_notes:$('#notes').value.trim()||null});button.disabled=false;if(error)return notice(error.message,'err');notice('Zápis bol uložený. Teraz ho musia potvrdiť obaja kapitáni.','ok');await reloadData()}
+async function confirmSheet(){hideNotice();const button=$('#confirmBtn');button.disabled=true;const {data,error}=await db.rpc('confirm_league_billiard_sheet',{p_match_id:MATCH_ID});button.disabled=false;if(error)return notice(error.message,'err');notice(data.status==='submitted'?`Obaja kapitáni potvrdili zápis. Výsledok ${data.home_points}:${data.away_points} je v tabuľke.`:'Tvoje potvrdenie bolo uložené. Čaká sa na druhého kapitána.','ok');await reloadData()}
+function renderConfirmations(){const home=!!sheet?.home_captain_confirmed,away=!!sheet?.away_captain_confirmed;$('#homeConfirmTitle').textContent=home?'✓ Domáci potvrdili':'Domáci nepotvrdili';$('#awayConfirmTitle').textContent=away?'✓ Hostia potvrdili':'Hostia nepotvrdili';$('#homeConfirmMeta').textContent=home?`${sheet.home_captain||captainOf(match.home)} · potvrdené`:'Čaká sa na kapitána domácich.';$('#awayConfirmMeta').textContent=away?`${sheet.away_captain||captainOf(match.away)} · potvrdené`:'Čaká sa na kapitána hostí.';const already=captainSide==='home'?home:captainSide==='away'?away:false;$('#confirmBtn').classList.toggle('hide',!captainSide||!sheet||already||sheet.status==='submitted')}
 function render(){
-  $('#leagueName').textContent=[match.league.name,match.league.season_name].filter(Boolean).join(' · ');
-  $('#backLink').href='/ligy/?id='+encodeURIComponent(match.league_id);
-  $('#roundLabel').textContent=`Kolo ${match.round_number}${match.leg_number===2?' · odveta':''}`;
-  $('#sportLabel').textContent=[match.league.sport,match.league.discipline].filter(Boolean).join(' · ');
-  $('#matchStatus').textContent=`Stav zápasu: ${match.status}`;
-  $('#homeTeam').textContent=match.home.display_name;$('#awayTeam').textContent=match.away.display_name;
-  $('#homeTotalName').textContent=match.home.display_name;$('#awayTotalName').textContent=match.away.display_name;
-  $('#homeRoster').innerHTML=homeMembers.map(x=>`<span class="chip">${esc(x)}</span>`).join('')||'<span class="muted">Súpiska chýba</span>';
-  $('#awayRoster').innerHTML=awayMembers.map(x=>`<span class="chip">${esc(x)}</span>`).join('')||'<span class="muted">Súpiska chýba</span>';
-  $('#playedOn').value=sheet?.played_on||today();$('#venue').value=sheet?.venue||match.location_text||'';
-  $('#homeCaptain').value=sheet?.home_captain||captainOf(match.home);$('#awayCaptain').value=sheet?.away_captain||captainOf(match.away);
-  $('#notes').value=sheet?.notes||'';$('#homeConfirmed').checked=!!sheet?.home_captain_confirmed;$('#awayConfirmed').checked=!!sheet?.away_captain_confirmed;
-  $('#rubberList').innerHTML='';
-  if(Array.isArray(sheet?.rubbers)&&sheet.rubbers.length)sheet.rubbers.forEach(r=>addRubber(r.type,r));else defaultRubbers();
-  if(sheet){$('#sheetStatus').textContent=sheet.status==='corrected'?'Opravený zápis':'Odoslaný zápis';$('#sheetStatus').classList.remove('hide');$('#submitBtn').textContent='Uložiť opravu zápisu'}
-  if(!isManager){$('#sheetApp').classList.add('readonly');$('#submitHint').textContent='Zápis je iba na čítanie. Odošle ho správca ligy.';document.querySelectorAll('input,select,textarea').forEach(x=>x.disabled=true)}
-  $('#loading').classList.add('hide');$('#content').classList.remove('hide');updateTotals();
+  $('#leagueName').textContent=[match.league.name,match.league.season_name].filter(Boolean).join(' · ');$('#backLink').href='/ligy/?id='+encodeURIComponent(match.league_id);$('#roundLabel').textContent=`Kolo ${match.round_number}${match.leg_number===2?' · odveta':''}`;$('#sportLabel').textContent=[match.league.sport,match.league.discipline].filter(Boolean).join(' · ');$('#matchStatus').textContent='Stav zápasu: '+match.status;
+  $('#homeTeam').textContent=match.home.display_name;$('#awayTeam').textContent=match.away.display_name;$('#homeCaptain').textContent='Kapitán: '+captainOf(match.home);$('#awayCaptain').textContent='Kapitán: '+captainOf(match.away);$('#homeRoster').innerHTML=homeMembers.map(x=>`<span class="chip">${esc(x)}</span>`).join('');$('#awayRoster').innerHTML=awayMembers.map(x=>`<span class="chip">${esc(x)}</span>`).join('');
+  $('#homeTotalName').textContent=match.home.display_name;$('#awayTotalName').textContent=match.away.display_name;$('#playedOn').value=sheet?.played_on||match.scheduled_at?.slice(0,10)||today();$('#venue').value=sheet?.venue||match.location_text||'';$('#notes').value=sheet?.notes||'';$('#sheetStatus').textContent=sheet?.status||'Bez zápisu';const editable=!!captainSide;document.querySelectorAll('.sheet-field').forEach(x=>x.disabled=!editable);$('#accessRule').textContent=editable?`Si prihlásený ako kapitán tímu ${captainSide==='home'?match.home.display_name:match.away.display_name}. Môžeš upraviť svoju nomináciu aj spoločný zápis.`:'Verejná vrstva je iba na čítanie. Zapisovať môže priradený kapitán s plánom PRO+ alebo vyšším.';bindLineups();renderRubbers();renderConfirmations();$('#loading').classList.add('hide');$('#content').classList.remove('hide');
 }
-async function submitSheet(){
-  hideNotice();
-  if(!isManager)return notice('Zápis môže odoslať iba správca ligy.','err');
-  let rubbers;
-  try{rubbers=collectRubbers(true)}catch(error){return notice(error.message,'err')}
-  if(!rubbers.length)return notice('Pridaj aspoň jeden duel.','err');
-  if(!$('#homeCaptain').value.trim()||!$('#awayCaptain').value.trim())return notice('Doplň oboch kapitánov.','err');
-  if(!$('#homeConfirmed').checked||!$('#awayConfirmed').checked)return notice('Zápis musia potvrdiť obaja kapitáni.','err');
-  if(sheet&&!confirm('Týmto prepíšeš už odoslaný zápis a prepočítaš ligovú tabuľku. Pokračovať?'))return;
-  const button=$('#submitBtn');button.disabled=true;button.textContent='Odosielam…';
-  const {data,error}=await db.rpc('submit_league_match_sheet',{
-    p_match_id:MATCH_ID,p_played_on:$('#playedOn').value,p_venue:$('#venue').value.trim(),
-    p_home_captain:$('#homeCaptain').value.trim(),p_away_captain:$('#awayCaptain').value.trim(),
-    p_home_confirmed:$('#homeConfirmed').checked,p_away_confirmed:$('#awayConfirmed').checked,
-    p_rubbers:rubbers,p_notes:$('#notes').value.trim()||null
-  });
-  button.disabled=false;button.textContent=sheet?'Uložiť opravu zápisu':'Odoslať zápis do tabuľky';
-  if(error)return notice(error.message,'err');
-  notice(`Zápis bol odoslaný. Výsledok ${data.home_points}:${data.away_points} je započítaný v tabuľke.`,'ok');
-  sheet={...(sheet||{}),played_on:$('#playedOn').value,venue:$('#venue').value.trim(),home_captain:$('#homeCaptain').value.trim(),away_captain:$('#awayCaptain').value.trim(),home_captain_confirmed:true,away_captain_confirmed:true,rubbers,notes:$('#notes').value.trim(),status:data.status};
-  $('#sheetStatus').textContent=data.status==='corrected'?'Opravený zápis':'Odoslaný zápis';$('#sheetStatus').classList.remove('hide');button.textContent='Uložiť opravu zápisu';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
+async function reloadData(){const [sheetResult,lineupResult,matchResult,resourceResult]=await Promise.all([db.from('league_match_sheets').select('*').eq('match_id',MATCH_ID).maybeSingle(),db.from('league_match_lineups').select('*').eq('match_id',MATCH_ID),db.from('league_matches').select('status,score1,score2').eq('id',MATCH_ID).single(),session?db.from('league_resources').select('*').eq('league_id',match.league_id).eq('is_active',true):Promise.resolve({data:[],error:null})]);if(sheetResult.error||lineupResult.error)return notice(sheetResult.error?.message||lineupResult.error?.message,'err');sheet=sheetResult.data||null;lineups=lineupResult.data||[];resources=resourceResult.data||[];if(matchResult.data)Object.assign(match,matchResult.data);render()}
 async function init(){
-  if(!MATCH_ID){$('#loading').textContent='Chýba identifikátor ligového zápasu.';return}
-  const auth=await cspAuth.getSession();session=auth.data?.session||null;
-  const {data,error}=await db.from('league_matches').select('*,league:leagues!league_matches_league_id_fkey(id,name,season_name,sport,discipline,owner_id,config),home:league_players!league_matches_player1_id_fkey(id,display_name,metadata),away:league_players!league_matches_player2_id_fkey(id,display_name,metadata)').eq('id',MATCH_ID).single();
-  if(error||!data){$('#loading').textContent=error?.message||'Ligový zápas sa nenašiel.';return}
-  match=data;homeMembers=membersOf(match.home);awayMembers=membersOf(match.away);
-  const [sheetResult,lineupResult,manageResult]=await Promise.all([
-    db.from('league_match_sheets').select('*').eq('match_id',MATCH_ID).maybeSingle(),
-    db.from('league_match_lineups').select('*').eq('match_id',MATCH_ID),
-    session?db.rpc('can_manage_league',{p_league_id:match.league_id}):Promise.resolve({data:false,error:null})
-  ]);
-  if(sheetResult.error&&sheetResult.error.code!=='42P01'){$('#loading').textContent=sheetResult.error.message;return}
-  sheet=sheetResult.data||null;lineups=lineupResult.data||[];isManager=manageResult.data===true;
-  render();
+  if(!MATCH_ID){$('#loading').textContent='Chýba identifikátor ligového zápasu.';return}const auth=await cspAuth.getSession();session=auth.data?.session||null;const {data,error}=await db.from('league_matches').select('*,league:leagues!league_matches_league_id_fkey(id,name,season_name,sport,discipline,owner_id,config),home:league_players!league_matches_player1_id_fkey(id,display_name,metadata,captain_user_id,captain:profiles!league_players_captain_user_id_fkey(full_name)),away:league_players!league_matches_player2_id_fkey(id,display_name,metadata,captain_user_id,captain:profiles!league_players_captain_user_id_fkey(full_name))').eq('id',MATCH_ID).single();if(error||!data){$('#loading').textContent=error?.message||'Ligový zápas sa nenašiel.';return}match=data;homeMembers=membersOf(match.home);awayMembers=membersOf(match.away);if(!String(match.league.sport||'').toLowerCase().includes('biliard')){$('#loading').textContent='Dynamický zápis pre tento šport ešte nemá definovanú ligovú logiku.';return}
+  const [sheetResult,lineupResult,sideResult,managerResult,resourceResult]=await Promise.all([db.from('league_match_sheets').select('*').eq('match_id',MATCH_ID).maybeSingle(),db.from('league_match_lineups').select('*').eq('match_id',MATCH_ID),session?db.rpc('league_captain_match_side',{p_match_id:MATCH_ID}):Promise.resolve({data:null,error:null}),session?db.rpc('can_manage_league',{p_league_id:match.league_id}):Promise.resolve({data:false,error:null}),session?db.from('league_resources').select('*').eq('league_id',match.league_id).eq('is_active',true):Promise.resolve({data:[],error:null})]);if(sheetResult.error||lineupResult.error){$('#loading').textContent=sheetResult.error?.message||lineupResult.error?.message;return}sheet=sheetResult.data||null;lineups=lineupResult.data||[];captainSide=sideResult.data||null;isManager=managerResult.data===true;resources=resourceResult.data||[];render();
 }
-$('#addSinglesBtn').onclick=()=>addRubber('singles');$('#addDoublesBtn').onclick=()=>addRubber('doubles');$('#submitBtn').onclick=submitSheet;
-init();
+$('#saveDraftBtn').onclick=saveDraft;$('#confirmBtn').onclick=confirmSheet;init();
 </script>
 <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>

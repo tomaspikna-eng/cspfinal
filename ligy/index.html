@@ -93,6 +93,7 @@
     <button class="btn tab active" data-tab="standingsTab">Tabuľka</button>
     <button class="btn tab" data-tab="matchesTab">Zápasy</button>
     <button class="btn tab" data-tab="participantsTab" id="participantsTabButton">Hráči</button>
+    <button class="btn tab" data-tab="sheetsTab" id="sheetsTabButton">Ligový zápis</button>
   </div>
 
   <div id="detailNotice" class="notice hide"></div>
@@ -107,6 +108,15 @@
     <div class="row" style="justify-content:space-between;margin-bottom:14px"><h3 id="participantsHeading" style="margin:0">Hráči</h3><button class="btn green" id="addParticipantInside">+ Pridať hráča</button></div>
     <div class="table"><table><thead><tr><th id="participantNameHeader">Hráč</th><th>Nasadenie</th><th>Detail</th><th>Stav</th><th></th></tr></thead><tbody id="participantsBody"></tbody></table></div>
   </div>
+
+  <div id="sheetsTab" class="card tabpane hide">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h3 style="margin:0">Ligové zápisy</h3><div class="muted">Zostavy, konkrétne duely a potvrdenia kapitánov.</div></div><span class="badge">Zápis PRO+</span></div>
+    <div id="leagueStationSetup" class="participant-strip hide">
+      <div><b>Ligové stanice / tablety</b><div class="muted">Pevné odkazy sa po pridelení automaticky otvoria na správnom dueli. Výsledok stále zapisuje prihlásený kapitán.</div><div id="leagueStationList" class="actions" style="margin-top:10px"></div></div>
+      <div class="actions"><input class="input" id="leagueStationCount" type="number" min="1" max="64" value="1" style="width:90px"><button class="btn gold" id="configureLeagueStations" type="button">Nastaviť stanice</button></div>
+    </div>
+    <div id="sheetList"></div>
+  </div>
 </section>
 </main>
 
@@ -116,7 +126,7 @@
     <form id="participantForm" class="form-grid">
       <div class="field full"><label id="nameLabel">Meno hráča</label><input class="input" name="display_name" required></div>
       <div class="field"><label>Nasadenie</label><input class="input" name="seed" type="number" min="1"></div>
-      <div class="field team-only hide"><label>Kapitán tímu</label><input class="input" name="captain"></div>
+      <div class="field team-only hide"><label>Kapitán tímu · CSP profil s PRO+</label><select class="input" name="captain_user_id" id="captainProfile"><option value="">Vyber kapitána</option></select></div>
       <div class="field full team-only hide"><label>Členovia tímu</label><div id="memberList" class="member-list"></div><button type="button" class="btn" id="addMemberBtn">+ Pridať člena</button></div>
       <div class="field full"><button class="btn green" id="saveParticipantBtn">Pridať hráča</button><div id="participantNotice" class="notice hide"></div></div>
     </form>
@@ -125,7 +135,7 @@
 
 <script>
 const db=cspAuth.client;
-let session=null,currentProfile=null,currentLeague=null,isManager=false,currentFilter='public',editingParticipantId=null;
+let session=null,currentProfile=null,currentLeague=null,isManager=false,currentFilter='public',editingParticipantId=null,captainProfiles=[],leagueResources=[];
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const panels={list:$('#listPanel'),create:$('#createPanel'),detail:$('#detailPanel')};
 
@@ -136,6 +146,7 @@ function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 function slug(v){return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Math.random().toString(36).slice(2,7)}
 function participantType(){return currentLeague?.config?.participant_type==='team'?'team':'player'}
 function isTeam(){return participantType()==='team'}
+function hasLeagueSheetPlan(){return ['pro_plus','ultra','elite'].includes(String(currentProfile?.plan||'').toLowerCase())}
 function label(one,plural){return isTeam()?(plural==='Hráči'?'Tímy':plural.replace('hráč','tím').replace('Hráč','Tím')):one}
 function profileHomePath(profile,user){
   const appMeta=user?.app_metadata||{};
@@ -208,6 +219,8 @@ async function openLeague(id){
   $('#addParticipantStrip').textContent=team?'+ Pridať tím':'+ Pridať hráča';
   $('#addParticipantInside').textContent=team?'+ Pridať tím':'+ Pridať hráča';
   $('#participantsTabButton').textContent=team?'Tímy':'Hráči';
+  $('#sheetsTabButton').classList.toggle('hide',!team);
+  $('#leagueStationSetup').classList.toggle('hide',!team||!isManager||!hasLeagueSheetPlan());
   $('#participantsHeading').textContent=team?'Tímy':'Hráči';
   $('#participantNameHeader').textContent=team?'Tím':'Hráč';
   $('#standingsNameHeader').textContent=team?'Tím':'Hráč';
@@ -223,7 +236,33 @@ async function openLeague(id){
     onCopied:()=>msg($('#detailNotice'),'Odkaz na ligu bol skopírovaný.','ok'),
     onError:()=>msg($('#detailNotice'),'Akciu sa nepodarilo dokončiť.','err')
   }).catch(error=>{console.error('[ligy] social init failed:',error);msg($('#detailNotice'),'Sociálne funkcie sa nepodarilo načítať.','err')});
-  await Promise.all([loadParticipants(),loadMatches(),loadStandings()]);
+  if(isManager&&team)await loadCaptainProfiles();
+  await Promise.all([loadParticipants(),loadMatches(),loadStandings(),team&&session?loadLeagueResources():Promise.resolve()]);
+}
+async function loadLeagueResources(){
+  const {data,error}=await db.from('league_resources').select('*').eq('league_id',currentLeague.id).eq('is_active',true).order('resource_number');
+  if(error){if(error.code!=='42P01'&&isManager)msg($('#detailNotice'),error.message,'err');return}
+  leagueResources=data||[];if(!isManager)return;
+  $('#leagueStationCount').value=Math.max(1,leagueResources.length||1);
+  $('#leagueStationList').innerHTML=leagueResources.map(r=>`<button class="btn" type="button" onclick="copyStationLink('${r.device_token}')">${esc(r.label)} · kopírovať odkaz</button>`).join('')||'<span class="muted">Stanice ešte nie sú nastavené.</span>';
+}
+async function configureLeagueStations(){
+  if(!isManager)return;const count=Number($('#leagueStationCount').value),button=$('#configureLeagueStations');button.disabled=true;
+  const {error}=await db.rpc('configure_league_resources',{p_league_id:currentLeague.id,p_count:count,p_label_prefix:'Biliardový stôl'});button.disabled=false;
+  if(error)return msg($('#detailNotice'),error.message,'err');msg($('#detailNotice'),`Nastavených staníc: ${count}.`,'ok');await loadLeagueResources();
+}
+async function copyStationLink(token){
+  const url=`${location.origin}/ligy/stanica/?device_token=${encodeURIComponent(token)}`;
+  try{await navigator.clipboard.writeText(url);msg($('#detailNotice'),'Odkaz stanice bol skopírovaný.','ok')}catch{prompt('Odkaz stanice',url)}
+}
+async function loadCaptainProfiles(){
+  const {data,error}=await db.from('profiles').select('id,full_name,plan').in('plan',['pro_plus','ultra','elite']).order('full_name');
+  if(error){captainProfiles=[];return msg($('#detailNotice'),'Kapitánov sa nepodarilo načítať: '+error.message,'err')}
+  captainProfiles=data||[];
+}
+function renderCaptainOptions(selected=''){
+  const options=['<option value="">Vyber kapitána</option>',...captainProfiles.map(p=>`<option value="${p.id}" ${p.id===selected?'selected':''}>${esc(p.full_name||'Bez mena')} · ${esc(String(p.plan||'').toUpperCase())}</option>`)];
+  $('#captainProfile').innerHTML=options.join('');
 }
 function openParticipantModal(participant=null){
   if(!isManager)return;
@@ -235,11 +274,11 @@ function openParticipantModal(participant=null){
   $('#nameLabel').textContent=team?'Názov tímu':'Meno hráča';
   $('#saveParticipantBtn').textContent=editingParticipantId?'Uložiť zmeny':(team?'Pridať tím':'Pridať hráča');
   $$('.team-only').forEach(x=>x.classList.toggle('hide',!team));
+  if(team)renderCaptainOptions(participant?.captain_user_id||'');
   if(participant){
     $('#participantForm').elements.display_name.value=participant.display_name||'';
     $('#participantForm').elements.seed.value=participant.seed??'';
     if(team){
-      $('#participantForm').elements.captain.value=participant.metadata?.captain||'';
       const members=Array.isArray(participant.metadata?.members)?participant.metadata.members:[];
       if(members.length)members.forEach(addMemberField);else{addMemberField();addMemberField()}
     }
@@ -255,8 +294,10 @@ function addMemberField(value=''){
 async function addParticipant(e){
   e.preventDefault();hideMsg($('#participantNotice'));
   const f=Object.fromEntries(new FormData(e.target));
-  const metadata=isTeam()?{participant_type:'team',captain:f.captain||null,members:$$('.team-member').map(i=>i.value.trim()).filter(Boolean)}:{participant_type:'player'};
-  const payload={display_name:f.display_name.trim(),seed:f.seed?Number(f.seed):null,status:'active',metadata};
+  const captain=captainProfiles.find(p=>p.id===f.captain_user_id);
+  if(isTeam()&&!captain)return msg($('#participantNotice'),'Vyber kapitána s aktívnym plánom PRO+ alebo vyšším.','err');
+  const metadata=isTeam()?{participant_type:'team',captain:captain?.full_name||null,members:$$('.team-member').map(i=>i.value.trim()).filter(Boolean)}:{participant_type:'player'};
+  const payload={display_name:f.display_name.trim(),seed:f.seed?Number(f.seed):null,status:'active',metadata,captain_user_id:isTeam()?f.captain_user_id:null};
   let result;
   if(editingParticipantId)result=await db.from('league_players').update(payload).eq('id',editingParticipantId).eq('league_id',currentLeague.id);
   else result=await db.from('league_players').insert({league_id:currentLeague.id,...payload});
@@ -273,7 +314,7 @@ async function loadParticipants(){
       p.metadata?.captain?`${esc(p.metadata.captain)} <span class="captain-badge" title="Kapitán tímu" aria-label="Kapitán tímu">C</span>`:'',
       Array.isArray(p.metadata?.members)&&p.metadata.members.length?`${p.metadata.members.length} členov`:''
     ].filter(Boolean).join(' · '):'CSP hráč / hosť';
-    const packed=encodeURIComponent(JSON.stringify({id:p.id,display_name:p.display_name,seed:p.seed,metadata:p.metadata||{}}));
+    const packed=encodeURIComponent(JSON.stringify({id:p.id,display_name:p.display_name,seed:p.seed,captain_user_id:p.captain_user_id||null,metadata:p.metadata||{}}));
     return `<tr><td><b>${esc(p.display_name)}</b></td><td>${p.seed??'–'}</td><td class="muted">${detail||'–'}</td><td>${esc(p.status)}</td><td>${isManager?`<div class="actions"><button class="btn" onclick="editParticipant('${packed}')">Upraviť</button><button class="btn red" onclick="removeParticipant('${p.id}')">Odstrániť</button></div>`:''}</td></tr>`;
   }).join('')||`<tr><td colspan="5" class="empty">${isTeam()?'Zatiaľ nebol pridaný žiadny tím.':'Zatiaľ nebol pridaný žiadny hráč.'}</td></tr>`;
 }
@@ -383,9 +424,16 @@ async function loadMatches(){
     const resultControls=isTeam()
       ? `<div class="actions"><b>${m.score1??'–'} : ${m.score2??'–'}</b><a class="btn ${sheet?'':'green'}" href="/ligy/zapis/?match=${encodeURIComponent(m.id)}">${sheet?'Otvoriť zápis':'Vytvoriť zápis'}</a></div>`
       : isManager?`<div><input class="input score" id="s1-${m.id}" type="number" min="0" value="${m.score1??''}"> : <input class="input score" id="s2-${m.id}" type="number" min="0" value="${m.score2??''}"> <button class="btn green" onclick="saveResult('${m.id}','${m.player1_id}','${m.player2_id}')">Uložiť</button></div>`:`<div><b>${m.score1??'–'} : ${m.score2??'–'}</b></div>`;
-    const sheetHtml=sheet?`<div class="match-sheet-summary">${(sheet.rubbers||[]).map(r=>`<div class="rubber-summary"><b>#${Number(r.number)||''}</b><span>${esc((r.home_players||[]).join(' + '))}</span><span class="rubber-score">${Number(r.home_score)} : ${Number(r.away_score)}</span><span class="away">${esc((r.away_players||[]).join(' + '))}</span><span class="discipline">${esc(r.discipline||'')}</span></div>`).join('')}</div>`:'';
+    const sheetHtml=sheet?`<div class="match-sheet-summary">${(sheet.rubbers||[]).map(r=>`<div class="rubber-summary"><b>#${Number(r.number)||''}</b><span>${esc((r.home_players||[]).join(' + '))}</span><span class="rubber-score">${r.home_score==null?'–':Number(r.home_score)} : ${r.away_score==null?'–':Number(r.away_score)}</span><span class="away">${esc((r.away_players||[]).join(' + '))}</span><span class="discipline">${esc(r.discipline||'')}</span></div>`).join('')}</div>`:'';
     return `<div class="match"><div class="match-head"><div><b>Kolo ${m.round_number}</b></div><div><b>${esc(m.player1?.display_name||'Účastník 1')}</b> vs <b>${esc(m.player2?.display_name||'Účastník 2')}</b><div class="muted">${esc(m.status)}</div></div>${resultControls}</div>${sheetHtml}</div>`;
   }).join('')||'<div class="empty">Rozpis ešte nebol vytvorený.</div>';
+  if(isTeam()){
+    $('#sheetList').innerHTML=data.map(m=>{
+      const sheet=sheetMap.get(m.id);
+      const confirmations=sheet?`${sheet.home_captain_confirmed?'✓':'○'} Domáci · ${sheet.away_captain_confirmed?'✓':'○'} Hostia`:'Čaká na nominácie';
+      return `<div class="match"><div class="match-head"><div><b>Kolo ${m.round_number}</b></div><div><b>${esc(m.player1?.display_name||'Domáci')}</b> vs <b>${esc(m.player2?.display_name||'Hostia')}</b><div class="muted">${confirmations}${sheet?.status?' · '+esc(sheet.status):''}</div></div><a class="btn ${sheet?'':'green'}" href="/ligy/zapis/?match=${encodeURIComponent(m.id)}">${sheet?'Otvoriť zápis':'Pripraviť zápis'}</a></div></div>`;
+    }).join('')||'<div class="empty">Rozpis ešte nebol vytvorený.</div>';
+  }else $('#sheetList').innerHTML='';
   $$('.doubles-row input[type="checkbox"]').forEach(input=>lineupDoubleChanged(input));
 }
 async function saveResult(id,p1,p2){
@@ -396,7 +444,8 @@ async function saveResult(id,p1,p2){
   if(error)return msg($('#detailNotice'),error.message,'err');
   await Promise.all([loadMatches(),loadStandings()]);
 }
-window.removeParticipant=removeParticipant;window.editParticipant=editParticipant;window.saveResult=saveResult;window.saveLineup=saveLineup;window.lineupDoubleChanged=lineupDoubleChanged;
+$('#configureLeagueStations').onclick=configureLeagueStations;
+window.removeParticipant=removeParticipant;window.editParticipant=editParticipant;window.saveResult=saveResult;window.saveLineup=saveLineup;window.lineupDoubleChanged=lineupDoubleChanged;window.copyStationLink=copyStationLink;
 init();
 </script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
