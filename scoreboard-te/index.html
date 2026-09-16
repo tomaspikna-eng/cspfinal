@@ -1278,6 +1278,34 @@ function resetScoresForMode(){
    out into one shared function so saveTrainingSession() reuses the exact
    same label instead of a second, possibly-drifting copy of the rule. */
 function currentDisciplineLabel(){ return state.sport==="other" ? state.customLabel : (["tabletennis","tennis","padel"].includes(state.sport)?SPORTS[state.sport].label:state.discipline); }
+function tournamentSportKey(value){
+  const normalized=String(value||"").trim().toLocaleLowerCase("sk-SK").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  if(["biliard","billiard","billiards","pool","snooker","heyball","hey ball"].includes(normalized))return "billiard";
+  if(["sipky","darts"].includes(normalized))return "darts";
+  if(["stolny tenis","table tennis","ping pong","ping-pong"].includes(normalized))return "tabletennis";
+  if(["tenis","tennis"].includes(normalized))return "tennis";
+  if(normalized==="padel")return "padel";
+  return SPORTS[normalized]?normalized:null;
+}
+function applyTournamentSport(row){
+  const explicit=tournamentSportKey(row?.sport);
+  if(explicit){
+    state.sport=explicit;
+    state.discipline=(SPORTS[explicit].disciplines||[]).includes(row?.discipline)
+      ? row.discipline
+      : SPORTS[explicit].disciplines[0];
+    return;
+  }
+  if(row?.discipline){
+    for(const [sportKey,sportDef] of Object.entries(SPORTS)){
+      if((sportDef.disciplines||[]).includes(row.discipline)){
+        state.sport=sportKey;
+        state.discipline=row.discipline;
+        return;
+      }
+    }
+  }
+}
 
 /* ════════════════════ DYNAMIC UI + PLAYER AVATARS ════════════════════ */
 function playerInitials(name){
@@ -2444,16 +2472,8 @@ async function loadTournamentMatch(){
     state.players[1].name=row.player2_name||"Hráč 2";
     await loadTournamentPlayerAvatars(row);
 
-    if(row.discipline){
-      const allSports=Object.entries(SPORTS);
-      for(const [sportKey,sportDef] of allSports){
-        if((sportDef.disciplines||[]).includes(row.discipline)){
-          state.sport=sportKey;
-          state.discipline=row.discipline;
-          break;
-        }
-      }
-    }
+    applyTournamentSport(row);
+    resetScoresForMode();
     const configuredRace=Number(row.race_to||row.raceTo||row.target_score||0);
     if(configuredRace>0)state.raceTo=Math.min(30,configuredRace);
 
