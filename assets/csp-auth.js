@@ -11,7 +11,33 @@
 
   var SUPABASE_URL = 'https://lcmoykaqvvfybtobhtqg.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA';
+
   var PUBLIC_PROFILE_COLUMNS = 'id,full_name,role,plan,avatar_url,created_at,cover_url,bio,avatar_position_x,avatar_position_y,avatar_zoom';
+  var SAFE_MATCH_COLUMNS = [
+    'id','tournament_id','round_key','player1_id','player2_id','score1','score2','winner_id','status',
+    'created_at','updated_at','player1_reported_score','player1_reported_at','player2_reported_score',
+    'player2_reported_at','phase_id','round_number','match_number','bracket_side','next_match_id',
+    'loser_next_match_id','player1_source','player2_source','station_id','scheduled_at','called_at',
+    'arrival_deadline_at','penalty_1_at','penalty_2_at','penalty_3_at','forfeit_at','late_player_id',
+    'penalty_score_awarded','forfeit_reason','match_call_status','player1_ready_at','player2_ready_at',
+    'started_at','completed_at','shot_clock_enabled','shot_clock_seconds','post_break_seconds',
+    'extension_seconds','extensions_allowed','extensions_used_player1','extensions_used_player2',
+    'shot_clock_operator_id','shot_clock_started_at','shot_clock_paused_at','shot_clock_remaining_seconds',
+    'shot_clock_current_player_id','match_clock_elapsed_seconds','match_clock_started_at',
+    'match_clock_paused_at','match_clock_stopped_at','station_label','tournament_resource_id',
+    'tournament_resource_label','result_source','result_submitted_at','player1_timeout_active',
+    'player2_timeout_active','player1_timeout_at','player2_timeout_at','group_index','race_to','race_to_key'
+  ].join(',');
+  var SAFE_RESOURCE_COLUMNS = [
+    'id','tournament_id','resource_number','label','resource_type','status','current_match_id','is_active',
+    'sort_order','created_at','updated_at','tablet_paired_at','tablet_last_seen_at','tablet_name',
+    'operating_mode','automation_enabled'
+  ].join(',');
+  var SAFE_RELATION_COLUMNS = {
+    profiles: PUBLIC_PROFILE_COLUMNS,
+    matches: SAFE_MATCH_COLUMNS,
+    tournament_resources: SAFE_RESOURCE_COLUMNS
+  };
 
   if (!global.supabase || typeof global.supabase.createClient !== 'function') {
     console.error('[csp-auth] @supabase/supabase-js was not found on window.supabase — make sure the CDN script tag is included BEFORE csp-auth.js.');
@@ -27,54 +53,49 @@
   });
 
   /*
-   * Compatibility guard for legacy pages that use .from('profiles').select()
-   * without an explicit column list. The database now grants browser clients
-   * only public-safe profile columns, so wildcard RETURNING/SELECT must not
-   * accidentally request email/is_admin/billing metadata.
+   * Compatibility guard for legacy static pages using select('*') or a
+   * mutation followed by .select(). Capability secrets are deliberately not
+   * selectable after the security migration, so wildcard requests must be
+   * expanded to the public-safe columns before PostgREST receives them.
+   * Explicit column lists are never rewritten.
    */
-  (function protectProfileQueries() {
+  (function protectBrowserQueries() {
     var rawFrom = client.from.bind(client);
+
+    function safeRequestedColumns(relation, columns) {
+      var safe = SAFE_RELATION_COLUMNS[relation];
+      if (!safe) return columns;
+      return !columns || String(columns).trim() === '*' ? safe : columns;
+    }
+
+    function protectReturningSelect(filter, relation) {
+      if (!filter || typeof filter.select !== 'function') return filter;
+      var rawReturningSelect = filter.select.bind(filter);
+      filter.select = function (columns) {
+        return rawReturningSelect(safeRequestedColumns(relation, columns));
+      };
+      return filter;
+    }
+
     client.from = function (relation) {
       var builder = rawFrom(relation);
-      if (relation !== 'profiles' || !builder) return builder;
+      if (!builder || !SAFE_RELATION_COLUMNS[relation]) return builder;
 
       if (typeof builder.select === 'function') {
         var rawSelect = builder.select.bind(builder);
         builder.select = function (columns, options) {
-          var requested = !columns || String(columns).trim() === '*' ? PUBLIC_PROFILE_COLUMNS : columns;
-          return rawSelect(requested, options);
+          return rawSelect(safeRequestedColumns(relation, columns), options);
         };
       }
 
-      if (typeof builder.update === 'function') {
-        var rawUpdate = builder.update.bind(builder);
-        builder.update = function (values, options) {
-          var filter = rawUpdate(values, options);
-          if (filter && typeof filter.select === 'function') {
-            var rawReturningSelect = filter.select.bind(filter);
-            filter.select = function (columns) {
-              var requested = !columns || String(columns).trim() === '*' ? PUBLIC_PROFILE_COLUMNS : columns;
-              return rawReturningSelect(requested);
-            };
-          }
-          return filter;
+      ['update', 'insert', 'upsert'].forEach(function (methodName) {
+        if (typeof builder[methodName] !== 'function') return;
+        var rawMutation = builder[methodName].bind(builder);
+        builder[methodName] = function () {
+          var filter = rawMutation.apply(null, arguments);
+          return protectReturningSelect(filter, relation);
         };
-      }
-
-      if (typeof builder.insert === 'function') {
-        var rawInsert = builder.insert.bind(builder);
-        builder.insert = function (values, options) {
-          var filter = rawInsert(values, options);
-          if (filter && typeof filter.select === 'function') {
-            var rawInsertSelect = filter.select.bind(filter);
-            filter.select = function (columns) {
-              var requested = !columns || String(columns).trim() === '*' ? PUBLIC_PROFILE_COLUMNS : columns;
-              return rawInsertSelect(requested);
-            };
-          }
-          return filter;
-        };
-      }
+      });
 
       return builder;
     };
@@ -137,11 +158,9 @@
   }
 
   function rawOwnProfileLookup(userId) {
-    /* Use the original PostgREST relation through client.from(). The explicit
-       list is required because wildcard profile reads are deliberately blocked. */
     return client
       .from('profiles')
-      .select('id,full_name,role,plan,avatar_url,created_at,cover_url,bio,avatar_position_x,avatar_position_y,avatar_zoom')
+      .select(PUBLIC_PROFILE_COLUMNS)
       .eq('id', userId)
       .single();
   }
