@@ -220,6 +220,13 @@
     global.document.head.appendChild(completedTournamentLayoutScript);
   }
 
+  if (/^\/(turnament|generator-stolov)\/?$/.test(global.location.pathname)) {
+    var cardTournamentEnhancementsScript = global.document.createElement('script');
+    cardTournamentEnhancementsScript.src = '/assets/csp-card-tournament-enhancements.js?v=20260916-1';
+    cardTournamentEnhancementsScript.defer = true;
+    global.document.head.appendChild(cardTournamentEnhancementsScript);
+  }
+
   if (/^\/scoreboard\/?$/.test(global.location.pathname)) {
     var dartsFormatScript = global.document.createElement('script');
     dartsFormatScript.src = '/assets/csp-darts-format.js?v=20260915-2';
