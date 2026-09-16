@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Turnaj → liga / séria – Connect Sports Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#07080a;--card:#11141a;--line:rgba(255,255,255,.1);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#ef7770}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{width:min(850px,calc(100% - 28px));margin:auto;padding:32px 0 60px}.brand{font-weight:900;margin-bottom:34px}.brand b{color:var(--gold)}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.05em;margin:8px 0}.muted{color:var(--muted)}.eyebrow{color:var(--green);font-size:.76rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.card{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:7px}.full{grid-column:1/-1}label{font-size:.82rem;font-weight:800}.input{width:100%;min-height:46px;border:1px solid var(--line);border-radius:11px;background:#0b0d12;color:var(--text);padding:10px 12px;font:inherit}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:11px;background:#15181e;color:var(--text);padding:0 15px;font-weight:850;text-decoration:none;cursor:pointer}.btn.green{background:var(--green);border-color:transparent;color:#062216}.btn:disabled{opacity:.5}.rounds{display:grid;gap:10px}.round{display:grid;grid-template-columns:80px 1fr 1fr;gap:10px;align-items:center}.round b{color:var(--gold)}.notice{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.4)}.notice.err{color:#ff918a;border-color:rgba(239,119,112,.4)}@media(max-width:650px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.round{grid-template-columns:55px 1fr}.round .time{grid-column:2}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand"><b>Connect</b> Sports Pro</div>
+  <div class="eyebrow" id="eyebrow">Turnaj</div>
+  <h1 id="title">Načítavam…</h1>
+  <p class="muted" id="meta"></p>
+  <section class="card" id="content"><div class="notice">Načítavam turnaj…</div></section>
+</main>
+<script>
+(()=>{
+'use strict';
+const db=window.cspAuth?.client;
+const params=new URLSearchParams(location.search);
+const tournamentId=params.get('id')||params.get('t')||params.get('tournament_id');
+const mode=params.get('mode')==='series'?'series':'league';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tournament=null,sourceEvent=null;
+
+function notice(text,type=''){const n=document.getElementById('notice');if(!n)return;n.textContent=text;n.className='notice '+type}
+function isoFrom(date,time){if(!date||!time)return null;const d=new Date(`${date}T${time}`);return Number.isNaN(d.getTime())?null:d.toISOString()}
+function datePart(v){if(!v)return'';return new Date(v).toLocaleDateString('en-CA')}
+function timePart(v){if(!v)return'';const d=new Date(v);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+function addDays(dateString,days){if(!dateString)return'';const d=new Date(dateString+'T12:00:00');d.setDate(d.getDate()+days);return d.toLocaleDateString('en-CA')}
+
+function renderLeague(){
+  $('eyebrow').textContent='Turnaj → liga';
+  $('title').textContent='Vytvoriť ligu z turnaja';
+  const season=tournament.date?String(tournament.date).slice(0,4):String(new Date().getFullYear());
+  $('content').innerHTML=`<form id="form" class="grid">
+    <div class="field full"><label>Názov ligy</label><input class="input" name="name" value="${esc(tournament.name)}" required minlength="3"></div>
+    <div class="field"><label>Sezóna</label><input class="input" name="season" value="${esc(season)}" required></div>
+    <div class="field"><label>Herný systém</label><select class="input" name="format"><option value="round_robin_single">Každý s každým – 1×</option><option value="round_robin_double">Každý s každým – 2×</option><option value="round_robin_playoff">Základná časť + play-off</option></select></div>
+    <div class="field"><label>Rozpis</label><select class="input" name="schedule"><option value="rounds">Pevné kolá</option><option value="open_deadline">Voľné odohranie</option></select></div>
+    <div class="field"><label>Viditeľnosť</label><select class="input" name="visibility"><option value="public">Verejná</option><option value="unlisted">Len cez odkaz</option><option value="private">Súkromná</option></select></div>
+    <div class="field full"><div class="muted">Hráči z turnaja sa prenesú do ligy automaticky vrátane CSP účtu a nasadenia.</div></div>
+    <div class="field full"><div class="actions"><button class="btn green" id="save">Vytvoriť ligu</button><a class="btn" href="/turnament/?id=${encodeURIComponent(tournament.id)}">Späť</a></div><div id="notice" class="notice">Liga sa vytvorí ako koncept.</div></div>
+  </form>`;
+  $('form').onsubmit=saveLeague;
+}
+
+function renderSeries(){
+  $('eyebrow').textContent='Turnaj → séria';
+  $('title').textContent='Vytvoriť sériu z turnaja';
+  $('content').innerHTML=`<form id="form" class="grid">
+    <div class="field full"><label>Názov série</label><input class="input" name="title" value="${esc(tournament.name)}" required></div>
+    <div class="field"><label>Počet kôl</label><input class="input" id="roundCount" type="number" min="2" max="52" value="2" required></div>
+    <div class="field"><label>Viditeľnosť</label><select class="input" name="visibility"><option value="public">Verejná</option><option value="unlisted">Len cez odkaz</option><option value="private">Súkromná</option></select></div>
+    <div class="field full"><label>Termíny kôl</label><div class="rounds" id="rounds"></div><div class="muted" style="margin-top:8px">Prvé kolo je tento turnaj. Čas zadávame zvlášť, aby CSP nevymýšľal hodinu, ktorú turnaj nemá uloženú.</div></div>
+    <div class="field full"><div class="actions"><button class="btn green" id="save">Vytvoriť sériu</button><a class="btn" href="/turnament/?id=${encodeURIComponent(tournament.id)}">Späť</a></div><div id="notice" class="notice">Aktuálny turnaj zostane zachovaný a bude 1. kolom série.</div></div>
+  </form>`;
+  $('roundCount').oninput=renderRounds;
+  renderRounds();
+  $('form').onsubmit=saveSeries;
+}
+
+function renderRounds(){
+  const count=Math.max(2,Math.min(52,Number($('roundCount').value)||2));
+  const firstDate=sourceEvent?.starts_at?datePart(sourceEvent.starts_at):(tournament.date||'');
+  const firstTime=sourceEvent?.starts_at?timePart(sourceEvent.starts_at):'';
+  const box=$('rounds');
+  const old=[...box.querySelectorAll('.round')].map(r=>({date:r.querySelector('.date')?.value||'',time:r.querySelector('.time')?.value||''}));
+  box.innerHTML=Array.from({length:count},(_,i)=>{
+    const prev=old[i]||{};
+    const date=prev.date||(i===0?firstDate:(firstDate?addDays(firstDate,i*7):''));
+    const time=prev.time||(i===0?firstTime:'');
+    return `<div class="round"><b>${i+1}. kolo</b><input class="input date" type="date" value="${esc(date)}" required><input class="input time" type="time" value="${esc(time)}" required></div>`;
+  }).join('');
+}
+
+async function saveLeague(e){
+  e.preventDefault();const btn=$('save');btn.disabled=true;notice('Vytváram ligu…');
+  const f=new FormData(e.target);
+  const {data,error}=await db.rpc('create_league_from_tournament',{p_tournament_id:tournament.id,p_name:f.get('name'),p_season_name:f.get('season'),p_competition_format:f.get('format'),p_scheduling_mode:f.get('schedule'),p_visibility:f.get('visibility')});
+  if(error){notice(error.message,'err');btn.disabled=false;return}
+  notice(data?.created===false?'Liga z tohto turnaja už existuje. Otváram ju…':'Liga vytvorená. Hráči boli importovaní.','ok');
+  location.href='/ligy/?id='+encodeURIComponent(data.league_id);
+}
+
+async function saveSeries(e){
+  e.preventDefault();const btn=$('save');btn.disabled=true;notice('Vytváram sériu…');
+  const f=new FormData(e.target);const starts=[];
+  for(const r of document.querySelectorAll('.round')){const iso=isoFrom(r.querySelector('.date').value,r.querySelector('.time').value);if(!iso){notice('Pri každom kole zadaj dátum aj čas.','err');btn.disabled=false;return}starts.push(iso)}
+  const {data,error}=await db.rpc('create_event_series_from_tournament',{p_tournament_id:tournament.id,p_title:f.get('title'),p_starts_at:starts,p_visibility:f.get('visibility')});
+  if(error){notice(error.message,'err');btn.disabled=false;return}
+  notice(data?.created===false?'Turnaj už je zaradený v sérii. Otváram ju…':'Séria vytvorená. Tento turnaj je jej 1. kolo.','ok');
+  location.href='/udalost/?id='+encodeURIComponent(data.first_event_id);
+}
+
+(async()=>{
+  if(!db||!tournamentId){$('content').innerHTML='<div class="notice err">Chýba identifikátor turnaja.</div>';return}
+  const session=(await cspAuth.getSession()).data?.session;if(!session){location.href='/login/?returnTo='+encodeURIComponent(location.pathname+location.search);return}
+  const {data,error}=await db.from('tournaments').select('id,owner_id,name,sport,discipline,format,date,venue,city,source_event_id').eq('id',tournamentId).single();
+  if(error){$('content').innerHTML=`<div class="notice err">${esc(error.message)}</div>`;return}
+  tournament=data;
+  if(tournament.owner_id!==session.user.id){const profile=(await cspAuth.getCurrentProfile(session.user)).data;if(!profile?.is_admin){$('content').innerHTML='<div class="notice err">Turnaj môže konvertovať iba jeho organizátor.</div>';return}}
+  if(tournament.source_event_id){const ev=await db.from('events').select('id,starts_at,series_id').eq('id',tournament.source_event_id).maybeSingle();if(!ev.error)sourceEvent=ev.data}
+  $('meta').textContent=[tournament.name,tournament.sport,tournament.discipline,tournament.date].filter(Boolean).join(' · ');
+  mode==='series'?renderSeries():renderLeague();
+})();
+})();
+</script>
+</body>
+</html>
