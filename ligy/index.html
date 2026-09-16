@@ -10,10 +10,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#07080a;--card:#11141a;--card2:#171b23;--line:rgba(255,255,255,.09);--text:#f6f7f9;--muted:#969ca8;--gold:#d4a843;--green:#27cf7d;--red:#e35d55}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1240px,calc(100% - 28px));margin:auto}.top{height:74px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b{color:var(--gold)}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn.red{color:#ff8d86;border-color:rgba(227,93,85,.35);background:rgba(227,93,85,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:42px 0 24px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.3rem,5vw,4.5rem);letter-spacing:-.05em;margin:10px 0}.muted{color:var(--muted)}.panel{display:none;padding-bottom:60px}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.league-card{cursor:pointer}.league-card:hover{border-color:rgba(212,168,67,.45)}.toolbar,.actions,.tabs,.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar{margin:20px 0}.badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:800}.captain-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:5px;border-radius:50%;background:rgba(212,168,67,.14);border:1px solid rgba(212,168,67,.5);color:var(--gold);font-size:.68rem;font-weight:900;vertical-align:middle}.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.head h2{font-size:2rem;margin:10px 0 5px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat b{display:block;font-size:1.45rem}.stat small{color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:.82rem;font-weight:700;color:#d4d7dd}.input{width:100%;min-height:46px;border-radius:11px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:10px 12px;outline:none}.input:focus{border-color:rgba(212,168,67,.55)}textarea.input{min-height:105px;resize:vertical}.tabs{margin:18px 0}.tab.active{color:var(--gold);border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.1)}.hide{display:none!important}.notice{padding:12px 14px;border-radius:11px;border:1px solid var(--line);margin:12px 0;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.35)}.notice.err{color:#ff8d86;border-color:rgba(227,93,85,.35)}.participant-strip{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.25);background:rgba(212,168,67,.06);border-radius:15px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}th{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.match{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px}.score{width:58px;text-align:center}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:100}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:16px}.modal-head h3{margin:0}.member-list{display:grid;gap:8px}.member-row{display:grid;grid-template-columns:1fr auto;gap:8px}.empty{text-align:center;padding:35px 15px;color:var(--muted)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select,textarea{font:inherit}a{color:inherit;text-decoration:none}.wrap{width:min(1240px,calc(100% - 28px));margin:auto}.top{height:74px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:900}.brand b{color:var(--gold)}.btn{border:1px solid var(--line);background:#11141a;color:var(--text);min-height:42px;padding:0 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.green{background:var(--green);color:#062216;border-color:transparent}.btn.gold{background:var(--gold);color:#171005;border-color:transparent}.btn.red{color:#ff8d86;border-color:rgba(227,93,85,.35);background:rgba(227,93,85,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.hero{padding:42px 0 24px}.eyebrow{color:var(--green);font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.3rem,5vw,4.5rem);letter-spacing:-.05em;margin:10px 0}.muted{color:var(--muted)}.panel{display:none;padding-bottom:60px}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.league-card{cursor:pointer}.league-card:hover{border-color:rgba(212,168,67,.45)}.toolbar,.actions,.tabs,.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar{margin:20px 0}.badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(39,207,125,.1);color:var(--green);font-size:.72rem;font-weight:800}.captain-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:5px;border-radius:50%;background:rgba(212,168,67,.14);border:1px solid rgba(212,168,67,.5);color:var(--gold);font-size:.68rem;font-weight:900;vertical-align:middle}.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.head h2{font-size:2rem;margin:10px 0 5px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat b{display:block;font-size:1.45rem}.stat small{color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:.82rem;font-weight:700;color:#d4d7dd}.input{width:100%;min-height:46px;border-radius:11px;border:1px solid var(--line);background:#0b0d12;color:var(--text);padding:10px 12px;outline:none}.input:focus{border-color:rgba(212,168,67,.55)}textarea.input{min-height:105px;resize:vertical}.tabs{margin:18px 0}.tab.active{color:var(--gold);border-color:rgba(212,168,67,.4);background:rgba(212,168,67,.1)}.hide{display:none!important}.notice{padding:12px 14px;border-radius:11px;border:1px solid var(--line);margin:12px 0;color:var(--muted)}.notice.ok{color:var(--green);border-color:rgba(39,207,125,.35)}.notice.err{color:#ff8d86;border-color:rgba(227,93,85,.35)}.participant-strip{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:16px 0;padding:16px;border:1px solid rgba(212,168,67,.25);background:rgba(212,168,67,.06);border-radius:15px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}th{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.match{padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:12px}.match-head{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center}.score{width:58px;text-align:center}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:100}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:16px}.modal-head h3{margin:0}.member-list{display:grid;gap:8px}.member-row{display:grid;grid-template-columns:1fr auto;gap:8px}.empty{text-align:center;padding:35px 15px;color:var(--muted)}
 .social-like.liked{background:rgba(39,207,125,.1);border-color:rgba(39,207,125,.45);color:var(--green)}
-@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.match{grid-template-columns:1fr}.participant-strip{align-items:flex-start;flex-direction:column}}
-@media(max-width:560px){.grid,.stats{grid-template-columns:1fr}.actions .btn{width:auto}.btn{width:100%}.top .btn{width:auto}.member-row{grid-template-columns:1fr}}
+.lineup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.lineup-side{background:#0b0d12;border:1px solid var(--line);border-radius:12px;padding:12px}.lineup-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.lineup-title small{font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.lineup-list{display:grid;gap:8px}.lineup-player-row{display:grid;grid-template-columns:42px minmax(120px,1fr) minmax(130px,180px);gap:9px;align-items:center}.slot-code{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:8px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);font-weight:900}.lineup-discipline{min-height:38px;padding:6px 9px}.lineup-discipline-value{text-align:right;color:#d8dbe0;font-weight:700}.doubles-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}.doubles-row b{margin-right:4px}.double-choice{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#11141a;font-size:.82rem;font-weight:800}.lineup-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}.lineup-feedback{font-size:.78rem;color:var(--muted)}.lineup-feedback.ok{color:var(--green)}.lineup-feedback.err{color:#ff8d86}
+@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.match-head{grid-template-columns:1fr}.participant-strip{align-items:flex-start;flex-direction:column}.lineup-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.grid,.stats{grid-template-columns:1fr}.actions .btn{width:auto}.btn{width:100%}.top .btn{width:auto}.member-row{grid-template-columns:1fr}.lineup-player-row{grid-template-columns:38px 1fr}.lineup-player-row .lineup-discipline,.lineup-player-row .lineup-discipline-value{grid-column:2}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
@@ -303,12 +304,85 @@ async function loadStandings(){
     return `<tr><td>${r.standing_position}</td><td><b>${esc(r.display_name)}</b></td><td>${played}</td><td>${wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.score_for}</td><td>${r.score_against}</td><td>${r.score_difference>0?'+':''}${r.score_difference}</td><td><b>${success}%</b></td><td><b>${r.points}</b></td><td>${form}</td></tr>`;
   }).join('')||'<tr><td colspan="12" class="empty">Tabuľka sa zobrazí po pridaní účastníkov.</td></tr>';
 }
+function lineupDisciplineChoices(){
+  const sport=String(currentLeague?.sport||'').toLowerCase();
+  let choices=[];
+  if(sport.includes('biliard'))choices=['8-ball','9-ball','10-ball','Heyball'];
+  else if(sport.includes('šípk')||sport.includes('sipk'))choices=['Steel','Elektronické'];
+  else if(sport.includes('bowling'))choices=['Bowling'];
+  else if(sport.includes('kart'))choices=['Žolíky','Mariáš','Sedma'];
+  if(currentLeague?.discipline&&!choices.includes(currentLeague.discipline))choices.unshift(currentLeague.discipline);
+  return choices;
+}
+function lineupSelect(selected=''){
+  const choices=lineupDisciplineChoices();
+  const all=selected&&!choices.includes(selected)?[selected,...choices]:choices;
+  return `<select class="input lineup-discipline"><option value="">Vyber disciplínu</option>${all.map(x=>`<option value="${esc(x)}" ${x===selected?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+}
+function defaultLineupSlots(team){
+  const members=Array.isArray(team?.metadata?.members)?team.metadata.members:[];
+  return members.map((name,index)=>({slot:index+1,name,discipline:currentLeague?.discipline||''}));
+}
+function lineupFeedback(card,text='',type=''){
+  const el=card?.querySelector('.lineup-feedback');
+  if(!el)return;
+  el.textContent=text;el.className='lineup-feedback'+(type?' '+type:'');
+}
+function renderLineupSide(match,team,side,lineup){
+  const prefix=side==='home'?'D':'H';
+  const title=side==='home'?'Domáci':'Hostia';
+  const slots=Array.isArray(lineup?.slots)&&lineup.slots.length?lineup.slots:defaultLineupSlots(team);
+  const doubles=Array.isArray(lineup?.doubles_slots)?lineup.doubles_slots.map(Number):[];
+  if(!slots.length)return `<div class="lineup-side"><div class="lineup-title"><b>${title} · ${esc(team?.display_name||'Tím')}</b><small>${prefix}</small></div><div class="muted">Tím nemá zadaných členov.</div></div>`;
+  const rows=slots.map(s=>{
+    const slot=Number(s.slot),name=String(s.name||'');
+    return `<div class="lineup-player-row" data-slot="${slot}" data-name="${esc(name)}"><span class="slot-code">${prefix}${slot}</span><strong>${esc(name)}</strong>${isManager?lineupSelect(s.discipline||''):`<span class="lineup-discipline-value">${esc(s.discipline||'–')}</span>`}</div>`;
+  }).join('');
+  const doublesHtml=isManager
+    ? slots.map(s=>{const slot=Number(s.slot);return `<label class="double-choice"><input type="checkbox" value="${slot}" ${doubles.includes(slot)?'checked':''} onchange="lineupDoubleChanged(this)"> ${prefix}${slot}</label>`}).join('')
+    : (doubles.length?doubles.map(slot=>`${prefix}${slot}`).join(' + '):'–');
+  return `<div class="lineup-side" data-lineup-card data-match-id="${match.id}" data-side="${side}" data-team-id="${team?.id||''}"><div class="lineup-title"><b>${title} · ${esc(team?.display_name||'Tím')}</b><small>${prefix}</small></div><div class="lineup-list">${rows}</div><div class="doubles-row"><b>Dvojice</b>${doublesHtml}</div>${isManager?`<div class="lineup-actions"><button class="btn green" type="button" onclick="saveLineup('${match.id}','${side}','${team?.id||''}')">Uložiť zostavu</button><span class="lineup-feedback"></span></div>`:''}</div>`;
+}
+function lineupDoubleChanged(input){
+  const card=input.closest('[data-lineup-card]');
+  const checks=[...card.querySelectorAll('.doubles-row input[type="checkbox"]')];
+  const checked=checks.filter(x=>x.checked);
+  if(checked.length>2)input.checked=false;
+  const selected=checks.filter(x=>x.checked);
+  checks.forEach(x=>x.disabled=selected.length>=2&&!x.checked);
+  lineupFeedback(card,selected.length===2?'Dvojica vybraná.':'Vyber presne dvoch hráčov.',selected.length===2?'ok':'');
+}
+async function saveLineup(matchId,side,teamId){
+  if(!isManager)return;
+  const card=document.querySelector(`[data-lineup-card][data-match-id="${matchId}"][data-side="${side}"]`);
+  if(!card)return;
+  const rows=[...card.querySelectorAll('.lineup-player-row')];
+  const slots=rows.map(row=>({slot:Number(row.dataset.slot),name:row.dataset.name,discipline:row.querySelector('.lineup-discipline')?.value.trim()||''}));
+  if(slots.some(s=>!s.discipline))return lineupFeedback(card,'Pri každom hráčovi vyber disciplínu.','err');
+  const doubles=[...card.querySelectorAll('.doubles-row input[type="checkbox"]:checked')].map(x=>Number(x.value));
+  if(slots.length>=2&&doubles.length!==2)return lineupFeedback(card,'Na zápas dvojíc vyber presne dvoch hráčov.','err');
+  const {error}=await db.from('league_match_lineups').upsert({match_id:matchId,side,team_id:teamId,slots,doubles_slots:doubles},{onConflict:'match_id,side'});
+  if(error)return lineupFeedback(card,error.message,'err');
+  lineupFeedback(card,'Zostava uložená.','ok');
+}
 async function loadMatches(){
-  const {data,error}=await db.from('league_matches').select('*,player1:league_players!league_matches_player1_id_fkey(display_name),player2:league_players!league_matches_player2_id_fkey(display_name)').eq('league_id',currentLeague.id).order('round_number').order('match_number');
+  const {data,error}=await db.from('league_matches').select('*,player1:league_players!league_matches_player1_id_fkey(id,display_name,metadata),player2:league_players!league_matches_player2_id_fkey(id,display_name,metadata)').eq('league_id',currentLeague.id).order('round_number').order('match_number');
   if(error)return msg($('#detailNotice'),error.message,'err');
+  let lineups=[];
+  if(isTeam()&&data.length){
+    const result=await db.from('league_match_lineups').select('*').in('match_id',data.map(m=>m.id));
+    if(result.error)return msg($('#detailNotice'),result.error.message,'err');
+    lineups=result.data||[];
+  }
+  const lineupMap=new Map(lineups.map(x=>[`${x.match_id}:${x.side}`,x]));
   const played=data.filter(m=>['completed','forfeited'].includes(m.status)).length;
   $('#statMatches').textContent=data.length;$('#statPlayed').textContent=played;$('#statProgress').textContent=data.length?Math.round(played/data.length*100)+' %':'0 %';
-  $('#matchList').innerHTML=data.map(m=>`<div class="match"><div><b>Kolo ${m.round_number}</b></div><div><b>${esc(m.player1?.display_name||'Účastník 1')}</b> vs <b>${esc(m.player2?.display_name||'Účastník 2')}</b><div class="muted">${esc(m.status)}</div></div>${isManager?`<div><input class="input score" id="s1-${m.id}" type="number" min="0" value="${m.score1??''}"> : <input class="input score" id="s2-${m.id}" type="number" min="0" value="${m.score2??''}"> <button class="btn green" onclick="saveResult('${m.id}','${m.player1_id}','${m.player2_id}')">Uložiť</button></div>`:`<div><b>${m.score1??'–'} : ${m.score2??'–'}</b></div>`}</div>`).join('')||'<div class="empty">Rozpis ešte nebol vytvorený.</div>';
+  $('#matchList').innerHTML=data.map(m=>{
+    const resultControls=isManager?`<div><input class="input score" id="s1-${m.id}" type="number" min="0" value="${m.score1??''}"> : <input class="input score" id="s2-${m.id}" type="number" min="0" value="${m.score2??''}"> <button class="btn green" onclick="saveResult('${m.id}','${m.player1_id}','${m.player2_id}')">Uložiť</button></div>`:`<div><b>${m.score1??'–'} : ${m.score2??'–'}</b></div>`;
+    const lineupsHtml=isTeam()?`<div class="lineup-grid">${renderLineupSide(m,m.player1,'home',lineupMap.get(`${m.id}:home`))}${renderLineupSide(m,m.player2,'away',lineupMap.get(`${m.id}:away`))}</div>`:'';
+    return `<div class="match"><div class="match-head"><div><b>Kolo ${m.round_number}</b></div><div><b>${esc(m.player1?.display_name||'Účastník 1')}</b> vs <b>${esc(m.player2?.display_name||'Účastník 2')}</b><div class="muted">${esc(m.status)}</div></div>${resultControls}</div>${lineupsHtml}</div>`;
+  }).join('')||'<div class="empty">Rozpis ešte nebol vytvorený.</div>';
+  $$('.doubles-row input[type="checkbox"]').forEach(input=>lineupDoubleChanged(input));
 }
 async function saveResult(id,p1,p2){
   const s1=Number($('#s1-'+id).value),s2=Number($('#s2-'+id).value);
@@ -318,7 +392,7 @@ async function saveResult(id,p1,p2){
   if(error)return msg($('#detailNotice'),error.message,'err');
   await Promise.all([loadMatches(),loadStandings()]);
 }
-window.removeParticipant=removeParticipant;window.editParticipant=editParticipant;window.saveResult=saveResult;
+window.removeParticipant=removeParticipant;window.editParticipant=editParticipant;window.saveResult=saveResult;window.saveLineup=saveLineup;window.lineupDoubleChanged=lineupDoubleChanged;
 init();
 </script>
   <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
