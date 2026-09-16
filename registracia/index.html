@@ -83,6 +83,18 @@ body{
 .field input{background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--font);font-size:.92rem;padding:11px 13px;outline:none;transition:.12s}
 .field input:focus{border-color:var(--gold-b);background:rgba(212,168,67,.03)}
 
+.human-check{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:10px;background:var(--bg3);
+  cursor:pointer;user-select:none;transition:.15s;
+}
+.human-check:hover{border-color:var(--gold-b);background:rgba(212,168,67,.025)}
+.human-check input{width:20px;height:20px;flex:0 0 20px;accent-color:var(--green);cursor:pointer}
+.human-check-copy{display:flex;flex-direction:column;gap:2px}
+.human-check-title{font-size:.82rem;font-weight:800;color:var(--text)}
+.human-check-sub{font-size:.68rem;color:var(--muted2);line-height:1.35}
+.hp-field{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 20px;border-radius:10px;font:700 .94rem/1 var(--font);cursor:pointer;border:none;width:100%;transition:.15s}
 .btn-gold{
   background:linear-gradient(135deg,var(--gold),var(--gold-bright));
@@ -105,6 +117,7 @@ body{
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
 <script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-registration-human-check.js?v=20260916-1"></script>
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
 <meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
 <meta name="robots" content="noindex,nofollow">
@@ -165,6 +178,19 @@ body{
       <div class="field"><label>Heslo (min. 8 znakov)</label><input id="password" type="password" placeholder="••••••••" autocomplete="new-password"/></div>
       <div class="field"><label>Zopakuj heslo</label><input id="password2" type="password" placeholder="••••••••" autocomplete="new-password"/></div>
 
+      <div class="hp-field" aria-hidden="true">
+        <label for="website">Web</label>
+        <input id="website" name="website" type="text" tabindex="-1" autocomplete="off"/>
+      </div>
+
+      <label class="human-check" for="humanCheck">
+        <input id="humanCheck" type="checkbox"/>
+        <span class="human-check-copy">
+          <span class="human-check-title">Nie som robot</span>
+          <span class="human-check-sub">Potvrď, že registráciu vypĺňa človek.</span>
+        </span>
+      </label>
+
       <div class="msg" id="msg"></div>
       <button class="btn btn-gold" id="btnReg">🚀 Vytvoriť účet</button>
 
@@ -183,7 +209,6 @@ body{
   if(window.location.hash && window.location.hash.includes('access_token'))
     history.replaceState(null,'',window.location.pathname);
 })();
-
 
 function safeReturnTo(){
   const params=new URLSearchParams(window.location.search);
@@ -214,6 +239,13 @@ document.getElementById('btnReg').addEventListener('click', async () => {
   if(!email){ showMsg('Zadaj e-mail.','err'); return; }
   if(!p1 || p1.length < 8){ showMsg('Heslo musí mať aspoň 8 znakov.','err'); return; }
   if(p1 !== p2){ showMsg('Heslá sa nezhodujú.','err'); return; }
+
+  if(!window.cspRegistrationHumanCheck){
+    showMsg('Bezpečnostná kontrola sa nenačítala. Obnov stránku a skús to znova.','err');
+    return;
+  }
+  const humanResult = window.cspRegistrationHumanCheck.validate();
+  if(!humanResult.ok){ showMsg(humanResult.message,'err'); return; }
 
   const btn = document.getElementById('btnReg');
   btn.disabled = true; btn.textContent = '⏳ Vytváram účet...';
