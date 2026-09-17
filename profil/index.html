@@ -567,6 +567,11 @@
             location.replace(`/profil-ul/?id=${encodeURIComponent(profile.id)}&view=public`);
             return;
           }
+          const publicPlan=String(profile.plan||"free").toLowerCase();
+          if(["pro_plus","ultra"].includes(publicPlan)){
+            location.replace(`/profil-pro-plus/?id=${encodeURIComponent(profile.id)}&view=public`);
+            return;
+          }
           const extras=await loadPublicPlayerExtras(profile.id);
           await renderPublicPlayerProfile(profile,extras);
           return;

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080b0c">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Upraviť PRO+ profil · Connect Sports Pro</title>
+  <link rel="icon" href="/assets/csp-logo-mark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/csp-pro-plus-edit.css?v=20260917-1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous" defer></script>
+  <script src="/assets/csp-auth.js?v=20260917-pro-plus-1" defer></script>
+  <script src="/assets/csp-pro-plus-edit.js?v=20260917-1" defer></script>
+  <script src="/assets/csp-avatar-crop.js?v=20260915-1" defer></script>
+</head>
+<body>
+  <div class="page-state" id="pageState"><span class="spinner"></span>Načítavam PRO+ profil…</div>
+
+  <main class="editor" id="editor" hidden>
+    <header class="topbar">
+      <a class="brand" href="/profil-pro-plus/" aria-label="Connect Sports Pro"><img src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
+      <a class="back" href="/profil-pro-plus/">← Späť na profil</a>
+    </header>
+
+    <section class="hero">
+      <div class="avatar" id="avatarPreview"><span id="avatarInitials">–</span></div>
+      <div class="hero-copy">
+        <span class="eyebrow">PRO+ PROFIL HRÁČA</span>
+        <h1 id="profileNameHero">Hráč</h1>
+        <p>Údaje z tejto stránky sa zobrazujú v samostatnom PRO+ profile.</p>
+        <div class="avatar-actions">
+          <input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+          <button class="button secondary" id="avatarButton" type="button">Zmeniť fotografiu</button>
+        </div>
+      </div>
+    </section>
+
+    <form id="profileForm" novalidate>
+      <div class="form-grid">
+        <section class="panel">
+          <span class="section-label">ZÁKLADNÉ ÚDAJE</span>
+          <h2>Profil hráča</h2>
+          <label class="field"><span>Meno a priezvisko</span><input id="fullName" maxlength="120" autocomplete="name" required></label>
+          <label class="field"><span>Športové bio</span><textarea id="bio" maxlength="2000" placeholder="Napíš stručné športové bio…"></textarea><small><b id="bioCount">0</b>/2000</small></label>
+        </section>
+
+        <section class="panel">
+          <span class="section-label">POLOHA</span>
+          <h2>Mesto a štát</h2>
+          <div class="split">
+            <label class="field"><span>Mesto</span><input id="city" maxlength="100" autocomplete="address-level2" placeholder="Prievidza"></label>
+            <label class="field"><span>Štát – ISO kód</span><input id="countryCode" maxlength="2" autocomplete="country" placeholder="SK"></label>
+          </div>
+          <p class="help">Kód štátu určuje názov krajiny a vlajku v profile. Použi napríklad SK, CZ, DE alebo PL.</p>
+        </section>
+
+        <section class="panel">
+          <span class="section-label">ŠPORTOVÝ PROFIL</span>
+          <h2>Hlavná disciplína</h2>
+          <div class="split">
+            <label class="field"><span>Šport</span><input id="sport" maxlength="80" placeholder="Biliard"></label>
+            <label class="field"><span>Disciplína</span><input id="discipline" maxlength="80" placeholder="9-ball"></label>
+          </div>
+        </section>
+
+        <section class="panel gear-panel">
+          <span class="section-label">MY GEAR</span>
+          <h2>Moje vybavenie</h2>
+          <label class="field"><span>Hracia plocha alebo stôl</span><input id="gearBoard" maxlength="120" placeholder="Stôl, terč, dráha…"></label>
+          <label class="field"><span>Osobné vybavenie</span><input id="gearEquipment" maxlength="120" placeholder="Tágo, šípky, raketa…"></label>
+          <label class="field"><span>Poznámka</span><input id="gearMotto" maxlength="240" placeholder="Krátka poznámka k vybaveniu"></label>
+        </section>
+      </div>
+
+      <footer class="savebar">
+        <a class="button secondary" href="/profil-pro-plus/">Zrušiť</a>
+        <button class="button primary" id="saveButton" type="submit">Uložiť zmeny</button>
+      </footer>
+    </form>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+</body>
+</html>

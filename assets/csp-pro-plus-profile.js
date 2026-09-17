@@ -3,11 +3,22 @@
 (function(){
   const $=id=>document.getElementById(id);
   const state=$("pageState");
+  const query=new URLSearchParams(location.search);
+  const publicPlayerId=query.get("id");
+  const isPublicView=query.get("view")==="public"&&Boolean(publicPlayerId);
   let dashboard=null;
 
   function text(id,value){const node=$(id);if(node)node.textContent=value??"";}
   function initials(name){return String(name||"Player").trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();}
-  function handle(name){return "@"+String(name||"player").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,24);}
+  function countryFlag(code){
+    const value=String(code||"").trim().toUpperCase();
+    return /^[A-Z]{2}$/.test(value)?String.fromCodePoint(...[...value].map(letter=>127397+letter.charCodeAt(0))):"";
+  }
+  function countryName(code){
+    const value=String(code||"").trim().toUpperCase();
+    if(!/^[A-Z]{2}$/.test(value))return "";
+    try{return new Intl.DisplayNames(["sk"],{type:"region"}).of(value)||value}catch{return value}
+  }
   function date(value){const parsed=new Date(value);return Number.isNaN(parsed.getTime())?null:parsed;}
   function dateLabel(value){const parsed=date(value);return parsed?new Intl.DateTimeFormat("en-GB",{month:"short",year:"numeric"}).format(parsed):"";}
   function relativeTime(value){
@@ -44,12 +55,15 @@
     const primary=disciplines.find(item=>item.is_primary)||disciplines[0]||{};
     const name=profile.full_name||"Player",short=initials(name),ihs=getIhsCurrent(payload);
     const wins=Number(summary.wins)||0,losses=Number(summary.losses)||0,matches=Number(summary.matches_completed)||wins+losses;
-    const rating=Number(ihs.rating),ratingText=Number.isFinite(rating)?rating.toFixed(2):"—";
+    const rating=Number(ihs.rating),publicGrade=String(ihs.public_grade||ihs.grade||"").trim();
+    const ratingText=publicGrade||(Number.isFinite(rating)?rating.toFixed(2):"—");
     const isDarts=String(primary.sport||"").toLowerCase().includes("dart")||String(primary.discipline||"").toLowerCase().includes("dart");
-    const ratingLabel=isDarts?"Average":"IHS Rating";
+    const ratingLabel=publicGrade?"IHS Grade":isDarts?"Average":"IHS Rating";
 
     text("profileName",name);text("accountName",name);text("profileInitials",short);text("accountAvatar",short);
-    text("profileHandle",handle(name));text("memberSince",profile.created_at?`Member since ${dateLabel(profile.created_at)}`:"CSP member");
+    const flag=countryFlag(profile.country_code),place=[profile.city,countryName(profile.country_code)].filter(Boolean).join(", ");
+    text("profileLocationLine",[flag,place||"Mesto a štát nie sú nastavené"].filter(Boolean).join(" "));
+    text("memberSince",profile.created_at?`Member since ${dateLabel(profile.created_at)}`:"CSP member");
     text("profileQuote",profile.bio?`“${profile.bio}”`:"“Better sport. A better me.”");
     text("profileLocation",[primary.sport,primary.discipline].filter(Boolean).join(" · ")||"Connect Sports Pro");
     text("achievementSport",primary.sport?`${primary.sport} progression`:"Global progression");
@@ -91,11 +105,6 @@
     return card;
   }
 
-  function lockedCard(item){
-    const card=node("article","locked-card"),symbol=node("span","locked-symbol",badgeSymbol(item));
-    card.append(symbol,node("b","",item.name||"Achievement"),node("span","",`${Number(item.points)||0} pts`),node("small","","🔒  PRO+"));return card;
-  }
-
   function renderAchievements(payload){
     const achievements=payload.achievements||{},summary=achievements.summary||{},items=Array.isArray(achievements.items)?achievements.items:[];
     const unlocked=Number(summary.unlocked)||0,total=Number(summary.total)||items.length,percent=total?Math.round(unlocked*100/total):0;
@@ -103,32 +112,39 @@
     const badgeRoot=$("achievementBadges");badgeRoot.replaceChildren();
     const showcase=[...items].sort((a,b)=>Number(b.unlocked)-Number(a.unlocked)||Number(b.points)-Number(a.points)).slice(0,6);
     if(showcase.length)showcase.forEach(item=>badgeRoot.append(achievementCard(item)));else badgeRoot.append(node("div","empty-row","No achievements yet."));
-    const lockedRoot=$("lockedAchievements");lockedRoot.replaceChildren();const locked=items.filter(item=>!item.unlocked).slice(0,3);
-    if(locked.length)locked.forEach(item=>lockedRoot.append(lockedCard(item)));else lockedRoot.append(node("div","empty-row","All current achievements unlocked."));
+  }
+
+  function challengeCard(item){
+    const current=Math.max(0,Number(item.progress_value)||0),target=Math.max(1,Number(item.target_value)||1);
+    const percent=Math.min(100,Math.round(current*100/target));
+    const card=node(isPublicView?"article":"a",`challenge-overview-card ${item.medal||"silver"}`);if(!isPublicView)card.href=`/profil-pro-plus/vyzvy/?challenge=${encodeURIComponent(item.code||"")}`;
+    const symbol=node("span","challenge-symbol",item.badge_symbol||"CSP"),copy=node("span","challenge-copy"),title=node("b","",item.title||"Výzva"),status=node("small","",item.state==="completed"?"Splnená":item.state==="joined"?`${current} / ${target} ${item.unit_label||""}`:"Pridať sa k výzve");
+    const bar=node("span","challenge-bar"),fill=node("i");fill.style.width=`${percent}%`;bar.append(fill);copy.append(title,status,bar);card.append(symbol,copy);return card;
+  }
+
+  function renderChallenges(data){
+    const safe=data||{},summary=safe.summary||{},root=$("challengeOverview");if(!root)return;
+    const total=Number(summary.total)||0,completed=Number(summary.completed)||0,active=Number(summary.active)||0;
+    text("challengeOverviewCount",`${completed} / ${total}`);text("challengeOverviewActive",`${active} aktívne`);
+    root.replaceChildren();
+    const items=Array.isArray(safe.items)?safe.items:[];
+    const selected=[...items].sort((a,b)=>{
+      const rank={joined:0,available:1,completed:2,upcoming:3,closed:4};
+      return (rank[a.state]??9)-(rank[b.state]??9)||(Number(b.progress_percent)||0)-(Number(a.progress_percent)||0);
+    }).slice(0,3);
+    if(selected.length)selected.forEach(item=>root.append(challengeCard(item)));
+    else root.append(node("div","empty-row","Výzvy zatiaľ nie sú dostupné."));
   }
 
   function renderGear(gear){
-    const safe=gear||{};text("gearBoard",safe.board_name||"Not set");text("gearEquipment",safe.equipment_name||"Not set");
-    const motto=safe.motto||"Good equipment helps, but better habits win matches.";text("gearMotto",`“${motto}”`);
-  }
-
-  async function editGear(){
-    const client=window.cspAuth?.client;if(!client||!dashboard)return;
-    const current=dashboard.gear||{};
-    const board=window.prompt("My board",current.board_name||"");if(board===null)return;
-    const equipment=window.prompt("My equipment",current.equipment_name||"");if(equipment===null)return;
-    const motto=window.prompt("My gear motto",current.motto||"");if(motto===null)return;
-    setState("Saving equipment…");
-    const {data,error}=await client.rpc("update_my_pro_plus_gear",{p_board_name:board,p_equipment_name:equipment,p_motto:motto});
-    if(error){setState(error.message||"Equipment could not be saved.",true);window.setTimeout(hideState,2600);return}
-    dashboard.gear=data||{};renderGear(dashboard.gear);hideState();
+    const safe=gear||{};text("gearBoard",safe.board_name||"Nie je nastavené");text("gearEquipment",safe.equipment_name||"Nie je nastavené");
+    const motto=safe.motto||"Vybavenie zatiaľ nie je nastavené.";text("gearMotto",`“${motto}”`);
   }
 
   function bindInteractions(){
     const sidebar=$("sidebar"),menu=$("menuToggle");if(sidebar&&menu)menu.addEventListener("click",()=>sidebar.classList.toggle("open"));
     document.querySelectorAll(".profile-tabs [data-route]").forEach(button=>button.addEventListener("click",()=>{location.href=button.dataset.route}));
-    $("editProfile")?.addEventListener("click",()=>{location.href="/profil/moj-profil/"});
-    $("editGear")?.addEventListener("click",editGear);$("openAchievements")?.addEventListener("click",()=>{location.href="/profil/achievements/"});
+    $("editProfile")?.addEventListener("click",()=>{location.href="/profil-pro-plus/upravit/"});
     $("globalSearch")?.addEventListener("submit",event=>{event.preventDefault();const query=$("globalSearchInput")?.value.trim();if(query)location.href=`/search/?q=${encodeURIComponent(query)}`});
   }
 
@@ -136,14 +152,30 @@
     bindInteractions();
     try{
       const client=window.cspAuth?.client;if(!client)throw new Error("CSP authentication is unavailable.");
+      if(isPublicView){
+        document.body.classList.add("public-mode");
+        const [profileResult,ihsResult]=await Promise.all([
+          client.rpc("get_public_pro_plus_profile",{p_player_id:publicPlayerId}),
+          client.rpc("get_public_ihs_grade",{p_player_id:publicPlayerId,p_sport:null})
+        ]);
+        if(profileResult.error)throw profileResult.error;
+        dashboard=profileResult.data||{};
+        if(!dashboard.profile)throw new Error("Verejný profil hráča sa nenašiel.");
+        dashboard.ihs={current:{public_grade:ihsResult.error?null:ihsResult.data?.grade||null}};
+        renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);renderChallenges(dashboard.challenges||{});
+        document.title=`${dashboard.profile.full_name||"Hráč"} – Connect Sports Pro`;
+        hideState();return;
+      }
       const {data:userData,error:userError}=await client.auth.getUser();
       if(userError||!userData.user){location.replace("/login/?returnTo="+encodeURIComponent(location.pathname));return}
-      const {data,error}=await client.rpc("get_my_pro_plus_dashboard");
-      if(error){
-        if(String(error.code)==="42501"||String(error.message||"").includes("PRO+")){location.replace("/upgrade/?required=pro_plus");return}
-        throw error;
+      const [dashboardResult,challengesResult]=await Promise.all([client.rpc("get_my_pro_plus_dashboard"),client.rpc("get_my_challenges")]);
+      if(dashboardResult.error){
+        if(String(dashboardResult.error.code)==="42501"||String(dashboardResult.error.message||"").includes("PRO+")){location.replace("/upgrade/?required=pro_plus");return}
+        throw dashboardResult.error;
       }
-      dashboard=data||{};renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);hideState();
+      dashboard=dashboardResult.data||{};renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);
+      if(challengesResult.error)console.warn("[pro-plus-profile] challenges",challengesResult.error);else renderChallenges(challengesResult.data||{});
+      hideState();
     }catch(error){console.error("[pro-plus-profile]",error);setState(error.message||"PRO+ profile could not be loaded.",true)}
   }
 
