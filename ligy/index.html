@@ -256,9 +256,10 @@ async function copyStationLink(token){
   try{await navigator.clipboard.writeText(url);msg($('#detailNotice'),'Odkaz stanice bol skopírovaný.','ok')}catch{prompt('Odkaz stanice',url)}
 }
 async function loadCaptainProfiles(){
-  const {data,error}=await db.from('profiles').select('id,full_name,plan,is_admin').order('full_name');
+  const {data,error}=await db.from('profiles').select('id,full_name,plan').in('plan',['pro_plus','ultra','elite']).order('full_name');
   if(error){captainProfiles=[];return msg($('#detailNotice'),'Kapitánov sa nepodarilo načítať: '+error.message,'err')}
-  captainProfiles=(data||[]).filter(p=>p.is_admin||['pro_plus','ultra','elite'].includes(p.plan));
+  captainProfiles=data||[];
+  if(currentProfile?.is_admin&&!captainProfiles.some(p=>p.id===currentProfile.id))captainProfiles.push({id:currentProfile.id,full_name:currentProfile.full_name,plan:currentProfile.plan,is_admin:true});
 }
 function renderCaptainOptions(selected=''){
   const options=['<option value="">Vyber kapitána</option>',...captainProfiles.map(p=>`<option value="${p.id}" ${p.id===selected?'selected':''}>${esc(p.full_name||'Bez mena')} · ${p.is_admin?'ADMIN':esc(String(p.plan||'').toUpperCase())}</option>`)];
