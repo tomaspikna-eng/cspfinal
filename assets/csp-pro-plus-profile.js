@@ -94,12 +94,19 @@
     items.forEach(item=>{const row=node("div","activity-row"),icon=node("span",`activity-symbol${item.type==="achievement"?" gold":""}`,icons[item.type]||"◎"),copy=node("div"),title=node("b","",item.title),detail=node("p","",item.detail),time=node("time","",relativeTime(item.at));copy.append(title,detail);row.append(icon,copy,time);root.append(row)});
   }
 
-  function badgeSymbol(item){const code=String(item.code||"");const numeric=code.match(/\d+/);return numeric?numeric[0]:String(item.name||"CSP").split(/\s+/).map(x=>x[0]).join("").slice(0,3).toUpperCase()}
+  function badgeSymbol(item){return ({first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T"})[String(item.code||"")]||"CSP"}
+
+  function achievementBadge(item,unlocked){
+    const root=node("span","overview-achievement-badge");
+    root.setAttribute("aria-label",`${item.rarity||"CSP"} ${unlocked?"získaný":"zamknutý"} achievement`);
+    root.append(node("span","overview-achievement-ring"),node("span","overview-achievement-top","CSP"),node("span","overview-achievement-symbol",badgeSymbol(item)),node("span","overview-achievement-meta",unlocked?"UNLOCKED":"LOCKED"));
+    return root;
+  }
 
   function achievementCard(item){
     const unlocked=Boolean(item.unlocked),rarity=String(item.rarity||"bronze").toLowerCase();
-    const card=node("article",`badge-card ${["gold","platinum"].includes(rarity)?"highlight":""} ${unlocked?"":"locked"}`.trim());
-    const line=node("div","badge-line"),icon=node("span",`badge-icon ${rarity==="silver"?"silver":""}`,badgeSymbol(item)),copy=node("div"),title=node("b","",item.name||"Achievement"),points=node("span","pts",`${Number(item.points)||0} pts`);
+    const card=node("article",`badge-card ${rarity} ${["gold","platinum"].includes(rarity)?"highlight":""} ${unlocked?"unlocked":"locked"}`.trim());
+    const line=node("div","badge-line"),icon=achievementBadge(item,unlocked),copy=node("div"),title=node("b","",item.name||"Achievement"),points=node("span","pts",`${Number(item.points)||0} pts`);
     copy.append(title,points);line.append(icon,copy);card.append(line);
     if(unlocked){card.append(node("span","badge-state","Unlocked"))}
     else{const wrap=node("div","badge-progress"),bar=node("span","bar"),fill=node("i"),current=Math.max(0,Number(item.current_value)||0),target=Math.max(1,Number(item.target_value)||1);fill.style.width=`${Math.min(100,Math.round(current*100/target))}%`;bar.append(fill);wrap.append(bar,node("span","",`${Math.min(current,target)} / ${target}`));card.append(wrap)}
@@ -119,7 +126,10 @@
     const current=Math.max(0,Number(item.progress_value)||0),target=Math.max(1,Number(item.target_value)||1);
     const percent=Math.min(100,Math.round(current*100/target));
     const card=node(isPublicView?"article":"a",`challenge-overview-card ${item.medal||"silver"}`);if(!isPublicView)card.href=`/profil-pro-plus/vyzvy/?challenge=${encodeURIComponent(item.code||"")}`;
-    const symbol=node("span","challenge-symbol",item.badge_symbol||"CSP"),copy=node("span","challenge-copy"),title=node("b","",item.title||"Výzva"),status=node("small","",item.state==="completed"?"Splnená":item.state==="joined"?`${current} / ${target} ${item.unit_label||""}`:"Pridať sa k výzve");
+    const symbol=node("span","overview-challenge-badge");
+    ["overview-challenge-shell","overview-challenge-inner","overview-challenge-green","overview-challenge-field"].forEach(name=>symbol.append(node("i",name)));
+    symbol.append(node("i","overview-challenge-csp","CSP"),node("i","overview-challenge-symbol",item.badge_symbol||"CSP"),node("i","overview-challenge-year",item.badge_label||"CHALLENGE"));
+    const copy=node("span","challenge-copy"),title=node("b","",item.title||"Výzva"),status=node("small","",item.state==="completed"?"Splnená":item.state==="joined"?`${current} / ${target} ${item.unit_label||""}`:"Pridať sa k výzve");
     const bar=node("span","challenge-bar"),fill=node("i");fill.style.width=`${percent}%`;bar.append(fill);copy.append(title,status,bar);card.append(symbol,copy);return card;
   }
 
