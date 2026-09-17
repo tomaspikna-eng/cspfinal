@@ -117,6 +117,9 @@ function profileHome(profile){
   if(profile?.is_admin || role==='admin' || role==='club' || role==='organization'){
     return '/profil-ul/';
   }
+  if(String(profile?.plan||'free').toLowerCase()==='pro_plus'){
+    return '/profil-pro-plus/';
+  }
   return '/profil/';
 }
 
@@ -129,7 +132,7 @@ async function resolveDestination(user){
 
     // Explicit returnTo to a non-profile route is preserved.
     // Profile destinations are always resolved by role.
-    if(RETURN_TO && RETURN_TO!=='/profil/' && RETURN_TO!=='/profil-ul/'){
+    if(RETURN_TO && RETURN_TO!=='/profil/' && RETURN_TO!=='/profil-ul/' && RETURN_TO!=='/profil-pro-plus/'){
       return RETURN_TO;
     }
     return roleHome;

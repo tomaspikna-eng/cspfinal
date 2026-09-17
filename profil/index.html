@@ -539,6 +539,13 @@
       return profile?.is_admin===true || appMeta.is_admin===true || role==="admin" || role==="club" || role==="organization";
     }
 
+    function usesProPlusProfile(profile,user){
+      const appMeta=user?.app_metadata||{};
+      const role=String(profile?.role||appMeta.role||"player").toLowerCase();
+      const plan=String(profile?.plan||appMeta.plan||"free").toLowerCase();
+      return role==="player" && plan==="pro_plus" && !usesUltraProfile(profile,user);
+    }
+
     async function init(){
       try{
         if(!window.supabase) throw new Error("Knižnicu Supabase sa nepodarilo načítať.");
@@ -577,6 +584,10 @@
         if(error) throw error;
         if(usesUltraProfile(data?.profile,userData.user)){
           location.replace("/profil-ul/");
+          return;
+        }
+        if(usesProPlusProfile(data?.profile,userData.user)){
+          location.replace("/profil-pro-plus/");
           return;
         }
         const from=new Date();from.setDate(from.getDate()-30);
