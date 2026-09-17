@@ -30,6 +30,7 @@
   function setState(message,error=false){if(!state)return;state.hidden=false;state.textContent=message;state.style.color=error?"#ff7b84":"#aeb4b6";}
   function hideState(){if(state)state.hidden=true;}
   function node(tag,className,content){const item=document.createElement(tag);if(className)item.className=className;if(content!==undefined)item.textContent=content;return item;}
+  function isPlanGateError(error){return String(error?.message||"").toLowerCase().includes("pro+ plan required");}
 
   function getIhsCurrent(payload){return payload?.ihs?.current&&typeof payload.ihs.current==="object"?payload.ihs.current:{};}
 
@@ -170,7 +171,7 @@
       if(userError||!userData.user){location.replace("/login/?returnTo="+encodeURIComponent(location.pathname));return}
       const [dashboardResult,challengesResult]=await Promise.all([client.rpc("get_my_pro_plus_dashboard"),client.rpc("get_my_challenges")]);
       if(dashboardResult.error){
-        if(String(dashboardResult.error.code)==="42501"||String(dashboardResult.error.message||"").includes("PRO+")){location.replace("/upgrade/?required=pro_plus");return}
+        if(isPlanGateError(dashboardResult.error)){location.replace("/upgrade/?required=pro_plus");return}
         throw dashboardResult.error;
       }
       dashboard=dashboardResult.data||{};renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);

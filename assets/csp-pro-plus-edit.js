@@ -15,6 +15,7 @@
     else{const mark=document.createElement("span");mark.id="avatarInitials";mark.textContent=initials(profile.full_name);root.append(mark)}
   }
   function normalizeCountry(value){return String(value||"").trim().toUpperCase()}
+  function isPlanGateError(error){return String(error?.message||"").toLowerCase().includes("pro+ plan required")}
 
   async function load(){
     try{
@@ -25,7 +26,7 @@
 
       const {data,error}=await db.rpc("get_my_pro_plus_dashboard");
       if(error){
-        if(String(error.code)==="42501"||String(error.message||"").includes("PRO+")){location.replace("/upgrade/?required=pro_plus");return}
+        if(isPlanGateError(error)){location.replace("/upgrade/?required=pro_plus");return}
         throw error;
       }
 
