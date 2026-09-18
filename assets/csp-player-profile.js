@@ -19,7 +19,7 @@ const NAV=[
 
 const esc=value=>String(value??"").replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
 const planLabel=value=>String(value||"free").toLowerCase()==="pro_plus"?"PRO+":String(value||"free").toUpperCase();
-const playerPlanHome=value=>({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[String(value||"free").toLowerCase()]||"/profil-free/";
+const playerPlanHome=value=>({free:"/FREE/",pro:"/PRO/",pro_plus:"/PRO+/"})[String(value||"free").toLowerCase()]||"/FREE/";
 const safeMediaUrl=value=>{try{const url=new URL(String(value||""),location.origin);return ["http:","https:"].includes(url.protocol)?url.href:""}catch{return""}};
 const safeCssUrl=value=>safeMediaUrl(value).replaceAll("'","%27").replaceAll('"',"%22").replaceAll("(","%28").replaceAll(")","%29");
 const dateValue=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?null:d};
@@ -45,11 +45,11 @@ function sidebar(profile){
   const nav=[
     link("home","⌂","Domov","/"),
     link("play","◎","Hrať","/scoreboard/"),
-    link("tournaments","▦","Turnaje","/profil/turnaje/"),
-    link("training","◉","Tréningy","/profil/treningy/"),
-    link("challenges","◆","Výzvy","/profil-pro-plus/vyzvy/"),
-    link("rankings","≋","Štatistiky","/profil/rebricky/"),
-    link("friends","◇","Komunita","/profil/priatelia/"),
+    link("tournaments","▦","Turnaje",home+"turnaje/"),
+    link("training","◉","Tréningy",home+"treningy/"),
+    link("challenges","◆","Výzvy",plan==="pro_plus"?home+"vyzvy/":"/profil-pro-plus/vyzvy/"),
+    link("rankings","≋","Štatistiky",home+"rebricky/"),
+    link("friends","◇","Komunita",home+"priatelia/"),
     link("profile","●","Profil",home),
     '<span class="nav-divider" aria-hidden="true"></span>',
     create("＋","Vytvoriť turnaj","/turnament/"),
