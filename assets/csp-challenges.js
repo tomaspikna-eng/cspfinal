@@ -159,15 +159,22 @@
       const client=window.cspAuth?.client;if(!client)throw new Error("CSP prihlásenie nie je dostupné.");
       const {data:userData,error:userError}=await client.auth.getUser();
       if(userError||!userData.user){location.replace("/login/?returnTo="+encodeURIComponent(location.pathname));return}
-      const profilePromise=client.from("profiles").select("full_name").eq("id",userData.user.id).single();
+      const profilePromise=client.from("profiles").select("full_name,plan,avatar_url").eq("id",userData.user.id).single();
       const challengesPromise=client.rpc("get_my_challenges");
       const [profileResult,challengesResult]=await Promise.all([profilePromise,challengesPromise]);
       if(challengesResult.error){
         if(String(challengesResult.error.message||"").toLowerCase().includes("pro+ plan required")){location.replace("/upgrade/?required=pro_plus");return}
         throw challengesResult.error;
       }
-      const name=profileResult.data?.full_name||userData.user.email?.split("@")[0]||"Hráč";
-      setText("userName",name);setText("userAvatar",initials(name));render(challengesResult.data||{});hidePageState();
+      const profile=profileResult.data||{},name=profile.full_name||userData.user.email?.split("@")[0]||"Hráč";
+      const plan=String(profile.plan||"free").toLowerCase()==="pro_plus"?"pro_plus":String(profile.plan||"free").toLowerCase()==="pro"?"pro":"free";
+      document.querySelector(".shell")?.classList.add(`plan-${plan.replace("_","-")}`);
+      const home=({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[plan];
+      document.querySelectorAll("[data-player-home]").forEach(link=>link.href=home);
+      document.querySelectorAll("[data-create-feature]").forEach(link=>{if(plan==="pro_plus"){link.removeAttribute("aria-disabled");return}link.setAttribute("aria-disabled","true");link.addEventListener("click",event=>{event.preventDefault();location.href="/upgrade/?required=pro_plus";});});
+      setText("userName",name);setText("userPlanLabel",plan==="pro_plus"?"PRO+ účet":plan.toUpperCase()+" účet");
+      const avatar=document.getElementById("userAvatar");if(avatar){avatar.innerHTML=profile.avatar_url?`<img src="${profile.avatar_url}" alt="${name}">`:initials(name);}
+      render(challengesResult.data||{});hidePageState();
     }catch(error){
       console.error("[csp-challenges]",error);setPageState(error.message||"Výzvy sa nepodarilo načítať.",true);
     }
