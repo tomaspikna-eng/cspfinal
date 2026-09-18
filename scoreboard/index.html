@@ -1826,12 +1826,13 @@ async function completeCurrentSetBeforeNextSet(){
       p_winner_name:winnerName||null
     });
     if(error)throw error;
+    await refreshTrainingSummarySnapshot(sessionId);
     TRAINING_SESSION_ID="";
     return;
   }
 
   if(currentUserId){
-    const {error}=await cspAuth.client.from("training_sessions").insert({
+    const {data:newSession,error}=await cspAuth.client.from("training_sessions").insert({
       owner_id:currentUserId,
       sport:state.sport,
       discipline:currentDisciplineLabel(),
@@ -1844,8 +1845,9 @@ async function completeCurrentSetBeforeNextSet(){
       status:"completed",
       started_at:new Date(Date.now()-Math.max(0,Number(summary.durationSeconds)||0)*1000).toISOString(),
       completed_at:new Date().toISOString()
-    });
+    }).select("id").single();
     if(error)throw error;
+    await refreshTrainingSummarySnapshot(newSession?.id||null);
   }
 }
 
@@ -1918,6 +1920,18 @@ $("endTrainingBtn").onclick=endTrainingManually;
    logged, never surfaced — it must never interrupt or break the live
    scoreboard itself. No loading state, no toast (a "História" viewing
    page is a separate future task — this stays invisible for now). */
+async function refreshTrainingSummarySnapshot(sessionId){
+  if(!sessionId||!currentUserId)return null;
+  try{
+    const {data,error}=await cspAuth.client.rpc("refresh_my_training_session_summary",{p_session_id:sessionId});
+    if(error)throw error;
+    return data||null;
+  }catch(error){
+    console.warn("[scoreboard] Training summary snapshot refresh failed:",error);
+    return null;
+  }
+}
+
 async function saveTrainingSession(finalScore, winnerName, durationSeconds){
   if(!currentUserId) return {ok:false,reason:"not_authenticated"};
   try {
@@ -1928,8 +1942,9 @@ async function saveTrainingSession(finalScore, winnerName, durationSeconds){
       });
       if(error)throw error;
       TRAINING_SESSION_ID="";
+      const summary=await refreshTrainingSummarySnapshot(sessionId);
       console.info('[scoreboard] Active training session completed.');
-      return {ok:true,id:sessionId,data};
+      return {ok:true,id:sessionId,data,summary};
     }
     const { data, error } = await cspAuth.client.from('training_sessions').insert({
       owner_id: currentUserId,
@@ -1946,8 +1961,10 @@ async function saveTrainingSession(finalScore, winnerName, durationSeconds){
       elapsed_seconds: durationSeconds,
     }).select("id").single();
     if(error) throw error;
+    const sessionId=data?.id||null;
+    const summary=await refreshTrainingSummarySnapshot(sessionId);
     console.info('[scoreboard] Training session saved.');
-    return {ok:true,id:data?.id||null};
+    return {ok:true,id:sessionId,summary};
   } catch(err){
     console.error('[scoreboard] Failed to save training session (live scoreboard unaffected):', err);
     return {ok:false,error:err};
