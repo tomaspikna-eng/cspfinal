@@ -131,6 +131,25 @@ button{cursor:pointer}
       </div>
     </section>
 
+    <section class="panel">
+      <div class="section-label">LOKALITA A KLUB</div>
+      <h2>Hráčske údaje</h2>
+      <div class="sport-row">
+        <div class="field">
+          <label for="city">Mesto</label>
+          <input id="city" maxlength="100" autocomplete="address-level2" placeholder="Prievidza">
+        </div>
+        <div class="field">
+          <label for="countryCode">Štát</label>
+          <input id="countryCode" maxlength="2" autocomplete="country" placeholder="SK">
+        </div>
+      </div>
+      <div class="field">
+        <label for="clubName">Klub</label>
+        <input id="clubName" maxlength="120" placeholder="Názov klubu">
+      </div>
+    </section>
+
   </div>
 
   <section class="panel" style="margin-top:12px">
@@ -373,12 +392,16 @@ async function saveProfile(){
   try{
     const fullName=$("fullName").value.trim();
     const bio=$("bio").value.trim();
+    const city=$("city").value.trim();
+    const countryCode=$("countryCode").value.trim().toUpperCase();
+    const clubName=$("clubName").value.trim();
     const sport=$("sport").value.trim();
     const discipline=$("discipline").value.trim();
+    if(countryCode && !/^[A-Z]{2}$/.test(countryCode))throw new Error("Štát zadaj dvojpísmenovým kódom, napríklad SK.");
     if(!fullName)throw new Error("Meno nemôže byť prázdne.");
 
     const {data:updatedProfile,error:profileError}=await db.rpc("update_my_player_profile_settings",{
-      p_patch:{full_name:fullName,bio:bio||null}
+      p_patch:{full_name:fullName,bio:bio||null,city:city||null,country_code:countryCode||null,club_name:clubName||null}
     });
     if(profileError)throw profileError;
 
@@ -445,6 +468,9 @@ async function init(){
     $("fullName").value=profile.full_name||"";
     $("bio").value=profile.bio||"";
     $("bioCount").textContent=String($("bio").value.length);
+    $("city").value=profile.city||"";
+    $("countryCode").value=profile.country_code||"";
+    $("clubName").value=profile.club_name||"";
     $("sport").value=primaryDiscipline?.sport||"";
     $("discipline").value=primaryDiscipline?.discipline||"";
     $("profileNameHero").textContent=profile.full_name||"Hráč";
