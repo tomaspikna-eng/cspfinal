@@ -13,16 +13,22 @@ const categoryLabel=value=>({zaciatky:"Začiatky",progres:"Progres",konzistencia
 const achievementRarityLabel=value=>({bronze:"BRONZE",silver:"SILVER",gold:"GOLD",platinum:"PLATINUM"}[String(value||"").toLowerCase()]||"CSP");
 
 function setAchievementProfile(profile){
-  const home=achievementProfileHome(profile.plan);
-  document.querySelectorAll('a[href="/profil/"]').forEach(link=>link.href=home);
+  const plan=String(profile.plan||"free").toLowerCase()==="pro_plus"?"pro_plus":String(profile.plan||"free").toLowerCase()==="pro"?"pro":"free";
+  const home=achievementProfileHome(plan);
+  document.querySelector(".shell")?.classList.add(`plan-${plan.replace("_","-")}`);
+  document.querySelectorAll("[data-player-home]").forEach(link=>link.href=home);
+  document.querySelectorAll("[data-create-feature]").forEach(link=>{
+    if(plan==="pro_plus"){link.removeAttribute("aria-disabled");return}
+    link.setAttribute("aria-disabled","true");
+    link.addEventListener("click",event=>{event.preventDefault();location.href="/upgrade/?required=pro_plus";});
+  });
   document.querySelectorAll("[data-achievement-player-name]").forEach(el=>el.textContent=profile.full_name||"Hráč");
-  document.querySelectorAll("[data-achievement-plan]").forEach(el=>el.textContent=`${achievementPlan(profile.plan)} účet`);
+  document.querySelectorAll("[data-achievement-plan]").forEach(el=>el.textContent=`${achievementPlan(plan)} účet`);
   document.querySelectorAll("[data-achievement-avatar]").forEach(el=>{
     const avatar=String(profile.avatar_url||"").trim();
     el.innerHTML=avatar?`<img src="${achievementEsc(avatar)}" alt="${achievementEsc(profile.full_name||"Hráč")}">`:achievementEsc(achievementInitials(profile.full_name));
   });
 }
-
 function achievementCard(item){
   const current=Math.max(0,Number(item.current_value)||0),target=Math.max(1,Number(item.target_value)||1),pct=Math.min(100,Math.round(current*100/target)),unlocked=!!item.unlocked;
   const progressText=unlocked?(item.unlocked_at?`Získané ${achievementDate(item.unlocked_at)}`:"Získané"):`${Math.min(current,target)} / ${target}`;
