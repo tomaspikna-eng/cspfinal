@@ -78,3 +78,20 @@ body.training-detail-open{overflow:hidden}
 .training-session-delete:hover{background:rgba(255,91,100,.12);border-color:rgba(255,91,100,.45)}
 .training-session-delete:disabled{opacity:.55;cursor:default}
 @media(max-width:700px){.training-session-row{grid-template-columns:1fr}.training-session-open{grid-template-columns:48px minmax(0,1fr)}.training-session-open .training-session-action{grid-column:2;justify-self:start}.training-session-delete{min-height:42px}}
+
+/* Training performance cards */
+.training-session-row{padding:12px 12px 12px 14px}
+.training-session-main{display:block;min-width:0}
+.training-session-kicker{display:block;font-size:8px!important;letter-spacing:.11em;color:var(--gold)!important;font-weight:850}
+.training-session-main h3{font-size:15px;margin:5px 0 4px;letter-spacing:-.02em}
+.training-session-opponent{font-size:9px!important;color:#c7cbc7!important;margin:0 0 7px!important}
+.training-session-stats{display:block;font-size:9px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.training-session-highlights,.training-detail-highlights{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.training-highlight{display:inline-flex;align-items:center;min-height:24px;padding:5px 8px;border:1px solid rgba(212,168,67,.28);border-radius:999px;background:rgba(212,168,67,.07);color:var(--gold2);font-size:8px;font-weight:800;white-space:nowrap}
+.training-highlight.reward{border-color:rgba(34,211,107,.28);background:rgba(34,211,107,.07);color:var(--green)}
+.training-detail-highlights{padding:12px 0 2px}
+@media(max-width:700px){
+  .training-session-main h3{font-size:14px}
+  .training-session-opponent,.training-session-stats{font-size:11px!important;line-height:1.45}
+  .training-highlight{font-size:10px;min-height:28px}
+}
