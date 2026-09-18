@@ -1,0 +1,15 @@
+do $$
+declare
+  v_def text;
+begin
+  select pg_get_functiondef(p.oid) into v_def
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='get_my_training_session_detail' limit 1;
+
+  v_def:=replace(
+    v_def,
+    '''average_frame_seconds'',v_avg_frame,',
+    '''average_frame_seconds'',v_avg_frame,''session_summary'',coalesce(v_ts.session_summary,''{}''::jsonb),'
+  );
+  execute v_def;
+end $$;
