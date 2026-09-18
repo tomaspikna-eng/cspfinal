@@ -163,7 +163,7 @@
       const challengesPromise=client.rpc("get_my_challenges");
       const [profileResult,challengesResult]=await Promise.all([profilePromise,challengesPromise]);
       if(challengesResult.error){
-        if(String(challengesResult.error.message||"").toLowerCase().includes("pro+ plan required")){location.replace("/upgrade/?required=pro_plus");return}
+        if(String(challengesResult.error.message||"").toLowerCase().includes("pro plan required")){location.replace("/upgrade/?required=pro");return}
         throw challengesResult.error;
       }
       const profile=profileResult.data||{},name=profile.full_name||userData.user.email?.split("@")[0]||"Hráč";
