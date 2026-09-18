@@ -1811,35 +1811,92 @@ async function endMatchDialog(){
     tournamentResultSubmitting=false;
   }
 }
-function startNextSet(){
-  const race=Number($("nextSetRaceTo").value||state.raceTo);
-  state.raceTo=Math.max(1,race);
-  state.setNumber++;
-  state.period=1;state.runInput="";
-  if(pendingSetMode==="frame"){
-    activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.errors=0;p.goldenBreaks=0;p.comboWins=0;});
-    state.currentIndex=breakerIndex();
-  } else if(pendingSetMode==="points"){
-    activePlayers().forEach(p=>{p.frames=0;p.framePoints=0;p.highBreak=0;p.innings=0;});
-    state.currentIndex=breakerIndex();
-  } else if(pendingSetMode==="darts"){
-    activePlayers().forEach(p=>{p.legs=0;p.remaining=startScore();p.scored=0;p.turns=0;p.high=0;p.last=0;});
-    state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
-  } else if(pendingSetMode==="tabletennis"){
-    activePlayers().forEach(p=>{p.points=0;p.sets=0;});
-    state.starter=(state.starter+1)%2;state.currentIndex=state.starter;
-  } else if(pendingSetMode==="racket"){
-    activePlayers().forEach(p=>{p.points=0;p.games=0;p.sets=0;p.tiePoints=0;});
-    state.starter=(state.starter+1)%2;state.currentIndex=state.starter;
-  } else if(pendingSetMode==="universal"){
-    activePlayers().forEach(p=>{p.points=0;p.sets=0;});
-    state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
+async function completeCurrentSetBeforeNextSet(){
+  if(MATCH_ID&&MATCH_TOKEN)return;
+  const summary=pendingTrainingSummary;
+  if(!summary)return;
+  const snapshot=structuredClone(summary.finalScore||currentTrainingFinalScore());
+  const winnerName=summary.winnerName||activePlayers()[pendingWinnerIndex]?.name||"";
+
+  if(TRAINING_SESSION_ID){
+    const sessionId=TRAINING_SESSION_ID;
+    const {error}=await cspAuth.client.rpc("complete_training_session",{
+      p_session_id:sessionId,
+      p_final_score:snapshot,
+      p_winner_name:winnerName||null
+    });
+    if(error)throw error;
+    TRAINING_SESSION_ID="";
+    return;
   }
-  pendingTrainingSummary=null;
-  trainingSummarySaved=false;
-  addLog(`▶ Set ${state.setNumber} — nový zápas (Race to ${state.raceTo})`);
-  $("matchWonOverlay").classList.add("hidden");
-  render();
+
+  if(currentUserId){
+    const {error}=await cspAuth.client.from("training_sessions").insert({
+      owner_id:currentUserId,
+      sport:state.sport,
+      discipline:currentDisciplineLabel(),
+      player_names:activePlayers().map(p=>p.name),
+      final_score:snapshot,
+      winner_name:winnerName||null,
+      race_to:state.raceTo,
+      duration_seconds:Math.max(0,Number(summary.durationSeconds)||0),
+      elapsed_seconds:Math.max(0,Number(summary.durationSeconds)||0),
+      status:"completed",
+      started_at:new Date(Date.now()-Math.max(0,Number(summary.durationSeconds)||0)*1000).toISOString(),
+      completed_at:new Date().toISOString()
+    });
+    if(error)throw error;
+  }
+}
+
+async function startNextSet(){
+  const button=$("playNextSetBtn");
+  if(button.disabled)return;
+  button.disabled=true;
+  const originalText=button.textContent;
+  button.textContent="Ukladám set…";
+
+  try{
+    await completeCurrentSetBeforeNextSet();
+
+    const race=Number($("nextSetRaceTo").value||state.raceTo);
+    state.raceTo=Math.max(1,race);
+    state.setNumber++;
+    state.period=1;state.runInput="";
+    invalidateScoreEventUndo();
+
+    if(pendingSetMode==="frame"){
+      activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.errors=0;p.goldenBreaks=0;p.comboWins=0;p.threeFoulWins=0;p.eightOnBreaks=0;});
+      state.currentIndex=breakerIndex();
+    } else if(pendingSetMode==="points"){
+      activePlayers().forEach(p=>{p.frames=0;p.framePoints=0;p.highBreak=0;p.innings=0;});
+      state.currentIndex=breakerIndex();
+    } else if(pendingSetMode==="darts"){
+      activePlayers().forEach(p=>{p.legs=0;p.remaining=startScore();p.scored=0;p.turns=0;p.high=0;p.last=0;});
+      state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
+    } else if(pendingSetMode==="tabletennis"){
+      activePlayers().forEach(p=>{p.points=0;p.sets=0;});
+      state.starter=(state.starter+1)%2;state.currentIndex=state.starter;
+    } else if(pendingSetMode==="racket"){
+      activePlayers().forEach(p=>{p.points=0;p.games=0;p.sets=0;p.tiePoints=0;});
+      state.starter=(state.starter+1)%2;state.currentIndex=state.starter;
+    } else if(pendingSetMode==="universal"){
+      activePlayers().forEach(p=>{p.points=0;p.sets=0;});
+      state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
+    }
+
+    pendingTrainingSummary=null;
+    trainingSummarySaved=false;
+    addLog(`▶ Set ${state.setNumber} — nový zápas (Race to ${state.raceTo})`);
+    $("matchWonOverlay").classList.add("hidden");
+    render();
+  }catch(err){
+    console.error("[scoreboard] Failed to close current set:",err);
+    alert("Predchádzajúci set sa nepodarilo uložiť. Nový set nebol spustený, aby sa skóre nepoškodilo.");
+  }finally{
+    button.disabled=false;
+    button.textContent=originalText;
+  }
 }
 $("playNextSetBtn").onclick=startNextSet;
 $("endMatchBtn").onclick=endMatchDialog;
