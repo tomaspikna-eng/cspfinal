@@ -10,7 +10,7 @@
   const state={profileId:null,x:50,y:50,zoom:1,file:null,objectUrl:null,avatarUrl:null};
 
   function styleAvatarImages(){
-    const selectors=["#avatar img","#avatarPreview img",".public-avatar img","[data-achievement-avatar] img",".mini-avatar img"];
+    const selectors=["#avatar img","#avatarPreview img","#profileAvatar",".public-avatar img","[data-achievement-avatar] img",".mini-avatar img"];
     document.querySelectorAll(selectors.join(",")).forEach(img=>{
       img.style.objectFit="cover";
       img.style.objectPosition=`${state.x}% ${state.y}%`;
@@ -31,9 +31,7 @@
     try{
       state.profileId=await resolveProfileId();
       if(!state.profileId)return;
-      const {data,error}=await db.from("profiles")
-        .select("avatar_url,avatar_position_x,avatar_position_y,avatar_zoom")
-        .eq("id",state.profileId).maybeSingle();
+      const {data,error}=await global.cspAuth.getCurrentProfile();
       if(error||!data)return;
       state.avatarUrl=data.avatar_url||null;
       state.x=clamp(Number(data.avatar_position_x)||50,0,100);
@@ -53,8 +51,8 @@
       .csp-avatar-modal{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
       .csp-avatar-card{width:min(520px,100%);border:1px solid #343934;border-radius:16px;background:#0d0f0e;box-shadow:0 28px 90px rgba(0,0,0,.55);padding:18px}
       .csp-avatar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:15px}.csp-avatar-head span{font-size:8px;letter-spacing:.16em;color:#d4a843;font-weight:900}.csp-avatar-head h2{margin:4px 0 0;font-size:20px}.csp-avatar-close{width:36px;height:36px;border:1px solid #343934;border-radius:9px;background:#151815;color:#fff;font-size:20px}
-      .csp-avatar-stage{width:min(340px,76vw);aspect-ratio:1;margin:0 auto;border-radius:50%;overflow:hidden;position:relative;background:#080a09;border:2px solid rgba(212,168,67,.55);touch-action:none;cursor:grab}.csp-avatar-stage:active{cursor:grabbing}.csp-avatar-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;pointer-events:none}
-      .csp-avatar-guide{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);pointer-events:none}.csp-avatar-guide:before,.csp-avatar-guide:after{content:"";position:absolute;background:rgba(255,255,255,.11)}.csp-avatar-guide:before{left:50%;top:0;bottom:0;width:1px}.csp-avatar-guide:after{top:50%;left:0;right:0;height:1px}
+      .csp-avatar-stage{width:min(340px,76vw);aspect-ratio:1;margin:0 auto;border-radius:26px;overflow:hidden;position:relative;background:#080a09;border:2px solid rgba(212,168,67,.55);touch-action:none;cursor:grab}.csp-avatar-stage:active{cursor:grabbing}.csp-avatar-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;pointer-events:none}
+      .csp-avatar-guide{position:absolute;inset:0;border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);pointer-events:none}.csp-avatar-guide:before,.csp-avatar-guide:after{content:"";position:absolute;background:rgba(255,255,255,.11)}.csp-avatar-guide:before{left:50%;top:0;bottom:0;width:1px}.csp-avatar-guide:after{top:50%;left:0;right:0;height:1px}
       .csp-avatar-controls{display:grid;gap:8px;margin-top:16px}.csp-avatar-controls label{font-size:9px;color:#8f958f;font-weight:800;letter-spacing:.08em}.csp-avatar-controls input[type=range]{width:100%;accent-color:#d4a843}
       .csp-avatar-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}.csp-avatar-actions button{min-height:42px;padding:0 14px;border-radius:9px;border:1px solid #343934;background:#151815;color:#eee;font-size:12px;font-weight:800}.csp-avatar-actions .primary{background:#d4a843;border-color:#d4a843;color:#211806}.csp-avatar-actions button:disabled{opacity:.55}
       .csp-avatar-edit-btn{min-height:42px;padding:0 14px;border-radius:9px;border:1px solid #343934;background:#151815;color:#eee;font-size:12px;font-weight:800;cursor:pointer}
@@ -114,11 +112,18 @@
           avatarUrl=urlData?.publicUrl||null;
           if(!avatarUrl)throw new Error("Avatar URL unavailable");
         }
-        const {error:updateError}=await db.from("profiles").update({avatar_url:avatarUrl,avatar_position_x:state.x,avatar_position_y:state.y,avatar_zoom:state.zoom}).eq("id",state.profileId);
+        const {error:updateError}=await db.rpc("update_my_player_profile_settings",{
+          p_patch:{
+            avatar_url:avatarUrl,
+            avatar_position_x:state.x,
+            avatar_position_y:state.y,
+            avatar_zoom:state.zoom
+          }
+        });
         if(updateError)throw updateError;
         state.avatarUrl=avatarUrl;
-        document.querySelectorAll("#avatarPreview,#avatar,.public-avatar,[data-achievement-avatar]").forEach(root=>{
-          let target=root.querySelector("img");
+        document.querySelectorAll("#avatarPreview,#avatar,#profilePortrait,.public-avatar,[data-achievement-avatar]").forEach(root=>{
+          let target=root.matches("#profilePortrait")?document.getElementById("profileAvatar"):root.querySelector("img");
           if(!target&&avatarUrl){target=new Image();target.alt="Profilová fotografia";root.replaceChildren(target)}
           if(target&&avatarUrl){target.src=avatarUrl+"?v="+Date.now();}
         });
