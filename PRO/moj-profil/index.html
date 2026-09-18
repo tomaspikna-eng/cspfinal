@@ -131,23 +131,6 @@ button{cursor:pointer}
       </div>
     </section>
 
-    <section class="panel">
-      <div class="section-label">MY GEAR</div>
-      <h2>Moja výbava</h2>
-      <div class="field">
-        <label for="gearBoard">Hracia plocha / stôl</label>
-        <input id="gearBoard" maxlength="120" placeholder="Stôl, terč, dráha…">
-      </div>
-      <div class="field">
-        <label for="gearEquipment">Osobné vybavenie</label>
-        <input id="gearEquipment" maxlength="120" placeholder="Tágo, šípky, raketa…">
-      </div>
-      <div class="field">
-        <label for="gearMotto">Poznámka</label>
-        <input id="gearMotto" maxlength="240" placeholder="Krátka poznámka k vybaveniu">
-      </div>
-      <div class="gallery-note" id="gearPlanNote"></div>
-    </section>
   </div>
 
   <section class="panel" style="margin-top:12px">
@@ -416,14 +399,7 @@ async function saveProfile(){
     }
 
     const plan=String(profile?.plan||"free").toLowerCase();
-    if(plan==="pro"||plan==="pro_plus"){
-      const {error:gearError}=await db.rpc("update_my_player_gear",{
-        p_board_name:$("gearBoard").value.trim(),
-        p_equipment_name:$("gearEquipment").value.trim(),
-        p_motto:$("gearMotto").value.trim()
-      });
-      if(gearError)throw gearError;
-    }
+
 
     profile.full_name=fullName;profile.bio=bio;
     $("profileNameHero").textContent=fullName;
@@ -479,15 +455,6 @@ async function init(){
     const ownPublicUrl=`/profil/?id=${encodeURIComponent(session.user.id)}&view=public`;
     $("publicProfileLink").href=ownPublicUrl;
 
-    const gearResult=await db.rpc("get_my_player_gear");
-    if(gearResult.error)console.warn("[profile editor] gear",gearResult.error);
-    const gear=gearResult.data||{};
-    $("gearBoard").value=gear.board_name||"";
-    $("gearEquipment").value=gear.equipment_name||"";
-    $("gearMotto").value=gear.motto||"";
-    const gearLocked=plan==="free"||gear.locked===true;
-    ["gearBoard","gearEquipment","gearMotto"].forEach(id=>$(id).disabled=gearLocked);
-    $("gearPlanNote").textContent=gearLocked?"Moja výbava je dostupná od plánu PRO.":"Údaje sa zobrazujú aj vo verejnom profile.";
 
     renderAvatar();
 
