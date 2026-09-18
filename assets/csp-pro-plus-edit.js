@@ -31,6 +31,10 @@
       }
 
       const payload=data||{},profile=payload.profile||{},disciplines=Array.isArray(payload.disciplines)?payload.disciplines:[];
+      document.getElementById("shellName").textContent=profile.full_name||"Hráč";
+      document.getElementById("shellPlan").textContent="PRO+ účet";
+      const shellAvatar=document.getElementById("shellAvatar");if(shellAvatar){shellAvatar.textContent=initials(profile.full_name);}
+      document.querySelectorAll("[data-create-feature]").forEach(link=>link.removeAttribute("aria-disabled"));
       primaryDiscipline=disciplines.find(item=>item.is_primary)||disciplines[0]||null;
       $("fullName").value=profile.full_name||"";$("bio").value=profile.bio||"";$("bioCount").textContent=String($("bio").value.length);
       $("city").value=profile.city||"";$("countryCode").value=profile.country_code||"";
@@ -73,5 +77,10 @@
   $("bio")?.addEventListener("input",()=>{$("bioCount").textContent=String($("bio").value.length)});
   $("avatarButton")?.addEventListener("click",()=>$("avatarInput").click());
   $("profileForm")?.addEventListener("submit",save);
-  window.addEventListener("DOMContentLoaded",load);
+  window.addEventListener("DOMContentLoaded",()=>{
+    const sidebar=document.getElementById("profile-sidebar"),toggle=document.querySelector("[data-profile-menu-toggle]"),close=document.querySelector("[data-profile-menu-close]"),backdrop=document.querySelector("[data-profile-menu-backdrop]");
+    const setOpen=open=>{sidebar?.classList.toggle("open",open);backdrop?.classList.toggle("open",open);toggle?.setAttribute("aria-expanded",String(open));};
+    toggle?.addEventListener("click",()=>setOpen(!sidebar?.classList.contains("open")));close?.addEventListener("click",()=>setOpen(false));backdrop?.addEventListener("click",()=>setOpen(false));
+    load();
+  });
 })();
