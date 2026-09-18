@@ -37,7 +37,7 @@
       document.querySelectorAll("[data-create-feature]").forEach(link=>link.removeAttribute("aria-disabled"));
       primaryDiscipline=disciplines.find(item=>item.is_primary)||disciplines[0]||null;
       $("fullName").value=profile.full_name||"";$("bio").value=profile.bio||"";$("bioCount").textContent=String($("bio").value.length);
-      $("city").value=profile.city||"";$("countryCode").value=profile.country_code||"";
+      $("city").value=profile.city||"";$("countryCode").value=profile.country_code||"";$("clubName").value=profile.club_name||"";
       $("sport").value=primaryDiscipline?.sport||"";$("discipline").value=primaryDiscipline?.discipline||"";
       $("gearBoard").value=payload.gear?.board_name||"";$("gearEquipment").value=payload.gear?.equipment_name||"";$("gearMotto").value=payload.gear?.motto||"";
       $("profileNameHero").textContent=profile.full_name||"Hráč";renderAvatar(profile);
@@ -49,12 +49,12 @@
     event.preventDefault();
     const button=$("saveButton");button.disabled=true;button.textContent="Ukladám…";
     try{
-      const fullName=$("fullName").value.trim(),bio=$("bio").value.trim(),city=$("city").value.trim(),countryCode=normalizeCountry($("countryCode").value);
+      const fullName=$("fullName").value.trim(),bio=$("bio").value.trim(),city=$("city").value.trim(),countryCode=normalizeCountry($("countryCode").value),clubName=$("clubName").value.trim();
       const sport=$("sport").value.trim(),discipline=$("discipline").value.trim();
       if(!fullName)throw new Error("Meno nemôže byť prázdne.");
       if(countryCode&&!/^[A-Z]{2}$/.test(countryCode))throw new Error("Štát zadaj ako dvojpísmenový ISO kód, napríklad SK.");
 
-      const {error:profileError}=await db.from("profiles").update({full_name:fullName,bio:bio||null,city:city||null,country_code:countryCode||null}).eq("id",user.id);
+      const {error:profileError}=await db.rpc("update_my_player_profile_settings",{p_patch:{full_name:fullName,bio:bio||null,city:city||null,country_code:countryCode||null,club_name:clubName||null}});
       if(profileError)throw profileError;
 
       if(primaryDiscipline?.id){
