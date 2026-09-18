@@ -352,7 +352,9 @@ async function uploadAvatar(file){
     const {data:urlData}=db.storage.from("avatars").getPublicUrl(storagePath);
     const avatarUrl=urlData?.publicUrl;
     if(!avatarUrl)throw new Error("Avatar URL");
-    const {error:updateError}=await db.from("profiles").update({avatar_url:avatarUrl}).eq("id",session.user.id);
+    const {error:updateError}=await db.rpc("update_my_player_profile_settings",{
+      p_patch:{avatar_url:avatarUrl}
+    });
     if(updateError)throw updateError;
     profile.avatar_url=avatarUrl+"?v="+Date.now();
     renderAvatar();
@@ -374,9 +376,9 @@ async function saveProfile(){
     const discipline=$("discipline").value.trim();
     if(!fullName)throw new Error("Meno nemôže byť prázdne.");
 
-    const {error:profileError}=await db.from("profiles")
-      .update({full_name:fullName,bio:bio||null})
-      .eq("id",session.user.id);
+    const {data:updatedProfile,error:profileError}=await db.rpc("update_my_player_profile_settings",{
+      p_patch:{full_name:fullName,bio:bio||null}
+    });
     if(profileError)throw profileError;
 
     if(primaryDiscipline?.id){
@@ -417,10 +419,9 @@ async function init(){
     }
     session=currentSession;
 
-    const {data:profileRow,error:profileError}=await db.from("profiles")
-      .select("id,full_name,role,plan,is_admin,avatar_url,bio,created_at")
-      .eq("id",session.user.id).single();
+    const {data:profileRow,error:profileError}=await window.cspAuth.getCurrentProfile(session.user);
     if(profileError)throw profileError;
+    if(!profileRow)throw new Error("Profil sa nenašiel.");
 
     const role=String(profileRow.role||"player").toLowerCase();
     if(profileRow.is_admin===true || role==="admin" || role==="club" || role==="organization"){
@@ -454,7 +455,7 @@ async function init(){
     $("app").classList.remove("hidden");
   }catch(error){
     console.error("[profile editor] init",error);
-    $("loading").innerHTML='<div>Profil sa nepodarilo načítať.<br><br><a class="btn" href="/profil/">Späť na profil</a></div>';
+    const plan=String(profile?.plan||"free").toLowerCase();const home=plan==="pro_plus"?"/profil-pro-plus/":plan==="pro"?"/profil-pro/":"/profil-free/";$("loading").innerHTML='<div>Profil sa nepodarilo načítať.<br><br><a class="btn" href="'+home+'">Späť na profil</a></div>';
   }
 }
 
