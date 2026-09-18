@@ -104,6 +104,7 @@ function trainingHighlightChips(session){
   const m=session?.session_summary||{},chips=[];
   const add=(value,label)=>{if(Number(value)>0)chips.push(`<span class="training-highlight">${Number(value)}× ${esc(label)}</span>`)};
   add(m.break_and_runs,"Čistá hra");
+  add(m.runouts,"Dohrávka");
   add(m.golden_breaks,"ESO");
   add(m.combo_wins,"Combo");
   add(m.three_foul_wins,"3 chyby");
