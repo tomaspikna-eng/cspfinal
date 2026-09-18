@@ -95,13 +95,10 @@ async function searchPlayers(raw){
       client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     }
     const safe=q.replace(/[%_]/g,"");
-    const {data,error}=await client
-      .from("profiles")
-      .select("id,full_name,role,plan,avatar_url")
-      .eq("role","player")
-      .ilike("full_name","%"+safe+"%")
-      .order("full_name",{ascending:true})
-      .limit(20);
+    const {data,error}=await client.rpc("search_public_players",{
+      p_query:safe,
+      p_limit:20
+    });
     if(error)throw error;
     const rows=Array.isArray(data)?data:[];
     status.textContent=rows.length===1?"1 nájdený hráč":rows.length>1?rows.length+" nájdených hráčov":"Bez výsledkov";
