@@ -448,7 +448,7 @@ async function init(){
     $("editorOverviewLink").href=ownPublicUrl;
     renderAvatar();
 
-    await loadGallery();
+    try{await loadGallery()}catch(error){console.warn("[profile editor] gallery unavailable",error);galleryImages=[];try{await renderGallery()}catch{}}
 
     $("loading").classList.add("hidden");
     $("app").classList.remove("hidden");
