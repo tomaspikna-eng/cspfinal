@@ -47,3 +47,26 @@
   .timeline-card h3,.tournament-card h3,.friend-card h3{font-size:14px}
   .panel-heading>a{min-height:44px;display:inline-flex;align-items:center;font-size:12px}
 }
+
+
+/* Rich training session drill-down */
+.training-session-list{display:grid;gap:8px;margin-top:14px}
+.training-session-row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:13px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);cursor:pointer;transition:.18s ease}
+.training-session-row:hover,.training-session-row:focus{border-color:rgba(212,168,67,.55);transform:translateY(-1px);outline:none;background:#121512}
+.training-session-date{width:48px;height:48px;border:1px solid var(--line2);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0b0d0c}
+.training-session-date b{font-size:15px;color:var(--gold2);line-height:1}.training-session-date span{font-size:7px;color:var(--muted);margin-top:4px}
+.training-session-main>span{font-size:8px;letter-spacing:.1em;color:var(--gold);font-weight:800}.training-session-main h3{font-size:12px;margin:5px 0 3px}.training-session-main p{font-size:8px;color:var(--muted);margin:0}.training-session-action{font-size:9px;color:var(--gold);font-weight:800;white-space:nowrap}.training-session-action b{font-size:18px;margin-left:5px}
+body.training-detail-open{overflow:hidden}
+.training-detail-backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.76);backdrop-filter:blur(4px);display:grid;place-items:center;padding:18px}
+.training-detail-backdrop[hidden]{display:none}
+.training-detail-modal{position:relative;width:min(900px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid rgba(212,168,67,.3);border-radius:18px;background:linear-gradient(180deg,#111411,#090b0a);box-shadow:0 28px 90px rgba(0,0,0,.55);padding:24px}
+.training-detail-close{position:absolute;right:14px;top:12px;width:40px;height:40px;border-radius:10px;border:1px solid var(--line2);background:#151815;color:#fff;font-size:25px;cursor:pointer}
+.training-detail-loading{min-height:240px;display:grid;place-items:center;color:var(--muted)}
+.training-detail-head h2{font-size:25px;margin:7px 0 5px}.training-detail-head p{font-size:10px;color:var(--muted);margin:0}
+.training-detail-score{margin-top:18px;padding:18px;border:1px solid rgba(212,168,67,.28);border-radius:12px;background:radial-gradient(circle at 85% 0,rgba(212,168,67,.12),transparent 35%),var(--surface)}
+.training-detail-score>span{display:block;font-size:8px;letter-spacing:.12em;color:var(--gold);font-weight:850}.training-detail-score strong{display:block;font-size:23px;margin-top:7px}.training-detail-score small{display:block;margin-top:6px;font-size:9px;color:var(--muted)}
+.training-detail-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.training-detail-metrics>div{padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface2)}.training-detail-metrics span{display:block;font-size:7px;letter-spacing:.1em;color:var(--muted)}.training-detail-metrics b{display:block;margin-top:7px;font-size:13px}
+.training-detail-grid,.training-rewards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.training-detail-grid>section,.training-rewards>section{padding:18px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.training-participants,.training-facts{display:grid;gap:7px;margin-top:12px}.training-participants>div,.training-facts>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.training-participants>div:last-child,.training-facts>div:last-child{border-bottom:0}.training-participants b,.training-facts b{font-size:10px}.training-participants small{font-size:7px;color:var(--green);border:1px solid rgba(34,211,107,.25);padding:4px 6px;border-radius:5px}.training-facts span{font-size:8px;color:var(--muted)}
+.training-reward{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.training-reward:last-child{border-bottom:0}.training-reward b{font-size:10px}.training-reward p{font-size:8px;color:var(--muted);margin:4px 0 0;line-height:1.45}.training-reward>strong{font-size:13px;color:var(--gold2)}
+@media(max-width:700px){.training-detail-modal{padding:18px 14px}.training-detail-metrics{grid-template-columns:repeat(2,1fr)}.training-detail-grid,.training-rewards{grid-template-columns:1fr}.training-session-row{grid-template-columns:48px minmax(0,1fr)}.training-session-action{grid-column:2;justify-self:start}.training-detail-head h2{font-size:20px}}
