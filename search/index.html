@@ -4,19 +4,24 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Vyhľadávanie · Connect Sports Pro</title>
-<meta name="description" content="Vyhľadávanie v Connect Sports Pro."/>
+<meta name="description" content="Vyhľadávanie hráčov a verejného obsahu v Connect Sports Pro."/>
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous" defer></script>
 <style>
-:root{--bg:#08080c;--card:#13131a;--line:rgba(255,255,255,.08);--fg:#f4f4f6;--muted:#92929e;--gold:#d4a843;--green:#26d07d;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}
+:root{--bg:#08080c;--card:#13131a;--card2:#0d0d13;--line:rgba(255,255,255,.08);--fg:#f4f4f6;--muted:#92929e;--gold:#d4a843;--green:#26d07d;--font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input{font:inherit}
 .topbar{border-bottom:1px solid var(--line);background:rgba(8,8,12,.94);backdrop-filter:blur(14px);position:sticky;top:0;z-index:20}.topbar-in{max-width:1120px;margin:auto;padding:0 22px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:800}.brand .g{color:var(--gold)}.back{font-size:.82rem;font-weight:700;color:var(--muted)}.back:hover{color:var(--gold)}
 .wrap{max-width:1120px;margin:auto;padding:42px 22px 80px}.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:700;margin-bottom:12px}.head h1{font-size:clamp(2rem,4vw,3rem);line-height:1.05;margin:0}.head p{color:var(--muted);max-width:680px;line-height:1.6;margin:14px 0 28px}
-.search-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;min-height:220px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#101016;color:var(--muted);border-radius:9px;padding:10px 14px;font-size:.8rem;font-weight:800;cursor:pointer}.tab.active{color:#211806;background:var(--gold);border-color:var(--gold)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;min-height:220px}.hidden{display:none!important}
+.player-search{display:flex;gap:10px}.player-search input{flex:1;min-width:0;background:#0c0c12;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:13px 14px;outline:0}.player-search input:focus{border-color:var(--gold)}.player-search button{border:0;border-radius:10px;background:var(--gold);color:#211806;font-weight:900;padding:0 22px;cursor:pointer}
+.search-status{font-size:.8rem;color:var(--muted);margin:14px 0 0}.results{display:grid;gap:9px;margin-top:16px}.player-row{display:grid;grid-template-columns:50px minmax(0,1fr) auto;align-items:center;gap:13px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:.15s}.player-row:hover{border-color:rgba(212,168,67,.45);transform:translateY(-1px)}.avatar{width:50px;height:50px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#262923;border:1px solid rgba(212,168,67,.45);color:var(--gold);font-size:.8rem;font-weight:900}.avatar img{width:100%;height:100%;object-fit:cover}.player-copy{min-width:0}.player-copy b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.player-copy small{display:block;color:var(--muted);margin-top:4px;font-size:.72rem}.open-profile{font-size:.72rem;font-weight:800;color:var(--gold);white-space:nowrap}.empty{padding:28px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
 .gsc-control-cse{background:transparent!important;border:0!important;padding:0!important;font-family:var(--font)!important}.gsc-search-box-tools .gsc-search-box .gsc-input{padding-right:8px!important}.gsc-input-box{background:#0c0c12!important;border:1px solid var(--line)!important;border-radius:10px!important;min-height:46px!important}.gsc-input-box-focus{border-color:var(--gold)!important;box-shadow:none!important}.gsc-input{background:transparent!important;color:var(--fg)!important}.gsc-search-button-v2{background:var(--gold)!important;border-color:var(--gold)!important;border-radius:10px!important;min-height:46px!important;padding:13px 22px!important}.gsc-result-info,.gsc-orderby-label{color:var(--muted)!important}.gsc-webResult.gsc-result,.gsc-results .gsc-imageResult{background:transparent!important;border-color:var(--line)!important}.gs-title,.gs-title *{color:var(--gold)!important}.gs-snippet,.gs-fileFormatType{color:#c8c8d0!important}.gsc-url-top,.gs-visibleUrl{color:var(--green)!important}.gsc-above-wrapper-area{border-bottom-color:var(--line)!important}.gcsc-more-maybe-branding-root{display:none!important}
 .note{font-size:.78rem;color:var(--muted);margin-top:14px;line-height:1.5}
+@media(max-width:620px){.wrap{padding:28px 14px 60px}.player-search{flex-direction:column}.player-search button{min-height:44px}.player-row{grid-template-columns:44px minmax(0,1fr)}.avatar{width:44px;height:44px}.open-profile{grid-column:2}}
 </style>
 <script async src="https://cse.google.com/cse.js?cx=750832031efc94019"></script>
 </head>
@@ -27,15 +32,108 @@
 </div></header>
 <main class="wrap">
 <section class="head">
-<div class="eyebrow">Google Search</div>
+<div class="eyebrow">CSP Search</div>
 <h1>Vyhľadávanie</h1>
-<p>Vyhľadaj verejný obsah, kluby, turnaje, profily a články dostupné na Connect Sports Pro.</p>
+<p>Nájdi hráča priamo v databáze Connect Sports Pro alebo vyhľadaj ostatný verejný obsah.</p>
 </section>
-<section class="search-panel">
+
+<div class="tabs" role="tablist" aria-label="Typ vyhľadávania">
+<button class="tab active" type="button" data-tab="players">Hráči</button>
+<button class="tab" type="button" data-tab="content">Verejný obsah</button>
+</div>
+
+<section class="panel" id="players-panel">
+<form class="player-search" id="player-search-form">
+<input id="player-search-input" type="search" autocomplete="off" maxlength="80" placeholder="Meno alebo priezvisko hráča" aria-label="Meno hráča"/>
+<button type="submit">Hľadať</button>
+</form>
+<p class="search-status" id="player-search-status">Zadaj aspoň 2 znaky.</p>
+<div class="results" id="player-results"></div>
+</section>
+
+<section class="panel hidden" id="content-panel">
 <div class="gcse-search"></div>
+<p class="note">Verejný obsah používa Google index. Vyhľadávanie hráčov v záložke Hráči je napojené priamo na CSP databázu.</p>
 </section>
-<p class="note">Výsledky závisia od toho, ktoré verejné stránky už Google zaradil do indexu.</p>
 </main>
-  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
+
+<script>
+"use strict";
+const SUPABASE_URL="https://lcmoykaqvvfybtobhtqg.supabase.co";
+const SUPABASE_KEY="sb_publishable_h3_yK3K_GUahLdz13dDWDg_PzxGE6xR";
+const $=id=>document.getElementById(id);
+let client=null;
+
+function esc(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));}
+function initials(name){return String(name||"Hráč").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();}
+function planLabel(plan){const p=String(plan||"free").toLowerCase();return p==="pro_plus"?"PRO+":p.toUpperCase();}
+function profileHref(id){return "/profil/?id="+encodeURIComponent(id)+"&view=public";}
+
+function renderPlayers(rows){
+  const root=$("player-results");
+  if(!rows.length){root.innerHTML='<div class="empty">Nenašiel sa žiadny hráč s týmto menom.</div>';return;}
+  root.innerHTML=rows.map(p=>{
+    const avatar=p.avatar_url?'<img src="'+esc(p.avatar_url)+'" alt="">':esc(initials(p.full_name));
+    return '<a class="player-row" href="'+profileHref(p.id)+'">'+
+      '<span class="avatar">'+avatar+'</span>'+
+      '<span class="player-copy"><b>'+esc(p.full_name||"Hráč")+'</b><small>Hráč · '+esc(planLabel(p.plan))+'</small></span>'+
+      '<span class="open-profile">Otvoriť profil →</span>'+
+    '</a>';
+  }).join("");
+}
+
+async function searchPlayers(raw){
+  const q=String(raw||"").trim().replace(/\s+/g," ");
+  const status=$("player-search-status");
+  const results=$("player-results");
+  if(q.length<2){status.textContent="Zadaj aspoň 2 znaky.";results.innerHTML="";return;}
+  status.textContent="Hľadám…";
+  results.innerHTML="";
+  try{
+    if(!client){
+      if(!window.supabase) throw new Error("Supabase knižnica sa nenačítala.");
+      client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    }
+    const safe=q.replace(/[%_]/g,"");
+    const {data,error}=await client
+      .from("profiles")
+      .select("id,full_name,role,plan,avatar_url")
+      .eq("role","player")
+      .ilike("full_name","%"+safe+"%")
+      .order("full_name",{ascending:true})
+      .limit(20);
+    if(error)throw error;
+    const rows=Array.isArray(data)?data:[];
+    status.textContent=rows.length===1?"1 nájdený hráč":rows.length>1?rows.length+" nájdených hráčov":"Bez výsledkov";
+    renderPlayers(rows);
+    const url=new URL(location.href);
+    url.searchParams.set("q",q);
+    history.replaceState(null,"",url);
+  }catch(error){
+    console.error("[search players]",error);
+    status.textContent="Vyhľadávanie hráčov sa nepodarilo.";
+    results.innerHTML='<div class="empty">Skús vyhľadávanie zopakovať.</div>';
+  }
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    const tab=btn.dataset.tab;
+    document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===btn));
+    $("players-panel").classList.toggle("hidden",tab!=="players");
+    $("content-panel").classList.toggle("hidden",tab!=="content");
+  }));
+  $("player-search-form").addEventListener("submit",event=>{
+    event.preventDefault();
+    searchPlayers($("player-search-input").value);
+  });
+  const q=new URLSearchParams(location.search).get("q");
+  if(q){
+    $("player-search-input").value=q;
+    searchPlayers(q);
+  }
+});
+</script>
+<script src="/assets/csp-translate.js?v=20260814-3" defer></script>
 </body>
 </html>
