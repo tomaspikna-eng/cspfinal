@@ -254,12 +254,14 @@
         dashboard=dashboardResult.data||{};
       }else{
         const challengeRequest=currentPlan==="pro"?client.rpc("get_my_challenges"):Promise.resolve({data:{},error:null});
-        const [dashboardResult,achievementsResult,ihsResult,locationResult,planChallengesResult]=await Promise.all([
+        const gearRequest=currentPlan==="pro"?client.rpc("get_my_player_gear"):Promise.resolve({data:{},error:null});
+        const [dashboardResult,achievementsResult,ihsResult,locationResult,planChallengesResult,gearResult]=await Promise.all([
           client.rpc("get_my_player_profile_dashboard"),
           client.rpc("get_my_achievements"),
           client.rpc("get_my_ihs_overview"),
           client.from("profiles").select("city,country_code").eq("id",userData.user.id).maybeSingle(),
-          challengeRequest
+          challengeRequest,
+          gearRequest
         ]);
         challengesResult=planChallengesResult||{data:{},error:null};
         if(dashboardResult.error)throw dashboardResult.error;
@@ -270,7 +272,7 @@
         dashboard.profile={...(dashboard.profile||{}),...(privateProfile||{}),...(locationResult.data||{}),plan:currentPlan};
         dashboard.achievements=achievementsResult.data||{};
         dashboard.ihs=ihsResult.data||{};
-        dashboard.gear={};
+        dashboard.gear=currentPlan==="pro"?(gearResult?.data||{}):{};
       }
       dashboard.profile={...(dashboard.profile||{}),plan:currentPlan};
       renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);
