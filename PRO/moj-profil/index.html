@@ -82,7 +82,7 @@ button{cursor:pointer}
   <header class="top">
     <a class="brand" href="/profil/" aria-label="Connect Sports Pro"><img src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
     <div class="top-actions">
-      <a class="btn" id="editorOverviewLink" href="/profil/?view=public">← Prehľad</a>
+      <a class="btn" id="profileHomeLink" href="/profil-free/">← Späť na profil</a>
       <a class="btn green" id="publicProfileLink" href="/profil/">Verejný profil</a>
       <button class="btn" id="logoutButton" type="button">Odhlásiť</button>
     </div>
@@ -129,6 +129,24 @@ button{cursor:pointer}
           <input id="discipline" maxlength="80" placeholder="9-ball">
         </div>
       </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-label">MY GEAR</div>
+      <h2>Moja výbava</h2>
+      <div class="field">
+        <label for="gearBoard">Hracia plocha / stôl</label>
+        <input id="gearBoard" maxlength="120" placeholder="Stôl, terč, dráha…">
+      </div>
+      <div class="field">
+        <label for="gearEquipment">Osobné vybavenie</label>
+        <input id="gearEquipment" maxlength="120" placeholder="Tágo, šípky, raketa…">
+      </div>
+      <div class="field">
+        <label for="gearMotto">Poznámka</label>
+        <input id="gearMotto" maxlength="240" placeholder="Krátka poznámka k vybaveniu">
+      </div>
+      <div class="gallery-note" id="gearPlanNote"></div>
     </section>
   </div>
 
@@ -352,7 +370,9 @@ async function uploadAvatar(file){
     const {data:urlData}=db.storage.from("avatars").getPublicUrl(storagePath);
     const avatarUrl=urlData?.publicUrl;
     if(!avatarUrl)throw new Error("Avatar URL");
-    const {error:updateError}=await db.from("profiles").update({avatar_url:avatarUrl}).eq("id",session.user.id);
+    const {error:updateError}=await db.rpc("update_my_player_profile_settings",{
+      p_patch:{avatar_url:avatarUrl}
+    });
     if(updateError)throw updateError;
     profile.avatar_url=avatarUrl+"?v="+Date.now();
     renderAvatar();
@@ -374,9 +394,9 @@ async function saveProfile(){
     const discipline=$("discipline").value.trim();
     if(!fullName)throw new Error("Meno nemôže byť prázdne.");
 
-    const {error:profileError}=await db.from("profiles")
-      .update({full_name:fullName,bio:bio||null})
-      .eq("id",session.user.id);
+    const {data:updatedProfile,error:profileError}=await db.rpc("update_my_player_profile_settings",{
+      p_patch:{full_name:fullName,bio:bio||null}
+    });
     if(profileError)throw profileError;
 
     if(primaryDiscipline?.id){
@@ -395,9 +415,19 @@ async function saveProfile(){
       primaryDiscipline=newRow;
     }
 
+    const plan=String(profile?.plan||"free").toLowerCase();
+    if(plan==="pro"||plan==="pro_plus"){
+      const {error:gearError}=await db.rpc("update_my_player_gear",{
+        p_board_name:$("gearBoard").value.trim(),
+        p_equipment_name:$("gearEquipment").value.trim(),
+        p_motto:$("gearMotto").value.trim()
+      });
+      if(gearError)throw gearError;
+    }
+
     profile.full_name=fullName;profile.bio=bio;
     $("profileNameHero").textContent=fullName;
-    $("avatarInitials").textContent=initials(fullName);
+    const initialsNode=$("avatarInitials");if(initialsNode)initialsNode.textContent=initials(fullName);
     toast("Verejný profil bol uložený.");
   }catch(error){
     console.error("[profile editor] save",error);
@@ -417,10 +447,9 @@ async function init(){
     }
     session=currentSession;
 
-    const {data:profileRow,error:profileError}=await db.from("profiles")
-      .select("id,full_name,role,plan,is_admin,avatar_url,bio,created_at")
-      .eq("id",session.user.id).single();
+    const {data:profileRow,error:profileError}=await window.cspAuth.getCurrentProfile(session.user);
     if(profileError)throw profileError;
+    if(!profileRow)throw new Error("Profil sa nenašiel.");
 
     const role=String(profileRow.role||"player").toLowerCase();
     if(profileRow.is_admin===true || role==="admin" || role==="club" || role==="organization"){
@@ -443,18 +472,32 @@ async function init(){
     $("sport").value=primaryDiscipline?.sport||"";
     $("discipline").value=primaryDiscipline?.discipline||"";
     $("profileNameHero").textContent=profile.full_name||"Hráč";
+
+    const plan=String(profile.plan||"free").toLowerCase();
+    const home=plan==="pro_plus"?"/profil-pro-plus/":plan==="pro"?"/profil-pro/":"/profil-free/";
+    $("profileHomeLink").href=home;
     const ownPublicUrl=`/profil/?id=${encodeURIComponent(session.user.id)}&view=public`;
     $("publicProfileLink").href=ownPublicUrl;
-    $("editorOverviewLink").href=ownPublicUrl;
+
+    const gearResult=await db.rpc("get_my_player_gear");
+    if(gearResult.error)console.warn("[profile editor] gear",gearResult.error);
+    const gear=gearResult.data||{};
+    $("gearBoard").value=gear.board_name||"";
+    $("gearEquipment").value=gear.equipment_name||"";
+    $("gearMotto").value=gear.motto||"";
+    const gearLocked=plan==="free"||gear.locked===true;
+    ["gearBoard","gearEquipment","gearMotto"].forEach(id=>$(id).disabled=gearLocked);
+    $("gearPlanNote").textContent=gearLocked?"Moja výbava je dostupná od plánu PRO.":"Údaje sa zobrazujú aj vo verejnom profile.";
+
     renderAvatar();
 
-    await loadGallery();
+    try{await loadGallery()}catch(error){console.warn("[profile editor] gallery unavailable",error);galleryImages=[];try{await renderGallery()}catch{}}
 
     $("loading").classList.add("hidden");
     $("app").classList.remove("hidden");
   }catch(error){
     console.error("[profile editor] init",error);
-    $("loading").innerHTML='<div>Profil sa nepodarilo načítať.<br><br><a class="btn" href="/profil/">Späť na profil</a></div>';
+    const plan=String(profile?.plan||"free").toLowerCase();const home=plan==="pro_plus"?"/profil-pro-plus/":plan==="pro"?"/profil-pro/":"/profil-free/";$("loading").innerHTML='<div>Profil sa nepodarilo načítať.<br><br><a class="btn" href="'+home+'">Späť na profil</a></div>';
   }
 }
 
