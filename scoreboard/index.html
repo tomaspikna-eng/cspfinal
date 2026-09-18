@@ -1306,9 +1306,9 @@ const defaultState={
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
   ],
   log:[],
 };
@@ -1597,6 +1597,7 @@ function applyLocalMetric(i,action,value){
   const p=activePlayers()[i];p.metrics=p.metrics||{};
   if(action.metric_key)p.metrics[action.metric_key]=(p.metrics[action.metric_key]||0)+(value??1);
   if(action.event_key==="break_and_run")p.breakRuns++;
+  if(action.event_key==="runout")p.runouts++;
   if(action.event_key==="golden_break")p.goldenBreaks++;
   if(action.event_key==="combo_win")p.comboWins++;
   if(action.event_key==="three_foul_win")p.threeFoulWins++;
@@ -1868,7 +1869,7 @@ async function startNextSet(){
     invalidateScoreEventUndo();
 
     if(pendingSetMode==="frame"){
-      activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.errors=0;p.goldenBreaks=0;p.comboWins=0;p.threeFoulWins=0;p.eightOnBreaks=0;});
+      activePlayers().forEach(p=>{p.score=0;p.innings=0;p.runs=0;p.breakRuns=0;p.runouts=0;p.errors=0;p.goldenBreaks=0;p.comboWins=0;p.threeFoulWins=0;p.eightOnBreaks=0;});
       state.currentIndex=breakerIndex();
     } else if(pendingSetMode==="points"){
       activePlayers().forEach(p=>{p.frames=0;p.framePoints=0;p.highBreak=0;p.innings=0;});
