@@ -105,7 +105,7 @@
         let avatarUrl=state.avatarUrl;
         if(state.file){
           const ext=(state.file.name.split(".").pop()||"jpg").toLowerCase().replace("jpeg","jpg");
-          const storagePath=`${state.profileId}/avatar-profile.${ext}`;
+          const uploadVersion=`${Date.now()}-${Math.random().toString(36).slice(2,10)}`;\n          const storagePath=`${state.profileId}/avatar-profile-${uploadVersion}.${ext}`;
           const {error:uploadError}=await db.storage.from("avatars").upload(storagePath,state.file,{cacheControl:"3600",upsert:true,contentType:state.file.type});
           if(uploadError)throw uploadError;
           const {data:urlData}=db.storage.from("avatars").getPublicUrl(storagePath);
