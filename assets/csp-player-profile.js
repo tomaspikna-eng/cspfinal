@@ -77,7 +77,82 @@ function profilePage(data){const p=data.profile||{},disc=data.disciplines||[],pr
 function monthGrid(tournaments){const now=new Date(),year=now.getFullYear(),month=now.getMonth(),first=new Date(year,month,1),startOffset=(first.getDay()+6)%7,days=new Date(year,month+1,0).getDate(),cells=[];for(let i=0;i<42;i++){const day=i-startOffset+1,isCurrent=day>=1&&day<=days,d=new Date(year,month,day),key=d.toISOString().slice(0,10),events=tournaments.filter(t=>String(t.date||"").slice(0,10)===key);cells.push(`<div class="month-cell ${isCurrent?"":"muted"} ${key===now.toISOString().slice(0,10)?"today":""}">${d.getDate()}${events.map(e=>`<span class="event-dot ${e.status==="completed"?"completed":""}"><i></i>${esc(e.name)}</span>`).join("")}</div>`)}return`<div class="month-grid">${["PO","UT","ST","ŠT","PI","SO","NE"].map(d=>`<div class="month-cell month-head">${d}</div>`).join("")}${cells.join("")}</div>`}
 function tournamentCard(t){const id=t.tournament_id||t.id,href=id?`/turnament/?id=${encodeURIComponent(id)}`:"/kalendar-turnajov/";return`<a class="tournament-card" href="${href}"><time>${formatDate(t.date,{day:"numeric",month:"long",year:"numeric"})}</time><h3>${esc(t.name)}</h3><p>${esc([t.sport,t.discipline,t.venue].filter(Boolean).join(" · "))}</p></a>`}
 function tournamentsPage(data,tournaments){const now=new Date().toISOString().slice(0,10),upcoming=tournaments.filter(t=>t.date&&t.date>=now&&t.status!=="completed").sort((a,b)=>String(a.date).localeCompare(String(b.date))),history=tournaments.filter(t=>t.status==="completed"||(t.date&&t.date<now)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));return`${pageIntro("MOJE TURNAJE","Kalendár a história","Nadchádzajúce udalosti, výsledky a kompletná turnajová stopa.",'<a class="button gold" href="/kalendar-turnajov/">Nájsť turnaj</a>')}<div class="grid calendar-layout"><section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">KALENDÁR</span><h2>${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</h2></div></div>${monthGrid(tournaments)}</section><div class="side-stack"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">NADCHÁDZAJÚCE</span>${upcoming.length?upcoming.slice(0,4).map(tournamentCard).join(""):'<div class="empty">Žiadny nadchádzajúci turnaj.</div>'}</section><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">HISTÓRIA TURNAJOV</span>${history.length?history.slice(0,6).map(tournamentCard).join(""):'<div class="empty">Zatiaľ nemáš turnajovú históriu.</div>'}</section></div></div>${metrics(data.summary)}`}
-function trainingPage(data,plans){const sessions=data.recent_trainings||[],all=activitiesFrom({...data,recent_matches:[]},plans),bars=[24,42,58,36,72,64,85];return`${pageIntro("TRÉNINGOVÉ CENTRUM","Tréningy","Vývoj výkonu, história tréningov a rýchly vstup do scoreboardu.",'<a class="button gold" href="#plan">Naplánovať tréning</a>')}<div class="training-hero"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">VÝVOJ TRÉNINGU</span><h2>Aktivita za posledných 7 dní</h2><div class="chart">${bars.map(v=>`<i style="height:${v}%"></i>`).join("")}</div><div class="chart-labels">${["PO","UT","ST","ŠT","PI","SO","NE"].map(d=>`<span>${d}</span>`).join("")}</div></section><section class="panel scoreboard-cta" data-pro-content>${lock()}<span class="play">▶</span><span class="label">LIVE SCOREBOARD</span><h2>Spustiť tréning</h2><p>Čas, skóre a priebeh tréningu sa zapíšu do profilu.</p><a class="button green" href="/scoreboard/" data-scoreboard>Otvoriť scoreboard</a></section></div>${metrics(data.summary)}<div class="grid grid-2" style="margin-top:8px"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">HISTÓRIA TRÉNINGOV</span>${timelineHtml(all,8)}</section><section id="plan" class="panel panel-pad" data-pro-content>${lock()}<span class="label">TRÉNINGOVÝ PLÁN</span>${plans.length?plans.slice(0,8).map(p=>`<article class="tournament-card"><time>${formatDate(p.scheduled_for,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</time><h3>${esc(p.title)}</h3><p>${esc([p.discipline,p.venue,p.status].filter(Boolean).join(" · "))}</p></article>`).join(""):'<div class="empty">Nemáš naplánovaný žiadny tréning.</div>'}</section></div>`}
+function trainingScoreText(session){
+  const players=Array.isArray(session?.final_score?.players)?session.final_score.players:[];
+  if(players.length)return players.map(p=>`${p?.name||"Hráč"} ${Number(p?.score)||0}`).join(" : ");
+  const names=Array.isArray(session?.player_names)?session.player_names:[];
+  const scores=Array.isArray(session?.live_scores)?session.live_scores:[];
+  if(names.length&&scores.length)return names.map((name,i)=>`${name||"Hráč"} ${Number(scores[i])||0}`).join(" : ");
+  return session?.winner_name?`Víťaz: ${session.winner_name}`:"Bez výsledku";
+}
+function trainingSessionRows(sessions){
+  if(!sessions.length)return'<div class="empty">Zatiaľ nie sú zaznamenané žiadne tréningy.</div>';
+  return `<div class="training-session-list">${sessions.map(session=>`<article class="training-session-row" data-training-session="${esc(session.id)}" tabindex="0" role="button" aria-label="Otvoriť detail tréningu">
+    <div class="training-session-date"><b>${formatDate(session.occurred_at,{day:"2-digit"})}</b><span>${formatDate(session.occurred_at,{month:"short"}).toUpperCase()}</span></div>
+    <div class="training-session-main"><span>${esc([session.sport,session.discipline].filter(Boolean).join(" · ")||"Tréning")}</span><h3>${esc(trainingScoreText(session))}</h3><p>${esc([session.winner_name?`Víťaz: ${session.winner_name}`:"",session.duration_seconds?formatDuration(session.duration_seconds):""].filter(Boolean).join(" · "))}</p></div>
+    <div class="training-session-action">Detail <b>›</b></div>
+  </article>`).join("")}</div>`;
+}
+function trainingDetailShell(){
+  return '<div class="training-detail-backdrop" data-training-detail-backdrop hidden><section class="training-detail-modal" role="dialog" aria-modal="true" aria-labelledby="trainingDetailTitle"><button class="training-detail-close" type="button" data-training-detail-close aria-label="Zavrieť">×</button><div id="trainingDetailBody"><div class="training-detail-loading">Načítavam detail tréningu…</div></div></section></div>';
+}
+function clockSeconds(value){
+  const n=Math.max(0,Math.round(Number(value)||0)),m=Math.floor(n/60),s=n%60;
+  return m?`${m}:${String(s).padStart(2,"0")} min`:`${s} s`;
+}
+function trainingDetailHtml(d){
+  const participants=Array.isArray(d.participants)?d.participants:[];
+  const achievements=Array.isArray(d.achievements)?d.achievements:[];
+  const challenges=Array.isArray(d.challenges)?d.challenges:[];
+  const score=trainingScoreText(d);
+  return `<div class="training-detail-head"><span class="label">DETAIL TRÉNINGU</span><h2 id="trainingDetailTitle">${esc([d.sport,d.discipline].filter(Boolean).join(" · ")||"Tréning")}</h2><p>${esc(formatDate(d.started_at,{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}))}</p></div>
+  <div class="training-detail-score"><span>VÝSLEDOK</span><strong>${esc(score)}</strong>${d.winner_name?`<small>Víťaz: ${esc(d.winner_name)}</small>`:""}</div>
+  <div class="training-detail-metrics">
+    <div><span>CELKOVÝ ČAS</span><b>${esc(formatDuration(d.duration_seconds))}</b></div>
+    <div><span>FRAMEOV</span><b>${Number(d.frame_count)||0}</b></div>
+    <div><span>PRIEMER / FRAME</span><b>${d.average_frame_seconds!=null?esc(clockSeconds(d.average_frame_seconds)):"–"}</b></div>
+    <div><span>RACE TO</span><b>${d.race_to||"–"}</b></div>
+    <div><span>ZAČIATOK</span><b>${esc(formatDate(d.started_at,{hour:"2-digit",minute:"2-digit"}))}</b></div>
+    <div><span>KONIEC</span><b>${esc(formatDate(d.ended_at,{hour:"2-digit",minute:"2-digit"}))}</b></div>
+  </div>
+  <div class="training-detail-grid">
+    <section><span class="label">S KÝM</span><div class="training-participants">${participants.length?participants.map(p=>`<div><b>${esc(p.name||"Hráč")}</b>${p.is_me?"<small>TY</small>":""}</div>`).join(""):'<div class="empty">Účastníci nie sú zaznamenaní.</div>'}</div></section>
+    <section><span class="label">SESSION</span><div class="training-facts"><div><span>Šport</span><b>${esc(d.sport||"–")}</b></div><div><span>Disciplína</span><b>${esc(d.discipline||"–")}</b></div><div><span>Stav</span><b>${esc(d.status||"ukončené")}</b></div></div></section>
+  </div>
+  <div class="training-rewards">
+    <section><span class="label">ACHIEVEMENTS ZÍSKANÉ POČAS TRÉNINGU</span>${achievements.length?achievements.map(a=>`<article class="training-reward"><div><b>${esc(a.name||a.code)}</b><p>${esc(a.description||"")}</p></div><strong>+${Number(a.points)||0}</strong></article>`).join(""):'<div class="empty">Počas tohto tréningu nebol odomknutý nový achievement.</div>'}</section>
+    <section><span class="label">VÝZVY DOKONČENÉ POČAS TRÉNINGU</span>${challenges.length?challenges.map(c=>`<article class="training-reward"><div><b>${esc(c.title||c.code)}</b><p>${esc(c.description||"")}</p></div><strong>${esc(c.badge_symbol||c.medal||"✓")}</strong></article>`).join(""):'<div class="empty">Počas tohto tréningu nebola dokončená žiadna výzva.</div>'}</section>
+  </div>`;
+}
+async function openTrainingDetail(client,id){
+  const backdrop=document.querySelector("[data-training-detail-backdrop]"),body=document.getElementById("trainingDetailBody");
+  if(!backdrop||!body)return;
+  backdrop.hidden=false;document.body.classList.add("training-detail-open");
+  body.innerHTML='<div class="training-detail-loading">Načítavam detail tréningu…</div>';
+  try{
+    const {data,error}=await client.rpc("get_my_training_session_detail",{p_session_id:id});
+    if(error)throw error;
+    body.innerHTML=trainingDetailHtml(data||{});
+  }catch(error){
+    console.error("[profil] training detail",error);
+    body.innerHTML='<div class="empty">Detail tréningu sa nepodarilo načítať.</div>';
+  }
+}
+function bindTrainingDetails(client){
+  if(PAGE!=="training")return;
+  const backdrop=document.querySelector("[data-training-detail-backdrop]");
+  const close=()=>{if(backdrop)backdrop.hidden=true;document.body.classList.remove("training-detail-open")};
+  document.querySelector("[data-training-detail-close]")?.addEventListener("click",close);
+  backdrop?.addEventListener("click",event=>{if(event.target===backdrop)close()});
+  document.querySelectorAll("[data-training-session]").forEach(row=>{
+    const open=()=>client?openTrainingDetail(client,row.dataset.trainingSession):null;
+    row.addEventListener("click",open);
+    row.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();open()}});
+  });
+  window.addEventListener("keydown",event=>{if(event.key==="Escape"&&!backdrop?.hidden)close()});
+}
+function trainingPage(data,plans){const sessions=data.recent_trainings||[],bars=[24,42,58,36,72,64,85];return`${pageIntro("TRÉNINGOVÉ CENTRUM","Tréningy","Vývoj výkonu, história tréningov a rýchly vstup do scoreboardu.",'<a class="button gold" href="#plan">Naplánovať tréning</a>')}<div class="training-hero"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">VÝVOJ TRÉNINGU</span><h2>Aktivita za posledných 7 dní</h2><div class="chart">${bars.map(v=>`<i style="height:${v}%"></i>`).join("")}</div><div class="chart-labels">${["PO","UT","ST","ŠT","PI","SO","NE"].map(d=>`<span>${d}</span>`).join("")}</div></section><section class="panel scoreboard-cta" data-pro-content>${lock()}<span class="play">▶</span><span class="label">LIVE SCOREBOARD</span><h2>Spustiť tréning</h2><p>Čas, skóre a priebeh tréningu sa zapíšu do profilu.</p><a class="button green" href="/scoreboard/" data-scoreboard>Otvoriť scoreboard</a></section></div>${metrics(data.summary)}<div class="grid grid-2" style="margin-top:8px"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">HISTÓRIA TRÉNINGOV</span><h2>Odohrané session</h2>${trainingSessionRows(sessions)}</section><section id="plan" class="panel panel-pad" data-pro-content>${lock()}<span class="label">TRÉNINGOVÝ PLÁN</span>${plans.length?plans.slice(0,8).map(p=>`<article class="tournament-card"><time>${formatDate(p.scheduled_for,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</time><h3>${esc(p.title)}</h3><p>${esc([p.discipline,p.venue,p.status].filter(Boolean).join(" · "))}</p></article>`).join(""):'<div class="empty">Nemáš naplánovaný žiadny tréning.</div>'}</section></div>${trainingDetailShell()}`}
+
 function rankingsPage(data,standings){const rows=Array.isArray(standings)?standings:[];return`${pageIntro("MOJE REBRÍČKY","Rebríčky","Tvoje reálne pozície v ukončených kolách turnajových sezón.",'<a class="button gold" href="/rebricky/">Všetky rebríčky</a>')}<section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">AKTUÁLNE POZÍCIE</span><h2>Turnajové rebríčky</h2></div></div>${rows.length?`<div class="table"><div class="table-head"><span>#</span><span>REBRÍČEK</span><span>KOLÁ</span><span>BODY</span><span></span></div>${rows.map(row=>`<a class="table-row me" href="/rebricek/?id=${encodeURIComponent(row.series_id)}"><span class="position">${Number(row.standing_position)||'–'}</span><b>${esc(row.series_title||'Rebríček')}</b><span>${Number(row.rounds_played)||0} odohrané</span><strong>${Number(row.total_points)||0}</strong><span>›</span></a>`).join("")}</div>`:'<div class="empty">Zatiaľ nie si vo výsledkoch žiadneho rebríčka. Pozícia sa zobrazí po uzavretí prvého bodovaného kola.</div>'}</section>`}
 function friendsPage(data,profiles){const me=data.profile.id,list=profiles.filter(p=>p.id!==me).slice(0,9);return`${pageIntro("HRÁČSKA SIEŤ","Priatelia","Nájdi hráčov, sleduj ich verejné profily a športové výsledky.")}<section class="panel friends-hero" data-pro-content>${lock()}<div><span class="label">NÁJSŤ HRÁČA</span><h2>Rozšír svoju športovú komunitu</h2><p>Vyhľadávaj podľa mena, športu alebo disciplíny.</p></div><div class="search"><input id="friend-search" type="search" placeholder="Meno hráča"><button class="button gold" type="button">Hľadať</button></div></section><div id="friend-grid" class="friend-grid" data-pro-content>${lock()}${list.length?list.map(friendCard).join(""):'<section class="panel empty">Zatiaľ nie sú dostupné verejné profily hráčov.</section>'}</div>`}
 function friendCard(p){return`<article class="panel friend-card" data-friend-name="${esc(String(p.full_name||"").toLowerCase())}">${avatarHtml(p,"friend-avatar")}<div><h3>${esc(p.full_name||"CSP hráč")}</h3><p>${esc(String(p.role||"hráč").toUpperCase())} · ${esc(planLabel(p.plan))}</p></div><div class="friend-actions"><a class="button ghost" href="/profil/?id=${encodeURIComponent(p.id)}&view=public">Profil</a><button class="button gold" type="button" data-follow-profile="${esc(p.id)}"><span data-follow-label>+ Sledovať</span></button></div></article>`}
@@ -95,6 +170,7 @@ function attachInteractions(planValue,client=null){
   const search=document.getElementById("friend-search");if(search)search.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();document.querySelectorAll("[data-friend-name]").forEach(card=>card.classList.toggle("hidden",q&&!card.dataset.friendName.includes(q)))});
   if(client&&window.cspSocial?.bindFollowButtons){window.cspSocial.bindFollowButtons({client,onError:error=>console.error("[profil] follow:",error)}).catch(error=>console.error("[profil] follow init:",error));}
   if(client&&window.cspNotifications?.bind){window.cspNotifications.bind({client,button:document.querySelector("[data-csp-notifications-button]")}).catch(error=>console.error("[profil] notifications:",error));}
+  bindTrainingDetails(client);
 }
 
 function previewData(plan){const now=new Date(),past=days=>new Date(now.getTime()-days*86400000).toISOString(),future=days=>new Date(now.getTime()+days*86400000).toISOString();return{data:{profile:{id:"preview-player",full_name:"Tomáš Pikna",role:"player",plan,avatar_url:null,cover_url:null,bio:"Biliard je moja celoživotná vášeň. Hrám najmä 9-ball a rád prepájam šport, komunitu a moderné technológie.",created_at:"2026-05-01T10:00:00Z"},disciplines:[{sport:"Biliard",discipline:"9-ball",is_primary:true},{sport:"Biliard",discipline:"8-ball",is_primary:false}],summary:{time_in_game_seconds:67320,trainings_completed:12,trainings_planned:14,trainings_missed:2,wins:16,losses:8,win_rate:67,analytics_unlocked:plan!=="free",training_planner_unlocked:plan!=="free"},recent_trainings:[{id:"t1",sport:"Biliard",discipline:"9-ball",occurred_at:past(2)},{id:"t2",sport:"Biliard",discipline:"9-ball",occurred_at:past(5)}],upcoming_trainings:[{id:"t3",title:"Kontrola bielej gule",sport:"Biliard",discipline:"9-ball",scheduled_for:future(2),venue:"BK Kanianka",status:"planned"}],recent_matches:[{id:"m1",tournament_name:"Klubová liga",discipline:"9-ball",opponent_name:"Martin K.",my_score:7,opponent_score:4,result:"win",occurred_at:past(3)},{id:"m2",tournament_name:"Open turnaj",discipline:"9-ball",opponent_name:"Peter S.",my_score:5,opponent_score:7,result:"loss",occurred_at:past(8)}]},plans:[{id:"p1",title:"Klubový tréning",sport:"Biliard",discipline:"9-ball",venue:"BK Kanianka",scheduled_for:future(2),status:"planned"},{id:"p2",title:"Rozstrely a prvá pozícia",sport:"Biliard",discipline:"9-ball",venue:"Moment club",scheduled_for:future(6),status:"planned"}],tournaments:[{id:"u1",name:"Kanianka 9-ball Open",sport:"Biliard",discipline:"9-ball",venue:"BK Kanianka",date:future(5).slice(0,10),status:"active"},{id:"h1",name:"Letný klubový turnaj",sport:"Biliard",discipline:"9-ball",venue:"POINT Trenčín",date:past(18).slice(0,10),status:"completed"}],profiles:[{id:"f1",full_name:"Martin Kováč",role:"player",plan:"pro",avatar_url:null},{id:"f2",full_name:"Peter Slávik",role:"player",plan:"free",avatar_url:null},{id:"f3",full_name:"Róbert Malina",role:"player",plan:"pro",avatar_url:null}]}}
