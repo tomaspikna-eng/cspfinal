@@ -87,12 +87,16 @@ function trainingScoreText(session){
 }
 function trainingSessionRows(sessions){
   if(!sessions.length)return'<div class="empty">Zatiaľ nie sú zaznamenané žiadne tréningy.</div>';
-  return `<div class="training-session-list">${sessions.map(session=>`<article class="training-session-row" data-training-session="${esc(session.id)}" tabindex="0" role="button" aria-label="Otvoriť detail tréningu">
-    <div class="training-session-date"><b>${formatDate(session.occurred_at,{day:"2-digit"})}</b><span>${formatDate(session.occurred_at,{month:"short"}).toUpperCase()}</span></div>
-    <div class="training-session-main"><span>${esc([session.sport,session.discipline].filter(Boolean).join(" · ")||"Tréning")}</span><h3>${esc(trainingScoreText(session))}</h3><p>${esc([session.winner_name?`Víťaz: ${session.winner_name}`:"",session.duration_seconds?formatDuration(session.duration_seconds):""].filter(Boolean).join(" · "))}</p></div>
-    <div class="training-session-action">Detail <b>›</b></div>
+  return `<div class="training-session-list">${sessions.map(session=>`<article class="training-session-row" data-training-session="${esc(session.id)}">
+    <button class="training-session-open" type="button" data-training-open="${esc(session.id)}" aria-label="Otvoriť detail tréningu">
+      <span class="training-session-date"><b>${formatDate(session.occurred_at,{day:"2-digit"})}</b><span>${formatDate(session.occurred_at,{month:"short"}).toUpperCase()}</span></span>
+      <span class="training-session-main"><span>${esc([session.sport,session.discipline].filter(Boolean).join(" · ")||"Tréning")}</span><h3>${esc(trainingScoreText(session))}</h3><p>${esc([session.winner_name?`Víťaz: ${session.winner_name}`:"",session.duration_seconds?formatDuration(session.duration_seconds):""].filter(Boolean).join(" · "))}</p></span>
+      <span class="training-session-action">Detail <b>›</b></span>
+    </button>
+    <button class="training-session-delete" type="button" data-training-delete="${esc(session.id)}" aria-label="Zmazať tréning">Zmazať</button>
   </article>`).join("")}</div>`;
 }
+
 function trainingDetailShell(){
   return '<div class="training-detail-backdrop" data-training-detail-backdrop hidden><section class="training-detail-modal" role="dialog" aria-modal="true" aria-labelledby="trainingDetailTitle"><button class="training-detail-close" type="button" data-training-detail-close aria-label="Zavrieť">×</button><div id="trainingDetailBody"><div class="training-detail-loading">Načítavam detail tréningu…</div></div></section></div>';
 }
@@ -144,13 +148,39 @@ function bindTrainingDetails(client){
   const close=()=>{if(backdrop)backdrop.hidden=true;document.body.classList.remove("training-detail-open")};
   document.querySelector("[data-training-detail-close]")?.addEventListener("click",close);
   backdrop?.addEventListener("click",event=>{if(event.target===backdrop)close()});
-  document.querySelectorAll("[data-training-session]").forEach(row=>{
-    const open=()=>client?openTrainingDetail(client,row.dataset.trainingSession):null;
-    row.addEventListener("click",open);
-    row.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();open()}});
+
+  document.querySelectorAll("[data-training-open]").forEach(button=>{
+    button.addEventListener("click",()=>client?openTrainingDetail(client,button.dataset.trainingOpen):null);
   });
+
+  document.querySelectorAll("[data-training-delete]").forEach(button=>{
+    button.addEventListener("click",async event=>{
+      event.stopPropagation();
+      if(!client)return;
+      const id=button.dataset.trainingDelete;
+      if(!confirm("Naozaj chceš zmazať tento tréning z histórie?"))return;
+      const original=button.textContent;
+      button.disabled=true;
+      button.textContent="Mažem…";
+      try{
+        const {error}=await client.from("training_sessions").delete().eq("id",id);
+        if(error)throw error;
+        document.querySelector(`[data-training-session="${CSS.escape(id)}"]`)?.remove();
+        if(!document.querySelector(".training-session-row")){
+          document.querySelector(".training-session-list")?.replaceWith(Object.assign(document.createElement("div"),{className:"empty",textContent:"Zatiaľ nie sú zaznamenané žiadne tréningy."}));
+        }
+      }catch(error){
+        console.error("[profil] delete training",error);
+        alert("Tréning sa nepodarilo zmazať.");
+        button.disabled=false;
+        button.textContent=original;
+      }
+    });
+  });
+
   window.addEventListener("keydown",event=>{if(event.key==="Escape"&&!backdrop?.hidden)close()});
 }
+
 function trainingPage(data,plans){const sessions=data.recent_trainings||[],bars=[24,42,58,36,72,64,85];return`${pageIntro("TRÉNINGOVÉ CENTRUM","Tréningy","Vývoj výkonu, história tréningov a rýchly vstup do scoreboardu.",'<a class="button gold" href="#plan">Naplánovať tréning</a>')}<div class="training-hero"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">VÝVOJ TRÉNINGU</span><h2>Aktivita za posledných 7 dní</h2><div class="chart">${bars.map(v=>`<i style="height:${v}%"></i>`).join("")}</div><div class="chart-labels">${["PO","UT","ST","ŠT","PI","SO","NE"].map(d=>`<span>${d}</span>`).join("")}</div></section><section class="panel scoreboard-cta" data-pro-content>${lock()}<span class="play">▶</span><span class="label">LIVE SCOREBOARD</span><h2>Spustiť tréning</h2><p>Čas, skóre a priebeh tréningu sa zapíšu do profilu.</p><a class="button green" href="/scoreboard/" data-scoreboard>Otvoriť scoreboard</a></section></div>${metrics(data.summary)}<div class="grid grid-2" style="margin-top:8px"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">HISTÓRIA TRÉNINGOV</span><h2>Odohrané session</h2>${trainingSessionRows(sessions)}</section><section id="plan" class="panel panel-pad" data-pro-content>${lock()}<span class="label">TRÉNINGOVÝ PLÁN</span>${plans.length?plans.slice(0,8).map(p=>`<article class="tournament-card"><time>${formatDate(p.scheduled_for,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</time><h3>${esc(p.title)}</h3><p>${esc([p.discipline,p.venue,p.status].filter(Boolean).join(" · "))}</p></article>`).join(""):'<div class="empty">Nemáš naplánovaný žiadny tréning.</div>'}</section></div>${trainingDetailShell()}`}
 
 function rankingsPage(data,standings){const rows=Array.isArray(standings)?standings:[];return`${pageIntro("MOJE REBRÍČKY","Rebríčky","Tvoje reálne pozície v ukončených kolách turnajových sezón.",'<a class="button gold" href="/rebricky/">Všetky rebríčky</a>')}<section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">AKTUÁLNE POZÍCIE</span><h2>Turnajové rebríčky</h2></div></div>${rows.length?`<div class="table"><div class="table-head"><span>#</span><span>REBRÍČEK</span><span>KOLÁ</span><span>BODY</span><span></span></div>${rows.map(row=>`<a class="table-row me" href="/rebricek/?id=${encodeURIComponent(row.series_id)}"><span class="position">${Number(row.standing_position)||'–'}</span><b>${esc(row.series_title||'Rebríček')}</b><span>${Number(row.rounds_played)||0} odohrané</span><strong>${Number(row.total_points)||0}</strong><span>›</span></a>`).join("")}</div>`:'<div class="empty">Zatiaľ nie si vo výsledkoch žiadneho rebríčka. Pozícia sa zobrazí po uzavretí prvého bodovaného kola.</div>'}</section>`}
