@@ -169,8 +169,10 @@
       const profile=profileResult.data||{},name=profile.full_name||userData.user.email?.split("@")[0]||"Hráč";
       const plan=String(profile.plan||"free").toLowerCase()==="pro_plus"?"pro_plus":String(profile.plan||"free").toLowerCase()==="pro"?"pro":"free";
       document.querySelector(".shell")?.classList.add(`plan-${plan.replace("_","-")}`);
-      const home=({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[plan];
+      const home=({free:"/FREE/",pro:"/PRO/",pro_plus:"/PRO+/"})[plan];
       document.querySelectorAll("[data-player-home]").forEach(link=>link.href=home);
+      const routes={"/profil/turnaje/":home+"turnaje/","/profil/treningy/":home+"treningy/","/profil/rebricky/":home+"rebricky/","/profil/priatelia/":home+"priatelia/","/profil/achievements/":home+"achievements/","/profil/moj-profil/":home+"moj-profil/","/profil-pro-plus/vyzvy/":home+"vyzvy/"};
+      document.querySelectorAll("a[href]").forEach(link=>{const next=routes[link.getAttribute("href")];if(next)link.href=next;});
       document.querySelectorAll("[data-create-feature]").forEach(link=>{if(plan==="pro_plus"){link.removeAttribute("aria-disabled");return}link.setAttribute("aria-disabled","true");link.addEventListener("click",event=>{event.preventDefault();location.href="/upgrade/?required=pro_plus";});});
       setText("userName",name);setText("userPlanLabel",plan==="pro_plus"?"PRO+ účet":plan.toUpperCase()+" účet");
       const avatar=document.getElementById("userAvatar");if(avatar){avatar.innerHTML=profile.avatar_url?`<img src="${profile.avatar_url}" alt="${name}">`:initials(name);}
