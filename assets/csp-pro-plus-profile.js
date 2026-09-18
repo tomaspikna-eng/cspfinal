@@ -86,6 +86,7 @@
     const isDarts=String(primary.sport||"").toLowerCase().includes("dart")||String(primary.discipline||"").toLowerCase().includes("dart");
     const ratingLabel=publicGrade?"IHS kategória":isDarts?"Priemer":"IHS hodnotenie";
     applyPlan(profile.plan||currentPlan,isPublicView);
+    ensureAccountMenu();
 
     text("profileName",name);text("accountName",name);text("profileInitials",short);text("accountAvatar",short);
     const flag=countryFlag(profile.country_code),place=[profile.city,countryName(profile.country_code)].filter(Boolean).join(", ");
@@ -178,6 +179,32 @@
     const motto=safe.motto||"Vybavenie zatiaľ nie je nastavené.";text("gearMotto",`“${motto}”`);
   }
 
+  function ensureAccountMenu(){
+    const account=document.querySelector(".account");if(!account||isPublicView)return;
+    account.setAttribute("role","button");account.setAttribute("tabindex","0");account.setAttribute("aria-haspopup","menu");account.setAttribute("aria-expanded","false");
+    account.style.position="relative";account.style.cursor="pointer";
+    if(document.getElementById("accountMenu"))return;
+    const style=document.createElement("style");style.textContent=`
+      .account-menu{position:absolute;right:0;top:52px;z-index:120;min-width:220px;padding:7px;border:1px solid #30383a;border-radius:10px;background:#0d1112;box-shadow:0 18px 45px rgba(0,0,0,.45);display:none}
+      .account-menu.open{display:block}
+      .account-menu button,.account-menu a{width:100%;min-height:40px;display:flex;align-items:center;padding:0 12px;border:0;border-radius:7px;background:transparent;color:#e8ebec;font:600 11px Inter,Arial,sans-serif;text-align:left;cursor:pointer}
+      .account-menu button:hover,.account-menu a:hover{background:#171d1f}
+      .account-menu .danger{color:#ff7b84;border-top:1px solid #252b2d;margin-top:5px;padding-top:5px;border-radius:0 0 7px 7px}
+    `;document.head.append(style);
+    const menu=document.createElement("div");menu.id="accountMenu";menu.className="account-menu";menu.setAttribute("role","menu");
+    menu.innerHTML='<a id="accountProfileLink" role="menuitem">Môj profil</a><button id="accountSettings" type="button" role="menuitem">Nastavenia profilu</button><button id="accountLogout" class="danger" type="button" role="menuitem">Odhlásiť sa</button>';
+    account.append(menu);
+    const close=()=>{menu.classList.remove("open");account.setAttribute("aria-expanded","false")};
+    const toggle=event=>{event.stopPropagation();const open=!menu.classList.contains("open");menu.classList.toggle("open",open);account.setAttribute("aria-expanded",String(open))};
+    account.addEventListener("click",event=>{if(event.target.closest("#accountMenu"))return;toggle(event)});
+    account.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();toggle(event)}if(event.key==="Escape")close()});
+    document.addEventListener("click",event=>{if(!account.contains(event.target))close()});
+    document.addEventListener("keydown",event=>{if(event.key==="Escape")close()});
+    document.getElementById("accountProfileLink").href=planHome(currentPlan);
+    document.getElementById("accountSettings").addEventListener("click",()=>{location.href=currentPlan==="pro_plus"?"/profil-pro-plus/upravit/":"/profil/moj-profil/"});
+    document.getElementById("accountLogout").addEventListener("click",async()=>{try{await window.cspAuth?.client?.auth?.signOut()}finally{location.replace("/")}}); 
+  }
+
   function bindInteractions(){
     const sidebar=$("sidebar"),menu=$("menuToggle");if(sidebar&&menu)menu.addEventListener("click",()=>sidebar.classList.toggle("open"));
     document.querySelectorAll(".profile-tabs [data-route]").forEach(button=>button.addEventListener("click",()=>{location.href=button.dataset.route}));
@@ -226,12 +253,15 @@
         }
         dashboard=dashboardResult.data||{};
       }else{
-        const [dashboardResult,achievementsResult,ihsResult,locationResult]=await Promise.all([
+        const challengeRequest=currentPlan==="pro"?client.rpc("get_my_challenges"):Promise.resolve({data:{},error:null});
+        const [dashboardResult,achievementsResult,ihsResult,locationResult,planChallengesResult]=await Promise.all([
           client.rpc("get_my_player_profile_dashboard"),
           client.rpc("get_my_achievements"),
           client.rpc("get_my_ihs_overview"),
-          client.from("profiles").select("city,country_code").eq("id",userData.user.id).maybeSingle()
+          client.from("profiles").select("city,country_code").eq("id",userData.user.id).maybeSingle(),
+          challengeRequest
         ]);
+        challengesResult=planChallengesResult||{data:{},error:null};
         if(dashboardResult.error)throw dashboardResult.error;
         if(achievementsResult.error)console.warn("[player-profile] achievements",achievementsResult.error);
         if(ihsResult.error)console.warn("[player-profile] ihs",ihsResult.error);
@@ -244,7 +274,7 @@
       }
       dashboard.profile={...(dashboard.profile||{}),plan:currentPlan};
       renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);
-      if(currentPlan!=="pro_plus")renderChallenges({});
+      if(currentPlan==="free")renderChallenges({});
       else if(challengesResult.error)console.warn("[player-profile] challenges",challengesResult.error);
       else renderChallenges(challengesResult.data||{});
       hideState();
