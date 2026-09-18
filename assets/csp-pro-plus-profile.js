@@ -7,6 +7,7 @@
   const publicPlayerId=query.get("id");
   const isPublicView=query.get("view")==="public"&&Boolean(publicPlayerId);
   let dashboard=null;
+  let currentPlan="free";
 
   function text(id,value){const node=$(id);if(node)node.textContent=value??"";}
   function initials(name){return String(name||"Hráč").trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();}
@@ -31,6 +32,27 @@
   function hideState(){if(state)state.hidden=true;}
   function node(tag,className,content){const item=document.createElement(tag);if(className)item.className=className;if(content!==undefined)item.textContent=content;return item;}
   function isPlanGateError(error){return String(error?.message||"").toLowerCase().includes("pro+ plan required");}
+  function normalizedPlan(value){const plan=String(value||"free").trim().toLowerCase();return plan==="pro_plus"?"pro_plus":plan==="pro"?"pro":"free";}
+  function planHome(plan){return ({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[normalizedPlan(plan)];}
+  function expectedPlan(){const fallback=query.get("profileRoute");if(["free","pro","pro_plus"].includes(fallback))return fallback;const path=location.pathname.replace(/\/+$/,"")+"/";if(path.startsWith("/profil-free/"))return"free";if(path.startsWith("/profil-pro/"))return"pro";if(path.startsWith("/profil-pro-plus/"))return"pro_plus";return"";}
+  function applyPlan(plan,publicView=false){
+    currentPlan=normalizedPlan(plan);
+    document.body.classList.remove("plan-free","plan-pro","plan-pro-plus");
+    document.body.classList.add(`plan-${currentPlan.replace("_","-")}`);
+    const labels={free:"FREE",pro:"PRO",pro_plus:"PRO+"},badge=$("profilePlanBadge");
+    if(badge){badge.textContent=labels[currentPlan];badge.className=`pro-badge profile-plan-badge-${currentPlan.replace("_","-")}`;}
+    const home=planHome(currentPlan);
+    document.querySelectorAll('[data-profile-home]').forEach(item=>item.dataset.route=home);
+    const profileLink=document.querySelector('.nav a.active[href*="profil"]');if(profileLink)profileLink.href=home;
+    if(!publicView){
+      document.querySelectorAll("[data-create-feature]").forEach(link=>{
+        if(currentPlan==="pro_plus"){link.removeAttribute("aria-disabled");link.onclick=null;return;}
+        link.setAttribute("aria-disabled","true");
+        link.onclick=event=>{event.preventDefault();location.href="/upgrade/?required=pro_plus";};
+      });
+      document.title=`${labels[currentPlan]} profil · Connect Sports Pro`;
+    }
+  }
   function weekCount(value){return `${value} ${value===1?"týždeň":value>=2&&value<=4?"týždne":"týždňov"}`;}
   function rarityLabel(value){return ({bronze:"bronzový",silver:"strieborný",gold:"zlatý",platinum:"platinový"})[String(value||"").toLowerCase()]||"CSP";}
   function badgeLabel(value){return ({"FIRST STEP":"PRVÝ KROK","ACTIVE DAYS":"AKTÍVNE DNI","ACTIVITIES":"AKTIVITY","MINUTES":"MINÚTY","TRAININGS":"TRÉNINGY","MATCHES":"ZÁPASY","WINS":"VÝHRY","ACTIVE TIME":"AKTÍVNY ČAS","STREAK":"SÉRIA","ACTIVE WEEKS":"AKTÍVNE TÝŽDNE"})[String(value||"").toUpperCase()]||String(value||"VÝZVA");}
@@ -63,6 +85,7 @@
     const ratingText=publicGrade||(Number.isFinite(rating)?rating.toFixed(2):"—");
     const isDarts=String(primary.sport||"").toLowerCase().includes("dart")||String(primary.discipline||"").toLowerCase().includes("dart");
     const ratingLabel=publicGrade?"IHS kategória":isDarts?"Priemer":"IHS hodnotenie";
+    applyPlan(profile.plan||currentPlan,isPublicView);
 
     text("profileName",name);text("accountName",name);text("profileInitials",short);text("accountAvatar",short);
     const flag=countryFlag(profile.country_code),place=[profile.city,countryName(profile.country_code)].filter(Boolean).join(", ");
@@ -158,7 +181,7 @@
   function bindInteractions(){
     const sidebar=$("sidebar"),menu=$("menuToggle");if(sidebar&&menu)menu.addEventListener("click",()=>sidebar.classList.toggle("open"));
     document.querySelectorAll(".profile-tabs [data-route]").forEach(button=>button.addEventListener("click",()=>{location.href=button.dataset.route}));
-    $("editProfile")?.addEventListener("click",()=>{location.href="/profil-pro-plus/upravit/"});
+    $("editProfile")?.addEventListener("click",()=>{location.href=currentPlan==="pro_plus"?"/profil-pro-plus/upravit/":"/profil/moj-profil/"});
     $("globalSearch")?.addEventListener("submit",event=>{event.preventDefault();const query=$("globalSearchInput")?.value.trim();if(query)location.href=`/search/?q=${encodeURIComponent(query)}`});
   }
 
@@ -182,15 +205,50 @@
       }
       const {data:userData,error:userError}=await client.auth.getUser();
       if(userError||!userData.user){location.replace("/login/?returnTo="+encodeURIComponent(location.pathname));return}
-      const [dashboardResult,challengesResult]=await Promise.all([client.rpc("get_my_pro_plus_dashboard"),client.rpc("get_my_challenges")]);
-      if(dashboardResult.error){
-        if(isPlanGateError(dashboardResult.error)){location.replace("/upgrade/?required=pro_plus");return}
-        throw dashboardResult.error;
+      const {data:privateProfile,error:privateProfileError}=await window.cspAuth.getCurrentProfile(userData.user);
+      if(privateProfileError)throw privateProfileError;
+      const role=String(privateProfile?.role||"player").toLowerCase();
+      if(privateProfile?.is_admin===true||["admin","club","organization"].includes(role)||String(privateProfile?.plan||"").toLowerCase()==="ultra"){
+        location.replace("/profil-ul/");return;
       }
-      dashboard=dashboardResult.data||{};renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);
-      if(challengesResult.error)console.warn("[pro-plus-profile] challenges",challengesResult.error);else renderChallenges(challengesResult.data||{});
+      currentPlan=normalizedPlan(privateProfile?.plan);
+      const requiredPath=planHome(currentPlan),routePlan=expectedPlan();
+      if(routePlan&&routePlan!==currentPlan){location.replace(requiredPath);return}
+      applyPlan(currentPlan);
+
+      let challengesResult={data:{},error:null};
+      if(currentPlan==="pro_plus"){
+        const results=await Promise.all([client.rpc("get_my_pro_plus_dashboard"),client.rpc("get_my_challenges")]);
+        const dashboardResult=results[0];challengesResult=results[1];
+        if(dashboardResult.error){
+          if(isPlanGateError(dashboardResult.error)){location.replace("/upgrade/?required=pro_plus");return}
+          throw dashboardResult.error;
+        }
+        dashboard=dashboardResult.data||{};
+      }else{
+        const [dashboardResult,achievementsResult,ihsResult,locationResult]=await Promise.all([
+          client.rpc("get_my_player_profile_dashboard"),
+          client.rpc("get_my_achievements"),
+          client.rpc("get_my_ihs_overview"),
+          client.from("profiles").select("city,country_code").eq("id",userData.user.id).maybeSingle()
+        ]);
+        if(dashboardResult.error)throw dashboardResult.error;
+        if(achievementsResult.error)console.warn("[player-profile] achievements",achievementsResult.error);
+        if(ihsResult.error)console.warn("[player-profile] ihs",ihsResult.error);
+        if(locationResult.error)console.warn("[player-profile] location",locationResult.error);
+        dashboard=dashboardResult.data||{};
+        dashboard.profile={...(dashboard.profile||{}),...(privateProfile||{}),...(locationResult.data||{}),plan:currentPlan};
+        dashboard.achievements=achievementsResult.data||{};
+        dashboard.ihs=ihsResult.data||{};
+        dashboard.gear={};
+      }
+      dashboard.profile={...(dashboard.profile||{}),plan:currentPlan};
+      renderProfile(dashboard);renderActivities(dashboard);renderAchievements(dashboard);renderGear(dashboard.gear);
+      if(currentPlan!=="pro_plus")renderChallenges({});
+      else if(challengesResult.error)console.warn("[player-profile] challenges",challengesResult.error);
+      else renderChallenges(challengesResult.data||{});
       hideState();
-    }catch(error){console.error("[pro-plus-profile]",error);setState(error.message||"PRO+ profil sa nepodarilo načítať.",true)}
+    }catch(error){console.error("[player-profile]",error);setState(error.message||"Hráčsky profil sa nepodarilo načítať.",true)}
   }
 
   window.addEventListener("DOMContentLoaded",init);

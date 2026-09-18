@@ -546,6 +546,14 @@
       return role==="player" && plan==="pro_plus" && !usesUltraProfile(profile,user);
     }
 
+    function playerPlanHome(profile,user){
+      const appMeta=user?.app_metadata||{};
+      const plan=String(profile?.plan||appMeta.plan||"free").toLowerCase();
+      if(plan==="pro_plus")return "/profil-pro-plus/";
+      if(plan==="pro")return "/profil-pro/";
+      return "/profil-free/";
+    }
+
     async function init(){
       try{
         if(!window.supabase) throw new Error("Knižnicu Supabase sa nepodarilo načítať.");
@@ -595,17 +603,8 @@
           location.replace("/profil-pro-plus/");
           return;
         }
-        const from=new Date();from.setDate(from.getDate()-30);
-        const to=new Date();to.setDate(to.getDate()+30);
-        const {data:plans,error:plansError}=await client.from("training_plans")
-          .select("id,title,sport,discipline,venue,notes,scheduled_for,status,created_at")
-          .gte("scheduled_for",from.toISOString()).lte("scheduled_for",to.toISOString())
-          .order("scheduled_for",{ascending:false});
-        if(plansError) console.warn("Training plans:",plansError.message);
-        const {data:ihs,error:ihsError}=await client.rpc("get_my_ihs_overview");
-        if(ihsError) console.warn("CSP IHS:",ihsError.message);
-        render(data||{},plans||[],ihs||null);
-        await bindProfileSocial(data?.profile||{id:userData.user.id,role:"player",full_name:"Hráč"});
+        location.replace(playerPlanHome(data?.profile,userData.user));
+        return;
       }catch(error){
         console.error(error);
         showState("Profil sa nepodarilo načítať",error.message||"Skús stránku obnoviť.",false);

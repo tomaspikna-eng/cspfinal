@@ -58,6 +58,14 @@
         }
       ],
       "destination": "/manager/"
+    },
+    {
+      "source": "/profil-free",
+      "destination": "/profil-pro-plus/"
+    },
+    {
+      "source": "/profil-pro",
+      "destination": "/profil-pro-plus/"
     }
   ]
 }

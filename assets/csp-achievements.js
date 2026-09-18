@@ -5,6 +5,7 @@ const ACHIEVEMENTS_SUPABASE_KEY="sb_publishable_h3_yK3K_GUahLdz13dDWDg_PzxGE6xR"
 
 const achievementEsc=value=>String(value??"").replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
 const achievementPlan=value=>String(value||"free").toLowerCase()==="pro_plus"?"PRO+":String(value||"free").toUpperCase();
+const achievementProfileHome=value=>({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[String(value||"free").toLowerCase()]||"/profil-free/";
 const achievementInitials=name=>String(name||"Hráč").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const achievementDate=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?"":new Intl.DateTimeFormat("sk-SK",{day:"numeric",month:"short",year:"numeric"}).format(d)};
 const achievementBadgeLabel=code=>({first_step:"01",first_match:"▶",first_win:"V",first_tournament:"T",first_training:"TR",matches_10:"10",matches_25:"25",matches_50:"50",matches_100:"100",wins_5:"5V",wins_10:"10V",wins_50:"50V",wins_100:"100V",win_streak_3:"3×",win_streak_5:"5×",win_streak_10:"10×",group_winner:"G1",top_8:"TOP8",semifinal:"SF",finalist:"F",champion:"1",clean_tournament:"0L",champion_2:"2×",champion_5:"5×",tournaments_10:"10T"}[code]||"CSP");
@@ -12,6 +13,8 @@ const categoryLabel=value=>({zaciatky:"Začiatky",progres:"Progres",konzistencia
 const achievementRarityLabel=value=>({bronze:"BRONZE",silver:"SILVER",gold:"GOLD",platinum:"PLATINUM"}[String(value||"").toLowerCase()]||"CSP");
 
 function setAchievementProfile(profile){
+  const home=achievementProfileHome(profile.plan);
+  document.querySelectorAll('a[href="/profil/"]').forEach(link=>link.href=home);
   document.querySelectorAll("[data-achievement-player-name]").forEach(el=>el.textContent=profile.full_name||"Hráč");
   document.querySelectorAll("[data-achievement-plan]").forEach(el=>el.textContent=`${achievementPlan(profile.plan)} účet`);
   document.querySelectorAll("[data-achievement-avatar]").forEach(el=>{
