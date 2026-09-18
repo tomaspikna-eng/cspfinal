@@ -79,22 +79,61 @@ function tournamentCard(t){const id=t.tournament_id||t.id,href=id?`/turnament/?i
 function tournamentsPage(data,tournaments){const now=new Date().toISOString().slice(0,10),upcoming=tournaments.filter(t=>t.date&&t.date>=now&&t.status!=="completed").sort((a,b)=>String(a.date).localeCompare(String(b.date))),history=tournaments.filter(t=>t.status==="completed"||(t.date&&t.date<now)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));return`${pageIntro("MOJE TURNAJE","Kalendár a história","Nadchádzajúce udalosti, výsledky a kompletná turnajová stopa.",'<a class="button gold" href="/kalendar-turnajov/">Nájsť turnaj</a>')}<div class="grid calendar-layout"><section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">KALENDÁR</span><h2>${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</h2></div></div>${monthGrid(tournaments)}</section><div class="side-stack"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">NADCHÁDZAJÚCE</span>${upcoming.length?upcoming.slice(0,4).map(tournamentCard).join(""):'<div class="empty">Žiadny nadchádzajúci turnaj.</div>'}</section><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">HISTÓRIA TURNAJOV</span>${history.length?history.slice(0,6).map(tournamentCard).join(""):'<div class="empty">Zatiaľ nemáš turnajovú históriu.</div>'}</section></div></div>${metrics(data.summary)}`}
 function trainingScoreText(session){
   const players=Array.isArray(session?.final_score?.players)?session.final_score.players:[];
-  if(players.length)return players.map(p=>`${p?.name||"Hráč"} ${Number(p?.score)||0}`).join(" : ");
+  if(players.length){
+    const mode=session?.final_score?.mode||"frame";
+    const value=p=>mode==="frame"?Number(p?.score)||0:mode==="points"?Number(p?.frames)||0:mode==="darts"?Number(p?.legs)||0:Number(p?.sets)||0;
+    return players.map(p=>`${p?.name||"Hráč"} ${value(p)}`).join(" : ");
+  }
   const names=Array.isArray(session?.player_names)?session.player_names:[];
   const scores=Array.isArray(session?.live_scores)?session.live_scores:[];
   if(names.length&&scores.length)return names.map((name,i)=>`${name||"Hráč"} ${Number(scores[i])||0}`).join(" : ");
   return session?.winner_name?`Víťaz: ${session.winner_name}`:"Bez výsledku";
 }
+function trainingOpponentText(session){
+  const names=Array.isArray(session?.player_names)?session.player_names.filter(Boolean):[];
+  if(names.length<=1)return"Individuálny tréning";
+  return names.slice(1).join(", ");
+}
+function trainingUnitLabel(session,count){
+  const mode=session?.session_summary?.mode||session?.final_score?.mode||"frame";
+  if(mode==="darts")return count===1?"leg":"legov";
+  if(["tabletennis","racket","universal"].includes(mode))return count===1?"set":"setov";
+  return count===1?"frame":"frameov";
+}
+function trainingHighlightChips(session){
+  const m=session?.session_summary||{},chips=[];
+  const add=(value,label)=>{if(Number(value)>0)chips.push(`<span class="training-highlight">${Number(value)}× ${esc(label)}</span>`)};
+  add(m.break_and_runs,"Čistá hra");
+  add(m.golden_breaks,"ESO");
+  add(m.combo_wins,"Combo");
+  add(m.three_foul_wins,"3 chyby");
+  if(Number(m.achievement_count)>0)chips.push(`<span class="training-highlight reward">Achievement +${Number(m.achievement_count)}</span>`);
+  if(Number(m.challenge_count)>0)chips.push(`<span class="training-highlight reward">Výzva +${Number(m.challenge_count)}</span>`);
+  return chips.slice(0,3).join("");
+}
 function trainingSessionRows(sessions){
   if(!sessions.length)return'<div class="empty">Zatiaľ nie sú zaznamenané žiadne tréningy.</div>';
-  return `<div class="training-session-list">${sessions.map(session=>`<article class="training-session-row" data-training-session="${esc(session.id)}">
-    <button class="training-session-open" type="button" data-training-open="${esc(session.id)}" aria-label="Otvoriť detail tréningu">
-      <span class="training-session-date"><b>${formatDate(session.occurred_at,{day:"2-digit"})}</b><span>${formatDate(session.occurred_at,{month:"short"}).toUpperCase()}</span></span>
-      <span class="training-session-main"><span>${esc([session.sport,session.discipline].filter(Boolean).join(" · ")||"Tréning")}</span><h3>${esc(trainingScoreText(session))}</h3><p>${esc([session.winner_name?`Víťaz: ${session.winner_name}`:"",session.duration_seconds?formatDuration(session.duration_seconds):""].filter(Boolean).join(" · "))}</p></span>
-      <span class="training-session-action">Detail <b>›</b></span>
-    </button>
-    <button class="training-session-delete" type="button" data-training-delete="${esc(session.id)}" aria-label="Zmazať tréning">Zmazať</button>
-  </article>`).join("")}</div>`;
+  return `<div class="training-session-list">${sessions.map(session=>{
+    const summary=session.session_summary||{};
+    const units=Number(summary.unit_count)||0;
+    const avg=summary.average_unit_seconds!=null?clockSeconds(summary.average_unit_seconds):"–";
+    const duration=Number(summary.duration_seconds)||Number(session.duration_seconds)||0;
+    const chips=trainingHighlightChips(session);
+    return `<article class="training-session-row" data-training-session="${esc(session.id)}">
+      <button class="training-session-open" type="button" data-training-open="${esc(session.id)}" aria-label="Otvoriť detail tréningu">
+        <span class="training-session-date"><b>${formatDate(session.occurred_at,{day:"2-digit"})}</b><span>${formatDate(session.occurred_at,{month:"short"}).toUpperCase()}</span></span>
+        <span class="training-session-main">
+          <span class="training-session-kicker">${esc([session.sport,session.discipline].filter(Boolean).join(" · ")||"Tréning")}</span>
+          <h3>${esc(trainingScoreText(session))}</h3>
+          <p class="training-session-opponent">S kým: ${esc(trainingOpponentText(session))}</p>
+          <span class="training-session-stats">${duration?esc(formatDuration(duration)):"–"} · ${units} ${esc(trainingUnitLabel(session,units))} · Ø ${esc(avg)}</span>
+          ${chips?`<span class="training-session-highlights">${chips}</span>`:""}
+        </span>
+        <span class="training-session-action">Detail <b>›</b></span>
+      </button>
+      <button class="training-session-delete" type="button" data-training-delete="${esc(session.id)}" aria-label="Zmazať tréning">Zmazať</button>
+    </article>`;
+  }).join("")}</div>`;
 }
 
 function trainingDetailShell(){
@@ -108,17 +147,24 @@ function trainingDetailHtml(d){
   const participants=Array.isArray(d.participants)?d.participants:[];
   const achievements=Array.isArray(d.achievements)?d.achievements:[];
   const challenges=Array.isArray(d.challenges)?d.challenges:[];
+  const summary=d.session_summary||{};
+  const units=Number(summary.unit_count)||Number(d.frame_count)||0;
+  const average=summary.average_unit_seconds!=null?summary.average_unit_seconds:d.average_frame_seconds;
   const score=trainingScoreText(d);
+  const highlights=trainingHighlightChips({session_summary:summary});
   return `<div class="training-detail-head"><span class="label">DETAIL TRÉNINGU</span><h2 id="trainingDetailTitle">${esc([d.sport,d.discipline].filter(Boolean).join(" · ")||"Tréning")}</h2><p>${esc(formatDate(d.started_at,{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}))}</p></div>
   <div class="training-detail-score"><span>VÝSLEDOK</span><strong>${esc(score)}</strong>${d.winner_name?`<small>Víťaz: ${esc(d.winner_name)}</small>`:""}</div>
   <div class="training-detail-metrics">
     <div><span>CELKOVÝ ČAS</span><b>${esc(formatDuration(d.duration_seconds))}</b></div>
-    <div><span>FRAMEOV</span><b>${Number(d.frame_count)||0}</b></div>
-    <div><span>PRIEMER / FRAME</span><b>${d.average_frame_seconds!=null?esc(clockSeconds(d.average_frame_seconds)):"–"}</b></div>
+    <div><span>ODOHRANÉ</span><b>${units} ${esc(trainingUnitLabel({session_summary:summary,final_score:d.final_score},units))}</b></div>
+    <div><span>PRIEMER / JEDNOTKU</span><b>${average!=null?esc(clockSeconds(average)):"–"}</b></div>
     <div><span>RACE TO</span><b>${d.race_to||"–"}</b></div>
+    <div><span>NAJRÝCHLEJŠÍ FRAME</span><b>${summary.fastest_unit_seconds!=null?esc(clockSeconds(summary.fastest_unit_seconds)):"–"}</b></div>
+    <div><span>NAJDLHŠÍ FRAME</span><b>${summary.longest_unit_seconds!=null?esc(clockSeconds(summary.longest_unit_seconds)):"–"}</b></div>
     <div><span>ZAČIATOK</span><b>${esc(formatDate(d.started_at,{hour:"2-digit",minute:"2-digit"}))}</b></div>
     <div><span>KONIEC</span><b>${esc(formatDate(d.ended_at,{hour:"2-digit",minute:"2-digit"}))}</b></div>
   </div>
+  ${highlights?`<div class="training-detail-highlights">${highlights}</div>`:""}
   <div class="training-detail-grid">
     <section><span class="label">S KÝM</span><div class="training-participants">${participants.length?participants.map(p=>`<div><b>${esc(p.name||"Hráč")}</b>${p.is_me?"<small>TY</small>":""}</div>`).join(""):'<div class="empty">Účastníci nie sú zaznamenaní.</div>'}</div></section>
     <section><span class="label">SESSION</span><div class="training-facts"><div><span>Šport</span><b>${esc(d.sport||"–")}</b></div><div><span>Disciplína</span><b>${esc(d.discipline||"–")}</b></div><div><span>Stav</span><b>${esc(d.status||"ukončené")}</b></div></div></section>
