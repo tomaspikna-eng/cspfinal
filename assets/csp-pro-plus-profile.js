@@ -33,8 +33,8 @@
   function node(tag,className,content){const item=document.createElement(tag);if(className)item.className=className;if(content!==undefined)item.textContent=content;return item;}
   function isPlanGateError(error){return String(error?.message||"").toLowerCase().includes("pro+ plan required");}
   function normalizedPlan(value){const plan=String(value||"free").trim().toLowerCase();return plan==="pro_plus"?"pro_plus":plan==="pro"?"pro":"free";}
-  function planHome(plan){return ({free:"/profil-free/",pro:"/profil-pro/",pro_plus:"/profil-pro-plus/"})[normalizedPlan(plan)];}
-  function expectedPlan(){const fallback=query.get("profileRoute");if(["free","pro","pro_plus"].includes(fallback))return fallback;const path=location.pathname.replace(/\/+$/,"")+"/";if(path.startsWith("/profil-free/"))return"free";if(path.startsWith("/profil-pro/"))return"pro";if(path.startsWith("/profil-pro-plus/"))return"pro_plus";return"";}
+  function planHome(plan){return ({free:"/FREE/",pro:"/PRO/",pro_plus:"/PRO+/"})[normalizedPlan(plan)];}
+  function expectedPlan(){const fallback=query.get("profileRoute");if(["free","pro","pro_plus"].includes(fallback))return fallback;const path=location.pathname.replace(/\/+$/,"")+"/";if(path.startsWith("/PRO+/")||path.startsWith("/profil-pro-plus/"))return"pro_plus";if(path.startsWith("/PRO/")||path.startsWith("/profil-pro/"))return"pro";if(path.startsWith("/FREE/")||path.startsWith("/profil-free/"))return"free";return"";}
   function applyPlan(plan,publicView=false){
     currentPlan=normalizedPlan(plan);
     document.body.classList.remove("plan-free","plan-pro","plan-pro-plus");
@@ -42,7 +42,18 @@
     const labels={free:"FREE",pro:"PRO",pro_plus:"PRO+"},badge=$("profilePlanBadge");
     if(badge){badge.textContent=labels[currentPlan];badge.className=`pro-badge profile-plan-badge-${currentPlan.replace("_","-")}`;}
     const home=planHome(currentPlan);
+    const sectionRoutes={
+      "/profil/turnaje/":home+"turnaje/",
+      "/profil/treningy/":home+"treningy/",
+      "/profil/rebricky/":home+"rebricky/",
+      "/profil/priatelia/":home+"priatelia/",
+      "/profil/achievements/":home+"achievements/",
+      "/profil/moj-profil/":home+"moj-profil/"
+    };
     document.querySelectorAll('[data-profile-home]').forEach(item=>item.dataset.route=home);
+    document.querySelectorAll("a[href]").forEach(link=>{const next=sectionRoutes[link.getAttribute("href")];if(next)link.href=next;});
+    document.querySelectorAll("[data-route]").forEach(item=>{const next=sectionRoutes[item.dataset.route];if(next)item.dataset.route=next;});
+    if(currentPlan==="pro_plus")document.querySelectorAll('a[href="/profil-pro-plus/vyzvy/"],[data-route="/profil-pro-plus/vyzvy/"]').forEach(item=>{if(item.tagName==="A")item.href=home+"vyzvy/";else item.dataset.route=home+"vyzvy/";});
     const profileLink=document.querySelector('.nav a.active[href*="profil"]');if(profileLink)profileLink.href=home;
     if(!publicView){
       document.querySelectorAll("[data-create-feature]").forEach(link=>{
@@ -181,7 +192,7 @@
   function bindInteractions(){
     const sidebar=$("sidebar"),menu=$("menuToggle");if(sidebar&&menu)menu.addEventListener("click",()=>sidebar.classList.toggle("open"));
     document.querySelectorAll(".profile-tabs [data-route]").forEach(button=>button.addEventListener("click",()=>{location.href=button.dataset.route}));
-    $("editProfile")?.addEventListener("click",()=>{location.href=currentPlan==="pro_plus"?"/profil-pro-plus/upravit/":"/profil/moj-profil/"});
+    $("editProfile")?.addEventListener("click",()=>{location.href=currentPlan==="pro_plus"?"/PRO+/upravit/":planHome(currentPlan)+"moj-profil/"});
     $("globalSearch")?.addEventListener("submit",event=>{event.preventDefault();const query=$("globalSearchInput")?.value.trim();if(query)location.href=`/search/?q=${encodeURIComponent(query)}`});
   }
 
