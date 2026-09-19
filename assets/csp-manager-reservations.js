@@ -128,9 +128,16 @@
   }
 
   async function loadLiveStations(){
-    const {data,error}=await cspAuth.client.rpc('get_club_live_station_view',{p_club_id:context.club.id});
-    if(error)throw error;
-    liveStations=data||[];
+    try{
+      const {data,error}=await cspAuth.client.rpc('get_club_live_station_view',{p_club_id:context.club.id});
+      if(error)throw error;
+      liveStations=data||[];
+      return true;
+    }catch(error){
+      console.warn('[manager-reservations] Live Station View unavailable:',error);
+      liveStations=[];
+      return false;
+    }
   }
 
   async function loadReservations(){
@@ -147,8 +154,15 @@
     ]);
     if(stationResult.error)throw stationResult.error;if(historyResult.error)throw historyResult.error;
     stations=stationResult.data||[];customerHistory=historyResult.data||[];
-    await Promise.all([loadReservations(),loadLiveStations()]);
-    buildSportTabs();renderLiveStations();renderGrid();
+    await loadReservations();
+    buildSportTabs();
+    renderGrid();
+    const liveOk=await loadLiveStations();
+    if(liveOk)renderLiveStations();
+    else {
+      const liveArea=$('liveStationArea');
+      if(liveArea)liveArea.innerHTML='<div class="empty">Live stav sa nepodarilo načítať. Rezervačný kalendár funguje normálne.</div>';
+    }
   }
 
   document.addEventListener('click',event=>{
@@ -157,7 +171,17 @@
     if(event.target.matches('[data-close-overlay]'))closeModal();
     if(event.target.closest('[data-submit-reservation]'))submitReservation();
   });
-  $('dateInput').addEventListener('change',async()=>{try{await Promise.all([loadReservations(),loadLiveStations()]);renderLiveStations();renderGrid();}catch(error){console.error(error);toast('Rezervácie sa nepodarilo načítať.',true);}});
+  $('dateInput').addEventListener('change',async()=>{
+    try{
+      await loadReservations();
+      renderGrid();
+      const liveOk=await loadLiveStations();
+      if(liveOk){renderLiveStations();renderGrid();}
+    }catch(error){
+      console.error(error);
+      toast('Rezervácie sa nepodarilo načítať.',true);
+    }
+  });
   $('signOutBtn').addEventListener('click',()=>cspManager.signOut());
   window.toggleSidebar=function(){$('sidebar').classList.toggle('open');$('backdrop').classList.toggle('show');};
   $('dateInput').value=today;$('dateInput').min=today;
@@ -170,8 +194,14 @@
       await loadData();
       $('loadingGate').style.display='none';
       const refresh=async()=>{
-        try{await Promise.all([loadReservations(),loadLiveStations()]);renderLiveStations();renderGrid();}
-        catch(error){console.warn('[manager-reservations] live refresh failed',error);}
+        try{
+          await loadReservations();
+          const liveOk=await loadLiveStations();
+          if(liveOk)renderLiveStations();
+          renderGrid();
+        }catch(error){
+          console.warn('[manager-reservations] refresh failed',error);
+        }
       };
       setInterval(refresh,10000);
       try{
