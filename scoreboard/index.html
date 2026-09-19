@@ -1251,7 +1251,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 /* ════════════════════ KONFIGURÁCIA ════════════════════ */
 const SPORTS={
   billiard:{label:"Biliard",icon:"🎱",disciplines:["8-ball","9-ball","10-ball","14.1 continuous","Snooker","Pyramída","Karambol","Tréning"]},
-  darts:{label:"Šípky",icon:"🎯",disciplines:["501","301"]},
+  darts:{label:"Šípky",icon:"🎯",disciplines:["501","301","Cricket","Around the Clock"]},
   tabletennis:{label:"Stolný tenis",icon:"🏓",disciplines:["Singles"]},
   tennis:{label:"Tenis",icon:"🎾",disciplines:["Singles"]},
   padel:{label:"Padel",icon:"🎾",disciplines:["Doubles"]},
@@ -1260,6 +1260,7 @@ const SPORTS={
 const POINT_DISCIPLINES=["Snooker","Pyramída","Karambol","14.1 continuous"];
 const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100,"14.1 continuous":100};
 const START_SCORE={"501":501,"301":301};
+const DARTS_X01_DISCIPLINES=["501","301"];
 
 /* ════════════════════ URL (Club Manager) ════════════════════ */
 const SCOREBOARD_EDITION="LIVE_TRAINING";
@@ -1319,7 +1320,7 @@ const activePlayers=()=>state.players.slice(0,state.playerCount);
 
 /* ════════════════════ REŽIM ════════════════════ */
 function mode(){
-  if(state.sport==="darts") return "darts";
+  if(state.sport==="darts") return DARTS_X01_DISCIPLINES.includes(state.discipline) ? "darts" : "darts_variant";
   if(state.sport==="tabletennis") return "tabletennis";
   if(state.sport==="tennis"||state.sport==="padel") return "racket";
   if(state.sport==="other") return "universal";
@@ -2667,7 +2668,7 @@ function syncSettingsUI(){
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
   $("playerCount").disabled=["tabletennis","racket"].includes(m);
   $("raceTo").disabled=state.sport==="tennis";
-  $("raceLabel").textContent = m==="darts"?"Race to (legy)" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
+  $("raceLabel").textContent = m==="darts"?"Race to (legy)" : m==="darts_variant"?"Formát disciplíny" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
 }
 
 /* ════════════════════ WIRING ════════════════════ */
