@@ -76,10 +76,10 @@
         const reservation=findReservation(station.id,date,hour);
         const live=liveStation(station.id);
         const maintenance=station.is_active===false||station.status==='maintenance'||live?.live_state==='maintenance';
-        const liveNow=selectedDateIsToday()&&hour===currentHour()&&live?.live_state==='occupied';
+        const liveNow=selectedDateIsToday()&&hour===currentHour()&&(live?.live_state==='occupied'||station.status==='running'||station.status==='tournament');
         const past=slotStart(date,hour).getTime()<Date.now();
         let cls='free',text='+',title='Voľné — rezervovať',disabled='';
-        if(liveNow){cls='busy';text='LIVE';title=live?.live_label||'Hrá sa teraz';disabled='disabled';}
+        if(liveNow){cls='busy';text='LIVE';title=live?.live_label||(station.status==='tournament'?'Turnaj — hrá sa teraz':'Hrá sa teraz');disabled='disabled';}
         else if(reservation){cls='busy';text='●';title=`${reservation.customer_name||'Rezervácia'} (${reservation.party_size||1} os.)`;disabled='disabled';}
         else if(maintenance){cls='maint';text='—';title='Mimo prevádzky';disabled='disabled';}
         else if(past){cls='past';text='·';title='V minulosti';disabled='disabled';}
