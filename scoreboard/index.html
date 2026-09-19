@@ -2244,6 +2244,11 @@ function playerCard(p,i,m){
       <div class="stat"><span>Priemer</span><strong>${avg}</strong></div>
       <div class="stat"><span>Najviac</span><strong>${p.high}</strong></div>
     </div>`;
+  } else if(m==="darts_variant"){
+    bigVal="—";
+    bigSub=escapeScoreText(state.discipline);
+    controls="";
+    stats=`<div class="stat-grid"><div class="stat"><span>Disciplína</span><strong>${escapeScoreText(state.discipline)}</strong></div></div>`;
   } else if(m==="tabletennis"){
     bigVal=p.points;
     controls=`<div class="pm">
@@ -2667,7 +2672,7 @@ function syncSettingsUI(){
   $("doubleOutWrap").classList.toggle("hidden",m!=="darts");
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
   $("playerCount").disabled=["tabletennis","racket"].includes(m);
-  $("raceTo").disabled=state.sport==="tennis";
+  $("raceTo").disabled=state.sport==="tennis"||m==="darts_variant";
   $("raceLabel").textContent = m==="darts"?"Race to (legy)" : m==="darts_variant"?"Formát disciplíny" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
 }
 
