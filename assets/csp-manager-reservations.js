@@ -52,7 +52,7 @@
     if(!list.length){root.innerHTML='<div class="empty">Žiadne stanice pre aktuálny filter.</div>';return;}
     root.innerHTML=list.map(item=>{
       const state=item.live_state||'free';
-      const source=item.live_source==='match'?'Turnajový zápas':item.live_source==='training'?'Scoreboard / tréning':item.live_source==='reservation'?'Aktuálna rezervácia':'';
+      const source=item.live_source==='match'?'Turnajový zápas':item.live_source==='training'?'Scoreboard / tréning':item.live_source==='station'?'Aktívna stanica':item.live_source==='reservation'?'Aktuálna rezervácia':'';
       const started=item.live_started_at?new Date(item.live_started_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'';
       const meta=[source,item.live_label,started?('od '+started):''].filter(Boolean).join(' · ');
       const href='/scoreboard/?station_id='+encodeURIComponent(item.station_id)+'&sport='+encodeURIComponent(item.sport||'billiard');
