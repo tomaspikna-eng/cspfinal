@@ -78,6 +78,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 .sw.free{background:var(--green-dim);border-color:var(--green-b)}
 .sw.busy{background:var(--red-dim);border-color:var(--red-b)}
 .sw.maint{background:rgba(255,255,255,.05);border-color:var(--line)}
+.sw.live{background:var(--red-dim);border-color:var(--red-b)}
+.live-panel{margin-bottom:20px}
+.live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.live-head h2{font-size:1rem;color:var(--gold)}
+.live-head span{font-size:.72rem;color:var(--muted)}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.live-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.live-card.free{border-color:var(--green-b)}
+.live-card.occupied{border-color:var(--red-b);background:var(--red-dim)}
+.live-card.reserved{border-color:var(--gold-b);background:var(--gold-dim)}
+.live-card.maintenance{opacity:.65}
+.live-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.live-card-name{font-weight:800}
+.live-state{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.live-state.free{color:var(--green)}
+.live-state.occupied{color:var(--red)}
+.live-state.reserved{color:var(--gold)}
+.live-state.maintenance{color:var(--muted)}
+.live-meta{margin-top:7px;font-size:.76rem;color:var(--muted-2);line-height:1.45}
+.live-actions{margin-top:10px}
+.live-start{display:inline-flex;padding:7px 10px;border-radius:7px;border:1px solid var(--green-b);color:var(--green);font-size:.74rem;font-weight:700}
 
 /* GRID */
 .grid-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
@@ -168,6 +189,14 @@ td{padding:4px}
         <p>Klikni na voľný slot v tabuľke a vytvor rezerváciu.</p>
       </div>
 
+      <section class="live-panel">
+        <div class="live-head">
+          <h2>Aktuálny stav športovísk</h2>
+          <span id="liveUpdated">Live</span>
+        </div>
+        <div class="live-grid" id="liveStationArea"></div>
+      </section>
+
       <div class="filters">
         <div class="filter-field">
           <label>Dátum</label>
@@ -181,7 +210,8 @@ td{padding:4px}
 
       <div class="legend">
         <div class="item"><span class="sw free"></span> Voľné</div>
-        <div class="item"><span class="sw busy"></span> Obsadené</div>
+        <div class="item"><span class="sw live"></span> Hrá sa teraz</div>
+        <div class="item"><span class="sw busy"></span> Rezervované</div>
         <div class="item"><span class="sw maint"></span> Mimo prevádzky</div>
       </div>
 
