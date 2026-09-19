@@ -1202,7 +1202,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
     <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
     <div class="status">
-      <div class="label2">Čas zápasu</div>
+      <div class="label2" id="matchTimerLabel">Čas zápasu</div>
       <div class="period" id="matchTimer">00:00</div>
       <div class="timer-controls" style="display:flex;gap:6px;margin-top:8px;justify-content:center">
         <button id="timerStartBtn" title="Štart">▶</button>
@@ -1287,6 +1287,8 @@ let tournamentResultSubmitting=false;
 let currentUserId=null;
 let TRAINING_SESSION_ID=URL_PARAMS.get("training_session_id")||"";
 const CLUB_STATION_ID=URL_PARAMS.get("station_id")||"";
+let clubStationTimer=null;
+let clubStationTimerLoaded=false;
 let scoreActionDefinitions=[];
 let scoreActionLoading=false;
 let scoreActionLoadError="";
@@ -1683,26 +1685,47 @@ async function undoLastScoreEvent(){
 let accumulatedSeconds=0;
 let runningSince=null;
 function elapsedSeconds(){
+  if(CLUB_STATION_ID&&clubStationTimer){
+    const base=Number(clubStationTimer.accumulated_seconds)||0;
+    if(clubStationTimer.session_status==="running"&&clubStationTimer.started_at){
+      const started=new Date(clubStationTimer.started_at).getTime();
+      const live=Number.isFinite(started)?Math.max(0,Math.floor((Date.now()-started)/1000)):0;
+      return base+live;
+    }
+    return base;
+  }
   return accumulatedSeconds + (runningSince ? Math.max(0,Math.floor((Date.now()-runningSince)/1000)) : 0);
 }
 function startTimer(){
-  if(runningSince) return; // already running
+  if(CLUB_STATION_ID)return;
+  if(runningSince) return;
   runningSince=Date.now();
   syncTimerButtons();
 }
 function pauseTimer(){
-  if(!runningSince) return; // already paused
+  if(CLUB_STATION_ID)return;
+  if(!runningSince) return;
   accumulatedSeconds=elapsedSeconds();
   runningSince=null;
   syncTimerButtons();
 }
 function stopTimer(){
+  if(CLUB_STATION_ID)return;
   accumulatedSeconds=0;
   runningSince=null;
   tickMatchTimer();
   syncTimerButtons();
 }
 function syncTimerButtons(){
+  const controls=document.querySelector(".timer-controls");
+  if(CLUB_STATION_ID){
+    if(controls){
+      [...controls.querySelectorAll("#timerStartBtn,#timerPauseBtn,#timerStopBtn")].forEach(btn=>btn.classList.add("hidden"));
+    }
+    const label=$("matchTimerLabel");
+    if(label)label.textContent="Čas hry";
+    return;
+  }
   const running=!!runningSince;
   $("timerStartBtn").disabled=running;
   $("timerPauseBtn").disabled=!running;
@@ -1908,9 +1931,32 @@ async function startNextSet(){
 $("playNextSetBtn").onclick=startNextSet;
 $("endMatchBtn").onclick=endMatchDialog;
 
-function tickMatchTimer(){ $("matchTimer").textContent=formatDuration(elapsedSeconds()); }
+async function refreshClubStationTimer(){
+  if(!CLUB_STATION_ID)return;
+  try{
+    const {data,error}=await cspAuth.client.rpc("get_station_live_timer",{p_station_id:CLUB_STATION_ID});
+    if(error)throw error;
+    clubStationTimer=Array.isArray(data)?(data[0]||null):data;
+    clubStationTimerLoaded=true;
+    tickMatchTimer();
+  }catch(error){
+    console.warn("[scoreboard] Station timer refresh failed:",error);
+  }
+}
+function tickMatchTimer(){
+  const el=$("matchTimer");
+  if(CLUB_STATION_ID&&!clubStationTimer){
+    el.textContent=clubStationTimerLoaded?"00:00":"--:--";
+    return;
+  }
+  el.textContent=formatDuration(elapsedSeconds());
+}
 tickMatchTimer();
 syncTimerButtons();
+if(CLUB_STATION_ID){
+  refreshClubStationTimer();
+  setInterval(refreshClubStationTimer,3000);
+}
 setInterval(tickMatchTimer,1000);
 $("timerStartBtn").onclick=startTimer;
 $("timerPauseBtn").onclick=pauseTimer;
