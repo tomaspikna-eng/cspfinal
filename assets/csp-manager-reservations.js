@@ -9,6 +9,7 @@
   let context = null;
   let stations = [];
   let reservations = [];
+  let liveStations = [];
   let customerHistory = [];
   let currentSport = null;
   let pick = null;
@@ -19,6 +20,9 @@
     const start=slotStart(date,hour), end=new Date(start.getTime()+3600000);
     return reservations.find(item => item.station_id===stationId && item.status!=='cancelled' && new Date(item.starts_at)<end && new Date(item.ends_at)>start) || null;
   }
+  function liveStation(stationId){ return liveStations.find(item=>item.station_id===stationId)||null; }
+  function selectedDateIsToday(){ return $('dateInput').value===new Date().toISOString().slice(0,10); }
+  function currentHour(){ return new Date().getHours(); }
 
   function toast(message,isError) {
     const el=$('toast'); el.textContent=message; el.className=`toast show${isError?' err':''}`;
@@ -36,6 +40,30 @@
       button.onclick=()=>{currentSport=sport;buildSportTabs();renderGrid();};
       return button;
     }));
+  }
+
+  function liveStateLabel(state){
+    return state==='occupied'?'HRÁ SA':state==='reserved'?'REZERVOVANÉ':state==='maintenance'?'MIMO PREVÁDZKY':'VOĽNÉ';
+  }
+
+  function renderLiveStations(){
+    const root=$('liveStationArea'); if(!root)return;
+    const list=liveStations.filter(item=>!currentSport||stationSport(item)===currentSport);
+    if(!list.length){root.innerHTML='<div class="empty">Žiadne stanice pre aktuálny filter.</div>';return;}
+    root.innerHTML=list.map(item=>{
+      const state=item.live_state||'free';
+      const source=item.live_source==='match'?'Turnajový zápas':item.live_source==='training'?'Scoreboard / tréning':item.live_source==='reservation'?'Aktuálna rezervácia':'';
+      const started=item.live_started_at?new Date(item.live_started_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'';
+      const meta=[source,item.live_label,started?('od '+started):''].filter(Boolean).join(' · ');
+      const href='/scoreboard/?station_id='+encodeURIComponent(item.station_id)+'&sport='+encodeURIComponent(item.sport||'billiard');
+      return '<article class="live-card '+esc(state)+'">'+
+        '<div class="live-card-top"><div class="live-card-name">'+(SPORT_ICON[stationSport(item)]||'🏆')+' '+esc(item.station_name)+'</div><span class="live-state '+esc(state)+'">'+esc(liveStateLabel(state))+'</span></div>'+
+        '<div class="live-meta">'+(meta?esc(meta):'Stanica je pripravená.')+'</div>'+
+        (state==='free'?'<div class="live-actions"><a class="live-start" href="'+href+'">Spustiť hru</a></div>':'')+
+      '</article>';
+    }).join('');
+    const updated=$('liveUpdated');
+    if(updated)updated.textContent='Aktualizované '+new Date().toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }
 
   function renderGrid() {
