@@ -95,6 +95,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 @media(max-width:680px){.add-grid{grid-template-columns:1fr}}
 .fld label{display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
 .fld .hint{font-size:.72rem;color:var(--muted);margin-top:4px}
+.mode-switch{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.mode-btn{padding:10px 14px;border-radius:9px;border:1px solid var(--line);font-size:.82rem;font-weight:700;color:var(--muted-2)}
+.mode-btn.active{background:var(--gold-dim);border-color:var(--gold-b);color:var(--gold)}
+.bulk-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.bulk-row{display:grid;grid-template-columns:2fr 1.2fr 110px 110px auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.02)}
+.bulk-remove{height:40px;padding:0 12px;border:1px solid var(--red-b);border-radius:8px;color:var(--red);font-weight:700}
+.bulk-summary{font-size:.78rem;color:var(--muted-2);margin:8px 0 12px}
+@media(max-width:900px){.bulk-row{grid-template-columns:1fr 1fr}.bulk-remove{grid-column:1/-1}}
+@media(max-width:560px){.bulk-row{grid-template-columns:1fr}}
 
 /* MODAL (edit) */
 .overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;padding:0}
@@ -164,32 +173,42 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
       <!-- ADD VENUE FORM -->
       <div class="add-card">
         <h2>Pridať športovisko</h2>
-        <div class="add-grid">
-          <div class="fld">
-            <label>Názov *</label>
-            <input id="addName" placeholder="napr. Kurt, Dráha A, Squashová miestnosť" maxlength="120"/>
+
+        <div class="mode-switch" role="tablist" aria-label="Spôsob pridania športovísk">
+          <button class="mode-btn active" id="singleModeBtn" type="button" data-mode="single">Jedno športovisko</button>
+          <button class="mode-btn" id="bulkModeBtn" type="button" data-mode="bulk">Viac športovísk naraz</button>
+        </div>
+
+        <div id="singleVenueForm">
+          <div class="add-grid" style="grid-template-columns:2fr 1fr">
+            <div class="fld">
+              <label>Názov *</label>
+              <input id="addName" placeholder="napr. Biliardový stôl 1" maxlength="120"/>
+            </div>
+            <div class="fld">
+              <label>Šport</label>
+              <input id="addSport" placeholder="napr. biliard, šípky, bowling" maxlength="60"/>
+            </div>
           </div>
-          <div class="fld">
-            <label>Šport</label>
-            <input id="addSport" placeholder="napr. squash, bowling" maxlength="60"/>
-          </div>
-          <div class="fld">
-            <label>Počet</label>
-            <input id="addCount" type="number" min="1" max="50" value="1"/>
-            <div class="hint">Napr. názov "Kurt" + počet 3 → Kurt 1, Kurt 2, Kurt 3</div>
+          <div class="add-grid" style="grid-template-columns:1fr 1fr">
+            <div class="fld">
+              <label>Popis</label>
+              <textarea id="addDescription" rows="2" maxlength="500" placeholder="Čo tam je / čo to je"></textarea>
+            </div>
+            <div class="fld">
+              <label>Tip pre členov</label>
+              <textarea id="addTip" rows="2" maxlength="500" placeholder="Voliteľné, napr. rada k rezervácii"></textarea>
+            </div>
           </div>
         </div>
-        <div class="add-grid" style="grid-template-columns:1fr 1fr">
-          <div class="fld">
-            <label>Popis</label>
-            <textarea id="addDescription" rows="2" maxlength="500" placeholder="Čo tam je / čo to je"></textarea>
-          </div>
-          <div class="fld">
-            <label>Tip pre členov</label>
-            <textarea id="addTip" rows="2" maxlength="500" placeholder="Voliteľné, napr. rada k rezervácii"></textarea>
-          </div>
+
+        <div id="bulkVenueForm" class="hidden">
+          <div class="bulk-list" id="bulkRows"></div>
+          <button class="btn btn-cancel" id="addBulkRowBtn" type="button">+ Pridať ďalší typ</button>
+          <div class="bulk-summary" id="bulkSummary">0 športovísk pripravených na vytvorenie</div>
         </div>
-        <button class="btn btn-primary" id="addVenueBtn" style="margin-top:14px">+ Pridať</button>
+
+        <button class="btn btn-primary" id="addVenueBtn" style="margin-top:14px">+ Pridať športovisko</button>
       </div>
 
       <!-- VENUES LIST -->
@@ -271,53 +290,137 @@ function escapeHtml(s){
   return d.innerHTML;
 }
 
-/* ── Add (single or bulk-by-count) ── */
+/* ── Add: single or multi-type bulk ── */
+let addMode = 'single';
+let bulkRowSeq = 0;
+
+function setAddMode(mode){
+  addMode = mode === 'bulk' ? 'bulk' : 'single';
+  document.getElementById('singleModeBtn').classList.toggle('active', addMode === 'single');
+  document.getElementById('bulkModeBtn').classList.toggle('active', addMode === 'bulk');
+  document.getElementById('singleVenueForm').classList.toggle('hidden', addMode !== 'single');
+  document.getElementById('bulkVenueForm').classList.toggle('hidden', addMode !== 'bulk');
+  document.getElementById('addVenueBtn').textContent = addMode === 'single' ? '+ Pridať športovisko' : '+ Vytvoriť športoviská';
+  if(addMode === 'bulk' && !document.querySelector('.bulk-row')) addBulkRow();
+}
+
+document.getElementById('singleModeBtn').addEventListener('click',()=>setAddMode('single'));
+document.getElementById('bulkModeBtn').addEventListener('click',()=>setAddMode('bulk'));
+
+function addBulkRow(preset={}){
+  bulkRowSeq += 1;
+  const id = bulkRowSeq;
+  const wrap = document.createElement('div');
+  wrap.className = 'bulk-row';
+  wrap.dataset.bulkRow = id;
+  wrap.innerHTML = `
+    <div class="fld">
+      <label>Typ / názov *</label>
+      <input data-bulk-name maxlength="120" placeholder="napr. Biliardový stôl" value="${escapeHtml(preset.name||'')}"/>
+    </div>
+    <div class="fld">
+      <label>Šport</label>
+      <input data-bulk-sport maxlength="60" placeholder="napr. biliard" value="${escapeHtml(preset.sport||'')}"/>
+    </div>
+    <div class="fld">
+      <label>Počet</label>
+      <input data-bulk-count type="number" min="1" max="50" value="${Math.max(1,Math.min(50,Number(preset.count)||1))}"/>
+    </div>
+    <div class="fld">
+      <label>Číslovať od</label>
+      <input data-bulk-start type="number" min="1" max="999" value="${Math.max(1,Number(preset.start)||1)}"/>
+    </div>
+    <button class="bulk-remove" type="button" aria-label="Odstrániť typ">Odstrániť</button>
+  `;
+  wrap.querySelector('.bulk-remove').addEventListener('click',()=>{
+    wrap.remove();
+    if(!document.querySelector('.bulk-row')) addBulkRow();
+    updateBulkSummary();
+  });
+  wrap.querySelectorAll('input').forEach(el=>el.addEventListener('input',updateBulkSummary));
+  document.getElementById('bulkRows').appendChild(wrap);
+  updateBulkSummary();
+}
+
+document.getElementById('addBulkRowBtn').addEventListener('click',()=>addBulkRow());
+
+function bulkRowsData(){
+  return [...document.querySelectorAll('.bulk-row')].map(row=>({
+    name: row.querySelector('[data-bulk-name]').value.trim(),
+    sport: row.querySelector('[data-bulk-sport]').value.trim(),
+    count: Math.max(1,Math.min(50,Number(row.querySelector('[data-bulk-count]').value)||1)),
+    start: Math.max(1,Math.min(999,Number(row.querySelector('[data-bulk-start]').value)||1)),
+  }));
+}
+
+function updateBulkSummary(){
+  const total = bulkRowsData().reduce((sum,row)=>sum+(row.name?row.count:0),0);
+  document.getElementById('bulkSummary').textContent = `${total} ${total===1?'športovisko':total>=2&&total<=4?'športoviská':'športovísk'} pripravených na vytvorenie`;
+}
+
 document.getElementById('addVenueBtn').addEventListener('click', async () => {
-  const baseName = document.getElementById('addName').value.trim();
-  const sport = document.getElementById('addSport').value.trim();
-  const description = document.getElementById('addDescription').value.trim();
-  const tip = document.getElementById('addTip').value.trim();
-  const count = Math.max(1, Math.min(50, +document.getElementById('addCount').value || 1));
-
-  if(!baseName){ toast('Zadaj názov športoviska.', true); return; }
-
   const btn = document.getElementById('addVenueBtn');
+  let rows = [];
+
+  if(addMode === 'single'){
+    const name = document.getElementById('addName').value.trim();
+    const sport = document.getElementById('addSport').value.trim();
+    const description = document.getElementById('addDescription').value.trim();
+    const tip = document.getElementById('addTip').value.trim();
+    if(!name){ toast('Zadaj názov športoviska.', true); return; }
+    rows = [{
+      club_id:ctx.club.id,
+      name,
+      sport:sport||null,
+      description:description||null,
+      tip:tip||null,
+    }];
+  } else {
+    const groups = bulkRowsData();
+    if(groups.some(g=>!g.name)){ toast('Každý riadok musí mať názov typu športoviska.', true); return; }
+    for(const group of groups){
+      for(let i=0;i<group.count;i++){
+        rows.push({
+          club_id:ctx.club.id,
+          name: group.count === 1 ? group.name : `${group.name} ${group.start+i}`,
+          sport:group.sport||null,
+          description:null,
+          tip:null,
+        });
+      }
+    }
+    if(!rows.length){ toast('Pridaj aspoň jedno športovisko.', true); return; }
+    if(rows.length>100){ toast('Naraz môžeš vytvoriť maximálne 100 športovísk.', true); return; }
+  }
+
   btn.disabled = true;
-  btn.textContent = 'Pridávam...';
+  btn.textContent = addMode === 'single' ? 'Pridávam...' : 'Vytváram...';
 
   try {
-    // Bulk creation by count is a frontend concern (migration 0009) --
-    // just multiple inserts, no backend bulk-insert function.
-    const rows = [];
-    for(let i = 1; i <= count; i++){
-      rows.push({
-        club_id: ctx.club.id,
-        name: count === 1 ? baseName : `${baseName} ${i}`,
-        sport: sport || null,
-        description: description || null,
-        tip: tip || null,
-      });
-    }
     const { error } = await cspAuth.withTimeout(
       cspAuth.client.from('venues').insert(rows),
-      8000, 'create venue(s)'
+      12000, 'create venue(s)'
     );
     if(error) throw error;
 
-    document.getElementById('addName').value = '';
-    document.getElementById('addSport').value = '';
-    document.getElementById('addDescription').value = '';
-    document.getElementById('addTip').value = '';
-    document.getElementById('addCount').value = '1';
+    if(addMode === 'single'){
+      document.getElementById('addName').value = '';
+      document.getElementById('addSport').value = '';
+      document.getElementById('addDescription').value = '';
+      document.getElementById('addTip').value = '';
+    } else {
+      document.getElementById('bulkRows').innerHTML = '';
+      addBulkRow();
+    }
 
     await loadVenues();
-    toast(count === 1 ? 'Športovisko pridané.' : `${count} športovísk pridaných.`);
+    toast(rows.length === 1 ? 'Športovisko pridané.' : `${rows.length} športovísk pridaných.`);
   } catch(err){
     console.error('[sportoviska] Failed to create venue(s):', err);
-    toast('Nepodarilo sa pridať športovisko.', true);
+    toast('Nepodarilo sa pridať športoviská.', true);
   } finally {
     btn.disabled = false;
-    btn.textContent = '+ Pridať';
+    btn.textContent = addMode === 'single' ? '+ Pridať športovisko' : '+ Vytvoriť športoviská';
   }
 });
 
