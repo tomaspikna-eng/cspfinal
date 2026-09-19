@@ -1285,6 +1285,7 @@ let tournamentResultSubmitting=false;
    stays null and the page behaves identically to anonymous use. */
 let currentUserId=null;
 let TRAINING_SESSION_ID=URL_PARAMS.get("training_session_id")||"";
+const CLUB_STATION_ID=URL_PARAMS.get("station_id")||"";
 let scoreActionDefinitions=[];
 let scoreActionLoading=false;
 let scoreActionLoadError="";
@@ -1583,7 +1584,8 @@ async function ensureTrainingEventSession(){
   const {data,error}=await cspAuth.client.from("training_sessions").insert({
     owner_id:currentUserId,sport:state.sport,discipline:currentDisciplineLabel(),
     player_names:activePlayers().map(p=>p.name),final_score:{},race_to:state.raceTo,
-    status:"active",started_at:new Date().toISOString(),live_scores:live.slice(0,3)
+    status:"active",started_at:new Date().toISOString(),live_scores:live.slice(0,3),
+    station_id:CLUB_STATION_ID||null
   }).select("id").single();
   if(error)throw error;
   TRAINING_SESSION_ID=data.id;
@@ -1845,7 +1847,8 @@ async function completeCurrentSetBeforeNextSet(){
       elapsed_seconds:Math.max(0,Number(summary.durationSeconds)||0),
       status:"completed",
       started_at:new Date(Date.now()-Math.max(0,Number(summary.durationSeconds)||0)*1000).toISOString(),
-      completed_at:new Date().toISOString()
+      completed_at:new Date().toISOString(),
+      station_id:CLUB_STATION_ID||null
     }).select("id").single();
     if(error)throw error;
     await refreshTrainingSummarySnapshot(newSession?.id||null);
@@ -1960,6 +1963,7 @@ async function saveTrainingSession(finalScore, winnerName, durationSeconds){
       started_at: new Date(Date.now()-durationSeconds*1000).toISOString(),
       completed_at: new Date().toISOString(),
       elapsed_seconds: durationSeconds,
+      station_id: CLUB_STATION_ID||null,
     }).select("id").single();
     if(error) throw error;
     const sessionId=data?.id||null;
