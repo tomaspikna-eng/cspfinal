@@ -37,7 +37,7 @@
     root.replaceChildren(...sports.map(sport=>{
       const button=document.createElement('button');button.type='button';button.className=`sport-tab${sport===currentSport?' active':''}`;
       button.textContent=`${SPORT_ICON[sport]||'🏆'} ${sport}`;
-      button.onclick=()=>{currentSport=sport;buildSportTabs();renderGrid();};
+      button.onclick=()=>{currentSport=sport;buildSportTabs();renderLiveStations();renderGrid();};
       return button;
     }));
   }
@@ -74,10 +74,13 @@
     const rows=list.map(station=>{
       const cells=HOURS.map(hour=>{
         const reservation=findReservation(station.id,date,hour);
-        const maintenance=station.is_active===false||station.status==='maintenance';
+        const live=liveStation(station.id);
+        const maintenance=station.is_active===false||station.status==='maintenance'||live?.live_state==='maintenance';
+        const liveNow=selectedDateIsToday()&&hour===currentHour()&&live?.live_state==='occupied';
         const past=slotStart(date,hour).getTime()<Date.now();
         let cls='free',text='+',title='Voľné — rezervovať',disabled='';
-        if(reservation){cls='busy';text='●';title=`${reservation.customer_name||'Rezervácia'} (${reservation.party_size||1} os.)`;disabled='disabled';}
+        if(liveNow){cls='busy';text='LIVE';title=live?.live_label||'Hrá sa teraz';disabled='disabled';}
+        else if(reservation){cls='busy';text='●';title=`${reservation.customer_name||'Rezervácia'} (${reservation.party_size||1} os.)`;disabled='disabled';}
         else if(maintenance){cls='maint';text='—';title='Mimo prevádzky';disabled='disabled';}
         else if(past){cls='past';text='·';title='V minulosti';disabled='disabled';}
         return `<td><button type="button" class="slot ${cls}" title="${esc(title)}" ${disabled} data-slot-station="${esc(station.id)}" data-slot-hour="${hour}">${text}</button></td>`;
@@ -124,6 +127,12 @@
     toast(`Rezervácia potvrdená — ${successLabel}`);
   }
 
+  async function loadLiveStations(){
+    const {data,error}=await cspAuth.client.rpc('get_club_live_station_view',{p_club_id:context.club.id});
+    if(error)throw error;
+    liveStations=data||[];
+  }
+
   async function loadReservations(){
     const date=$('dateInput').value;
     const start=new Date(`${date}T00:00:00`),end=new Date(start.getTime()+86400000);
@@ -137,7 +146,9 @@
       cspAuth.client.from('reservations').select('customer_name,customer_email,customer_phone').eq('club_id',context.club.id).not('customer_phone','is',null).order('created_at',{ascending:false}).limit(300)
     ]);
     if(stationResult.error)throw stationResult.error;if(historyResult.error)throw historyResult.error;
-    stations=stationResult.data||[];customerHistory=historyResult.data||[];await loadReservations();buildSportTabs();renderGrid();
+    stations=stationResult.data||[];customerHistory=historyResult.data||[];
+    await Promise.all([loadReservations(),loadLiveStations()]);
+    buildSportTabs();renderLiveStations();renderGrid();
   }
 
   document.addEventListener('click',event=>{
@@ -146,7 +157,7 @@
     if(event.target.matches('[data-close-overlay]'))closeModal();
     if(event.target.closest('[data-submit-reservation]'))submitReservation();
   });
-  $('dateInput').addEventListener('change',async()=>{try{await loadReservations();renderGrid();}catch(error){console.error(error);toast('Rezervácie sa nepodarilo načítať.',true);}});
+  $('dateInput').addEventListener('change',async()=>{try{await Promise.all([loadReservations(),loadLiveStations()]);renderLiveStations();renderGrid();}catch(error){console.error(error);toast('Rezervácie sa nepodarilo načítať.',true);}});
   $('signOutBtn').addEventListener('click',()=>cspManager.signOut());
   window.toggleSidebar=function(){$('sidebar').classList.toggle('open');$('backdrop').classList.toggle('show');};
   $('dateInput').value=today;$('dateInput').min=today;
@@ -155,6 +166,22 @@
     context=await cspManager.requireClubManagerAccess();if(!context)return;
     $('tbClubName').textContent=context.club.name;
     const name=context.profile?.full_name||context.session.user.email||'Používateľ';$('tbUserName').textContent=name;$('tbUserAv').textContent=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-    try{await loadData();$('loadingGate').style.display='none';}catch(error){console.error('[manager-reservations]',error);$('loadingGate').innerHTML='<div class="gate-loading">Rezervácie sa nepodarilo načítať. Obnov stránku.</div>';}
+    try{
+      await loadData();
+      $('loadingGate').style.display='none';
+      const refresh=async()=>{
+        try{await Promise.all([loadReservations(),loadLiveStations()]);renderLiveStations();renderGrid();}
+        catch(error){console.warn('[manager-reservations] live refresh failed',error);}
+      };
+      setInterval(refresh,10000);
+      try{
+        cspAuth.client.channel('club-live-'+context.club.id)
+          .on('postgres_changes',{event:'*',schema:'public',table:'matches'},refresh)
+          .on('postgres_changes',{event:'*',schema:'public',table:'training_sessions'},refresh)
+          .on('postgres_changes',{event:'*',schema:'public',table:'reservations'},refresh)
+          .on('postgres_changes',{event:'*',schema:'public',table:'stations'},refresh)
+          .subscribe();
+      }catch(error){console.warn('[manager-reservations] realtime fallback to polling',error);}
+    }catch(error){console.error('[manager-reservations]',error);$('loadingGate').innerHTML='<div class="gate-loading">Rezervácie sa nepodarilo načítať. Obnov stránku.</div>';}
   })();
 })();
