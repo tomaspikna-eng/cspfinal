@@ -1,0 +1,100 @@
+<!doctype html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — CSP Club Manager</title><link rel="stylesheet" href="../assets/styles.css">
+<style>
+.offline-banner{display:none;background:#a33;color:#fff;padding:8px 16px;text-align:center;font-weight:700}.offline .offline-banner{display:block}
+.station-actions,.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.action[disabled]{opacity:.45;cursor:wait}
+.alerts{display:grid;gap:8px;margin-bottom:16px}.alert{padding:11px 13px;border:1px solid #d4a843;border-radius:10px;background:rgba(212,168,67,.1)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:grid;place-items:center;padding:18px;z-index:3000}.modal.hidden{display:none}.modal-card{width:min(520px,100%);background:#111;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px}.modal-grid{display:grid;gap:12px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.qr-card{text-align:center}.qr-card h3{margin:0 0 6px}.qr-card>p{margin:0 0 16px;color:#aaa}.qr-code{width:256px;min-height:256px;margin:0 auto 14px;padding:12px;border-radius:14px;background:#fff;display:grid;place-items:center}.qr-code img,.qr-code canvas{display:block;max-width:100%;height:auto}.qr-url{display:block;overflow-wrap:anywhere;color:#d4a843;font-size:13px}.qr-hint{margin:14px 0 0!important;color:#ddd!important;font-size:14px}
+.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#222}.badge.warn{color:#d4a843}.badge.ok{color:#53d98b}
+.bottom-nav{display:none}@media(max-width:760px){.sidebar{display:none}.main{margin-left:0!important}.bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;background:#111;border-top:1px solid rgba(255,255,255,.1);z-index:1000}.bottom-nav a{padding:11px 5px;text-align:center;font-size:12px}.content{padding-bottom:80px!important}}
+</style></head><body><div class="offline-banner">Offline režim — zobrazené dáta môžu byť neaktuálne.</div>
+<div class="app"><aside class="sidebar">
+  <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
+  <nav aria-label="Club Manager">
+    <a class="nav-link active" href="../dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
+    <a class="nav-link " href="../reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
+    <a class="nav-link" href="../personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
+    <a class="nav-link " href="../reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
+    <a class="nav-link " href="../venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
+  </nav>
+</aside>
+<main class="main"><header class="topbar"><div><strong id="clubName">Club Manager</strong> · Dashboard</div><div style="display:flex;gap:8px;align-items:center"><a class="ghost" href="https://connectsportspro.com/profil-ul/">← Späť na profil</a><button class="ghost" id="logout">Odhlásiť</button></div></header>
+<section class="content"><div class="page-head"><h1>Live prevádzka</h1><p>Stanice, rezervácie, upozornenia a platby v jednom pohľade.</p></div>
+<div id="notice"></div><div class="alerts" id="alerts"></div><div class="stats" id="stats"></div>
+<div class="toolbar"><input id="search" placeholder="Hľadať športovisko..."><div class="chips" id="chips"></div><label style="display:flex;align-items:center;gap:8px;margin-left:auto">Upozorniť na rezerváciu<input id="reservationAlertMinutes" type="number" min="0" max="1440" step="5" style="width:90px"><span>min. vopred</span><button class="ghost" id="saveAlertMinutes">Uložiť</button></label></div><div class="grid" id="grid"><div class="empty">Načítavam…</div></div></section></main></div>
+<nav class="bottom-nav" style="grid-template-columns:repeat(5,1fr)"><a href="../dashboard/">Dashboard</a><a href="../reports/">Prehľad</a><a href="../reservations/">Rezervácie</a><a href="../venues/">Stanice</a><a href="#" id="logoutMobile">Odhlásiť</a></nav>
+<div class="modal hidden" id="adjustModal"><div class="modal-card"><h3>Manuálna korekcia</h3><div class="modal-grid">
+<label>Celkový čas v minútach<input id="adjustMinutes" type="number" min="0" step="1"></label><label>Korekcia ceny €<input id="adjustAmount" type="number" step=".01" value="0"></label><label>Dôvod<textarea id="adjustNote" rows="3"></textarea></label></div>
+<div class="modal-actions"><button class="ghost" onclick="closeModal('adjustModal')">Zrušiť</button><button class="primary" id="adjustConfirm">Uložiť korekciu</button></div></div></div>
+<div class="modal hidden" id="qrModal"><div class="modal-card qr-card"><h3 id="qrStationName">QR kód športoviska</h3><p id="qrStationSport"></p><div class="qr-code" id="qrCode"></div><a class="qr-url" id="qrUrl" href="#" target="_blank" rel="noopener"></a><p class="qr-hint">Naskenujte QR kód a otvorte verejný scoreboard bez prihlásenia.</p><div class="modal-actions"><button class="ghost" onclick="closeModal('qrModal')">Zavrieť</button><a class="primary" id="openScoreboard" href="#" target="_blank" rel="noopener">Otvoriť scoreboard</a></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+const A=CSPClubManager,$=id=>document.getElementById(id);let ctx,stations=[],sessions=[],profiles=[],reservations=[],sport='all',channel,busy=new Set(),selectedSession,reservationAlertWindow=10;
+logout.onclick=A.logout;logoutMobile.onclick=e=>{e.preventDefault();A.logout()};search.oninput=render;
+function closeModal(id){$(id).classList.add('hidden')}window.closeModal=closeModal;
+function openQrModal(id){
+  const st=stations.find(x=>x.id===id);if(!st)return;
+  const url=A.scoreboardUrl(st);qrStationName.textContent=st.name;qrStationSport.textContent=st.sport||'Športovisko';qrUrl.textContent=url;qrUrl.href=url;openScoreboard.href=url;qrCode.innerHTML='';
+  if(typeof QRCode==='function')new QRCode(qrCode,{text:url,width:232,height:232,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  else qrCode.textContent='QR kód sa nepodarilo načítať.';
+  qrModal.classList.remove('hidden');
+}
+$('qrModal').addEventListener('click',e=>{if(e.target===$('qrModal'))closeModal('qrModal')});
+function activeFor(id){return sessions.find(s=>s.station_id===id&&['running','paused'].includes(s.status))}
+function stoppedFor(id){return sessions.filter(s=>s.station_id===id&&s.status==='stopped').sort((a,b)=>new Date(b.stopped_at)-new Date(a.stopped_at))[0]}
+function upcomingFor(id){const now=Date.now(),limit=now+30*60000;return reservations.find(r=>r.station_id===id&&['pending','confirmed'].includes(r.status)&&new Date(r.starts_at).getTime()>=now&&new Date(r.starts_at).getTime()<=limit)}
+async function load(){ctx=await A.requireAccess();clubName.textContent=ctx.club?.name||'Klub';if(!ctx.club)return;reservationAlertWindow=Number(ctx.club.reservation_alert_minutes??10);reservationAlertMinutes.value=reservationAlertWindow;const from=new Date(Date.now()-86400000).toISOString(),to=new Date(Date.now()+7*86400000).toISOString();
+const [st,se,pr,rs]=await Promise.all([A.db.from('stations').select('*').eq('club_id',ctx.club.id).eq('is_active',true).order('sort_order'),A.db.from('club_manager_live_sessions').select('*').eq('club_id',ctx.club.id).in('status',['running','paused','stopped']),A.db.from('club_manager_price_profiles').select('*').eq('club_id',ctx.club.id).eq('is_active',true).order('sort_order'),A.db.from('reservations').select('*').eq('club_id',ctx.club.id).gte('starts_at',from).lte('starts_at',to).in('status',['pending','confirmed','checked_in']).order('starts_at')]);
+const err=st.error||se.error||pr.error||rs.error;if(err)throw err;stations=st.data||[];sessions=se.data||[];profiles=pr.data||[];reservations=rs.data||[];buildChips();render();if(!channel)channel=A.subscribe(ctx.club.id,()=>debouncedLoad())}
+let reloadTimer;function debouncedLoad(){clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>load().catch(showError),250)}
+function buildChips(){const sports=[...new Set(stations.map(x=>x.sport))];chips.innerHTML=`<button class="chip ${sport==='all'?'active':''}" data-sport="all">Všetko</button>`+sports.map(x=>`<button class="chip ${sport===x?'active':''}" data-sport="${A.esc(x)}">${A.esc(x)}</button>`).join('');chips.querySelectorAll('[data-sport]').forEach(b=>b.onclick=()=>{sport=b.dataset.sport;buildChips();render()})}
+function showError(e){notice.innerHTML=`<div class="notice">${A.esc(e?.message||e)}</div>`;setTimeout(()=>notice.innerHTML='',5000)}
+async function act(key,fn){if(busy.has(key))return;busy.add(key);render();try{await fn();await load()}catch(e){showError(e)}finally{busy.delete(key);render()}}
+async function start(id){const code=$('profile-'+id).value;return act('st-'+id,async()=>{const {error}=await A.db.rpc('club_manager_start_session',{p_station_id:id,p_price_profile_code:code});if(error)throw error})}
+async function startReservation(id){return act('res-'+id,async()=>{const {error}=await A.db.rpc('club_manager_start_reservation',{p_reservation_id:id,p_price_profile_code:'walkin'});if(error)throw error})}
+async function pause(id){return act(id,async()=>{const {error}=await A.db.rpc('club_manager_pause_session',{p_session_id:id});if(error)throw error})}
+async function resume(id){return act(id,async()=>{const {error}=await A.db.rpc('club_manager_resume_session',{p_session_id:id});if(error)throw error})}
+async function stop(id){return act(id,async()=>{const {error}=await A.db.rpc('club_manager_stop_session',{p_session_id:id});if(error)throw error})}
+async function settle(id){return act('settle-'+id,async()=>{const {error}=await A.db.rpc('club_manager_settle_session',{p_session_id:id,p_payment_method:'cash',p_final_amount:null});if(error)throw error})}
+function openAdjust(id){
+selectedSession=sessions.find(x=>x.id===id);
+if(!selectedSession)return;
+adjustMinutes.value=Math.round(A.currentSeconds(selectedSession)/60);
+adjustAmount.value=Number(selectedSession.adjustment_amount||0).toFixed(2);
+adjustNote.value=selectedSession.adjustment_note||'';
+adjustModal.classList.remove('hidden')
+}
+adjustConfirm.onclick=()=>act('adj-'+selectedSession.id,async()=>{const {error}=await A.db.rpc('club_manager_adjust_session',{p_session_id:selectedSession.id,p_accumulated_seconds:Math.max(0,Number(adjustMinutes.value)*60),p_adjustment_amount:Number(adjustAmount.value||0),p_adjustment_note:adjustNote.value});if(error)throw error;closeModal('adjustModal')});
+function card(st){const s=activeFor(st.id),unpaid=stoppedFor(st.id),r=upcomingFor(st.id),disabled=k=>busy.has(k)?'disabled':'';let body='';
+if(s){const paused=s.status==='paused';body=`<div class="timer">${A.time(A.currentSeconds(s))}</div><div class="row-actions"><button class="action pause" ${disabled(s.id)} data-action="${paused?'resume':'pause'}" data-id="${s.id}">${paused?'▶ Pokračovať':'⏸ Pauza'}</button><button class="action stop" ${disabled(s.id)} data-action="stop" data-id="${s.id}">⏹ Stop</button><button class="action" data-action="adjust" data-id="${s.id}">Korekcia</button></div>`}
+else{body=`<select id="profile-${st.id}">${profiles.map(p=>`<option value="${A.esc(p.code)}">${A.esc(p.name)}</option>`).join('')}</select><button class="action start" ${disabled('st-'+st.id)} data-action="start" data-id="${st.id}">▶ Spustiť</button>`}
+const res=r?`<div class="alert"><b>Rezervácia ${new Date(r.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}</b><br>${A.esc(r.customer_name)} <button data-action="start-res" data-id="${r.id}">Check-in a štart</button></div>`:'';
+const pay=unpaid?`<div class="alert"><b>Čaká na platbu: ${A.money(unpaid.final_amount??unpaid.total_amount)}</b><div class="row-actions"><button data-action="settle" data-id="${unpaid.id}">✓ Zapísané do kasy</button><button data-action="adjust" data-id="${unpaid.id}">Korekcia</button></div></div>`:'';
+return `<article class="station"><div class="station-top"><span class="station-name">${A.esc(st.name)}</span><span class="station-sport">${A.esc(st.sport)}</span></div>${res}${body}${pay}<div class="station-actions"><button class="primary" data-action="qr" data-id="${st.id}">▦ Zobraziť QR kód</button></div></article>`}
+function render(){const q=search.value.toLowerCase();const list=stations.filter(x=>(sport==='all'||x.sport===sport)&&(!q||x.name.toLowerCase().includes(q)));grid.innerHTML=list.map(card).join('')||'<div class="empty">Žiadne športoviská.</div>';const running=sessions.filter(x=>['running','paused'].includes(x.status)).length,soon=reservations.filter(r=>new Date(r.starts_at)>Date.now()&&new Date(r.starts_at)-Date.now()<reservationAlertWindow*60000).length;stats.innerHTML=`<div class="stat"><b>${running}</b><span>aktívne</span></div><div class="stat"><b>${soon}</b><span>blízke rezervácie</span></div><div class="stat"><b>${stations.length}</b><span>staníc spolu</span></div>`;renderAlerts()}
+function renderAlerts(){
+const out=[];
+if(reservationAlertWindow>0){
+  reservations
+    .filter(r=>new Date(r.starts_at)>Date.now()&&new Date(r.starts_at)-Date.now()<reservationAlertWindow*60000)
+    .forEach(r=>out.push(`Rezervácia ${A.esc(r.customer_name)} začína o ${Math.max(1,Math.ceil((new Date(r.starts_at)-Date.now())/60000))} min.`));
+}
+alerts.innerHTML=out.map(x=>`<div class="alert">${x}</div>`).join('');
+}
+saveAlertMinutes.onclick=async()=>{
+  const minutes=Math.max(0,Math.min(1440,Number(reservationAlertMinutes.value||0)));
+  saveAlertMinutes.disabled=true;
+  try{
+    const {error}=await A.db.rpc('club_manager_set_reservation_alert_minutes',{p_minutes:minutes});
+    if(error)throw error;
+    reservationAlertWindow=minutes;
+    render();
+    showError('Nastavenie upozornenia bolo uložené.');
+  }catch(e){showError(e)}
+  finally{saveAlertMinutes.disabled=false}
+};
+grid.onclick=e=>{const b=e.target.closest('[data-action]');if(!b)return;const id=b.dataset.id;({start:()=>start(id),pause:()=>pause(id),resume:()=>resume(id),stop:()=>stop(id),settle:()=>settle(id),adjust:()=>openAdjust(id),'start-res':()=>startReservation(id),qr:()=>openQrModal(id)}[b.dataset.action]||(()=>{}))()}
+setInterval(()=>{sessions.filter(s=>s.status==='running').forEach(s=>{const el=document.querySelector(`[data-session="${s.id}"] .timer`);if(el)el.textContent=A.time(A.currentSeconds(s))});renderAlerts()},1000);
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')load().catch(showError)});
+load().catch(e=>{if(!['PLAN_REQUIRED','LOGIN_REQUIRED'].includes(e.message))grid.innerHTML=`<div class="empty">${A.esc(e.message)}</div>`});
+</script></body></html>

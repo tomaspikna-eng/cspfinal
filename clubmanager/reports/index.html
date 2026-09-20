@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prehľad prevádzky — CSP Club Manager</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+.report-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.report-head h1{margin:0}.report-head p{margin:6px 0 0;color:#929292}
+.report-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.range-presets{display:flex;gap:7px;flex-wrap:wrap}.range-presets button.active{background:#d4a843;color:#111;border-color:#d4a843}
+.custom-range{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.custom-range label{font-size:11px;color:#999;display:grid;gap:5px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.kpi{padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#111}
+.kpi small{display:block;color:#8f8f8f;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.kpi b{font-size:25px}.kpi span{display:block;color:#aaa;font-size:12px;margin-top:5px}
+.report-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
+.card{padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#111}
+.card h3{margin:0 0 12px;font-size:15px}.muted{color:#929292;font-size:12px}
+.chart{height:220px;display:flex;align-items:end;gap:7px;padding:12px 2px 26px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06)}
+.bar-col{height:100%;min-width:28px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative}
+.bar{width:18px;min-height:2px;border-radius:4px 4px 0 0;background:#d4a843}.bar-label{font-size:9px;color:#888;position:absolute;bottom:-21px;white-space:nowrap}
+.bar-value{font-size:9px;color:#aaa;writing-mode:vertical-rl;transform:rotate(180deg);max-height:55px;overflow:hidden}
+.table-wrap{overflow:auto}.report-table{width:100%;border-collapse:collapse;font-size:12px}.report-table th,.report-table td{padding:10px 9px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;white-space:nowrap}.report-table th{color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.05em}.report-table td.num{text-align:right;font-weight:700}
+.split-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}.split-row:last-child{border-bottom:0}.split-row small{display:block;color:#999;margin-top:2px}.split-row b:last-child{text-align:right}
+.empty{color:#888;padding:12px 0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0!important}.kpis{grid-template-columns:1fr 1fr}.report-controls,.custom-range{width:100%}.custom-range label{flex:1}.custom-range input{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
+  <nav aria-label="Club Manager">
+    <a class="nav-link " href="../dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
+    <a class="nav-link active" href="../reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
+    <a class="nav-link" href="../personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
+    <a class="nav-link " href="../reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
+    <a class="nav-link " href="../venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
+  </nav>
+</aside>
+<main class="main">
+<header class="topbar"><div><strong id="clubName">Club Manager</strong> · Prehľad prevádzky</div><div style="display:flex;gap:8px;align-items:center"><a class="ghost" href="https://connectsportspro.com/profil-ul/">← Späť na profil</a><button class="ghost" id="logout">Odhlásiť</button></div></header>
+<section class="content">
+  <div class="report-head">
+    <div><h1>Prehľad prevádzky</h1><p>Finančný a prevádzkový reporting z reálnych dát Club Managera.</p></div>
+    <div class="actions"><button class="ghost" id="exportCsv">Export CSV</button><button class="ghost" id="printReport">Tlačiť</button></div>
+  </div>
+  <div id="notice"></div>
+
+  <section class="panel" style="margin-top:16px">
+    <div class="report-controls">
+      <div class="range-presets" id="presetButtons">
+        <button class="active" data-range="today">Dnes</button>
+        <button data-range="7">7 dní</button>
+        <button data-range="30">30 dní</button>
+        <button data-range="month">Tento mesiac</button>
+      </div>
+      <div class="custom-range">
+        <label>Od<input type="date" id="fromDate"></label>
+        <label>Do<input type="date" id="toDate"></label>
+        <button class="primary" id="applyRange">Použiť obdobie</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="report-grid">
+    <article class="card">
+      <h3>Hodinová vyťaženosť prevádzky</h3>
+      <div class="muted">Priemerná obsadenosť celej dostupnej kapacity v jednotlivých hodinách.</div>
+      <div class="chart" id="utilizationChart"></div>
+    </article>
+    <article class="card">
+      <h3>Platobné metódy</h3>
+      <div id="payments"></div>
+    </article>
+  </div>
+
+  <div class="report-grid">
+    <article class="card">
+      <h3>Využitie športovísk</h3>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead><tr><th>Športovisko</th><th>Šport</th><th>Hry</th><th>Čas</th><th>Priemer</th><th>Tržba</th></tr></thead>
+          <tbody id="stationRows"></tbody>
+        </table>
+      </div>
+    </article>
+    <article class="card">
+      <h3>Zákaznícke profily</h3>
+      <div id="customers"></div>
+      <h3 style="margin-top:18px">Rezervácie</h3>
+      <div id="reservationStatus"></div>
+    </article>
+  </div>
+</section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+(()=>{
+'use strict';
+const A=window.CSPClubManager,$=id=>document.getElementById(id);
+let ctx=null,report=null,currentRange='today',rangeFrom=null,rangeTo=null;
+logout.onclick=()=>A.logout();
+
+function localDateInput(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
+function rangeFor(key){
+  const now=new Date(),to=new Date(now),from=new Date(now);
+  if(key==='today'){from.setHours(0,0,0,0)}
+  else if(key==='month'){from.setDate(1);from.setHours(0,0,0,0)}
+  else from.setTime(now.getTime()-Number(key)*86400000);
+  return {from,to};
+}
+function applyInputs(from,to){fromDate.value=localDateInput(from);toDate.value=localDateInput(to)}
+function money(v){return A.money(Number(v||0))}
+function hours(sec){const h=Number(sec||0)/3600;return h<10?h.toFixed(1)+' h':Math.round(h)+' h'}
+function duration(sec){return A.time(Number(sec||0))}
+function payLabel(v){return ({cash:'Hotovosť',card:'Karta',invoice:'Faktúra',other:'Iné'})[v]||v||'Iné'}
+function customerLabel(v){return ({walkin:'Bežný zákazník',member:'Člen',vip:'VIP'})[v]||v||'Zákazník'}
+function reservationLabel(v){return ({pending:'Čaká',confirmed:'Potvrdená',checked_in:'Check-in',completed:'Dokončená',cancelled:'Zrušená'})[v]||v||'Iné'}
+function esc(v){return A.esc(v)}
+function showError(err){notice.innerHTML='<div class="notice">'+esc(err?.message||err)+'</div>'}
+
+function render(){
+  const d=report||{},s=d.summary||{};
+  kpis.innerHTML=[
+    ['Tržby',money(s.revenue),Number(s.paid_sessions||0)+' zaplatených hier'],
+    ['Odohraný čas',hours(s.play_seconds),Number(s.sessions||0)+' ukončených session'],
+    ['Priemerná hra',duration(s.avg_session_seconds),'priemer na session'],
+    ['Rezervácie',Number(s.reservations||0),Number(s.cancelled_reservations||0)+' zrušených'],
+    ['Aktívne stanice',Number(s.active_stations||0),'v prevádzke'],
+    ['Korekcie',money(s.adjustments_total),'súčet cenových korekcií']
+  ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><b>'+x[1]+'</b><span>'+x[2]+'</span></div>').join('');
+
+  const hourly=Array.isArray(d.hourly_utilization)?d.hourly_utilization:[];
+  utilizationChart.innerHTML=hourly.length?hourly.map(x=>{
+    const pct=Math.max(0,Math.min(100,Number(x.utilization_percent||0)));
+    const height=Math.max(2,Math.round(pct/100*150));
+    const hour=String(Number(x.hour_of_day||0)).padStart(2,'0')+':00';
+    const occupiedHours=(Number(x.occupied_seconds||0)/3600).toFixed(1);
+    return '<div class="bar-col" title="'+hour+' · '+pct.toFixed(1)+' % · '+occupiedHours+' h obsadenia"><span class="bar-value">'+pct.toFixed(0)+'%</span><span class="bar" style="height:'+height+'px"></span><span class="bar-label">'+hour+'</span></div>';
+  }).join(''):'<div class="empty">Bez dát za toto obdobie.</div>';
+
+  const stations=Array.isArray(d.stations)?d.stations:[];
+  stationRows.innerHTML=stations.length?stations.map(x=>'<tr><td>'+esc(x.station_name)+'</td><td>'+esc(x.sport||'—')+'</td><td class="num">'+Number(x.sessions||0)+'</td><td class="num">'+hours(x.seconds)+'</td><td class="num">'+duration(Math.round(Number(x.avg_seconds||0)))+'</td><td class="num">'+money(x.revenue)+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Bez dát.</td></tr>';
+
+  const pays=Array.isArray(d.payments)?d.payments:[];
+  payments.innerHTML=pays.length?pays.map(x=>'<div class="split-row"><div><b>'+esc(payLabel(x.method))+'</b><small>'+Number(x.count||0)+' platieb</small></div><b>'+money(x.amount)+'</b></div>').join(''):'<div class="empty">Žiadne platby.</div>';
+
+  const cust=Array.isArray(d.customers)?d.customers:[];
+  customers.innerHTML=cust.length?cust.map(x=>'<div class="split-row"><div><b>'+esc(customerLabel(x.customer_type))+'</b><small>'+Number(x.count||0)+' hier</small></div><b>'+money(x.amount)+'</b></div>').join(''):'<div class="empty">Bez dát.</div>';
+
+  const rs=Array.isArray(d.reservation_status)?d.reservation_status:[];
+  reservationStatus.innerHTML=rs.length?rs.map(x=>'<div class="split-row"><div><b>'+esc(reservationLabel(x.status))+'</b></div><b>'+Number(x.count||0)+'</b></div>').join(''):'<div class="empty">Bez rezervácií.</div>';
+}
+
+async function loadReport(){
+  if(!ctx?.club?.id)return;
+  const {data,error}=await A.db.rpc('get_club_manager_reports',{
+    p_club_id:ctx.club.id,
+    p_from:rangeFrom.toISOString(),
+    p_to:rangeTo.toISOString()
+  });
+  if(error)throw error;
+  report=data||{};
+  render();
+}
+
+presetButtons.onclick=e=>{
+  const b=e.target.closest('[data-range]');if(!b)return;
+  currentRange=b.dataset.range;
+  presetButtons.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));
+  const r=rangeFor(currentRange);rangeFrom=r.from;rangeTo=r.to;applyInputs(rangeFrom,rangeTo);
+  loadReport().catch(showError);
+};
+applyRange.onclick=()=>{
+  if(!fromDate.value||!toDate.value)return;
+  const from=new Date(fromDate.value+'T00:00:00'),to=new Date(toDate.value+'T23:59:59.999');
+  if(from>=to)return showError('Neplatný rozsah dátumov.');
+  rangeFrom=from;rangeTo=to;currentRange='custom';
+  presetButtons.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+  loadReport().catch(showError);
+};
+printReport.onclick=()=>window.print();
+exportCsv.onclick=()=>{
+  if(!report)return;
+  const rows=[['Športovisko','Šport','Hry','Sekundy','Tržba']];
+  (report.stations||[]).forEach(x=>rows.push([x.station_name,x.sport,x.sessions,x.seconds,x.revenue]));
+  rows.push([],['Dátum','Hry','Sekundy','Tržba']);
+  (report.daily||[]).forEach(x=>rows.push([x.day,x.sessions,x.seconds,x.revenue]));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='csp-club-report-'+localDateInput(new Date())+'.csv';a.click();URL.revokeObjectURL(url);
+};
+
+(async()=>{
+  try{
+    ctx=await A.requireAccess();clubName.textContent=ctx.club?.name||'Klub';
+    const r=rangeFor('today');rangeFrom=r.from;rangeTo=r.to;applyInputs(rangeFrom,rangeTo);
+    await loadReport();
+  }catch(e){if(!['PLAN_REQUIRED','LOGIN_REQUIRED'].includes(e.message))showError(e)}
+})();
+})();
+</script>
+</body>
+</html>

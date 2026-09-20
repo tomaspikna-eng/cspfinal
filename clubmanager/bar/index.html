@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bar — CSP Club Manager</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+body{background:radial-gradient(circle at 70% 0,rgba(32,51,40,.16),transparent 30%),var(--bg)}
+.bar-shell{min-height:100vh;display:grid;grid-template-rows:72px auto}
+.bar-top{display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(8,11,12,.96);position:sticky;top:0;z-index:50}
+.bar-brand{font-weight:850}.bar-brand span{color:var(--gold)}.bar-employee{margin-left:auto;display:flex;align-items:center;gap:10px}.bar-employee b{font-size:12px}.bar-employee small{display:block;color:var(--muted);font-size:9px;margin-top:3px}
+.bar-main{padding:18px 22px 35px;max-width:1600px;width:100%;margin:auto}
+.hero-strip{display:grid;grid-template-columns:1.3fr .7fr .7fr .7fr;gap:10px;margin-bottom:14px}
+.hero-card{min-height:96px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(145deg,#111617,#0c1011);padding:15px}
+.hero-card span{display:block;color:var(--muted);font-size:9px;letter-spacing:.08em}.hero-card strong{display:block;margin-top:9px;font-size:24px}.hero-card.primary-card{border-color:rgba(88,223,138,.28);background:radial-gradient(circle at 90% 0,rgba(88,223,138,.10),transparent 35%),linear-gradient(145deg,#111817,#0d1210)}.hero-card.primary-card strong{color:var(--green);font-size:20px}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}.big-action{min-height:48px;padding:0 18px;border-radius:9px;border:1px solid var(--line);background:#101516;color:#fff;font-weight:800;cursor:pointer}.big-action.green{background:var(--green);color:#06230f;border:0}.big-action.gold{background:var(--gold);color:#1a1000;border:0}
+.bar-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(340px,.65fr);gap:14px}
+.section{border:1px solid var(--line);border-radius:10px;background:linear-gradient(145deg,#101516,#0b0f10);padding:16px}.section h2{margin:0;font-size:16px}.section p{margin:5px 0 14px;color:var(--muted);font-size:10px}
+.station-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.station-card{border:1px solid var(--line);border-radius:9px;background:#0d1112;padding:13px}.station-card.running{border-color:rgba(88,223,138,.34);background:rgba(88,223,138,.04)}.station-head{display:flex;justify-content:space-between;gap:8px}.station-head b{font-size:13px}.station-head span{font-size:9px;color:var(--muted)}.station-state{margin:15px 0;text-align:center}.station-state strong{display:block;font-size:24px}.station-state small{display:block;margin-top:5px;color:var(--muted);font-size:9px}.station-card.running .station-state strong{color:var(--green)}.station-actions{display:flex;gap:7px}.station-actions button{flex:1}
+.res-list{display:grid;gap:8px}.res-card{padding:11px;border:1px solid var(--line);border-radius:8px;background:#0d1112}.res-card time{color:var(--gold2);font-size:11px;font-weight:800}.res-card b{display:block;margin-top:4px;font-size:12px}.res-card small{display:block;margin-top:4px;color:var(--muted);font-size:9px}
+.login-backdrop,.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.84);backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px}.hidden{display:none!important}.login-card,.modal-card{width:min(560px,100%);border:1px solid rgba(228,187,98,.28);border-radius:16px;background:linear-gradient(180deg,#111617,#090c0d);padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.55)}.login-card h1,.modal-card h2{margin:0 0 7px}.login-card p,.modal-card p{color:var(--muted);font-size:11px;line-height:1.5}.login-card select,.login-card input,.modal-card input,.modal-card select,.modal-card textarea{width:100%;margin-top:8px}.pin{font:800 26px/1 var(--mono);letter-spacing:.25em;text-align:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.availability{display:grid;gap:7px;margin-top:12px}.avail{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0d1112}.avail.free{border-color:rgba(88,223,138,.25)}.avail b{font-size:11px}.avail span{font-size:9px;color:var(--green)}
+.notice-inline{margin-top:10px;color:#ff8b91;font-size:10px}
+@media(max-width:1000px){.hero-strip{grid-template-columns:1fr 1fr}.bar-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.bar-main{padding:12px}.hero-strip{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}.bar-top{padding:0 12px}.station-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bar-shell">
+<header class="bar-top">
+  <div class="bar-brand"><span>Connect</span>Sports<span>Pro</span> · BAR</div>
+  <div class="bar-employee" id="employeeBox" hidden><div><b id="employeeName">—</b><small id="employeeShift">—</small></div><button class="ghost" id="breakBtn">Prestávka</button><button class="ghost" id="endShiftBtn">Ukončiť smenu</button></div>
+</header>
+<main class="bar-main">
+  <div id="notice"></div>
+  <section class="hero-strip">
+    <div class="hero-card primary-card"><span>OBSLUHA</span><strong id="heroEmployee">Neprihlásený zamestnanec</strong><small id="heroRole">Prihlásenie PIN kódom</small></div>
+    <div class="hero-card"><span>AKTÍVNE STANICE</span><strong id="activeCount">0</strong></div>
+    <div class="hero-card"><span>NAJBLIŽŠIA REZERVÁCIA</span><strong id="nextReservation">—</strong></div>
+    <div class="hero-card"><span>DNES REZERVÁCIÍ</span><strong id="todayReservations">0</strong></div>
+  </section>
+  <div class="actions">
+    <button class="big-action green" id="newReservation">+ Nová rezervácia</button>
+    <button class="big-action" id="refreshBtn">Obnoviť</button>
+  </div>
+  <div class="bar-grid">
+    <section class="section">
+      <h2>Stanice</h2><p>Aktuálna prevádzka a najbližšia rezervácia na každej stanici.</p>
+      <div class="station-grid" id="stationGrid"></div>
+    </section>
+    <aside class="section">
+      <h2>Najbližšie rezervácie</h2><p>Telefonické, osobné aj online rezervácie v jednom zozname.</p>
+      <div class="res-list" id="reservationList"></div>
+    </aside>
+  </div>
+</main>
+</div>
+
+<div class="login-backdrop" id="loginLayer">
+  <div class="login-card">
+    <h1>Začať smenu</h1>
+    <p>Vyber svoje meno a zadaj osobný PIN. Tablet zostáva prihlásený ku klubu, PIN identifikuje konkrétnu obsluhu.</p>
+    <select id="loginEmployee"></select>
+    <input class="pin" id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+    <div class="notice-inline" id="loginError"></div>
+    <button class="primary" id="loginBtn" style="width:100%;margin-top:14px;min-height:46px">PRIHLÁSIŤ / ZAČAŤ SMENU</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="reservationModal">
+  <div class="modal-card">
+    <h2>Nová rezervácia</h2><p>Zadaj čas a CSP zobrazí len voľné stanice.</p>
+    <div class="form-grid">
+      <label>Zdroj<select id="rSource"><option value="phone">Telefonicky</option><option value="walk_in">Osobne na bare</option></select></label>
+      <label>Šport<select id="rSport"></select></label>
+      <label>Začiatok<input id="rStart" type="datetime-local"></label>
+      <label>Dĺžka<select id="rDuration"><option value="60">1 hodina</option><option value="90">1,5 hodiny</option><option value="120" selected>2 hodiny</option><option value="180">3 hodiny</option></select></label>
+      <label>Meno zákazníka<input id="rName" placeholder="Meno"></label>
+      <label>Telefón<input id="rPhone" placeholder="+421..."></label>
+      <label>Počet osôb<input id="rParty" type="number" min="1" value="2"></label>
+      <label class="wide">Poznámka<textarea id="rNote" rows="2"></textarea></label>
+    </div>
+    <div class="availability" id="availability"></div>
+    <div class="modal-actions"><button class="ghost" id="cancelReservation">Zrušiť</button><button class="primary" id="saveReservation" disabled>Potvrdiť rezerváciu</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="pinOutModal">
+ <div class="modal-card"><h2>Ukončiť smenu</h2><p>Pre potvrdenie zadaj svoj PIN.</p><input class="pin" id="outPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••"><div class="modal-actions"><button class="ghost" id="cancelOut">Zrušiť</button><button class="primary" id="confirmOut">Ukončiť smenu</button></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+(()=>{
+'use strict';
+const A=window.CSPClubManager,$=id=>document.getElementById(id);
+let ctx,employees=[],stations=[],sessions=[],reservations=[],employee=null,attendanceSession=null,selectedStation=null,channel,reloadTimer;
+function msg(t){notice.innerHTML=t?'<div class="notice">'+A.esc(t)+'</div>':'';if(t)setTimeout(()=>notice.innerHTML='',3500)}
+function localInput(d){const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,16)}
+function netSeconds(s){if(!s)return 0;const end=s.clock_out_at?new Date(s.clock_out_at):new Date();let total=(end-new Date(s.clock_in_at))/1000-Number(s.break_seconds||0);if(s.status==='break'&&s.break_started_at)total-=(new Date()-new Date(s.break_started_at))/1000;return Math.max(0,total)}
+function activeStation(id){return sessions.find(s=>s.station_id===id&&['running','paused'].includes(s.status))}
+function upcomingStation(id){return reservations.find(r=>r.station_id===id&&new Date(r.starts_at)>=new Date()&&['pending','confirmed'].includes(r.status))}
+async function bootstrap(){
+ ctx=await A.requireAccess();if(!ctx.club)throw new Error('CLUB_REQUIRED');
+ const cid=ctx.club.id;
+ const [e,st]=await Promise.all([
+  A.db.from('club_employees').select('id,full_name,role_name').eq('club_id',cid).eq('is_active',true).order('full_name'),
+  A.db.from('stations').select('*').eq('club_id',cid).eq('is_active',true).order('sort_order').order('name')
+ ]);
+ if(e.error||st.error)throw e.error||st.error;employees=e.data||[];stations=st.data||[];
+ loginEmployee.innerHTML=employees.map(x=>'<option value="'+x.id+'">'+A.esc(x.full_name)+'</option>').join('');
+ const saved=sessionStorage.getItem('csp_bar_employee');
+ if(saved){employee=employees.find(x=>x.id===saved)||null;if(employee)await restoreEmployee()}
+ await loadLive();render();
+ if(employee)loginLayer.classList.add('hidden');
+ if(!channel)channel=A.subscribe(cid,()=>{clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadLive().then(render).catch(e=>msg(e.message)),180)});
+}
+async function restoreEmployee(){
+ const {data}=await A.db.from('club_attendance_sessions').select('*').eq('employee_id',employee.id).in('status',['working','break']).order('clock_in_at',{ascending:false}).limit(1);
+ attendanceSession=data?.[0]||null;if(!attendanceSession){employee=null;sessionStorage.removeItem('csp_bar_employee')}
+}
+async function loadLive(){
+ const now=new Date(),from=new Date(now);from.setHours(0,0,0,0);const to=new Date(from);to.setDate(to.getDate()+2);
+ const [se,rs]=await Promise.all([
+  A.db.from('club_manager_live_sessions').select('*').eq('club_id',ctx.club.id).in('status',['running','paused']),
+  A.db.from('reservations').select('*').eq('club_id',ctx.club.id).gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()).not('status','eq','cancelled').order('starts_at')
+ ]);
+ if(se.error||rs.error)throw se.error||rs.error;sessions=se.data||[];reservations=rs.data||[];
+ if(employee)await restoreEmployee();
+}
+function render(){
+ employeeBox.hidden=!employee;
+ if(employee){employeeName.textContent=employee.full_name;heroEmployee.textContent=employee.full_name;heroRole.textContent=employee.role_name||'Obsluha';employeeShift.textContent=attendanceSession?(attendanceSession.status==='break'?'Prestávka · ':'V práci od ')+new Date(attendanceSession.clock_in_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'—';breakBtn.textContent=attendanceSession?.status==='break'?'Pokračovať':'Prestávka'}
+ activeCount.textContent=sessions.length;
+ const future=reservations.filter(r=>new Date(r.starts_at)>=new Date());nextReservation.textContent=future[0]?new Date(future[0].starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'—';
+ const today=new Date().toDateString();todayReservations.textContent=reservations.filter(r=>new Date(r.starts_at).toDateString()===today).length;
+ stationGrid.innerHTML=stations.map(st=>{const s=activeStation(st.id),r=upcomingStation(st.id);return '<article class="station-card '+(s?'running':'')+'"><div class="station-head"><b>'+A.esc(st.name)+'</b><span>'+A.esc(st.sport||'')+'</span></div><div class="station-state"><strong>'+(s?A.time(A.currentSeconds(s)):'VOĽNÉ')+'</strong><small>'+(r?'Rezervácia '+new Date(r.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+' · '+A.esc(r.customer_name):'Bez najbližšej rezervácie')+'</small></div><div class="station-actions">'+(s?'<button class="ghost" data-act="stop" data-id="'+s.id+'">Stop</button>':'<button class="primary" data-act="start" data-id="'+st.id+'">Spustiť</button>')+'</div></article>'}).join('');
+ reservationList.innerHTML=future.slice(0,10).map(r=>'<article class="res-card"><time>'+new Date(r.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+'–'+new Date(r.ends_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+'</time><b>'+A.esc(r.customer_name)+'</b><small>'+A.esc(r.station_name_snapshot||stations.find(s=>s.id===r.station_id)?.name||'Stanica')+' · '+(r.source==='phone'?'Telefonicky':r.source==='walk_in'?'Osobne':r.source==='public'?'Online':A.esc(r.source))+'</small></article>').join('')||'<div class="empty">Žiadne ďalšie rezervácie.</div>';
+}
+loginBtn.onclick=async()=>{loginError.textContent='';const id=loginEmployee.value,pin=loginPin.value.trim();if(!pin)return loginError.textContent='Zadaj PIN.';loginBtn.disabled=true;try{const {data,error}=await A.db.rpc('club_manager_employee_pin_login',{p_employee_id:id,p_pin:pin});if(error)throw error;employee=employees.find(x=>x.id===id);attendanceSession={id:data.session_id,status:data.status,clock_in_at:data.clock_in_at};sessionStorage.setItem('csp_bar_employee',id);loginPin.value='';loginLayer.classList.add('hidden');await loadLive();render()}catch(e){loginError.textContent=e.message.includes('PIN_INVALID')?'Nesprávny PIN.':e.message.includes('PIN_FORMAT')?'PIN musí mať 4–6 číslic.':e.message}finally{loginBtn.disabled=false}};
+breakBtn.onclick=async()=>{if(!attendanceSession)return;const {error}=await A.db.rpc('club_manager_attendance_toggle_break',{p_session_id:attendanceSession.id});if(error)return msg(error.message);await loadLive();render()};
+endShiftBtn.onclick=()=>{outPin.value='';pinOutModal.classList.remove('hidden')};cancelOut.onclick=()=>pinOutModal.classList.add('hidden');
+confirmOut.onclick=async()=>{if(!employee)return;const {error}=await A.db.rpc('club_manager_employee_pin_clock_out',{p_employee_id:employee.id,p_pin:outPin.value.trim()});if(error)return msg(error.message.includes('PIN_INVALID')?'Nesprávny PIN.':error.message);sessionStorage.removeItem('csp_bar_employee');employee=null;attendanceSession=null;pinOutModal.classList.add('hidden');loginLayer.classList.remove('hidden');render()};
+stationGrid.onclick=async e=>{const b=e.target.closest('[data-act]');if(!b)return;if(b.dataset.act==='start'){const {error}=await A.db.rpc('club_manager_start_session',{p_station_id:b.dataset.id,p_price_profile_code:'walkin'});if(error)return msg(error.message)}else{const {error}=await A.db.rpc('club_manager_stop_session',{p_session_id:b.dataset.id});if(error)return msg(error.message)}await loadLive();render()};
+newReservation.onclick=()=>{selectedStation=null;rName.value='';rPhone.value='';rParty.value=2;rNote.value='';const sports=[...new Set(stations.map(s=>s.sport).filter(Boolean))];rSport.innerHTML=sports.map(s=>'<option>'+A.esc(s)+'</option>').join('');const d=new Date();d.setMinutes(Math.ceil(d.getMinutes()/30)*30,0,0);rStart.value=localInput(d);reservationModal.classList.remove('hidden');renderAvailability()};
+cancelReservation.onclick=()=>reservationModal.classList.add('hidden');
+[rSport,rStart,rDuration].forEach(el=>el.onchange=renderAvailability);
+function renderAvailability(){const start=new Date(rStart.value),end=new Date(start.getTime()+Number(rDuration.value)*60000),sport=rSport.value;const candidates=stations.filter(s=>s.sport===sport).filter(st=>!reservations.some(r=>r.station_id===st.id&&new Date(r.starts_at)<end&&new Date(r.ends_at)>start&&r.status!=='cancelled'));availability.innerHTML=candidates.length?candidates.map(st=>'<button class="avail free" data-station="'+st.id+'"><b>'+A.esc(st.name)+'</b><span>VOĽNÉ</span></button>').join(''):'<div class="notice">V tomto čase nie je voľná stanica.</div>';saveReservation.disabled=true;selectedStation=null}
+availability.onclick=e=>{const b=e.target.closest('[data-station]');if(!b)return;selectedStation=stations.find(s=>s.id===b.dataset.station);availability.querySelectorAll('.avail').forEach(x=>x.style.outline='none');b.style.outline='2px solid var(--green)';saveReservation.disabled=false};
+saveReservation.onclick=async()=>{if(!selectedStation||!rName.value.trim())return msg('Vyber stanicu a zadaj meno zákazníka.');const start=new Date(rStart.value),end=new Date(start.getTime()+Number(rDuration.value)*60000);const row={club_id:ctx.club.id,venue_id:selectedStation.venue_id||null,station_id:selectedStation.id,customer_name:rName.value.trim(),customer_phone:rPhone.value.trim()||null,party_size:Number(rParty.value||1),starts_at:start.toISOString(),ends_at:end.toISOString(),status:'confirmed',source:rSource.value,internal_note:rNote.value.trim()||null,station_name_snapshot:selectedStation.name,station_sport_snapshot:selectedStation.sport,created_by:(await A.session()).user.id};const {error}=await A.db.from('reservations').insert(row);if(error)return msg(error.message);reservationModal.classList.add('hidden');msg('Rezervácia bola uložená.');await loadLive();render()};
+refreshBtn.onclick=()=>loadLive().then(render).catch(e=>msg(e.message));
+setInterval(()=>{if(employee&&attendanceSession){employeeShift.textContent=(attendanceSession.status==='break'?'Prestávka · ':'V práci · ')+A.time(netSeconds(attendanceSession))}sessions.forEach(s=>{const card=[...document.querySelectorAll('.station-card')].find(x=>x.querySelector('[data-id="'+s.id+'"]'));if(card)card.querySelector('.station-state strong').textContent=A.time(A.currentSeconds(s))})},1000);
+bootstrap().catch(e=>msg(e.message));
+})();
+</script>
+</body>
+</html>

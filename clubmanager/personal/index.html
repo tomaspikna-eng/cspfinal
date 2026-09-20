@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Personál — CSP Club Manager</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+.staff-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px}.staff-head .grow{flex:1}.staff-head h1{margin:0}.staff-head p{margin:6px 0 0;color:var(--muted)}
+.staff-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.staff-stat{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.staff-stat span{display:block;color:var(--muted);font-size:11px}.staff-stat strong{display:block;margin-top:6px;font-size:24px}.staff-stat.gold strong{color:var(--gold)}.staff-stat.green strong{color:var(--green)}
+.staff-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:16px}.panel-card{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:16px}.panel-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}.panel-head h2{margin:0;font-size:18px}.panel-head .grow{flex:1}.panel-head input{max-width:260px}
+.staff-list{display:grid;gap:10px}.employee-row{display:grid;grid-template-columns:52px minmax(0,1fr) 130px 130px auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg-soft)}.employee-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#151b1d;border:1px solid rgba(212,168,67,.45);color:var(--gold);font-weight:900}.employee-main b,.employee-main span{display:block}.employee-main span{margin-top:4px;color:var(--muted);font-size:11px}.employee-code{font:800 11px var(--mono);color:var(--gold)}.employee-status{font-size:11px}.employee-status.active{color:var(--green)}.employee-status.pending{color:var(--gold)}.row-actions{display:flex;gap:7px;justify-content:flex-end}.row-actions button{white-space:nowrap}
+.request-list{display:grid;gap:9px}.request-card{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg-soft)}.request-card b,.request-card span{display:block}.request-card span{margin-top:5px;color:var(--muted);font-size:11px}.request-actions{display:flex;gap:7px;margin-top:10px}.request-actions button{flex:1}.request-card.pending{border-color:rgba(212,168,67,.35)}
+.modal{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.76)}.modal.hidden{display:none}.modal-card{width:min(760px,100%);max-height:92vh;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--card);padding:20px}.modal-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}.modal-head h3{margin:0}.modal-head .grow{flex:1}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:700}.form-grid input,.form-grid select,.form-grid textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:10px 12px}.wide{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.status-chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:10px}.status-chip.green{color:var(--green);border-color:rgba(83,217,139,.35)}.status-chip.gold{color:var(--gold);border-color:rgba(212,168,67,.35)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+@media(max-width:1050px){.staff-grid{grid-template-columns:1fr}.staff-stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.sidebar{display:none}.main{margin-left:0!important}.staff-head{flex-direction:column}.staff-head .primary{width:100%}.employee-row{grid-template-columns:48px 1fr}.employee-code,.employee-status,.row-actions{grid-column:2}.row-actions{justify-content:flex-start}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
+  <nav aria-label="Club Manager">
+    <a class="nav-link" href="../dashboard/"><span class="nav-icon">▦</span>Dashboard</a>
+    <a class="nav-link" href="../reports/"><span class="nav-icon">▥</span>Prehľad prevádzky</a>
+    <a class="nav-link active" href="../personal/"><span class="nav-icon">♟</span>Personál</a>
+    <a class="nav-link" href="../reservations/"><span class="nav-icon">▣</span>Rezervácie</a>
+    <a class="nav-link" href="../venues/"><span class="nav-icon">◎</span>Športoviská</a>
+  </nav>
+</aside>
+
+<main class="main">
+<header class="topbar"><div><strong id="clubName">Club Manager</strong> · Personál</div><div style="display:flex;gap:8px;align-items:center"><a class="ghost" href="https://connectsportspro.com/profil-ul/">← Späť na profil</a><button class="ghost" id="logout">Odhlásiť</button></div></header>
+<section class="content">
+  <div class="staff-head">
+    <div class="grow"><h1>Personál</h1><p>Zamestnanci, pracovné údaje, dovolenka/PN a schvaľovanie žiadostí.</p></div>
+    <button class="primary" id="addEmployeeBtn">+ Pridať zamestnanca</button>
+  </div>
+
+  <div id="notice"></div>
+
+  <div class="staff-stats">
+    <div class="staff-stat"><span>Zamestnanci</span><strong id="statEmployees">0</strong></div>
+    <div class="staff-stat green"><span>Aktívni</span><strong id="statActive">0</strong></div>
+    <div class="staff-stat gold"><span>Čakajúce žiadosti</span><strong id="statRequests">0</strong></div>
+    <div class="staff-stat"><span>Neaktivované účty</span><strong id="statPendingAccounts">0</strong></div>
+  </div>
+
+  <div class="staff-grid">
+    <section class="panel-card">
+      <div class="panel-head"><h2>Zamestnanci</h2><div class="grow"></div><input id="employeeSearch" placeholder="Hľadať zamestnanca..."></div>
+      <div class="staff-list" id="employeeList"><div class="empty">Načítavam…</div></div>
+    </section>
+
+    <section class="panel-card">
+      <div class="panel-head"><h2>Žiadosti dovolenka / PN</h2><div class="grow"></div></div>
+      <div class="request-list" id="requestList"><div class="empty">Žiadne čakajúce žiadosti.</div></div>
+    </section>
+  </div>
+</section>
+</main>
+</div>
+
+<div class="modal hidden" id="employeeModal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="employeeModalTitle">Nový zamestnanec</h3><div class="grow"></div><button class="ghost" id="employeeModalClose">✕</button></div>
+    <div class="form-grid">
+      <label>Meno a priezvisko<input id="fName"></label>
+      <label>E-mail<input id="fEmail" type="email"></label>
+      <label>Telefón<input id="fPhone"></label>
+      <label>Pozícia<input id="fRole"></label>
+      <label>Hodinová sadzba €<input id="fRate" type="number" min="0" step=".01"></label>
+      <label>Dovolenka / rok<input id="fVacationTotal" type="number" min="0" value="20"></label>
+      <label>PIN na tablet<input id="fPin" type="password" inputmode="numeric" maxlength="6" placeholder="4–6 číslic"></label>
+      <label>Stav<select id="fActive"><option value="true">Aktívny</option><option value="false">Neaktívny</option></select></label>
+      <label class="wide">Foto URL<input id="fPhoto"></label>
+    </div>
+    <div class="modal-actions"><button class="ghost" id="employeeCancel">Zrušiť</button><button class="primary" id="employeeSave">Uložiť</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+(()=>{'use strict';
+const A=window.CSPClubManager,$=id=>document.getElementById(id);
+let ctx=null,employees=[],requests=[],editingId=null;
+logout.onclick=()=>A.logout();
+
+function esc(v){return A.esc(v)}
+function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()}
+function show(msg,bad=false){notice.innerHTML=msg?'<div class="notice'+(bad?' error':'')+'">'+esc(msg)+'</div>':'';if(msg)setTimeout(()=>notice.innerHTML='',3500)}
+function accountLabel(e){return e.auth_user_id?'<span class="status-chip green">Aktivovaný</span>':'<span class="status-chip gold">Čaká na aktiváciu</span>'}
+function render(){
+  const q=employeeSearch.value.trim().toLowerCase();
+  const rows=employees.filter(e=>!q||[e.full_name,e.email,e.role_name,e.employee_code].some(v=>String(v||'').toLowerCase().includes(q)));
+  employeeList.innerHTML=rows.length?rows.map(e=>`
+    <article class="employee-row">
+      <div class="employee-avatar">${esc(initials(e.full_name))}</div>
+      <div class="employee-main"><b>${esc(e.full_name)}</b><span>${esc(e.role_name||'Zamestnanec')} · ${esc(e.email||'bez e-mailu')}</span></div>
+      <div><div class="employee-code">${esc(e.employee_code||'—')}</div><div style="margin-top:5px">${accountLabel(e)}</div></div>
+      <div class="employee-status ${e.is_active?'active':'pending'}">${e.is_active?'Aktívny':'Neaktívny'}<br><span style="color:var(--muted)">${Number(e.hourly_rate||0).toFixed(2)} €/h</span></div>
+      <div class="row-actions"><button class="ghost" data-edit="${e.id}">Upraviť</button></div>
+    </article>`).join(''):'<div class="empty">Žiadni zamestnanci.</div>';
+
+  const pending=requests.filter(r=>r.status==='pending');
+  requestList.innerHTML=pending.length?pending.map(r=>`
+    <article class="request-card pending">
+      <b>${esc(r.employee?.full_name||'Zamestnanec')} · ${r.request_type==='vacation'?'Dovolenka':'PN'}</b>
+      <span>${new Date(r.start_date).toLocaleDateString('sk-SK')} – ${new Date(r.end_date).toLocaleDateString('sk-SK')}</span>
+      ${r.note?'<span>'+esc(r.note)+'</span>':''}
+      <div class="request-actions"><button class="ghost" data-reject="${r.id}">Zamietnuť</button><button class="primary" data-approve="${r.id}">Schváliť</button></div>
+    </article>`).join(''):'<div class="empty">Žiadne čakajúce žiadosti.</div>';
+
+  statEmployees.textContent=employees.length;
+  statActive.textContent=employees.filter(e=>e.is_active).length;
+  statRequests.textContent=pending.length;
+  statPendingAccounts.textContent=employees.filter(e=>!e.auth_user_id).length;
+}
+async function load(){
+  ctx=await A.requireAccess();if(!ctx.club)throw new Error('Klub neexistuje.');
+  clubName.textContent=ctx.club.name||'Klub';
+  const [er,rr]=await Promise.all([
+    A.db.from('club_employees').select('*').eq('club_id',ctx.club.id).order('full_name'),
+    A.db.from('club_employee_leave_requests').select('*').eq('club_id',ctx.club.id).order('created_at',{ascending:false})
+  ]);
+  if(er.error)throw er.error;if(rr.error)throw rr.error;
+  employees=er.data||[];
+  const byId=Object.fromEntries(employees.map(e=>[e.id,e]));
+  requests=(rr.data||[]).map(r=>({...r,employee:byId[r.employee_id]||null}));
+  render();
+}
+function openModal(e=null){
+  editingId=e?.id||null;
+  employeeModalTitle.textContent=editingId?'Upraviť zamestnanca':'Nový zamestnanec';
+  fName.value=e?.full_name||'';fEmail.value=e?.email||'';fPhone.value=e?.phone||'';fRole.value=e?.role_name||'';
+  fRate.value=e?.hourly_rate??'';fVacationTotal.value=e?.vacation_days_total??20;fPin.value='';fActive.value=String(e?.is_active??true);fPhoto.value=e?.photo_url||'';
+  employeeModal.classList.remove('hidden');
+}
+function closeModal(){employeeModal.classList.add('hidden')}
+addEmployeeBtn.onclick=()=>openModal();
+employeeModalClose.onclick=closeModal;employeeCancel.onclick=closeModal;
+employeeModal.onclick=e=>{if(e.target===employeeModal)closeModal()};
+employeeSearch.oninput=render;
+employeeList.onclick=e=>{const id=e.target.dataset.edit;if(id)openModal(employees.find(x=>x.id===id))};
+
+employeeSave.onclick=async()=>{
+  const btn=employeeSave;btn.disabled=true;btn.textContent='Ukladám…';
+  try{
+    const row={
+      full_name:fName.value.trim(),
+      email:fEmail.value.trim()||null,
+      phone:fPhone.value.trim()||null,
+      role_name:fRole.value.trim()||null,
+      hourly_rate:Number(fRate.value||0),
+      vacation_days_total:Number(fVacationTotal.value||20),
+      is_active:fActive.value==='true',
+      photo_url:fPhoto.value.trim()||null,
+      updated_at:new Date().toISOString()
+    };
+    if(!row.full_name)throw new Error('Zadaj meno zamestnanca.');
+    let employeeId=editingId;
+    if(editingId){
+      const {error}=await A.db.from('club_employees').update(row).eq('id',editingId).eq('club_id',ctx.club.id);if(error)throw error;
+    }else{
+      const {data:code,error:codeError}=await A.db.rpc('club_manager_next_employee_code',{p_club_id:ctx.club.id});if(codeError)throw codeError;
+      row.club_id=ctx.club.id;row.employee_code=code;
+      const {data,error}=await A.db.from('club_employees').insert(row).select('id').single();if(error)throw error;employeeId=data.id;
+    }
+    const pin=fPin.value.trim();
+    if(pin){
+      const {error}=await A.db.rpc('club_manager_set_employee_pin',{p_employee_id:employeeId,p_pin:pin});if(error)throw error;
+    }
+    closeModal();await load();show(editingId?'Zamestnanec bol upravený.':'Zamestnanec bol vytvorený.');
+  }catch(err){show(err.message||'Uloženie zlyhalo.',true)}
+  finally{btn.disabled=false;btn.textContent='Uložiť'}
+};
+
+requestList.onclick=async e=>{
+  const approve=e.target.dataset.approve,reject=e.target.dataset.reject,id=approve||reject;if(!id)return;
+  const status=approve?'approved':'rejected';
+  const {error}=await A.db.from('club_employee_leave_requests').update({status,reviewed_by:(await A.session()).user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('club_id',ctx.club.id);
+  if(error)return show(error.message,true);
+  await load();show(status==='approved'?'Žiadosť bola schválená.':'Žiadosť bola zamietnutá.');
+};
+
+load().catch(e=>show(e.message,true));
+})();
+</script>
+</body>
+</html>

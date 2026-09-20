@@ -1,0 +1,2 @@
+-- Production migration already applied directly to Supabase as csp_club_manager_core_10.
+-- Kept in the standalone repo to preserve schema history.
