@@ -1,7 +1,10 @@
 (() => {
 'use strict';
-const cfg=window.CSP_CM_CONFIG;
-if(!cfg||!window.supabase) throw new Error('Supabase configuration is missing.');
+const cfg=window.CSP_CM_CONFIG||{
+  supabaseUrl:'https://lcmoykaqvvfybtobhtqg.supabase.co',
+  supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA'
+};
+if(!window.supabase) throw new Error('Supabase client is missing.');
 const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
 const parts=location.pathname.split('/').filter(Boolean);
 const routeNames=new Set(['login','dashboard','venues','reservations','reports','dochadzka','personal','bar','rezervacnykalendar','scoreboard']);
@@ -105,6 +108,6 @@ const api={
 };
 const setNetwork=()=>document.documentElement.classList.toggle('offline',!navigator.onLine);
 addEventListener('online',setNetwork);addEventListener('offline',setNetwork);setNetwork();
-if('serviceWorker'in navigator)navigator.serviceWorker.register(route('service-worker.js')).catch(()=>{});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/clubmanager/service-worker.js',{scope:'/clubmanager/',updateViaCache:'none'}).catch(()=>{});
 window.CSPClubManager=api;
 })();
