@@ -4,7 +4,7 @@ const cfg=window.CSP_CM_CONFIG;
 if(!cfg||!window.supabase) throw new Error('Supabase configuration is missing.');
 const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
 const parts=location.pathname.split('/').filter(Boolean);
-const routeNames=new Set(['login','dashboard','venues','reservations','reports','dochadzka','personal','bar']);
+const routeNames=new Set(['login','dashboard','venues','reservations','reports','dochadzka','personal','bar','rezervacnykalendar','scoreboard']);
 if(parts.length&&routeNames.has(parts.at(-1)))parts.pop();
 const rootPath='/'+(parts.length?parts.join('/')+'/':'');
 const route=(name='')=>rootPath+String(name).replace(/^\/+/,'');
@@ -82,35 +82,17 @@ const api={
  db,route,esc,
  async session(){const {data,error}=await db.auth.getSession();if(error)throw error;return data.session;},
  async requireAccess(){
-   const incomingClub=new URLSearchParams(location.search).get('club');
-   if(incomingClub)localStorage.setItem('csp_cm_expected_club',incomingClub);
-   const expectedClub=localStorage.getItem('csp_cm_expected_club');
-
    const session=await api.session();
    if(!session){
-     const ret=location.pathname+location.search;
-     location.replace(route('login/?returnTo=')+encodeURIComponent(ret));
+     location.replace(route('login/?returnTo=')+encodeURIComponent(location.pathname+location.search));
      throw new Error('LOGIN_REQUIRED');
    }
-
    const {data,error}=await db.rpc('club_manager_bootstrap');if(error)throw error;
    if(!data?.allowed){
-     document.body.innerHTML=`<main class="access-denied"><section><div class="brand-mark">C</div><h1>Club Manager nemáte aktivovaný</h1><p>Prístup určuje oprávnenie účtu. Technické označenia Ultra, Elite a Admin nie sú súčasťou používateľského obsahu.</p><a href="https://connectsportspro.com/">Späť na CONNECT SPORTS PRO</a><button id="logoutDenied">Odhlásiť sa</button></section></main>`;
-     document.getElementById('logoutDenied').onclick=async()=>{await db.auth.signOut();localStorage.removeItem('csp_cm_expected_club');location.replace(route('login/'));};
+     document.body.innerHTML=`<main class="access-denied"><section><div class="brand-mark">C</div><h1>Club Manager nemáte aktivovaný</h1><p>Prístup určuje oprávnenie účtu.</p><a href="/profil-ul/">Späť na profil</a><button id="logoutDenied">Odhlásiť sa</button></section></main>`;
+     document.getElementById('logoutDenied').onclick=async()=>{await db.auth.signOut();location.replace('/login/');};
      throw new Error('PLAN_REQUIRED');
    }
-
-   if(expectedClub && data?.club?.id && data.club.id!==expectedClub){
-     const ret=location.pathname+location.search;
-     await db.auth.signOut();
-     document.body.innerHTML=`<main class="access-denied"><section><div class="brand-mark">C</div><h1>Prihlásený je iný klubový účet</h1><p>Club Manager bol otvorený pre iný klub. Prihlás sa účtom, ktorý patrí k profilu, z ktorého si Club Manager otvoril.</p><a href="${route('login/?returnTo=')+encodeURIComponent(ret)}">Prihlásiť správny účet</a></section></main>`;
-     throw new Error('CLUB_CONTEXT_MISMATCH');
-   }
-
-   if(expectedClub && !data?.club?.id){
-     throw new Error('CLUB_CONTEXT_NOT_FOUND');
-   }
-
    return data;
  },
  money:v=>`${Number(v||0).toFixed(2)} €`,
