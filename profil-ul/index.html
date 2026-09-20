@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Ján Novák · Connect Sports Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --bg:#060608;
@@ -736,6 +736,54 @@ body.admin-dashboard-mode .content-side{display:none!important}
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
 <meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
 <meta name="robots" content="noindex,nofollow">
+
+<style id="pro-plus-ultra-visual">
+/* ULTRA unified with the PRO+ visual language. Functional ULTRA logic remains unchanged. */
+:root{
+  --bg:#080b0c;--bg2:#0b0f10;--bg3:#101516;--bg4:#141a1b;
+  --line:#242b2e;--line2:#1a2022;--text:#f3f4f4;--text-soft:#aeb4b6;
+  --muted:#6f777a;--muted2:#939a9e;--gold:#e4bb62;--gold-bright:#f1cb78;
+  --gold-dim:rgba(228,187,98,.12);--gold-b:rgba(228,187,98,.32);
+  --green:#58df8a;--green-dim:rgba(88,223,138,.09);
+  --font:Inter,Arial,sans-serif;--display:Inter,Arial,sans-serif;--mono:Inter,Arial,sans-serif;
+}
+body{font-family:var(--font);background:radial-gradient(circle at 66% 0,rgba(32,51,40,.12),transparent 27%),var(--bg)}
+.app{grid-template-columns:197px minmax(0,1fr)}
+.sidebar{background:linear-gradient(180deg,#090d0e,#090c0d 62%,#0c1011);border-right:1px solid var(--line2);padding:18px 0 0}
+.logo-row{height:49px;padding:0 20px 13px;gap:10px;border-bottom:1px solid transparent}.logo-mark{width:38px;height:38px;border-radius:9px}.logo-text{font-size:12px;letter-spacing:.01em}
+.nav-section{padding:13px 24px 5px;color:#71797c;font-size:8px;letter-spacing:.15em}
+.nav-item{min-height:46px;padding:0 25px;gap:14px;border-left:3px solid transparent;color:var(--gold);font-size:12px;font-weight:550}
+.nav-item .icon{width:20px;font-size:15px}.nav-item:hover{background:rgba(255,255,255,.025);color:var(--gold-bright)}
+.nav-item.active{background:linear-gradient(90deg,rgba(228,187,98,.12),rgba(228,187,98,.02));border-left-color:var(--gold);color:#fff}
+.nav-cta-green{margin:10px 15px 8px}.nav-cta-green-btn{min-height:43px;border-radius:8px;background:transparent;border:1px solid rgba(88,223,138,.25);color:var(--green);box-shadow:none;font-size:11px}.nav-cta-green-btn:hover{background:rgba(88,223,138,.08);transform:none}
+.topbar{min-height:67px;padding:0 26px;background:#080b0c;border-bottom:1px solid var(--line2)}
+.search-box{height:39px;border:1px solid #384043;border-radius:9px;background:#171c1e}.search-box .key{display:none}
+.icon-btn{border:0;background:transparent}.user-pill{border:0;background:transparent;border-radius:7px}
+.profile{padding-bottom:55px}.cover{display:none}
+.profile-header{margin:0;padding:32px 32px 26px;grid-template-columns:155px minmax(0,1fr) 230px;gap:24px;align-items:start;border-bottom:1px solid var(--line)}
+.avatar{width:150px;height:150px;border:2px solid var(--gold);box-shadow:0 0 0 5px #090d0e;background:linear-gradient(145deg,#252c2d,#101415);font-size:34px;color:var(--gold)}
+.avatar-edit{width:32px;height:32px;bottom:8px;right:6px;background:#111617}
+.identity{padding:3px 0 0}.name{font-family:var(--font);font-size:29px;font-weight:800;letter-spacing:-.035em}.handle{font-family:var(--font);font-size:10px;color:#a5abad;margin-top:8px}
+.bio{font:italic 500 15px/1.4 "Playfair Display",Georgia,serif;color:#e1e2e2;margin-top:17px}.meta{margin-top:14px}.meta-item{font-family:var(--font);font-size:9px;color:#aeb4b6}
+.profile-access-badge{border-radius:3px;min-height:23px;padding:3px 9px;font-family:var(--font);font-size:9px}
+.profile-access-badge.ultra{background:transparent;border-color:var(--green);color:var(--green)}
+.profile-actions{padding-top:3px}.btn{border-radius:8px;font-size:10px;padding:10px 15px}.btn-primary{background:#0d1112;border:1px solid #343b3e;color:#fff}.btn-green{background:var(--green);color:#05200e}
+.stats-bar{margin:0;padding:14px 25px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:#0a0e0f;grid-template-columns:repeat(6,1fr)}
+.stat{padding:11px 6px}.stat-num{font-family:var(--font);font-size:18px;font-weight:800}.stat-label{font-family:var(--font);font-size:8px}.stat.highlight{background:transparent}.stat.highlight .stat-num{color:var(--green)}
+.sport-tabs{margin:14px 25px 0}.sport-tab{border-radius:7px;background:#0d1112;font-size:10px}.sport-tab.active{background:rgba(228,187,98,.10)}
+.content-grid{margin:17px 24px 0;grid-template-columns:minmax(0,1fr) 390px;gap:18px}
+.content-tabs{margin-bottom:14px}.content-tab{font-size:10px}.content-tab.active{color:#fff;border-bottom-color:var(--green)}
+.post,.widget,.admin-tournaments-panel{border-radius:8px;background:linear-gradient(145deg,#101516,#0b0f10);border-color:var(--line)}
+.widget{padding:16px}.widget-head h3{font-family:var(--font);font-size:9px;color:var(--gold);letter-spacing:.1em}.widget-head .see-all{color:var(--green)}
+.graph-wrap,.match-card,.tournament-card,.t-card{background:#0d1112;border-radius:7px}
+.admin-tournaments-head h2,.record-title,.t-name{font-family:var(--font);font-weight:800}
+.admin-tournament-filter.active{color:var(--green);border-color:rgba(88,223,138,.28);background:rgba(88,223,138,.06)}
+.share-fab{background:var(--green);color:#05200e;box-shadow:none}
+.settings-plan-row .plan-ultra{background:rgba(88,223,138,.08);color:var(--green);border-color:rgba(88,223,138,.28)}
+@media(max-width:1100px){.content-grid{grid-template-columns:1fr}.content-side{position:static}}
+@media(max-width:880px){.app{grid-template-columns:1fr}.profile-header{padding:24px 18px;grid-template-columns:100px 1fr}.avatar{width:96px;height:96px}.profile-actions{grid-column:1/-1;justify-self:stretch}.stats-bar{grid-template-columns:repeat(3,1fr)}}
+</style>
+
 </head>
 <body>
 
@@ -762,7 +810,6 @@ body.admin-dashboard-mode .content-side{display:none!important}
 
     <div class="nav-section" id="adminToolsSection">Správa</div>
     <a id="clubManagerShortcut" href="https://cspmanager.app/dashboard/" target="_blank" rel="noopener" class="nav-item hidden"><span class="icon">⚙</span>Club Manager</a>
-    <a id="cmsShortcut" href="/cms/" class="nav-item hidden"><span class="icon">✎</span>CMS</a>
 
     <div class="nav-section">Súťaž</div>
     <a href="/ligy/" class="nav-item"><span class="icon">🏅</span>Ligy</a>
@@ -1199,14 +1246,12 @@ function renderIdentity(){
       badgeEl.classList.add('hidden');
     }
 
-    // Profile shortcuts: Club Manager for club/organization/admin, CMS only for admin.
+    // ULTRA operational shortcut: available to club/organization/Ultra/admin profiles.
     const clubManagerShortcut = document.getElementById('clubManagerShortcut');
-    const cmsShortcut = document.getElementById('cmsShortcut');
     const adminToolsSection = document.getElementById('adminToolsSection');
-    const canUseAdminShortcuts = isAdmin;
-    clubManagerShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
-    cmsShortcut?.classList.toggle('hidden', !canUseAdminShortcuts);
-    adminToolsSection?.classList.toggle('hidden', !canUseAdminShortcuts);
+    const canUseClubManager = isAdmin || role === 'club' || role === 'organization' || plan === 'ultra';
+    clubManagerShortcut?.classList.toggle('hidden', !canUseClubManager);
+    adminToolsSection?.classList.toggle('hidden', !canUseClubManager);
 
     const canManageCompetitions = isAdmin || role === 'club' || role === 'organization' || plan === 'ultra' || plan === 'pro_plus';
     document.body.classList.toggle('admin-dashboard-mode', canManageCompetitions);
