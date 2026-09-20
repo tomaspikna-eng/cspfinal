@@ -54,6 +54,16 @@ function openSettings(){
 }
 function closeSettings(){ $('settingsOverlay')?.classList.remove('show'); }
 
+function syncClubManagerLinks(){
+  if(!club?.id) return;
+  document.querySelectorAll('a[href^="https://cspmanager.app/"]').forEach(a=>{
+    try{
+      const u=new URL(a.href);
+      u.searchParams.set('club',club.id);
+      a.href=u.toString();
+    }catch{}
+  });
+}
 function renderIdentity(){
   const name=club?.name||profile?.full_name||'Klub';
   $('profileName').textContent=name;
@@ -147,6 +157,7 @@ async function loadPublic(){
   calendarReservations=Array.isArray(res)?res:[];
 
   renderIdentity();
+  syncClubManagerLinks();
   renderActivity(publicTournaments,publicEvents);
   renderVenues();
   renderReservationCalendar();
@@ -187,6 +198,7 @@ async function loadPrivate(){
   if(clubRes.error) throw clubRes.error;
   club=clubRes.data||null;
   renderIdentity();
+  syncClubManagerLinks();
 
   if(!club){
     $('activityList').innerHTML='<div class="empty-row">Klub ešte nie je vytvorený.</div>';
