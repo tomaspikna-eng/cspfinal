@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kalendár — CSP Club Manager</title>
-<link rel="stylesheet" href="../assets/styles.css">
+<link rel="stylesheet" href="/clubmanager/assets/styles.css">
 <style>
 :root{--hour-width:118px;--row-height:78px;--start-hour:8;--end-hour:24;--free:#163d28;--free-border:#267c4c;--busy:#5b1717;--busy-border:#cf4c4c;--event:#6d42a8}
 .calendar-toolbar,.modebar,.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:13px}
@@ -54,11 +54,11 @@ box-shadow:inset 0 0 0 1px rgba(38,124,76,.2)}
 <aside class="sidebar">
   <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
   <nav aria-label="Club Manager">
-    <a class="nav-link " href="../dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
-    <a class="nav-link " href="../reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
-    <a class="nav-link" href="../personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
-    <a class="nav-link active" href="../reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
-    <a class="nav-link " href="../venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
+    <a class="nav-link " href="/clubmanager/dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
+    <a class="nav-link " href="/clubmanager/reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
+    <a class="nav-link" href="/clubmanager/personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
+    <a class="nav-link active" href="/clubmanager/reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
+    <a class="nav-link " href="/clubmanager/venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
   </nav>
 </aside>
 <main class="main"><header class="topbar"><div><strong id="clubName">Club Manager</strong> · Kalendár</div><div style="display:flex;gap:8px;align-items:center"><a class="ghost" href="/profil-ul/">← Späť na profil</a><button class="ghost" id="logout">Odhlásiť</button></div></header>
@@ -80,7 +80,7 @@ box-shadow:inset 0 0 0 1px rgba(38,124,76,.2)}
 
 <div class="modal-backdrop hidden" id="eventModal"><div class="modal-card"><div class="modal-head"><h3 id="eTitle">Turnaj</h3><button class="ghost" data-close="eventModal">✕</button></div><p id="eText"></p><div class="right"><a class="primary" id="eOpen" target="_blank" rel="noopener">Otvoriť udalosť</a></div></div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/clubmanager/assets/config.js"></script><script src="/clubmanager/assets/app.js"></script>
 <script>
 (()=>{'use strict';
 const A=CSPClubManager,$=id=>document.getElementById(id),SH=8,EH=24,HW=118,SNAP=30;
