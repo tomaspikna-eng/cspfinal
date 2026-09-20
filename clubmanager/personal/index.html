@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Personál — CSP Club Manager</title>
-<link rel="stylesheet" href="../assets/styles.css">
+<link rel="stylesheet" href="/clubmanager/assets/styles.css">
 <style>
 .staff-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px}.staff-head .grow{flex:1}.staff-head h1{margin:0}.staff-head p{margin:6px 0 0;color:var(--muted)}
 .staff-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.staff-stat{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.staff-stat span{display:block;color:var(--muted);font-size:11px}.staff-stat strong{display:block;margin-top:6px;font-size:24px}.staff-stat.gold strong{color:var(--gold)}.staff-stat.green strong{color:var(--green)}
@@ -21,11 +21,11 @@
 <aside class="sidebar">
   <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
   <nav aria-label="Club Manager">
-    <a class="nav-link" href="../dashboard/"><span class="nav-icon">▦</span>Dashboard</a>
-    <a class="nav-link" href="../reports/"><span class="nav-icon">▥</span>Prehľad prevádzky</a>
-    <a class="nav-link active" href="../personal/"><span class="nav-icon">♟</span>Personál</a>
-    <a class="nav-link" href="../reservations/"><span class="nav-icon">▣</span>Rezervácie</a>
-    <a class="nav-link" href="../venues/"><span class="nav-icon">◎</span>Športoviská</a>
+    <a class="nav-link" href="/clubmanager/dashboard/"><span class="nav-icon">▦</span>Dashboard</a>
+    <a class="nav-link" href="/clubmanager/reports/"><span class="nav-icon">▥</span>Prehľad prevádzky</a>
+    <a class="nav-link active" href="/clubmanager/personal/"><span class="nav-icon">♟</span>Personál</a>
+    <a class="nav-link" href="/clubmanager/reservations/"><span class="nav-icon">▣</span>Rezervácie</a>
+    <a class="nav-link" href="/clubmanager/venues/"><span class="nav-icon">◎</span>Športoviská</a>
   </nav>
 </aside>
 
@@ -80,8 +80,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="/clubmanager/assets/config.js"></script>
+<script src="/clubmanager/assets/app.js"></script>
 <script>
 (()=>{'use strict';
 const A=window.CSPClubManager,$=id=>document.getElementById(id);
