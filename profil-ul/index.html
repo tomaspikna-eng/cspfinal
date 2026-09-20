@@ -1467,7 +1467,7 @@ async function loadVenuesSummary(){
     if(!club){
       countEl.textContent = 'Najprv si vytvor klub.';
       linkEl.textContent = 'Vytvoriť klub →';
-      linkEl.href = '/manager/Dashboard%20obsluhy/';
+      linkEl.href = 'https://cspmanager.app/dashboard/';
       return;
     }
     const { count, error: venuesError } = await cspAuth.withTimeout(
