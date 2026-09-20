@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kalendár — CSP Club Manager</title>
-<link rel="stylesheet" href="../assets/styles.css">
+<link rel="stylesheet" href="/clubmanager/assets/styles.css">
 <style>
 :root{--hour-width:118px;--row-height:78px;--start-hour:8;--end-hour:24;--free:#163d28;--free-border:#267c4c;--busy:#5b1717;--busy-border:#cf4c4c;--event:#6d42a8}
 .calendar-toolbar,.modebar,.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:13px}
@@ -51,7 +51,7 @@ box-shadow:inset 0 0 0 1px rgba(38,124,76,.2)}
 </head>
 <body>
 <div class="app">
-<aside class="sidebar"><div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div><a class="nav-link" href="../dashboard/">📊 Dashboard</a><a class="nav-link active" href="../reservations/">📅 Kalendár</a><a class="nav-link" href="../venues/">🎱 Športoviská</a></aside>
+<aside class="sidebar"><div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div><a class="nav-link" href="/clubmanager/dashboard/">📊 Dashboard</a><a class="nav-link active" href="/clubmanager/reservations/">📅 Kalendár</a><a class="nav-link" href="/clubmanager/venues/">🎱 Športoviská</a></aside>
 <main class="main"><header class="topbar"><div><strong id="clubName">Club Manager</strong> · Kalendár</div><button class="ghost" id="logout">Odhlásiť</button></header>
 <section class="content"><div class="page-head"><h1>Klubový kalendár</h1><p>Zelená znamená voľné. Kliknutím na voľný čas vytvoríš rezerváciu. Červená znamená obsadené.</p></div><div id="notice"></div>
 <div class="calendar-toolbar"><div><button class="view-btn active" data-view="day">Deň</button><button class="view-btn" data-view="week">Týždeň</button><button class="view-btn" data-view="month">Mesiac</button><button class="view-btn" data-view="year">Rok</button></div><div class="grow"></div><button class="ghost" id="prev">←</button><button class="ghost" id="today">Dnes</button><button class="ghost" id="next">→</button><input id="datePicker" type="date"><div class="date-title" id="dateTitle"></div></div>
@@ -71,7 +71,7 @@ box-shadow:inset 0 0 0 1px rgba(38,124,76,.2)}
 
 <div class="modal-backdrop hidden" id="eventModal"><div class="modal-card"><div class="modal-head"><h3 id="eTitle">Turnaj</h3><button class="ghost" data-close="eventModal">✕</button></div><p id="eText"></p><div class="right"><a class="primary" id="eOpen" target="_blank" rel="noopener">Otvoriť udalosť</a></div></div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/clubmanager/assets/config.js"></script><script src="/clubmanager/assets/app.js"></script>
 <script>
 (()=>{'use strict';
 const A=CSPClubManager,$=id=>document.getElementById(id),SH=8,EH=24,HW=118,SNAP=30;
