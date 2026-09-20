@@ -820,7 +820,7 @@ body{font-family:var(--font);background:radial-gradient(circle at 66% 0,rgba(32,
     <a href="/rebricky/?scope=mine" class="nav-item"><span class="icon">▤</span>Rebríčky</a>
 
     <div class="nav-section">Klub</div>
-    <a href="/manager/rezervacie/" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
+    <a href="https://cspmanager.app/reservations/" class="nav-item"><span class="icon">📅</span>Rezervácie</a>
 
   </aside>
 
@@ -1128,7 +1128,7 @@ body{font-family:var(--font);background:radial-gradient(circle at 66% 0,rgba(32,
         </div>
         <div class="settings-venues-unlocked" id="settingsVenuesUnlocked" style="display:none">
           <span id="settingsVenuesCount">Načítavam…</span>
-          <a href="/manager/sportoviska/" class="settings-upgrade-link" id="settingsVenuesManageLink">Spravovať →</a>
+          <a href="https://cspmanager.app/venues/" class="settings-upgrade-link" id="settingsVenuesManageLink">Spravovať →</a>
         </div>
       </div>
     </div>
@@ -1479,7 +1479,7 @@ async function loadVenuesSummary(){
     const word = n === 1 ? 'športovisko' : (n >= 2 && n <= 4 ? 'športoviská' : 'športovísk');
     countEl.textContent = n + ' ' + word;
     linkEl.textContent = 'Spravovať →';
-    linkEl.href = '/manager/sportoviska/';
+    linkEl.href = 'https://cspmanager.app/venues/';
   }catch(err){
     console.error('[profil] Could not load venues summary:', err);
     countEl.textContent = 'Nepodarilo sa načítať.';
