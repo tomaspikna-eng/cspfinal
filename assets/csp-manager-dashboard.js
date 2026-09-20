@@ -109,7 +109,7 @@
   function openScoreboard(stationId) {
     const station = stations.find(item => item.id === stationId);
     if (!station) return;
-    const params = new URLSearchParams({station:station.name,station_id:station.id,sport:station.sport || 'billiard',race:'5',players:'2',from:location.href});
+    const params = new URLSearchParams({station:station.name,station_id:station.id,sport:station.sport || 'billiard',players:'2',from:location.href});
     window.open(`/scoreboard/?${params}`,'_blank','noopener');
   }
 
