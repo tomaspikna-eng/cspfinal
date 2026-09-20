@@ -43,9 +43,22 @@
 .club-hub-mark{display:inline-flex;align-items:center;height:30px;margin-top:12px;padding:0 11px;border:1px solid #2d7048;border-radius:4px;background:rgba(88,223,138,.07);color:var(--green);font-size:9px;font-weight:900;letter-spacing:.18em}
 .ultra-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}.ultra-shortcuts a{min-height:67px;padding:12px;border:1px solid var(--line);border-radius:7px;background:#0d1112}.ultra-shortcuts a:hover{border-color:#315e43;background:#101613}.ultra-shortcuts b,.ultra-shortcuts span{display:block}.ultra-shortcuts b{font-size:10px}.ultra-shortcuts span{margin-top:5px;color:#8f9698;font-size:8px}
 .settings-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.7);place-items:center;padding:20px}.settings-overlay.show{display:grid}.settings-card{width:min(480px,100%);border:1px solid var(--line);border-radius:12px;background:#0b0f10;box-shadow:0 25px 70px #000;padding:20px}.settings-card h2{margin:0;color:var(--gold);font-size:18px}.settings-card p{margin:6px 0 18px;color:var(--muted);font-size:9px}.settings-field{display:grid;gap:6px;margin:10px 0}.settings-field label{font-size:9px;color:#aeb4b6}.settings-field input{height:42px;border:1px solid #343b3e;border-radius:7px;background:#111617;color:#fff;padding:0 11px;outline:none}.settings-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.settings-actions button{height:40px;padding:0 15px;border-radius:7px;font-size:10px;font-weight:700}.settings-cancel{border:1px solid #343b3e;background:#0d1112}.settings-save{border:0;background:var(--green);color:#05200e}
+/* ULTRA: gold navigation, green create actions */
+body .sidebar .nav a:not(.plan-create),body .sidebar .nav a:not(.plan-create) .nav-icon{color:var(--gold)}
+body .sidebar .nav a.active:before{background:var(--gold)}
+body .sidebar .nav .plan-create,body .sidebar .nav .plan-create .nav-icon{color:var(--green)}
+body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
+.venue-list{display:grid;gap:8px;margin-top:12px}.venue-row{min-height:58px;display:grid;grid-template-columns:42px 1fr auto;gap:11px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#0d1112}.venue-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(228,187,98,.08);color:var(--gold);font-weight:900}.venue-row b,.venue-row span{display:block}.venue-row b{font-size:10px}.venue-row span{margin-top:4px;color:var(--muted);font-size:8px}.venue-state{color:var(--green);font-size:8px;font-weight:800}
+.ultra-reservations .ach-head h2,.ultra-reservations .trophy,.ultra-reservations .how{color:var(--gold)}
+.reservation-calendar-head{height:46px;display:grid;grid-template-columns:34px 1fr 34px;gap:8px;align-items:center;margin:4px 0 10px}.reservation-calendar-head button{height:32px;border:1px solid #5c4a28;border-radius:6px;background:#11120f;color:var(--gold);cursor:pointer}.reservation-calendar-head strong{text-align:center;color:var(--gold);font-size:12px}
+.reservation-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.reservation-day{min-height:68px;padding:8px 5px;border:1px solid var(--line);border-radius:7px;background:#0d1112;text-align:center}.reservation-day.today{border-color:var(--gold);background:rgba(228,187,98,.06)}.reservation-day span,.reservation-day b,.reservation-day small{display:block}.reservation-day span{color:#8f9698;font-size:7px;text-transform:uppercase}.reservation-day b{margin-top:4px;font-size:15px}.reservation-day small{margin-top:5px;color:var(--gold);font-size:8px}
+.reservation-list-panel{margin-top:16px;padding:15px;border:1px solid #5c4a28;border-radius:9px;background:linear-gradient(145deg,rgba(228,187,98,.06),rgba(10,13,14,.7))}.public-reservation-list{display:grid;gap:7px;margin-top:10px}.public-reservation{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:9px;border:1px solid var(--line);border-radius:7px;background:#0c1011}.public-reservation time{color:var(--gold);font-size:9px;font-weight:800}.public-reservation b,.public-reservation span{display:block}.public-reservation b{font-size:9px}.public-reservation span{margin-top:3px;color:#969da0;font-size:8px}
+.settings-card-wide{width:min(720px,100%);max-height:90vh;overflow:auto}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.settings-span{grid-column:1/-1}.settings-section-title{margin:18px 0 10px;color:var(--gold);font-size:12px}.opening-hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.opening-row{display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:center}.opening-row label{color:var(--gold);font-size:9px;font-weight:800}.opening-row input{height:38px;border:1px solid #343b3e;border-radius:7px;background:#111617;color:#fff;padding:0 10px;outline:none;font-size:9px}
+@media(max-width:620px){.settings-grid,.opening-hours-grid{grid-template-columns:1fr}.settings-span{grid-column:auto}.reservation-week{grid-template-columns:repeat(4,1fr)}}
+
 </style>
 <script src="/assets/csp-notifications.js" defer></script>
-<script src="/assets/csp-ultra-profile.js?v=20260920-1" defer></script>
+<script src="/assets/csp-ultra-profile.js?v=20260920-2" defer></script>
 </head>
 <body>
   <div class="page-state" id="pageState">Načítavam klubový profil…</div>
@@ -88,22 +101,39 @@
         </section>
 
         <section class="lower-grid">
-          <article class="content-panel"><div class="panel-title"><h2>Aktivita klubu</h2><a href="https://cspmanager.app/dashboard/">Otvoriť Club Manager</a></div><div id="activityList"><div class="empty-row">Zatiaľ bez zaznamenanej aktivity.</div></div></article>
-          <article class="content-panel player-hub"><div class="panel-title"><h2>ULTRA centrum</h2><span class="profile-live">CSP</span></div><div class="club-hub-mark">CLUB</div><p class="player-hub-copy">Rýchly prístup k prevádzke, rezerváciám a personálu klubu.</p><div class="ultra-shortcuts"><a href="https://cspmanager.app/dashboard/"><b>Club Manager</b><span>Prevádzka a stanice</span></a><a href="https://cspmanager.app/reservations/"><b>Rezervácie</b><span>Online, telefón, bar</span></a><a href="https://cspmanager.app/reports/"><b>Reporty</b><span>Vyťaženosť a tržby</span></a><a href="https://cspmanager.app/personal/"><b>Personál</b><span>Zamestnanci a smeny</span></a></div></article>
+          <article class="content-panel"><div class="panel-title"><h2>Aktivita klubu</h2><a href="/kalendar-turnajov/">Kalendár →</a></div><div id="activityList"><div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div></div></article>
+          <article class="content-panel"><div class="panel-title"><h2>Športoviská</h2><a href="https://cspmanager.app/venues/">Spravovať →</a></div><div id="venueList" class="venue-list"><div class="empty-row">Žiadne športoviská.</div></div></article>
         </section>
       </div>
     </main>
 
-    <aside class="achievements">
-      <header class="ach-head"><span class="trophy">⚙</span><div><h2>Club Manager</h2><p>Prevádzka klubu</p></div><a class="how" href="https://cspmanager.app/dashboard/">Otvoriť →</a></header>
-      <section class="points-box"><div class="point-cell"><span>Stanice</span><strong id="rightStations">0</strong></div><div class="point-cell"><div class="unlock-count"><span>Rezervácie dnes</span><strong id="rightReservations">0</strong></div><div class="progress-line"><span class="bar"><i id="utilizationBar" style="width:0"></i></span><em id="utilizationLabel">0%</em></div></div></section>
-      <section class="challenge-panel" style="margin-top:18px"><header class="challenge-head"><div><h3>Prevádzka</h3><p>Rýchle vstupy do ULTRA modulov</p></div></header><div class="challenge-list">
-        <a class="challenge-overview-card" href="https://cspmanager.app/dashboard/"><span class="challenge-symbol">CM</span><span class="challenge-copy"><b>Dashboard</b><small>Stanice a aktuálna prevádzka</small></span></a>
-        <a class="challenge-overview-card gold" href="https://cspmanager.app/reservations/"><span class="challenge-symbol">R</span><span class="challenge-copy"><b>Rezervácie</b><small>Kalendár a dostupnosť</small></span></a>
-        <a class="challenge-overview-card platinum" href="https://cspmanager.app/personal/"><span class="challenge-symbol">P</span><span class="challenge-copy"><b>Personál</b><small>Dochádzka a smeny</small></span></a>
-      </div></section>
+    <aside class="achievements ultra-reservations">
+      <header class="ach-head"><span class="trophy">▣</span><div><h2>Rezervačný kalendár</h2><p>Verejný prehľad rezervácií klubu</p></div><a class="how" href="https://cspmanager.app/rezervacnykalendar/">Otvoriť →</a></header>
+      <section class="reservation-calendar-head">
+        <button id="calendarPrev" type="button">‹</button>
+        <strong id="calendarTitle">—</strong>
+        <button id="calendarNext" type="button">›</button>
+      </section>
+      <section class="reservation-week" id="reservationWeek"></section>
+      <section class="reservation-list-panel">
+        <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
+        <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
+      </section>
     </aside>
   </div>
 
-  <div class="settings-overlay" id="settingsOverlay"><div class="settings-card"><h2>Nastavenia profilu</h2><p>Základné údaje klubového profilu.</p><div class="settings-field"><label>Názov klubu</label><input id="settingsName"></div><div class="settings-field"><label>Popis / motto</label><input id="settingsBio"></div><div class="settings-actions"><button class="settings-cancel" id="settingsCancel">Zrušiť</button><button class="settings-save" id="settingsSave">Uložiť</button></div></div></div>
+  <div class="settings-overlay" id="settingsOverlay"><div class="settings-card settings-card-wide">
+  <h2>Nastavenia profilu</h2><p>Údaje klubu zobrazované v CSP a rezervačnom systéme.</p>
+  <div class="settings-grid">
+    <div class="settings-field"><label>Názov klubu</label><input id="settingsName"></div>
+    <div class="settings-field"><label>Popis / motto</label><input id="settingsBio"></div>
+    <div class="settings-field settings-span"><label>Adresa</label><input id="settingsAddress" placeholder="Ulica a číslo"></div>
+    <div class="settings-field"><label>PSČ</label><input id="settingsPostalCode"></div>
+    <div class="settings-field"><label>Mesto</label><input id="settingsCity"></div>
+    <div class="settings-field settings-span"><label>Krajina</label><input id="settingsCountry" placeholder="Slovensko"></div>
+  </div>
+  <h3 class="settings-section-title">Otváracie hodiny</h3>
+  <div class="opening-hours-grid"><div class="opening-row"><label>Po</label><input id="settingsMon" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>Ut</label><input id="settingsTue" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>St</label><input id="settingsWed" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>Št</label><input id="settingsThu" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>Pi</label><input id="settingsFri" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>So</label><input id="settingsSat" placeholder="18:00-01:00 alebo zatvorené"></div><div class="opening-row"><label>Ne</label><input id="settingsSun" placeholder="18:00-01:00 alebo zatvorené"></div></div>
+  <div class="settings-actions"><button class="settings-cancel" id="settingsCancel">Zrušiť</button><button class="settings-save" id="settingsSave">Uložiť</button></div>
+</div></div>
 </body>
