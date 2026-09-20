@@ -89,7 +89,7 @@ function renderActivity(tournaments,events){
 function renderVenues(){
   $('venueList').innerHTML=venues.length?venues.slice(0,5).map(v=>{
     const tag=publicMode?'div':'a';
-    const href=publicMode?'':' href="https://cspmanager.app/venues/"';
+    const href=publicMode?'':' href="/clubmanager/venues/"';
     return `<${tag} class="venue-row"${href}><span class="venue-icon">◎</span><span><b>${esc(v.name||'Športovisko')}</b><span>${esc([v.sport,v.description].filter(Boolean).join(' · ')||'Bez popisu')}</span></span><span class="venue-state">${v.is_active===false?'NEAKTÍVNE':'AKTÍVNE'}</span></${tag}>`;
   }).join(''):'<div class="empty-row">Žiadne športoviská.</div>';
 }
