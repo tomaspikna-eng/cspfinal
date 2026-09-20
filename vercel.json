@@ -57,7 +57,7 @@
           "value": "cspmanager.app"
         }
       ],
-      "destination": "/manager/"
+      "destination": "/clubmanager/"
     }
   ]
 }
