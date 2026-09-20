@@ -1,5 +1,5 @@
 <!doctype html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard — CSP Club Manager</title><link rel="stylesheet" href="../assets/styles.css">
+<title>Dashboard — CSP Club Manager</title><link rel="stylesheet" href="/clubmanager/assets/styles.css">
 <style>
 .offline-banner{display:none;background:#a33;color:#fff;padding:8px 16px;text-align:center;font-weight:700}.offline .offline-banner{display:block}
 .station-actions,.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.action[disabled]{opacity:.45;cursor:wait}
@@ -12,23 +12,23 @@
 <div class="app"><aside class="sidebar">
   <div class="brand"><div class="brand-mark">C</div><div><div class="brand-name"><span>Connect</span>Sports<span>Pro</span></div><div class="brand-sub">Club Manager</div></div></div>
   <nav aria-label="Club Manager">
-    <a class="nav-link active" href="../dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
-    <a class="nav-link " href="../reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
-    <a class="nav-link" href="../personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
-    <a class="nav-link " href="../reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
-    <a class="nav-link " href="../venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
+    <a class="nav-link active" href="/clubmanager/dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg></span>Dashboard</a>
+    <a class="nav-link " href="/clubmanager/reports/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7M2 20h22"/></svg></span>Prehľad prevádzky</a>
+    <a class="nav-link" href="/clubmanager/personal/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 14a5 5 0 0 1 8 4v3"/></svg></span>Personál</a>
+    <a class="nav-link " href="/clubmanager/reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"/><path d="M8 13h3M13 13h3M8 16h3"/></svg></span>Rezervácie</a>
+    <a class="nav-link " href="/clubmanager/venues/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="m12 3 2 6M21 12l-6 2M12 21l-2-6M3 12l6-2"/></svg></span>Športoviská</a>
   </nav>
 </aside>
 <main class="main"><header class="topbar"><div><strong id="clubName">Club Manager</strong> · Dashboard</div><div style="display:flex;gap:8px;align-items:center"><a class="ghost" href="/profil-ul/">← Späť na profil</a><button class="ghost" id="logout">Odhlásiť</button></div></header>
 <section class="content"><div class="page-head"><h1>Live prevádzka</h1><p>Stanice, rezervácie, upozornenia a platby v jednom pohľade.</p></div>
 <div id="notice"></div><div class="alerts" id="alerts"></div><div class="stats" id="stats"></div>
 <div class="toolbar"><input id="search" placeholder="Hľadať športovisko..."><div class="chips" id="chips"></div><label style="display:flex;align-items:center;gap:8px;margin-left:auto">Upozorniť na rezerváciu<input id="reservationAlertMinutes" type="number" min="0" max="1440" step="5" style="width:90px"><span>min. vopred</span><button class="ghost" id="saveAlertMinutes">Uložiť</button></label></div><div class="grid" id="grid"><div class="empty">Načítavam…</div></div></section></main></div>
-<nav class="bottom-nav" style="grid-template-columns:repeat(5,1fr)"><a href="../dashboard/">Dashboard</a><a href="../reports/">Prehľad</a><a href="../reservations/">Rezervácie</a><a href="../venues/">Stanice</a><a href="#" id="logoutMobile">Odhlásiť</a></nav>
+<nav class="bottom-nav" style="grid-template-columns:repeat(5,1fr)"><a href="/clubmanager/dashboard/">Dashboard</a><a href="/clubmanager/reports/">Prehľad</a><a href="/clubmanager/reservations/">Rezervácie</a><a href="/clubmanager/venues/">Stanice</a><a href="#" id="logoutMobile">Odhlásiť</a></nav>
 <div class="modal hidden" id="adjustModal"><div class="modal-card"><h3>Manuálna korekcia</h3><div class="modal-grid">
 <label>Celkový čas v minútach<input id="adjustMinutes" type="number" min="0" step="1"></label><label>Korekcia ceny €<input id="adjustAmount" type="number" step=".01" value="0"></label><label>Dôvod<textarea id="adjustNote" rows="3"></textarea></label></div>
 <div class="modal-actions"><button class="ghost" onclick="closeModal('adjustModal')">Zrušiť</button><button class="primary" id="adjustConfirm">Uložiť korekciu</button></div></div></div>
 <div class="modal hidden" id="qrModal"><div class="modal-card qr-card"><h3 id="qrStationName">QR kód športoviska</h3><p id="qrStationSport"></p><div class="qr-code" id="qrCode"></div><a class="qr-url" id="qrUrl" href="#" target="_blank" rel="noopener"></a><p class="qr-hint">Naskenujte QR kód a otvorte verejný scoreboard bez prihlásenia.</p><div class="modal-actions"><button class="ghost" onclick="closeModal('qrModal')">Zavrieť</button><a class="primary" id="openScoreboard" href="#" target="_blank" rel="noopener">Otvoriť scoreboard</a></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="/clubmanager/assets/config.js"></script><script src="/clubmanager/assets/app.js"></script><script>
 const A=CSPClubManager,$=id=>document.getElementById(id);let ctx,stations=[],sessions=[],profiles=[],reservations=[],sport='all',channel,busy=new Set(),selectedSession,reservationAlertWindow=10;
 logout.onclick=A.logout;logoutMobile.onclick=e=>{e.preventDefault();A.logout()};search.oninput=render;
 function closeModal(id){$(id).classList.add('hidden')}window.closeModal=closeModal;
