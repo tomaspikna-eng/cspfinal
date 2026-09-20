@@ -63,7 +63,8 @@ function injectLanguageControl(){
   const topbar=document.querySelector('.topbar');
   const logout=topbar?.querySelector('#logout');
   if(topbar){
-    if(logout)topbar.insertBefore(wrap,logout);else topbar.appendChild(wrap);
+    const host=logout?.parentElement&&topbar.contains(logout.parentElement)?logout.parentElement:topbar;
+    if(logout&&logout.parentElement===host)host.insertBefore(wrap,logout);else host.appendChild(wrap);
   }else{
     wrap.style.cssText='position:fixed;top:16px;right:16px;z-index:5000';
     document.body.appendChild(wrap);
