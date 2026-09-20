@@ -1,0 +1,1 @@
+grant select, insert, update, delete on table public.club_employee_leave_requests to authenticated;
