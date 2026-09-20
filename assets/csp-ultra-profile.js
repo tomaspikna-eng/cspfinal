@@ -86,12 +86,33 @@ function renderActivity(tournaments,events){
   $('activityList').innerHTML=items.length?items.slice(0,5).map(x=>`<a class="activity-row" href="${esc(x.href)}"><span class="activity-symbol">${esc(x.icon)}</span><div><b>${esc(x.title)}</b><p>${esc(x.body||'')}</p></div><time>${x.time?new Date(x.time).toLocaleDateString('sk-SK'):'—'}</time></a>`).join(''):'<div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div>';
 }
 
-function renderVenues(){
-  $('venueList').innerHTML=venues.length?venues.slice(0,5).map(v=>{
-    const tag=publicMode?'div':'a';
-    const href=publicMode?'':' href="/clubmanager/venues/"';
-    return `<${tag} class="venue-row"${href}><span class="venue-icon">◎</span><span><b>${esc(v.name||'Športovisko')}</b><span>${esc([v.sport,v.description].filter(Boolean).join(' · ')||'Bez popisu')}</span></span><span class="venue-state">${v.is_active===false?'NEAKTÍVNE':'AKTÍVNE'}</span></${tag}>`;
-  }).join(''):'<div class="empty-row">Žiadne športoviská.</div>';
+function normalizeOpeningValue(value){
+  const raw=String(value||'').trim();
+  if(!raw)return 'Nenastavené';
+  if(/zatvor|closed/i.test(raw))return 'Zatvorené';
+  let m=raw.match(/^(\d{1,2})(?::(\d{2}))?\s*[-–]\s*(\d{1,2})(?::(\d{2}))?$/);
+  if(m){
+    const sh=String(Math.min(23,Number(m[1]))).padStart(2,'0'),sm=String(Number(m[2]||0)).padStart(2,'0');
+    const eh=String(Math.min(24,Number(m[3]))).padStart(2,'0'),em=String(Number(m[4]||0)).padStart(2,'0');
+    return sh+':'+sm+'–'+eh+':'+em;
+  }
+  m=raw.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/);
+  if(m&&Number(m[1])<=24&&Number(m[2])<=24){
+    return String(Number(m[1])).padStart(2,'0')+':00–'+String(Number(m[2])).padStart(2,'0')+':00';
+  }
+  return raw;
+}
+
+function renderOpeningHours(){
+  const labels=['Pondelok','Utorok','Streda','Štvrtok','Piatok','Sobota','Nedeľa'];
+  const hours=club?.opening_hours||{};
+  const target=$('openingHoursList');
+  if(!target)return;
+  target.innerHTML=dayKeys.map((key,i)=>{
+    const value=normalizeOpeningValue(hours[key]);
+    const closed=value==='Zatvorené';
+    return `<div class="venue-row"><span class="venue-icon">◷</span><span><b>${labels[i]}</b><span>${esc(value)}</span></span><span class="venue-state">${closed?'ZATVORENÉ':'OTVORENÉ'}</span></div>`;
+  }).join('');
 }
 
 function renderReservationCalendar(){
@@ -148,7 +169,7 @@ async function loadPublic(){
 
   renderIdentity();
   renderActivity(publicTournaments,publicEvents);
-  renderVenues();
+  renderOpeningHours();
   renderReservationCalendar();
 
   $('statTournaments').textContent=String(publicTournaments.length);
@@ -232,7 +253,7 @@ async function loadPrivate(){
   $('employeeCount').textContent=String(employees);
 
   renderActivity(tournaments,events);
-  renderVenues();
+  renderOpeningHours();
   renderReservationCalendar();
   $('pageState').hidden=true;
 }
@@ -268,7 +289,7 @@ $('settingsSave')?.addEventListener('click',async()=>{
     };
     const {data:updated,error:clubError}=await auth.client.from('clubs').update(clubPatch).eq('id',club.id).select('id,name,created_at,address_line1,postal_code,city,country,opening_hours').single();
     if(clubError)throw clubError;
-    profile.full_name=name||profile.full_name;profile.bio=bio||null;club=updated;renderIdentity();closeSettings();
+    profile.full_name=name||profile.full_name;profile.bio=bio||null;club=updated;renderIdentity();renderOpeningHours();closeSettings();
   }catch(err){alert(err.message||'Profil sa nepodarilo uložiť.')}
   finally{btn.disabled=false;btn.textContent='Uložiť'}
 });
