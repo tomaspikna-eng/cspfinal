@@ -68,18 +68,18 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
     <header class="topbar">
       <form class="search" id="globalSearch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 5 5"></path></svg><input id="globalSearchInput" type="search" placeholder="Hľadať hráčov, kluby a turnaje..."></form>
       <div class="account" id="accountToggle"><button class="notification" id="notificationButton" type="button" aria-label="Notifikácie"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></button><span class="account-avatar" id="accountAvatar">–</span><span class="account-name" id="accountName">Klub</span><span class="chevron"></span>
-        <div class="account-menu" id="accountMenu"><button id="profileSettingsBtn">⚙ Nastavenia profilu</button><a href="https://cspmanager.app/dashboard/">⚙ Club Manager</a><div class="sep"></div><button class="danger" id="logoutBtn">↪ Odhlásiť sa</button></div>
+        <div class="account-menu" id="accountMenu"><button id="profileSettingsBtn">⚙ Nastavenia profilu</button><a href="/clubmanager/dashboard/">⚙ Club Manager</a><div class="sep"></div><button class="danger" id="logoutBtn">↪ Odhlásiť sa</button></div>
       </div>
     </header>
 
     <aside class="sidebar" id="sidebar"><nav class="nav" aria-label="Hlavná navigácia">
       <a href="/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10h-6v-7H9v7H3Z"></path></svg></span>Domov</a>
       <a class="active" href="/profil-ul/"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"></circle><path d="M4 22a8 8 0 0 1 16 0"></path></svg></span>Profil</a>
-      <a href="https://cspmanager.app/dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"></path></svg></span>Club Manager</a>
+      <a href="/clubmanager/dashboard/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"></path></svg></span>Club Manager</a>
       <a href="/ligy/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11M9 20v-6h6v6M3 20h18"></path></svg></span>Ligy</a>
       <a href="/turnament/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0ZM8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v5M8 21h8M9 18h6"></path></svg></span>Turnaje</a>
       <a href="/rebricky/?scope=mine"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V7M2 20h20"></path></svg></span>Rebríčky</a>
-      <a href="https://cspmanager.app/reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"></path></svg></span>Rezervácie</a>
+      <a href="/clubmanager/reservations/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14v14H5Z"></path></svg></span>Rezervácie</a>
       <span class="nav-divider" aria-hidden="true"></span>
       <a class="plan-create" href="/turnament/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path><circle cx="12" cy="12" r="9"></circle></svg></span>Vytvoriť turnaj</a>
       <a class="plan-create" href="/ligy/"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path><circle cx="12" cy="12" r="9"></circle></svg></span>Vytvoriť ligu</a>
@@ -91,7 +91,7 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
         <div class="portrait-wrap"><div class="portrait" id="profilePortrait"><img id="profileAvatar" alt="" hidden><span class="portrait-mark" id="profileInitials">–</span></div><span class="online"></span></div>
         <div class="identity"><div class="name-row"><h1 id="profileName">Klub</h1><span class="pro-badge profile-plan-badge-pro-plus">ULTRA</span></div><div class="meta"><strong id="profileLocationLine">Klubový účet</strong><span class="dot">•</span><span id="memberSince">Člen CSP</span></div><p class="quote" id="profileQuote">„Všetko okolo klubu v jednom systéme.“</p><div class="location"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7m0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6"></path></svg><span id="profileLocation">Connect Sports Pro</span></div></div>
         <div class="profile-right"><button class="edit-profile" id="editProfile" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.5 1a8 8 0 0 0-1.7-1L14.3 3h-4.1L9.7 6a8 8 0 0 0-1.7 1L5.5 6 3.5 9.5 5.5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5L8 17a8 8 0 0 0 1.7 1l.5 3h4.1l.5-3a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2-1.5a7 7 0 0 0 .1-1Z"></path></svg>Upraviť profil</button><div class="statistics"><div class="stat"><strong id="statTournaments">0</strong><span>Turnaje</span></div><div class="stat"><strong id="statReservations">0</strong><span>Rezervácie</span></div><div class="stat"><strong id="statVenues">0</strong><span>Športoviská</span></div></div></div>
-      </div><div class="profile-tabs"><button class="active">Prehľad</button><button data-route="/turnament/">Turnaje</button><button data-route="/ligy/">Ligy</button><button data-route="/rebricky/?scope=mine">Rebríčky</button><button data-route="https://cspmanager.app/dashboard/">Club Manager</button></div></section>
+      </div><div class="profile-tabs"><button class="active">Prehľad</button><button data-route="/turnament/">Turnaje</button><button data-route="/ligy/">Ligy</button><button data-route="/rebricky/?scope=mine">Rebríčky</button><button data-route="/clubmanager/dashboard/">Club Manager</button></div></section>
 
       <div class="overview">
         <section class="metric-grid">
@@ -102,13 +102,13 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 
         <section class="lower-grid">
           <article class="content-panel"><div class="panel-title"><h2>Aktivita klubu</h2><a href="/kalendar-turnajov/">Kalendár →</a></div><div id="activityList"><div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div></div></article>
-          <article class="content-panel"><div class="panel-title"><h2>Športoviská</h2><a href="https://cspmanager.app/venues/">Spravovať →</a></div><div id="venueList" class="venue-list"><div class="empty-row">Žiadne športoviská.</div></div></article>
+          <article class="content-panel"><div class="panel-title"><h2>Športoviská</h2><a href="/clubmanager/venues/">Spravovať →</a></div><div id="venueList" class="venue-list"><div class="empty-row">Žiadne športoviská.</div></div></article>
         </section>
       </div>
     </main>
 
     <aside class="achievements ultra-reservations">
-      <header class="ach-head"><span class="trophy">▣</span><div><h2>Rezervačný kalendár</h2><p>Verejný prehľad rezervácií klubu</p></div><a class="how" href="https://cspmanager.app/rezervacnykalendar/">Otvoriť →</a></header>
+      <header class="ach-head"><span class="trophy">▣</span><div><h2>Rezervačný kalendár</h2><p>Verejný prehľad rezervácií klubu</p></div><a class="how" href="/clubmanager/rezervacnykalendar/">Otvoriť →</a></header>
       <section class="reservation-calendar-head">
         <button id="calendarPrev" type="button">‹</button>
         <strong id="calendarTitle">—</strong>
