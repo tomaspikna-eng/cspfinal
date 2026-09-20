@@ -1,3 +1,18 @@
+alter table public.notifications
+  drop constraint if exists notifications_type_check;
+
+alter table public.notifications
+  add constraint notifications_type_check
+  check (notification_type = any (array[
+    'new_follower','profile_respect',
+    'club_membership_request','club_membership_invite','club_membership_approved','club_membership_rejected','club_membership_cancelled','club_membership_left','club_membership_removed',
+    'federation_registration_request','federation_registration_invite','federation_registration_approved','federation_registration_rejected','federation_registration_cancelled','federation_registration_left','federation_registration_removed',
+    'followed_player_training','followed_player_match','followed_player_tournament_result',
+    'followed_entity_event','followed_entity_tournament',
+    'ihs_welcome','welcome',
+    'followed_event_series_round_result','achievement_unlocked','challenge_completed'
+  ]));
+
 create or replace function public.init_ihs_for_profile()
 returns trigger
 language plpgsql
