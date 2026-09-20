@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aktivácia pracovného účtu — CSP</title>
+<link rel="stylesheet" href="/clubmanager/assets/styles.css">
+<style>
+body{min-height:100vh;display:grid;place-items:center;background:#070b0c;padding:20px}
+.activate-card{width:min(520px,100%);background:#0d1315;border:1px solid #263035;border-radius:16px;padding:24px}
+.activate-brand{color:#e4bb62;font-weight:900;margin-bottom:18px}
+.activate-card h1{margin:0 0 8px;font-size:28px}
+.activate-card p{color:#95a2a7;line-height:1.5}
+.field{display:grid;gap:6px;margin-top:14px}.field label{font-size:12px;color:#95a2a7;font-weight:700}
+.field input{width:100%;background:#080d0f;color:#fff;border:1px solid #263035;border-radius:9px;padding:11px 12px}
+.actions{display:flex;gap:8px;margin-top:18px}.actions button{flex:1}
+.notice{margin-top:14px}.meta{margin:14px 0;padding:12px;border:1px solid #263035;border-radius:10px;background:#0a0f10;font-size:13px}
+.meta span{display:block;color:#95a2a7;font-size:11px;margin-bottom:3px}.ok{color:#58df8a}.bad{color:#ff8a8a}
+</style>
+</head>
+<body>
+<main class="activate-card">
+  <div class="activate-brand">ConnectSportsPro · Club Manager</div>
+  <h1>Aktivácia pracovného účtu</h1>
+  <p id="intro">Overujem aktivačný odkaz…</p>
+
+  <div id="accountMeta" class="meta" hidden>
+    <span>E-mail</span><b id="accountEmail">—</b>
+  </div>
+
+  <div id="formWrap" hidden>
+    <div class="field"><label>Nové heslo<input id="password1" type="password" minlength="8" autocomplete="new-password"></label></div>
+    <div class="field"><label>Zopakuj heslo<input id="password2" type="password" minlength="8" autocomplete="new-password"></label></div>
+    <div class="actions"><button class="primary" id="activateBtn">Aktivovať účet</button></div>
+  </div>
+
+  <div id="notice" class="notice"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/clubmanager/assets/config.js"></script>
+<script>
+(async()=>{
+  const cfg=window.CSP_CM_CONFIG;
+  const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{detectSessionInUrl:true,persistSession:true}});
+  const intro=document.getElementById('intro'),formWrap=document.getElementById('formWrap'),notice=document.getElementById('notice');
+  const accountMeta=document.getElementById('accountMeta'),accountEmail=document.getElementById('accountEmail');
+  const password1=document.getElementById('password1'),password2=document.getElementById('password2'),activateBtn=document.getElementById('activateBtn');
+
+  try{
+    const code=new URLSearchParams(location.search).get('code');
+    if(code){
+      const {error}=await db.auth.exchangeCodeForSession(code);
+      if(error)throw error;
+      history.replaceState({},'',location.pathname);
+    }
+
+    let {data:{session},error}=await db.auth.getSession();
+    if(error)throw error;
+
+    if(!session){
+      await new Promise(resolve=>setTimeout(resolve,500));
+      ({data:{session},error}=await db.auth.getSession());
+      if(error)throw error;
+    }
+
+    if(!session){
+      intro.textContent='Aktivačný odkaz je neplatný alebo už vypršal.';
+      notice.innerHTML='<span class="bad">Požiadaj manažéra o nové odoslanie aktivácie.</span>';
+      return;
+    }
+
+    intro.textContent='Nastav si heslo pre pracovný účet.';
+    accountEmail.textContent=session.user.email||'—';
+    accountMeta.hidden=false;
+    formWrap.hidden=false;
+
+    activateBtn.onclick=async()=>{
+      notice.textContent='';
+      const p1=password1.value,p2=password2.value;
+      if(p1.length<8){notice.innerHTML='<span class="bad">Heslo musí mať aspoň 8 znakov.</span>';return}
+      if(p1!==p2){notice.innerHTML='<span class="bad">Heslá sa nezhodujú.</span>';return}
+      activateBtn.disabled=true;activateBtn.textContent='Aktivujem…';
+      try{
+        const {error:updateError}=await db.auth.updateUser({password:p1});
+        if(updateError)throw updateError;
+        const {data,error:rpcError}=await db.rpc('club_employee_complete_activation');
+        if(rpcError)throw rpcError;
+        intro.textContent='Pracovný účet je aktivovaný.';
+        formWrap.hidden=true;
+        notice.innerHTML='<span class="ok">Aktivácia bola úspešná. Toto okno môžeš zavrieť.</span>';
+      }catch(e){
+        notice.innerHTML='<span class="bad">'+String(e.message||'Aktivácia zlyhala.')+'</span>';
+      }finally{
+        activateBtn.disabled=false;activateBtn.textContent='Aktivovať účet';
+      }
+    };
+  }catch(e){
+    intro.textContent='Aktiváciu sa nepodarilo načítať.';
+    notice.innerHTML='<span class="bad">'+String(e.message||'Neplatný aktivačný odkaz.')+'</span>';
+  }
+})();
+</script>
+</body>
+</html>
