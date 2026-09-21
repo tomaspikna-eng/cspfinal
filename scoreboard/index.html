@@ -1173,9 +1173,9 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
           <label>Disciplína</label>
           <select id="discipline"></select>
         </div>
-        <div class="field">
+        <div class="field" id="playerCountWrap">
           <label>Počet hráčov</label>
-          <select id="playerCount"><option value="1">1 hráč</option><option value="2">2 hráči</option><option value="3">3 hráči</option></select>
+          <select id="playerCount"><option value="2">2 hráči</option><option value="3">3 hráči</option></select>
         </div>
         <div class="field hidden" id="soloTrainingWrap">
           <label>Solo režim</label>
@@ -2727,7 +2727,7 @@ function syncSettingsUI(){
   if(state.sport==="tennis")state.raceTo=3;
   $("sportSelect").value=state.sport;
   fillDisciplines();
-  $("playerCount").value=String(state.playerCount);
+  $("playerCount").value=String(state.playerCount===1?2:state.playerCount);
   $("raceTo").value=state.raceTo;
   $("pointsTarget").value=state.pointsTarget;
   $("setTarget").value=state.setTarget;
@@ -2748,6 +2748,7 @@ function syncSettingsUI(){
   $("setTargetWrap").classList.toggle("hidden",m!=="universal");
   $("doubleOutWrap").classList.toggle("hidden",m!=="darts");
   $("soloTrainingWrap").classList.toggle("hidden",state.sport!=="darts");
+  $("playerCountWrap").classList.toggle("hidden",state.sport==="darts"&&state.soloTraining);
   $("checkoutStartWrap").classList.toggle("hidden",state.sport!=="darts"||state.discipline!=="Tréning zatvárania");
   $("playerCount").disabled=state.soloTraining||["tabletennis","racket"].includes(m);
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
