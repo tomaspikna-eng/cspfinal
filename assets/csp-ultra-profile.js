@@ -35,6 +35,7 @@ function weekStart(base=new Date()){
   return d;
 }
 function applyPublicMode(){
+  document.body.classList.remove('is-admin');
   document.body.classList.add('public-mode');
   document.querySelectorAll('.plan-create,#editProfile,#profileSettingsBtn,#logoutBtn').forEach(el=>el?.remove());
   document.querySelectorAll('a[href^="/clubmanager/"]').forEach(el=>el.style.display='none');
@@ -194,6 +195,7 @@ async function loadPrivate(){
   const pr=await auth.getCurrentProfile(session.user);
   if(pr.error) throw pr.error;
   profile=pr.data||null;
+  document.body.classList.toggle('is-admin',!!profile?.is_admin);
 
   const role=String(profile?.role||'').toLowerCase();
   const plan=String(profile?.plan||'').toLowerCase();
