@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ADS Manager — Connect Sports Pro</title>
+<link rel="icon" href="/assets/csp-logo-mark.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" defer></script>
+<script src="/assets/csp-auth.js" defer></script>
+<style>
+:root{--bg:#08080c;--soft:#0c0c12;--card:#131319;--card2:#17171e;--line:rgba(255,255,255,.08);--fg:#f7f7f8;--muted:#8d8d99;--gold:#d4a843;--green:#26d07d;--amber:#e0a83e;--red:#e35149;--radius:12px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px Inter,Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.hidden{display:none!important}.gate{min-height:100vh;display:grid;place-items:center;color:var(--muted)}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}.sidebar{background:var(--soft);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:20px;border-bottom:1px solid var(--line);display:flex;gap:11px;align-items:center}.mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),#9f7d27);display:grid;place-items:center;color:#1a1000;font-weight:900}
+.brand b{display:block}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.15em;margin-top:3px}.nav{padding:14px 12px;flex:1}.nav button{width:100%;text-align:left;border:0;background:none;color:#aaa;padding:11px 12px;border-radius:9px;margin-bottom:4px}.nav button.active{background:rgba(212,168,67,.12);color:var(--gold);font-weight:700}.sidefoot{padding:12px;border-top:1px solid var(--line)}.sidefoot a{display:block;color:#aaa;text-decoration:none;border:1px solid var(--line);padding:10px 12px;border-radius:9px}
+.main{min-width:0}.top{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 26px;position:sticky;top:0;background:rgba(8,8,12,.92);z-index:10}.grow{flex:1}.user{border:1px solid var(--line);padding:7px 12px;border-radius:99px;color:#bbb}
+.content{max-width:1360px;margin:auto;padding:28px 26px 60px}.page-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}.page-head h1{margin:0;color:var(--gold);font-size:30px}.page-head p{color:var(--muted);margin:5px 0 0}.btn{border:1px solid var(--line);background:#18181f;color:white;padding:10px 14px;border-radius:9px;font-weight:700}.btn.primary{background:var(--gold);border:0;color:#1a1000}.btn.green{background:var(--green);border:0;color:#062212}.btn.danger{border-color:rgba(227,81,73,.45);color:#ff8c86}.btn.small{padding:7px 10px;font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px}.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}.stat span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.stat b{display:block;font-size:26px;margin-top:7px}.stat.gold b{color:var(--gold)}.stat.green b{color:var(--green)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.panel-head{display:flex;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line);gap:10px}.panel-head h2{margin:0;font-size:16px}.toolbar{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}.toolbar input,.toolbar select,.field input,.field select,.field textarea{background:#0d0d12;color:white;border:1px solid var(--line);border-radius:8px;padding:9px 10px;outline:none}.toolbar input{flex:1}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold)}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px 14px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}.table th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;background:rgba(255,255,255,.02)}.table tr:first-child th{border-top:0}.title b{display:block}.title small{display:block;color:var(--muted);margin-top:3px}.badge{display:inline-block;padding:4px 8px;border-radius:7px;font-size:11px;font-weight:700}.active{background:rgba(38,208,125,.14);color:var(--green)}.draft{background:rgba(224,168,62,.14);color:var(--amber)}.paused,.completed,.archived{background:rgba(255,255,255,.07);color:#aaa}.category-alcohol{background:rgba(227,81,73,.14);color:#ff8c86}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.placements{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px}.placement{border:1px solid var(--line);border-radius:10px;padding:13px;background:#101016}.placement b{display:block}.placement span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.empty{padding:40px;text-align:center;color:var(--muted)}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px;z-index:50}.modal-card{width:min(850px,100%);max-height:92vh;overflow:auto;background:#101017;border:1px solid var(--line);border-radius:14px;padding:18px}.modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.modal-head h3{margin:0;font-size:19px}.fields{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field{display:grid;gap:6px}.field.w2{grid-column:span 2}.field label{font-size:11px;color:var(--muted)}.field textarea{min-height:90px;resize:vertical}.checkline{display:flex;gap:8px;flex-wrap:wrap}.checkline label{border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:#bbb}.checkline input{margin-right:5px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.notice{padding:11px;border:1px solid #6a5428;background:#16130d;border-radius:9px;color:#d9c18c;font-size:12px;line-height:1.5}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#062212;padding:11px 18px;border-radius:99px;font-weight:700;z-index:100}
+@media(max-width:980px){.app{grid-template-columns:1fr}.sidebar{display:none}.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.placements{grid-template-columns:1fr}.content{padding:20px 14px}.table{display:block;overflow:auto}.fields{grid-template-columns:1fr}.field.w2{grid-column:auto}}
+</style>
+</head>
+<body>
+<div id="gate" class="gate">Overujem admin prístup…</div>
+<div id="app" class="app hidden">
+<aside class="sidebar">
+  <div class="brand"><div class="mark">C</div><div><b>ConnectSportsPro</b><small>ADS MANAGER</small></div></div>
+  <nav class="nav">
+    <button data-section="dashboard" class="active">▦ Dashboard</button>
+    <button data-section="advertisers">◆ Inzerenti</button>
+    <button data-section="campaigns">▶ Kampane</button>
+    <button data-section="placements">⌗ Reklamné plochy</button>
+    <button data-section="reports">▥ Reporty</button>
+  </nav>
+  <div class="sidefoot"><a href="/cms/">← CMS / Admin</a></div>
+</aside>
+<main class="main">
+  <div class="top"><b id="topTitle">ADS Manager</b><div class="grow"></div><span class="user" id="userLabel">Admin</span></div>
+  <div class="content">
+    <section id="sec-dashboard">
+      <div class="page-head"><div><h1>Reklamný systém</h1><p>Globálna správa reklamných partnerov a kampaní CSP.</p></div><button class="btn primary" data-new-campaign>＋ Nová kampaň</button></div>
+      <div class="stats">
+        <div class="stat gold"><span>Aktívne kampane</span><b id="stCampaigns">0</b></div>
+        <div class="stat"><span>Inzerenti</span><b id="stAdvertisers">0</b></div>
+        <div class="stat green"><span>Impresie / 30 dní</span><b id="stImpressions">0</b></div>
+        <div class="stat"><span>Kliky / 30 dní</span><b id="stClicks">0</b></div>
+        <div class="stat gold"><span>CTR / 30 dní</span><b id="stCtr">0 %</b></div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><div class="panel-head"><h2>Posledné kampane</h2><div class="grow"></div><button class="btn small" data-section-jump="campaigns">Všetky kampane</button></div><div id="dashboardCampaigns"></div></div>
+        <div class="panel"><div class="panel-head"><h2>Placementy</h2></div><div id="dashboardPlacements" class="placements"></div></div>
+      </div>
+    </section>
+
+    <section id="sec-advertisers" class="hidden">
+      <div class="page-head"><div><h1>Inzerenti</h1><p>Firmy a partneri, ktorí môžu mať reklamné kampane.</p></div><button class="btn primary" id="newAdvertiserBtn">＋ Nový inzerent</button></div>
+      <div class="panel"><div class="toolbar"><input id="advertiserSearch" placeholder="Hľadať inzerenta…"></div><div id="advertisersWrap"></div></div>
+    </section>
+
+    <section id="sec-campaigns" class="hidden">
+      <div class="page-head"><div><h1>Kampane</h1><p>Targeting, rozpočet, kreatíva a reklamné plochy.</p></div><button class="btn primary" data-new-campaign>＋ Nová kampaň</button></div>
+      <div class="panel"><div class="toolbar"><input id="campaignSearch" placeholder="Hľadať kampaň…"><select id="campaignStatusFilter"><option value="">Všetky stavy</option><option>draft</option><option>active</option><option>paused</option><option>completed</option></select></div><div id="campaignsWrap"></div></div>
+    </section>
+
+    <section id="sec-placements" class="hidden">
+      <div class="page-head"><div><h1>Reklamné plochy</h1><p>Miesta v CSP, kde reklamný engine môže zobrazovať kampane.</p></div></div>
+      <div class="panel"><div id="placementsWrap" class="placements"></div></div>
+    </section>
+
+    <section id="sec-reports" class="hidden">
+      <div class="page-head"><div><h1>Reporty</h1><p>Výkon kampaní za posledných 30 dní.</p></div></div>
+      <div class="panel"><div id="reportsWrap"></div></div>
+    </section>
+  </div>
+</main>
+</div>
+
+<div class="modal hidden" id="advertiserModal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="advertiserModalTitle">Nový inzerent</h3><div class="grow"></div><button class="btn small" data-close-modal="advertiserModal">✕</button></div>
+    <div class="fields">
+      <div class="field"><label>Názov</label><input id="advName"></div>
+      <div class="field"><label>Kategória</label><select id="advCategory"><option value="sports_equipment">Športové vybavenie</option><option value="alcohol">Alkohol</option><option value="gastro">Gastro</option><option value="local_partner">Lokálny partner</option><option value="other">Iné</option></select></div>
+      <div class="field"><label>Web</label><input id="advWebsite" placeholder="https://"></div>
+      <div class="field"><label>Kontaktný e-mail</label><input id="advEmail" type="email"></div>
+      <div class="field w2"><label>Poznámka</label><textarea id="advNotes"></textarea></div>
+    </div>
+    <div class="modal-actions"><button class="btn" data-close-modal="advertiserModal">Zrušiť</button><button class="btn primary" id="saveAdvertiserBtn">Uložiť</button></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="campaignModal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="campaignModalTitle">Nová kampaň</h3><div class="grow"></div><button class="btn small" data-close-modal="campaignModal">✕</button></div>
+    <div class="fields">
+      <div class="field w2"><label>Názov kampane</label><input id="cmpName"></div>
+      <div class="field"><label>Inzerent</label><select id="cmpAdvertiser"></select></div>
+      <div class="field"><label>Stav</label><select id="cmpStatus"><option value="draft">Koncept</option><option value="active">Aktívna</option><option value="paused">Pozastavená</option><option value="completed">Ukončená</option></select></div>
+      <div class="field"><label>Kategória</label><select id="cmpCategory"><option value="sports_equipment">Športové vybavenie</option><option value="alcohol">Alkohol</option><option value="gastro">Gastro</option><option value="local_partner">Lokálny partner</option><option value="other">Iné</option></select></div>
+      <div class="field"><label>Minimálny vek</label><input id="cmpMinAge" type="number" min="0" max="120"></div>
+      <div class="field"><label>Od</label><input id="cmpStart" type="datetime-local"></div>
+      <div class="field"><label>Do</label><input id="cmpEnd" type="datetime-local"></div>
+      <div class="field"><label>Cenový model</label><select id="cmpPricing"><option value="fixed">Fixná cena</option><option value="cpm">CPM</option><option value="cpc">CPC</option></select></div>
+      <div class="field"><label>Rozpočet €</label><input id="cmpBudget" type="number" min="0" step="0.01"></div>
+      <div class="field w2"><label>Krajiny — ISO kódy oddelené čiarkou</label><input id="cmpCountries" placeholder="SK,CZ,DE,PL"></div>
+      <div class="field w2"><label>Športy — interné kódy oddelené čiarkou</label><input id="cmpSports" placeholder="billiard,darts,bowling"></div>
+      <div class="field w2"><label>Plány</label><div class="checkline" id="planChecks"><label><input type="checkbox" value="free">FREE</label><label><input type="checkbox" value="pro">PRO</label><label><input type="checkbox" value="pro_plus">PRO+</label><label><input type="checkbox" value="ultra">ULTRA</label></div></div>
+      <div class="field w2"><label>Reklamné plochy</label><div class="checkline" id="placementChecks"></div></div>
+      <div class="field w2"><label>Titulok reklamy</label><input id="cmpTitle"></div>
+      <div class="field w2"><label>Text reklamy</label><textarea id="cmpBody"></textarea></div>
+      <div class="field"><label>Obrázok URL</label><input id="cmpImage" placeholder="https://"></div>
+      <div class="field"><label>CTA text</label><input id="cmpCtaLabel" placeholder="Zobraziť"></div>
+      <div class="field w2"><label>CTA URL</label><input id="cmpCtaUrl" placeholder="https://"></div>
+      <div class="field w2 notice" id="alcoholNotice">Pri kategórii Alkohol systém vyžaduje minimálny vek aspoň 18 rokov. Neskôr vieme doplniť právne pravidlá po jednotlivých krajinách.</div>
+    </div>
+    <div class="modal-actions"><button class="btn" data-close-modal="campaignModal">Zrušiť</button><button class="btn primary" id="saveCampaignBtn">Uložiť kampaň</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+let session=null,advertisers=[],campaigns=[],placements=[],events=[],editingAdvertiser=null,editingCampaign=null;
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const arr=v=>String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
+const fmt=n=>new Intl.NumberFormat('sk-SK').format(Number(n||0));
+function toast(msg,err=false){const t=$('toast');t.textContent=msg;t.style.background=err?'#e35149':'#26d07d';t.style.color=err?'#fff':'#062212';t.classList.remove('hidden');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.add('hidden'),2500)}
+function isoLocal(v){if(!v)return'';const d=new Date(v);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+function section(name){document.querySelectorAll('[id^="sec-"]').forEach(x=>x.classList.add('hidden'));$('sec-'+name).classList.remove('hidden');document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===name));$('topTitle').textContent=name==='dashboard'?'ADS Manager':({advertisers:'Inzerenti',campaigns:'Kampane',placements:'Reklamné plochy',reports:'Reporty'}[name]||'ADS Manager')}
+function openModal(id){$(id).classList.remove('hidden')}function closeModal(id){$(id).classList.add('hidden')}
+async function loadAll(){
+  const db=cspAuth.client;
+  const [d,a,c,p,e]=await Promise.all([
+    db.rpc('ads_manager_dashboard'),
+    db.from('ads_advertisers').select('*').order('name'),
+    db.from('ads_campaigns').select('*,ads_advertisers(name)').order('created_at',{ascending:false}),
+    db.from('ads_placements').select('*').order('name'),
+    db.from('ads_events').select('campaign_id,placement_id,event_type,occurred_at').gte('occurred_at',new Date(Date.now()-30*86400000).toISOString())
+  ]);
+  for(const r of [d,a,c,p,e])if(r.error)throw r.error;
+  advertisers=a.data||[];campaigns=c.data||[];placements=p.data||[];events=e.data||[];
+  renderDashboard(d.data||{});renderAdvertisers();renderCampaigns();renderPlacements();renderReports();renderPlacementChecks();
+}
+function renderDashboard(d){
+  $('stCampaigns').textContent=d.active_campaigns||0;$('stAdvertisers').textContent=d.advertisers||0;$('stImpressions').textContent=fmt(d.impressions_30d);$('stClicks').textContent=fmt(d.clicks_30d);$('stCtr').textContent=(d.ctr_30d||0)+' %';
+  const list=campaigns.slice(0,5);
+  $('dashboardCampaigns').innerHTML=list.length?'<table class="table"><thead><tr><th>Kampaň</th><th>Stav</th><th>Target</th></tr></thead><tbody>'+list.map(c=>'<tr><td class="title"><b>'+esc(c.name)+'</b><small>'+esc(c.ads_advertisers?.name||'—')+'</small></td><td><span class="badge '+esc(c.status)+'">'+esc(c.status.toUpperCase())+'</span></td><td>'+esc((c.countries||[]).join(' · ')||'GLOBAL')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">Zatiaľ nie sú vytvorené kampane.</div>';
+  $('dashboardPlacements').innerHTML=placements.map(p=>'<div class="placement"><b>'+esc(p.name)+'</b><span>'+esc(p.description||'')+'</span><span>'+esc(p.format)+' · '+esc(p.key)+'</span></div>').join('');
+}
+function renderAdvertisers(){
+  const q=$('advertiserSearch').value.toLowerCase();
+  const list=advertisers.filter(a=>!q||a.name.toLowerCase().includes(q));
+  $('advertisersWrap').innerHTML=list.length?'<table class="table"><thead><tr><th>Inzerent</th><th>Kategória</th><th>Web</th><th>Stav</th><th>Akcie</th></tr></thead><tbody>'+list.map(a=>'<tr><td class="title"><b>'+esc(a.name)+'</b><small>'+esc(a.contact_email||'')+'</small></td><td>'+esc(a.category)+'</td><td>'+esc(a.website_url||'—')+'</td><td>'+(a.is_active?'<span class="badge active">AKTÍVNY</span>':'Neaktívny')+'</td><td><button class="btn small" data-edit-adv="'+a.id+'">Upraviť</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">Žiadni inzerenti.</div>';
+}
+function renderCampaigns(){
+  const q=$('campaignSearch').value.toLowerCase(),status=$('campaignStatusFilter').value;
+  const list=campaigns.filter(c=>(!q||c.name.toLowerCase().includes(q)||(c.ads_advertisers?.name||'').toLowerCase().includes(q))&&(!status||c.status===status));
+  $('campaignsWrap').innerHTML=list.length?'<table class="table"><thead><tr><th>Kampaň</th><th>Stav</th><th>Kategória</th><th>Target</th><th>Rozpočet</th><th>Akcie</th></tr></thead><tbody>'+list.map(c=>'<tr><td class="title"><b>'+esc(c.name)+'</b><small>'+esc(c.ads_advertisers?.name||'—')+'</small></td><td><span class="badge '+esc(c.status)+'">'+esc(c.status.toUpperCase())+'</span></td><td><span class="badge '+(c.category==='alcohol'?'category-alcohol':'')+'">'+esc(c.category)+'</span></td><td>'+esc((c.countries||[]).join(' · ')||'GLOBAL')+(c.min_age?' · '+c.min_age+'+':'')+'</td><td>'+(c.budget_eur==null?'—':'€'+Number(c.budget_eur).toFixed(2))+'</td><td><button class="btn small" data-edit-cmp="'+c.id+'">Upraviť</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">Žiadne kampane.</div>';
+}
+function renderPlacements(){$('placementsWrap').innerHTML=placements.map(p=>'<div class="placement"><b>'+esc(p.name)+'</b><span>'+esc(p.description||'')+'</span><span>'+esc(p.surface)+' · '+esc(p.format)+'</span><span>'+esc(p.key)+'</span></div>').join('')}
+function renderReports(){
+  const map=new Map(campaigns.map(c=>[c.id,{c,impressions:0,clicks:0}]));
+  events.forEach(e=>{const x=map.get(e.campaign_id);if(!x)return;e.event_type==='impression'?x.impressions++:x.clicks++});
+  const rows=[...map.values()].filter(x=>x.impressions||x.clicks);
+  $('reportsWrap').innerHTML=rows.length?'<table class="table"><thead><tr><th>Kampaň</th><th>Impresie</th><th>Kliky</th><th>CTR</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.c.name)+'</td><td>'+fmt(x.impressions)+'</td><td>'+fmt(x.clicks)+'</td><td>'+(x.impressions?((x.clicks/x.impressions)*100).toFixed(2):'0.00')+' %</td></tr>').join('')+'</tbody></table>':'<div class="empty">Zatiaľ nie sú zaznamenané reklamné udalosti.</div>';
+}
+function renderPlacementChecks(){$('placementChecks').innerHTML=placements.map(p=>'<label><input type="checkbox" value="'+p.id+'">'+esc(p.name)+'</label>').join('')}
+function openAdvertiser(a=null){
+  editingAdvertiser=a;$('advertiserModalTitle').textContent=a?'Upraviť inzerenta':'Nový inzerent';$('advName').value=a?.name||'';$('advCategory').value=a?.category||'sports_equipment';$('advWebsite').value=a?.website_url||'';$('advEmail').value=a?.contact_email||'';$('advNotes').value=a?.notes||'';openModal('advertiserModal');
+}
+async function saveAdvertiser(){
+  const row={name:$('advName').value.trim(),category:$('advCategory').value,website_url:$('advWebsite').value.trim()||null,contact_email:$('advEmail').value.trim()||null,notes:$('advNotes').value.trim()||null,updated_at:new Date().toISOString()};
+  if(!row.name)return toast('Zadaj názov inzerenta.',true);
+  const q=editingAdvertiser?cspAuth.client.from('ads_advertisers').update(row).eq('id',editingAdvertiser.id):cspAuth.client.from('ads_advertisers').insert(row);
+  const {error}=await q;if(error)return toast(error.message,true);closeModal('advertiserModal');await loadAll();toast('Inzerent uložený.');
+}
+async function openCampaign(c=null){
+  editingCampaign=c;$('campaignModalTitle').textContent=c?'Upraviť kampaň':'Nová kampaň';
+  $('cmpAdvertiser').innerHTML=advertisers.map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('');
+  $('cmpName').value=c?.name||'';$('cmpAdvertiser').value=c?.advertiser_id||advertisers[0]?.id||'';$('cmpStatus').value=c?.status||'draft';$('cmpCategory').value=c?.category||'sports_equipment';$('cmpMinAge').value=c?.min_age??'';$('cmpStart').value=isoLocal(c?.starts_at);$('cmpEnd').value=isoLocal(c?.ends_at);$('cmpPricing').value=c?.pricing_model||'fixed';$('cmpBudget').value=c?.budget_eur??'';$('cmpCountries').value=(c?.countries||[]).join(',');$('cmpSports').value=(c?.sports||[]).join(',');$('cmpTitle').value=c?.creative_title||'';$('cmpBody').value=c?.creative_body||'';$('cmpImage').value=c?.creative_image_url||'';$('cmpCtaLabel').value=c?.cta_label||'';$('cmpCtaUrl').value=c?.cta_url||'';
+  document.querySelectorAll('#planChecks input').forEach(x=>x.checked=(c?.account_plans||[]).includes(x.value));
+  document.querySelectorAll('#placementChecks input').forEach(x=>x.checked=false);
+  if(c){const {data}=await cspAuth.client.from('ads_campaign_placements').select('placement_id').eq('campaign_id',c.id);const ids=new Set((data||[]).map(x=>x.placement_id));document.querySelectorAll('#placementChecks input').forEach(x=>x.checked=ids.has(x.value))}
+  updateAlcoholRule();openModal('campaignModal');
+}
+function updateAlcoholRule(){const alcohol=$('cmpCategory').value==='alcohol';$('alcoholNotice').classList.toggle('hidden',!alcohol);if(alcohol&&Number($('cmpMinAge').value||0)<18)$('cmpMinAge').value='18'}
+async function saveCampaign(){
+  const placementIds=[...document.querySelectorAll('#placementChecks input:checked')].map(x=>x.value),plans=[...document.querySelectorAll('#planChecks input:checked')].map(x=>x.value);
+  const row={advertiser_id:$('cmpAdvertiser').value,name:$('cmpName').value.trim(),status:$('cmpStatus').value,category:$('cmpCategory').value,starts_at:$('cmpStart').value?new Date($('cmpStart').value).toISOString():null,ends_at:$('cmpEnd').value?new Date($('cmpEnd').value).toISOString():null,pricing_model:$('cmpPricing').value,budget_eur:$('cmpBudget').value?Number($('cmpBudget').value):null,countries:arr($('cmpCountries').value).map(x=>x.toUpperCase()),sports:arr($('cmpSports').value),account_plans:plans,min_age:$('cmpMinAge').value?Number($('cmpMinAge').value):null,creative_title:$('cmpTitle').value.trim()||null,creative_body:$('cmpBody').value.trim()||null,creative_image_url:$('cmpImage').value.trim()||null,cta_label:$('cmpCtaLabel').value.trim()||null,cta_url:$('cmpCtaUrl').value.trim()||null,updated_at:new Date().toISOString()};
+  if(!row.name||!row.advertiser_id)return toast('Kampaň potrebuje názov a inzerenta.',true);
+  if(row.category==='alcohol'&&(!row.min_age||row.min_age<18))return toast('Alkoholová kampaň musí mať minimálny vek aspoň 18.',true);
+  let id=editingCampaign?.id;
+  if(id){const {error}=await cspAuth.client.from('ads_campaigns').update(row).eq('id',id);if(error)return toast(error.message,true)}
+  else{const {data,error}=await cspAuth.client.from('ads_campaigns').insert(row).select('id').single();if(error)return toast(error.message,true);id=data.id}
+  const del=await cspAuth.client.from('ads_campaign_placements').delete().eq('campaign_id',id);if(del.error)return toast(del.error.message,true);
+  if(placementIds.length){const ins=await cspAuth.client.from('ads_campaign_placements').insert(placementIds.map(placement_id=>({campaign_id:id,placement_id})));if(ins.error)return toast(ins.error.message,true)}
+  closeModal('campaignModal');await loadAll();toast('Kampaň uložená.');
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-section]');if(s)return section(s.dataset.section);
+  const j=e.target.closest('[data-section-jump]');if(j)return section(j.dataset.sectionJump);
+  if(e.target.closest('[data-new-campaign]'))return openCampaign();
+  const ca=e.target.closest('[data-close-modal]');if(ca)return closeModal(ca.dataset.closeModal);
+  const ea=e.target.closest('[data-edit-adv]');if(ea)return openAdvertiser(advertisers.find(x=>x.id===ea.dataset.editAdv));
+  const ec=e.target.closest('[data-edit-cmp]');if(ec)return openCampaign(campaigns.find(x=>x.id===ec.dataset.editCmp));
+});
+$('newAdvertiserBtn').onclick=()=>openAdvertiser();$('saveAdvertiserBtn').onclick=saveAdvertiser;$('saveCampaignBtn').onclick=saveCampaign;$('advertiserSearch').oninput=renderAdvertisers;$('campaignSearch').oninput=renderCampaigns;$('campaignStatusFilter').onchange=renderCampaigns;$('cmpCategory').onchange=updateAlcoholRule;
+window.addEventListener('DOMContentLoaded',async()=>{
+  try{
+    const {data:{session:s}}=await cspAuth.getSession();if(!s){location.href='/login/?returnTo='+encodeURIComponent(location.pathname);return}session=s;
+    const {data:allowed,error}=await cspAuth.client.rpc('can_access_ads_manager');if(error)throw error;if(!allowed){location.href='/profil/';return}
+    $('userLabel').textContent=s.user.email||'Admin';$('gate').classList.add('hidden');$('app').classList.remove('hidden');await loadAll();
+  }catch(err){console.error('[ads-manager]',err);$('gate').textContent='ADS Manager sa nepodarilo načítať.'}
+});
+</script>
+</body></html>
