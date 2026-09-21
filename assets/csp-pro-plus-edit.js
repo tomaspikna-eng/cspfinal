@@ -31,13 +31,16 @@
       }
 
       const payload=data||{},profile=payload.profile||{},disciplines=Array.isArray(payload.disciplines)?payload.disciplines:[];
+      const {data:privateSettings,error:privateSettingsError}=await db.rpc("get_my_private_profile_settings");
+      if(privateSettingsError)throw privateSettingsError;
       document.getElementById("shellName").textContent=profile.full_name||"Hráč";
       document.getElementById("shellPlan").textContent="PRO+ účet";
       const shellAvatar=document.getElementById("shellAvatar");if(shellAvatar){shellAvatar.textContent=initials(profile.full_name);}
       document.querySelectorAll("[data-create-feature]").forEach(link=>link.removeAttribute("aria-disabled"));
       primaryDiscipline=disciplines.find(item=>item.is_primary)||disciplines[0]||null;
       $("fullName").value=profile.full_name||"";$("bio").value=profile.bio||"";$("bioCount").textContent=String($("bio").value.length);
-      $("city").value=profile.city||"";$("countryCode").value=profile.country_code||"";$("clubName").value=profile.club_name||"";
+      $("birthYear").value=privateSettings?.birth_year||"";
+      $("city").value=profile.city||"";$("countryCode").value=profile.country_code||"";if($("clubName"))$("clubName").value=profile.club_name||"";
       $("sport").value=primaryDiscipline?.sport||"";$("discipline").value=primaryDiscipline?.discipline||"";
       $("gearBoard").value=payload.gear?.board_name||"";$("gearEquipment").value=payload.gear?.equipment_name||"";$("gearMotto").value=payload.gear?.motto||"";
       $("profileNameHero").textContent=profile.full_name||"Hráč";renderAvatar(profile);
@@ -49,12 +52,17 @@
     event.preventDefault();
     const button=$("saveButton");button.disabled=true;button.textContent="Ukladám…";
     try{
-      const fullName=$("fullName").value.trim(),bio=$("bio").value.trim(),city=$("city").value.trim(),countryCode=normalizeCountry($("countryCode").value),clubName=$("clubName").value.trim();
+      const fullName=$("fullName").value.trim(),bio=$("bio").value.trim(),city=$("city").value.trim(),countryCode=normalizeCountry($("countryCode").value),clubName=$("clubName")?$("clubName").value.trim():"";
+      const birthYearRaw=$("birthYear").value.trim(),birthYear=birthYearRaw?Number(birthYearRaw):null;
+      const currentYear=new Date().getFullYear();
       const sport=$("sport").value.trim(),discipline=$("discipline").value.trim();
       if(!fullName)throw new Error("Meno nemôže byť prázdne.");
       if(countryCode&&!/^[A-Z]{2}$/.test(countryCode))throw new Error("Štát zadaj ako dvojpísmenový ISO kód, napríklad SK.");
+      if(birthYear!==null&&(!Number.isInteger(birthYear)||birthYear<1900||birthYear>currentYear))throw new Error("Rok narodenia zadaj v rozsahu 1900 až "+currentYear+".");
 
-      const {error:profileError}=await db.rpc("update_my_player_profile_settings",{p_patch:{full_name:fullName,bio:bio||null,city:city||null,country_code:countryCode||null,club_name:clubName||null}});
+      const patch={full_name:fullName,bio:bio||null,city:city||null,country_code:countryCode||null,birth_year:birthYear};
+      if($("clubName"))patch.club_name=clubName||null;
+      const {error:profileError}=await db.rpc("update_my_player_profile_settings",{p_patch:patch});
       if(profileError)throw profileError;
 
       if(primaryDiscipline?.id){
