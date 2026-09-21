@@ -347,6 +347,19 @@ body.sport-darts .quick{min-width:48px;min-height:38px;padding:7px 8px}
 body.sport-darts .keypad-grid{max-width:none;gap:8px}
 body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 
+/* DARTS solo/training: one player + keypad */
+.stage-row.darts-solo-layout{display:grid;gap:12px;align-items:start}
+@media (orientation:landscape) and (min-width:760px){
+  .stage-row.darts-solo-layout{grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr)}
+  .stage-row.darts-solo-layout .players{display:block;margin:0}
+  .stage-row.darts-solo-layout .keypad-panel{margin:0;max-width:none}
+}
+@media (orientation:portrait), (max-width:759px){
+  .stage-row.darts-solo-layout{grid-template-columns:1fr}
+  .stage-row.darts-solo-layout .players{display:block!important;margin:0 0 6px!important}
+  .stage-row.darts-solo-layout .keypad-panel{width:100%;max-width:none;margin:0}
+}
+
 /* DARTS landscape: player 1 | keypad | player 2 */
 @media (orientation:landscape) and (min-width:760px){
   .stage-row.darts-keypad-layout{
@@ -1162,7 +1175,18 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
         </div>
         <div class="field">
           <label>Počet hráčov</label>
-          <select id="playerCount"><option value="2">2 hráči</option><option value="3">3 hráči</option></select>
+          <select id="playerCount"><option value="1">1 hráč</option><option value="2">2 hráči</option><option value="3">3 hráči</option></select>
+        </div>
+        <div class="field hidden" id="soloTrainingWrap">
+          <label>Solo režim</label>
+          <div class="switch-card">
+            <div class="switch-copy"><strong>SOLO HRA / TRÉNING</strong><span id="soloTrainingText">Vypnutý</span></div>
+            <label class="switch"><input type="checkbox" id="soloTrainingSwitch"/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="field hidden" id="checkoutStartWrap">
+          <label>Počiatočná hodnota <span class="hint">(Tréning zatvárania)</span></label>
+          <input id="checkoutStart" type="number" min="2" max="501" value="121"/>
         </div>
         <div class="field">
           <label id="raceLabel">Race to</label>
@@ -1251,7 +1275,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 /* ════════════════════ KONFIGURÁCIA ════════════════════ */
 const SPORTS={
   billiard:{label:"Biliard",icon:"🎱",disciplines:["8-ball","9-ball","10-ball","14.1 continuous","Snooker","Pyramída","Karambol","Tréning"]},
-  darts:{label:"Šípky",icon:"🎯",disciplines:["501","301","Cricket","Around the Clock"]},
+  darts:{label:"Šípky",icon:"🎯",disciplines:["501","301","Tréning zatvárania","Cricket","Around the Clock"]},
   tabletennis:{label:"Stolný tenis",icon:"🏓",disciplines:["Singles"]},
   tennis:{label:"Tenis",icon:"🎾",disciplines:["Singles"]},
   padel:{label:"Padel",icon:"🎾",disciplines:["Doubles"]},
@@ -1260,7 +1284,7 @@ const SPORTS={
 const POINT_DISCIPLINES=["Snooker","Pyramída","Karambol","14.1 continuous"];
 const DEFAULT_TARGET={"Snooker":0,"Pyramída":8,"Karambol":100,"14.1 continuous":100};
 const START_SCORE={"501":501,"301":301};
-const DARTS_X01_DISCIPLINES=["501","301"];
+const DARTS_X01_DISCIPLINES=["501","301","Tréning zatvárania"];
 
 /* ════════════════════ URL (Club Manager) ════════════════════ */
 const SCOREBOARD_EDITION="LIVE_TRAINING";
@@ -1307,7 +1331,7 @@ let lastScoreEvent=null;
 /* ════════════════════ STAV ════════════════════ */
 const defaultState={
   sport:"billiard",discipline:"8-ball",customLabel:"Univerzál",
-  playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
+  playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,soloTraining:false,checkoutStart:121,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   players:[
     {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
@@ -1328,7 +1352,7 @@ function mode(){
   if(state.sport==="other") return "universal";
   return POINT_DISCIPLINES.includes(state.discipline) ? "points" : "frame";
 }
-const startScore=()=>START_SCORE[state.discipline]||501;
+const startScore=()=>state.discipline==="Tréning zatvárania"?Math.max(2,Math.min(501,Number(state.checkoutStart||121))):(START_SCORE[state.discipline]||501);
 const breakerIndex=()=>state.alternateBreak ? (state.starter+state.period-1)%state.playerCount : state.starter;
 
 /* ════════════════════ ULOŽENIE ════════════════════ */
@@ -1351,7 +1375,7 @@ function applyUrlParams(){
   if(disc&&SPORTS[state.sport].disciplines.includes(disc))state.discipline=disc;
   else state.discipline=SPORTS[state.sport].disciplines[0];
   if(race&&!isNaN(+race))state.raceTo=Math.max(1,Math.min(30,+race));
-  if(pc&&(pc==="2"||pc==="3"))state.playerCount=+pc;
+  if(pc&&["1","2","3"].includes(pc))state.playerCount=+pc;
   const target=URL_PARAMS.get("target");
   if(target&&!isNaN(+target)){ if(mode()==="points")state.pointsTarget=+target; if(mode()==="universal")state.setTarget=+target; }
   ["p1","p2","p3"].forEach((k,i)=>{const v=URL_PARAMS.get(k);if(v)state.players[i].name=v;});
@@ -2209,7 +2233,7 @@ function render(){
   $("currentPlayer").textContent=activePlayers()[state.currentIndex].name;
 
   let periodWord="Frame", fmt=`Race to ${state.raceTo}`, newBtn="Nový frame";
-  if(m==="darts"){periodWord="Leg";fmt=`Race to ${state.raceTo} ${state.raceTo===1?'leg':'legy'}`;newBtn="Nový leg";}
+  if(m==="darts"){periodWord="Leg";fmt=state.discipline==="Tréning zatvárania"?`Tréning zatvárania · štart ${startScore()}`:`Race to ${state.raceTo} ${state.raceTo===1?'leg':'legy'}`;newBtn=state.discipline==="Tréning zatvárania"?"Nový pokus":"Nový leg";}
   else if(m==="universal"){periodWord="Set";fmt=`Race to ${state.raceTo} ${state.raceTo===1?'set':'setov'}`;newBtn="Nový set";}
   else if(m==="tabletennis"){periodWord="Set";fmt=`Do 11 · rozdiel 2 · ${state.raceTo} set(y) na výhru`;newBtn="Nový set";}
   else if(m==="racket"){
@@ -2231,7 +2255,8 @@ function render(){
   // tablets/monitors) — darts (portrait, stacked) and universal mode
   // (no keypad at all) are untouched.
   $("stageRow").classList.toggle("split-keypad", m==="points");
-  $("stageRow").classList.toggle("darts-keypad-layout", m==="darts" && state.playerCount===2);
+  $("stageRow").classList.toggle("darts-keypad-layout", m==="darts" && state.playerCount===2 && !state.soloTraining);
+  $("stageRow").classList.toggle("darts-solo-layout", m==="darts" && state.playerCount===1);
   if(keypad){
     $("keypadLabel").innerHTML = (m==="darts"?"Hod (súčet 3 šípok)":"Aktuálny run")+' — <span id="keypadPlayer">'+escapeScoreText(activePlayers()[state.currentIndex].name)+'</span>';
     $("runDisplay").textContent=state.runInput;
@@ -2658,9 +2683,9 @@ function resetAll(){
   pendingTableTennisSet=null;
   $("tableTennisSetOverlay")?.classList.add("hidden");
   invalidateScoreEventUndo();releaseTrainingEventSession();pendingTrainingSummary=null;trainingSummarySaved=false;
-  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,starter:state.starter,names:state.players.map(p=>p.name)};
+  const keep={sport:state.sport,discipline:state.discipline,customLabel:state.customLabel,playerCount:state.playerCount,raceTo:state.raceTo,pointsTarget:state.pointsTarget,setTarget:state.setTarget,doubleOut:state.doubleOut,alternateBreak:state.alternateBreak,soloTraining:state.soloTraining,checkoutStart:state.checkoutStart,starter:state.starter,names:state.players.map(p=>p.name)};
   state=structuredClone(defaultState);
-  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak,starter:Math.min(keep.starter,keep.playerCount-1),currentIndex:Math.min(keep.starter,keep.playerCount-1)});
+  Object.assign(state,{sport:keep.sport,discipline:keep.discipline,customLabel:keep.customLabel,playerCount:keep.playerCount,raceTo:keep.raceTo,pointsTarget:keep.pointsTarget,setTarget:keep.setTarget,doubleOut:keep.doubleOut,alternateBreak:keep.alternateBreak,soloTraining:keep.soloTraining,checkoutStart:keep.checkoutStart,starter:Math.min(keep.starter,keep.playerCount-1),currentIndex:Math.min(keep.starter,keep.playerCount-1)});
   state.players.forEach((p,i)=>{p.name=keep.names[i];});
   resetScoresForMode();
   stopTimer(); // resetAll() is the only genuinely-new-match point; newPeriod()/applySettings() deliberately don't touch this. Manual timer -- stays stopped until Štart is pressed.
@@ -2681,7 +2706,10 @@ function applySettings(){
   state.sport=$("sportSelect").value;
   state.discipline=$("discipline").value;
   state.customLabel=$("customLabel").value.trim()||"Univerzál";
-  state.playerCount=Number($("playerCount").value);
+  state.soloTraining=state.sport==="darts"&&$("soloTrainingSwitch").checked;
+  state.playerCount=state.soloTraining?1:Number($("playerCount").value);
+  state.checkoutStart=Math.max(2,Math.min(501,Number($("checkoutStart").value||121)));
+  if(state.discipline==="Tréning zatvárania"){state.soloTraining=true;state.playerCount=1;}
   state.raceTo=state.sport==="tennis"?3:Math.max(1,Number($("raceTo").value||5));
   state.pointsTarget=Math.max(0,Number($("pointsTarget").value||0));
   state.setTarget=Math.max(0,Number($("setTarget").value||0));
@@ -2704,6 +2732,9 @@ function syncSettingsUI(){
   $("pointsTarget").value=state.pointsTarget;
   $("setTarget").value=state.setTarget;
   $("customLabel").value=state.customLabel;
+  $("soloTrainingSwitch").checked=!!state.soloTraining;
+  $("soloTrainingText").textContent=state.soloTraining?"Zapnutý":"Vypnutý";
+  $("checkoutStart").value=state.checkoutStart||121;
   $("doubleOutSwitch").checked=state.doubleOut;
   $("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";
   $("altBreakSwitch").checked=state.alternateBreak;
@@ -2716,8 +2747,10 @@ function syncSettingsUI(){
   $("pointsTargetWrap").classList.toggle("hidden",m!=="points");
   $("setTargetWrap").classList.toggle("hidden",m!=="universal");
   $("doubleOutWrap").classList.toggle("hidden",m!=="darts");
+  $("soloTrainingWrap").classList.toggle("hidden",state.sport!=="darts");
+  $("checkoutStartWrap").classList.toggle("hidden",state.sport!=="darts"||state.discipline!=="Tréning zatvárania");
+  $("playerCount").disabled=state.soloTraining||["tabletennis","racket"].includes(m);
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
-  $("playerCount").disabled=["tabletennis","racket"].includes(m);
   $("raceTo").disabled=state.sport==="tennis"||m==="darts_variant";
   $("raceLabel").textContent = m==="darts"?"Race to (legy)" : m==="darts_variant"?"Formát disciplíny" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
 }
@@ -2726,6 +2759,7 @@ function syncSettingsUI(){
 $("sportSelect").onchange=()=>{
   state.sport=$("sportSelect").value;
   state.discipline=SPORTS[state.sport].disciplines[0];
+  if(state.sport!=="darts"&&state.soloTraining){state.soloTraining=false;if(state.playerCount===1)state.playerCount=2;}
   state.playerCount=["tabletennis","tennis","padel"].includes(state.sport)?2:state.playerCount;
   if(state.sport==="tabletennis")state.raceTo=3;
   if(state.sport==="tennis")state.raceTo=3;
@@ -2737,11 +2771,24 @@ $("sportSelect").onchange=()=>{
 };
 $("discipline").onchange=()=>{
   state.discipline=$("discipline").value;
+  if(state.sport==="darts"&&state.discipline==="Tréning zatvárania"){state.soloTraining=true;state.playerCount=1;}
   if(mode()==="points"){state.pointsTarget=DEFAULT_TARGET[state.discipline]??0;}
   resetScoresForMode();
   syncSettingsUI();render();loadScoreActionDefinitions();
 };
 $("playerCount").onchange=()=>$("p3Wrap").classList.toggle("hidden",$("playerCount").value!=="3");
+$("soloTrainingSwitch").onchange=()=>{
+  state.soloTraining=$("soloTrainingSwitch").checked;
+  state.playerCount=state.soloTraining?1:Math.max(2,Number($("playerCount").value||2));
+  state.currentIndex=0;state.starter=0;
+  $("soloTrainingText").textContent=state.soloTraining?"Zapnutý":"Vypnutý";
+  resetScoresForMode();syncSettingsUI();render();
+};
+$("checkoutStart").onchange=()=>{
+  state.checkoutStart=Math.max(2,Math.min(501,Number($("checkoutStart").value||121)));
+  if(state.discipline==="Tréning zatvárania")resetScoresForMode();
+  render();
+};
 $("doubleOutSwitch").onchange=()=>{state.doubleOut=$("doubleOutSwitch").checked;$("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";};
 $("altBreakSwitch").onchange=()=>{state.alternateBreak=$("altBreakSwitch").checked;$("altBreakText").textContent=state.alternateBreak?"Zapnutý":"Vypnutý";};
 $("applyBtn").onclick=applySettings;
