@@ -69,3 +69,127 @@ h3{margin:0 0 8px}
 .footer{padding:42px 0 60px;color:#707b82;font-size:12px;border-top:1px solid rgba(255,255,255,.04)}
 @media(max-width:1000px){.hero-grid{grid-template-columns:1fr}.grid-3,.route-grid{grid-template-columns:1fr 1fr}.grid-4{grid-template-columns:1fr 1fr}.workflow-grid{grid-template-columns:repeat(3,1fr)}.detail-layout{grid-template-columns:1fr}.side-menu{position:static;display:flex;overflow:auto}.side-menu a{white-space:nowrap}}
 @media(max-width:720px){.container{width:min(calc(100% - 24px),var(--max))}.nav-inner{height:68px}.brand-logo{width:190px}.nav-toggle{display:block}.nav-links{display:none;position:absolute;right:12px;top:68px;width:min(320px,calc(100vw - 24px));padding:10px;background:#0b0e10;border:1px solid var(--line);border-radius:16px}.nav.open .nav-links{display:grid}.nav-links>a{justify-content:flex-start}.grid-3,.grid-4,.route-grid,.detail-items{grid-template-columns:1fr}.workflow-grid{grid-template-columns:1fr 1fr}.mock-main{grid-template-columns:95px 1fr}.hero{padding-top:54px}}
+
+
+/* Responsive layout corrections for public marketing routes */
+main.section{
+  padding-top:32px;
+}
+
+/* Riešenia and Športy detail pages have only one panel.
+   Span the complete desktop content width instead of occupying
+   the 270px navigation column reserved for Funkcie. */
+.detail-layout > .detail-panel:only-child{
+  grid-column:1 / -1;
+  width:100%;
+  min-width:0;
+}
+
+/* Keep content fluid on wide screens and prevent fixed/mobile-like widths. */
+.detail-panel{
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+
+.route-grid,
+.grid-3,
+.grid-4,
+.workflow-grid,
+.detail-items{
+  width:100%;
+  min-width:0;
+}
+
+.route-card,
+.card,
+.feature,
+.detail-item,
+.detail-step{
+  min-width:0;
+}
+
+/* Desktop: use the available canvas more efficiently. */
+@media(min-width:1001px){
+  .page-hero{
+    padding:64px 0 28px;
+  }
+
+  main.section{
+    padding:30px 0 88px;
+  }
+
+  .detail-layout > .detail-panel:only-child{
+    padding:38px 42px;
+  }
+
+  .detail-layout > .detail-panel:only-child .detail-items{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .detail-layout > .detail-panel:only-child .detail-steps{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .detail-layout > .detail-panel:only-child .detail-step{
+    align-items:start;
+  }
+}
+
+/* Tablet: retain useful width without forcing a desktop sidebar. */
+@media(max-width:1000px) and (min-width:721px){
+  .page-hero{
+    padding:56px 0 26px;
+  }
+
+  main.section{
+    padding:28px 0 72px;
+  }
+
+  .detail-panel{
+    padding:28px;
+  }
+
+  .detail-items{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+/* Mobile: single-column reading flow. */
+@media(max-width:720px){
+  .page-hero{
+    padding:42px 0 20px;
+  }
+
+  .page-hero h1{
+    font-size:clamp(38px,12vw,54px);
+  }
+
+  .page-hero .lead{
+    font-size:17px;
+  }
+
+  main.section{
+    padding:22px 0 58px;
+  }
+
+  .detail-panel{
+    padding:22px 18px;
+    border-radius:18px;
+  }
+
+  .detail-panel h2{
+    font-size:30px;
+  }
+
+  .detail-items,
+  .detail-steps{
+    grid-template-columns:1fr;
+  }
+
+  .side-menu{
+    gap:4px;
+    padding:8px;
+    margin-bottom:4px;
+  }
+}
