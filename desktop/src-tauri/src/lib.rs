@@ -158,7 +158,7 @@ pub fn run() {
 
             let url = CSP_URL
                 .parse()
-                .map_err(|_| tauri::Error::InvalidUrl(CSP_URL.to_string()))?;
+                .map_err(tauri::Error::InvalidUrl)?;
 
             let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("Connect Sports Pro")
