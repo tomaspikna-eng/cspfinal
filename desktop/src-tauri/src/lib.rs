@@ -6,12 +6,13 @@ use std::{
 };
 use tauri::{
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
-    Manager,
+    webview::WebviewWindowBuilder,
+    Manager, WebviewUrl,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 const CSP_URL: &str = "https://connectsportspro.com";
-const DESKTOP_VERSION: &str = "1.1.0";
+const DESKTOP_VERSION: &str = "1.1.1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DesktopSettings {
@@ -77,14 +78,6 @@ pub fn run() {
             let handle = app.handle().clone();
             let settings = load_settings(&handle);
             let settings_state = Arc::new(Mutex::new(settings.clone()));
-
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_zoom(settings.zoom);
-                if settings.start_maximized {
-                    let _ = window.maximize();
-                }
-            }
-
             let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);
 
             let autostart_item =
@@ -163,7 +156,21 @@ pub fn run() {
                 .item(&help_menu)
                 .build()?;
 
-            app.set_menu(menu)?;
+            let url = CSP_URL
+                .parse()
+                .map_err(|_| tauri::Error::InvalidUrl(CSP_URL.to_string()))?;
+
+            let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+                .title("Connect Sports Pro")
+                .inner_size(1440.0, 900.0)
+                .min_inner_size(1100.0, 700.0)
+                .resizable(true)
+                .center()
+                .maximized(settings.start_maximized)
+                .menu(menu)
+                .build()?;
+
+            let _ = window.set_zoom(settings.zoom);
 
             let autostart_item_for_events = autostart_item.clone();
             let start_maximized_for_events = start_maximized_item.clone();

@@ -1,6 +1,6 @@
 [package]
 name = "connect-sports-pro"
-version = "1.1.0"
+version = "1.1.1"
 description = "Connect Sports Pro desktop application"
 authors = ["Connect Sports Pro"]
 edition = "2021"
