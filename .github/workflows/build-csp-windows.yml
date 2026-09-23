@@ -1,0 +1,74 @@
+name: Build CSP Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat-windows-desktop
+    paths:
+      - 'desktop/windows/**'
+      - '.github/workflows/build-csp-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/windows/src-tauri -> target
+
+      - name: Install Tauri CLI
+        working-directory: desktop/windows
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Build Windows EXE
+        working-directory: desktop/windows
+        run: npm run build
+
+      - name: Collect Windows binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
+
+          $app = "desktop/windows/src-tauri/target/release/csp-windows.exe"
+          if (!(Test-Path $app)) {
+            throw "Application EXE not found: $app"
+          }
+          Copy-Item $app "dist/windows/Connect-Sports-Pro.exe"
+
+          $installer = Get-ChildItem "desktop/windows/src-tauri/target/release/bundle/nsis/*-setup.exe" | Select-Object -First 1
+          if (!$installer) {
+            throw "NSIS setup EXE was not generated"
+          }
+          Copy-Item $installer.FullName "dist/windows/Connect-Sports-Pro-Setup.exe"
+
+          Get-FileHash "dist/windows/Connect-Sports-Pro.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  Connect-Sports-Pro.exe" } |
+            Set-Content "dist/windows/SHA256SUMS.txt"
+          Get-FileHash "dist/windows/Connect-Sports-Pro-Setup.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  Connect-Sports-Pro-Setup.exe" } |
+            Add-Content "dist/windows/SHA256SUMS.txt"
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Connect-Sports-Pro-Windows-x64
+          path: dist/windows/*
+          if-no-files-found: error
+          retention-days: 30
