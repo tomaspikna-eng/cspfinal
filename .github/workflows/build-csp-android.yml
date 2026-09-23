@@ -1,4 +1,4 @@
-name: Build CSP Android APK
+name: Build CSP Android Release
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - "mobile/csp-android/**"
 
 jobs:
-  build-android:
+  build-android-release:
     runs-on: ubuntu-latest
 
     defaults:
@@ -43,18 +43,34 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Build installable APK
-        run: ./android/gradlew -p android assembleDebug
+      - name: Build release APK and AAB
+        run: |
+          ./android/gradlew -p android assembleRelease
+          ./android/gradlew -p android bundleRelease
 
-      - name: Prepare APK artifact
+      - name: Collect unsigned release files
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/Connect-Sports-Pro-1.0.2.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Connect-Sports-Pro-1.0.3-unsigned.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab dist/Connect-Sports-Pro-1.0.3-unsigned.aab
 
-      - name: Upload APK
+      - name: Collect Android apksigner tool
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          BUILD_TOOLS="$(ls -1 "$SDK_ROOT/build-tools" | sort -V | tail -1)"
+          mkdir -p dist/android-build-tools
+          cp "$SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner" dist/android-build-tools/
+          cp -R "$SDK_ROOT/build-tools/$BUILD_TOOLS/lib" dist/android-build-tools/
+          chmod +x dist/android-build-tools/apksigner
+          echo "$BUILD_TOOLS" > dist/android-build-tools/version.txt
+
+      - name: Upload production release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: Connect-Sports-Pro-Android-APK
-          path: mobile/csp-android/dist/Connect-Sports-Pro-1.0.2.apk
+          name: Connect-Sports-Pro-Android-Release-1.0.3
+          path: |
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.3-unsigned.apk
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.3-unsigned.aab
+            mobile/csp-android/dist/android-build-tools/**
           if-no-files-found: error
           retention-days: 30
