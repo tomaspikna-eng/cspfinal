@@ -33,7 +33,7 @@ jobs:
         run: npm install
 
       - name: Generate Windows app icons
-        run: npm run tauri icon ../assets/csp-logo-mark.png
+        run: npm run tauri icon ../mobile/csp-android/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Build Windows installer
         run: npm run tauri build
