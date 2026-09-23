@@ -1,0 +1,20 @@
+[package]
+name = "connect-sports-pro"
+version = "1.0.0"
+description = "Connect Sports Pro desktop application"
+authors = ["Connect Sports Pro"]
+edition = "2021"
+
+[lib]
+name = "connect_sports_pro_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
