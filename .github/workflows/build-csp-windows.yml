@@ -37,6 +37,10 @@ jobs:
         working-directory: desktop/windows
         run: npm install --no-audit --no-fund --package-lock=false
 
+      - name: Generate CSP Windows icons
+        working-directory: desktop/windows
+        run: npx tauri icon ../../assets/csp-logo-mark.png
+
       - name: Build Windows EXE
         working-directory: desktop/windows
         run: npm run build
