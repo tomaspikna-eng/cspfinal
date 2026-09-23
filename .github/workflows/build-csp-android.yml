@@ -40,6 +40,66 @@ jobs:
       - name: Sync Android project
         run: npx cap sync android
 
+      - name: Generate CSP launcher icons and legacy splash assets
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops
+
+          root = Path("android/app/src/main/res")
+          source = Image.open(root / "drawable-nodpi/csp_logo_mark.png").convert("RGBA")
+
+          # Crop the near-black canvas around the actual CSP mark.
+          rgb = source.convert("RGB")
+          px = rgb.load()
+          mask = Image.new("L", rgb.size, 0)
+          mp = mask.load()
+          for y in range(rgb.height):
+              for x in range(rgb.width):
+                  r,g,b = px[x,y]
+                  if max(r,g,b) > 18:
+                      mp[x,y] = 255
+          bbox = mask.getbbox()
+          mark = source.crop(bbox) if bbox else source
+
+          def compose_square(size, fill_ratio=0.74):
+              canvas = Image.new("RGBA", (size, size), (8,8,12,255))
+              target_w = int(size * fill_ratio)
+              target_h = int(size * fill_ratio)
+              logo = mark.copy()
+              logo.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+              x = (size - logo.width)//2
+              y = (size - logo.height)//2
+              canvas.alpha_composite(logo, (x,y))
+              return canvas.convert("RGB")
+
+          legacy = {
+              "mipmap-mdpi": 48,
+              "mipmap-hdpi": 72,
+              "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144,
+              "mipmap-xxxhdpi": 192,
+          }
+          for folder, size in legacy.items():
+              out = compose_square(size)
+              for name in ("ic_launcher.png", "ic_launcher_round.png"):
+                  out.save(root / folder / name, "PNG")
+
+          # Pre-Android 12 splash screens: dark CSP splash using the same mark.
+          for splash in root.glob("drawable*/splash.png"):
+              try:
+                  current = Image.open(splash)
+                  w,h = current.size
+              except Exception:
+                  continue
+              canvas = Image.new("RGBA", (w,h), (8,8,12,255))
+              logo = mark.copy()
+              logo.thumbnail((int(w*0.42), int(h*0.24)), Image.Resampling.LANCZOS)
+              canvas.alpha_composite(logo, ((w-logo.width)//2, (h-logo.height)//2))
+              canvas.convert("RGB").save(splash, "PNG")
+          PY
+
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
@@ -51,8 +111,8 @@ jobs:
       - name: Collect unsigned release files
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Connect-Sports-Pro-1.0.3-unsigned.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab dist/Connect-Sports-Pro-1.0.3-unsigned.aab
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Connect-Sports-Pro-1.0.4-unsigned.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab dist/Connect-Sports-Pro-1.0.4-unsigned.aab
 
       - name: Collect Android apksigner tool
         run: |
@@ -67,10 +127,10 @@ jobs:
       - name: Upload production release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: Connect-Sports-Pro-Android-Release-1.0.3
+          name: Connect-Sports-Pro-Android-Release-1.0.4
           path: |
-            mobile/csp-android/dist/Connect-Sports-Pro-1.0.3-unsigned.apk
-            mobile/csp-android/dist/Connect-Sports-Pro-1.0.3-unsigned.aab
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.4-unsigned.apk
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.4-unsigned.aab
             mobile/csp-android/dist/android-build-tools/**
           if-no-files-found: error
           retention-days: 30
