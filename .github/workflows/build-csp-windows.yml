@@ -32,6 +32,9 @@ jobs:
       - name: Install desktop dependencies
         run: npm install
 
+      - name: Generate Windows app icons
+        run: npm run tauri icon ../assets/csp-logo-mark.png
+
       - name: Build Windows installer
         run: npm run tauri build
 
