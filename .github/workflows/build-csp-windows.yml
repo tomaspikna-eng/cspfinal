@@ -37,9 +37,36 @@ jobs:
         working-directory: desktop/windows
         run: npm install --no-audit --no-fund --package-lock=false
 
+      - name: Prepare square CSP icon
+        working-directory: desktop/windows
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $sourcePath = (Resolve-Path "../../assets/csp-logo-mark.png").Path
+          $source = [System.Drawing.Image]::FromFile($sourcePath)
+          try {
+            $size = [Math]::Max($source.Width, $source.Height)
+            $bitmap = New-Object System.Drawing.Bitmap $size, $size
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            try {
+              $graphics.Clear([System.Drawing.Color]::Transparent)
+              $x = [int](($size - $source.Width) / 2)
+              $y = [int](($size - $source.Height) / 2)
+              $graphics.DrawImage($source, $x, $y, $source.Width, $source.Height)
+              $bitmap.Save("csp-icon-square.png", [System.Drawing.Imaging.ImageFormat]::Png)
+            }
+            finally {
+              $graphics.Dispose()
+              $bitmap.Dispose()
+            }
+          }
+          finally {
+            $source.Dispose()
+          }
+
       - name: Generate CSP Windows icons
         working-directory: desktop/windows
-        run: npx tauri icon ../../assets/csp-logo-mark.png
+        run: npx tauri icon csp-icon-square.png
 
       - name: Build Windows EXE
         working-directory: desktop/windows
