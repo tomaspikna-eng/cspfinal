@@ -3,9 +3,7 @@
   "productName": "Connect Sports Pro",
   "version": "1.0.0",
   "identifier": "com.connectsportspro.desktop",
-  "build": {
-    "frontendDist": "https://connectsportspro.com"
-  },
+  "build": {},
   "app": {
     "windows": [
       {
@@ -16,7 +14,8 @@
         "minHeight": 700,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "url": "https://connectsportspro.com"
       }
     ],
     "security": {
