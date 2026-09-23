@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Connect Sports Pro",
+  "version": "1.0.0",
+  "identifier": "com.connectsportspro.desktop",
+  "build": {
+    "frontendDist": "https://connectsportspro.com"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Connect Sports Pro",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1100,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "shortDescription": "Connect Sports Pro",
+    "longDescription": "Connect Sports Pro desktop application for club and organization management.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
