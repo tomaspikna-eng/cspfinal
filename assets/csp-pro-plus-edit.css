@@ -1,3 +1,4 @@
+[hidden]{display:none!important}
 :root{--bg:#080b0c;--panel:#0e1312;--panel2:#121817;--line:#29302e;--text:#f3f4f4;--muted:#969e9a;--gold:#e4bb62;--green:#58df8a;--red:#ff7b84}
 *{box-sizing:border-box}
 html{background:var(--bg)}
