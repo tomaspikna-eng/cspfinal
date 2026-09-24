@@ -234,7 +234,7 @@
 
   if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {
     var nativePushScript = global.document.createElement('script');
-    nativePushScript.src = '/assets/csp-native-push.js?v=20260914-1';
+    nativePushScript.src = '/assets/csp-native-push.js?v=20260924-push-2';
     nativePushScript.defer = true;
     global.document.head.appendChild(nativePushScript);
   }
