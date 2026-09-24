@@ -182,6 +182,11 @@ function trainingDetailHtml(d){
   const average=summary.average_unit_seconds!=null?summary.average_unit_seconds:d.average_frame_seconds;
   const score=trainingScoreText(d);
   const highlights=trainingHighlightChips({session_summary:summary});
+  const checkoutResults=Array.isArray(d?.final_score?.checkout_results)?d.final_score.checkout_results:[];
+  const checkoutTotal=checkoutResults.reduce((sum,item)=>sum+(Number(item?.darts)||0),0);
+  const checkoutAvg=checkoutResults.length?Math.round((checkoutTotal/checkoutResults.length)*10)/10:null;
+  const checkoutBest=checkoutResults.length?Math.min(...checkoutResults.map(item=>Number(item?.darts)||999).filter(Number.isFinite)):null;
+  const checkoutHtml=checkoutResults.length?`<section><span class="label">CHECKOUTY</span><div class="training-facts">${checkoutResults.map(item=>`<div><span>${Number(item.attempt)||1}. pokus · ${Number(item.start_score)||0}</span><b>${Number(item.darts)||0} šípok</b></div>`).join("")}</div></section>`:"";
   return `<div class="training-detail-head"><span class="label">DETAIL TRÉNINGU</span><h2 id="trainingDetailTitle">${esc([d.sport,d.discipline].filter(Boolean).join(" · ")||"Tréning")}</h2><p>${esc(formatDate(d.started_at,{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}))}</p></div>
   <div class="training-detail-score"><span>VÝSLEDOK</span><strong>${esc(score)}</strong>${d.winner_name?`<small>Víťaz: ${esc(d.winner_name)}</small>`:""}</div>
   <div class="training-detail-metrics">
@@ -189,6 +194,7 @@ function trainingDetailHtml(d){
     <div><span>ODOHRANÉ</span><b>${units} ${esc(trainingUnitLabel({session_summary:summary,final_score:d.final_score},units))}</b></div>
     <div><span>PRIEMER / JEDNOTKU</span><b>${average!=null?esc(clockSeconds(average)):"–"}</b></div>
     <div><span>RACE TO</span><b>${d.race_to||"–"}</b></div>
+    ${checkoutResults.length?`<div><span>PRIEMER ŠÍPOK / CHECKOUT</span><b>${checkoutAvg}</b></div><div><span>NAJLEPŠÍ CHECKOUT</span><b>${checkoutBest} šípok</b></div>`:""}
     <div><span>NAJRÝCHLEJŠÍ FRAME</span><b>${summary.fastest_unit_seconds!=null?esc(clockSeconds(summary.fastest_unit_seconds)):"–"}</b></div>
     <div><span>NAJDLHŠÍ FRAME</span><b>${summary.longest_unit_seconds!=null?esc(clockSeconds(summary.longest_unit_seconds)):"–"}</b></div>
     <div><span>ZAČIATOK</span><b>${esc(formatDate(d.started_at,{hour:"2-digit",minute:"2-digit"}))}</b></div>
@@ -198,6 +204,7 @@ function trainingDetailHtml(d){
   <div class="training-detail-grid">
     <section><span class="label">S KÝM</span><div class="training-participants">${participants.length?participants.map(p=>`<div><b>${esc(p.name||"Hráč")}</b>${p.is_me?"<small>TY</small>":""}</div>`).join(""):'<div class="empty">Účastníci nie sú zaznamenaní.</div>'}</div></section>
     <section><span class="label">SESSION</span><div class="training-facts"><div><span>Šport</span><b>${esc(d.sport||"–")}</b></div><div><span>Disciplína</span><b>${esc(d.discipline||"–")}</b></div><div><span>Stav</span><b>${esc(d.status||"ukončené")}</b></div></div></section>
+    ${checkoutHtml}
   </div>
   <div class="training-rewards">
     <section><span class="label">ACHIEVEMENTS ZÍSKANÉ POČAS TRÉNINGU</span>${achievements.length?achievements.map(a=>`<article class="training-reward"><div><b>${esc(a.name||a.code)}</b><p>${esc(a.description||"")}</p></div><strong>+${Number(a.points)||0}</strong></article>`).join(""):'<div class="empty">Počas tohto tréningu nebol odomknutý nový achievement.</div>'}</section>
