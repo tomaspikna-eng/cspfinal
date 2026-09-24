@@ -106,6 +106,41 @@ function tournamentsPage(data,tournaments,historyRows=[]){
   const history=[...historyRows].sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   return `${pageIntro("MOJE TURNAJE","Kalendár a história","Nadchádzajúce turnaje a tvoje konečné umiestnenia v ukončených turnajoch.",'<a class="button gold" href="/kalendar-turnajov/">Nájsť turnaj</a>')}<div class="grid calendar-layout"><section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">KALENDÁR</span><h2>${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</h2></div></div>${monthGrid(tournaments)}</section><div class="side-stack"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">NADCHÁDZAJÚCE</span>${upcoming.length?groupedTournamentHtml(upcoming,tournamentCard,4,true):'<div class="empty">Žiadny nadchádzajúci turnaj.</div>'}</section><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">VÝSLEDKOVÁ LISTINA</span>${history.length?groupedTournamentHtml(history,tournamentResultCard,8,false):'<div class="empty">Zatiaľ nemáš ukončený turnaj s výsledkom.</div>'}</section></div></div>${metrics(data.summary)}`;
 }
+function trainingScoreText(session){
+  const players=Array.isArray(session?.final_score?.players)?session.final_score.players:[];
+  if(players.length){
+    const mode=session?.final_score?.mode||"frame";
+    const value=p=>mode==="frame"?Number(p?.score)||0:mode==="points"?Number(p?.frames)||0:mode==="darts"?Number(p?.legs)||0:Number(p?.sets)||0;
+    return players.map(p=>`${p?.name||"Hráč"} ${value(p)}`).join(" : ");
+  }
+  const names=Array.isArray(session?.player_names)?session.player_names:[];
+  const scores=Array.isArray(session?.live_scores)?session.live_scores:[];
+  if(names.length&&scores.length)return names.map((name,i)=>`${name||"Hráč"} ${Number(scores[i])||0}`).join(" : ");
+  return session?.winner_name?`Víťaz: ${session.winner_name}`:"Bez výsledku";
+}
+function trainingOpponentText(session){
+  const names=Array.isArray(session?.player_names)?session.player_names.filter(Boolean):[];
+  if(names.length<=1)return "Individuálny tréning";
+  return names.slice(1).join(", ");
+}
+function trainingUnitLabel(session,count){
+  const mode=session?.session_summary?.mode||session?.final_score?.mode||"frame";
+  if(mode==="darts")return count===1?"leg":"legov";
+  if(["tabletennis","racket","universal"].includes(mode))return count===1?"set":"setov";
+  return count===1?"frame":"frameov";
+}
+function trainingHighlightChips(session){
+  const m=session?.session_summary||{},chips=[];
+  const add=(value,label)=>{if(Number(value)>0)chips.push(`<span class="training-highlight">${Number(value)}× ${esc(label)}</span>`)};
+  add(m.break_and_runs,"Čistá hra");
+  add(m.runouts,"Dohrávka");
+  add(m.golden_breaks,"ESO");
+  add(m.combo_wins,"Combo");
+  add(m.three_foul_wins,"3 chyby");
+  if(Number(m.achievement_count)>0)chips.push(`<span class="training-highlight reward">Achievement +${Number(m.achievement_count)}</span>`);
+  if(Number(m.challenge_count)>0)chips.push(`<span class="training-highlight reward">Výzva +${Number(m.challenge_count)}</span>`);
+  return chips.slice(0,3).join("");
+}
 function trainingSessionRows(sessions){
   if(!sessions.length)return'<div class="empty">Zatiaľ nie sú zaznamenané žiadne tréningy.</div>';
   return `<div class="training-session-list">${sessions.map(session=>{
