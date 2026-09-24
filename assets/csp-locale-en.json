@@ -1,7 +1,7 @@
 {
   "locale": "en",
   "name": "English",
-  "version": "2026-08-09",
+  "version": "2026-09-24",
   "translations": {
     "Domov": "Home",
     "Hľadať": "Search",
@@ -42,7 +42,6 @@
     "🎨 Téma a vzhľad": "🎨 Theme and appearance",
     "⭐ Upgrade plán": "⭐ Upgrade plan",
     "↪ Odhlásiť sa": "↪ Log out",
-
     "Hráč": "Player",
     "Hráči": "Players",
     "Hráč 1": "Player 1",
@@ -151,7 +150,6 @@
     "Nahrávam fotku...": "Uploading photo...",
     "Fotka bola aktualizovaná.": "Photo updated.",
     "Nepodarilo sa nahrať fotku. Skús to znova.": "The photo could not be uploaded. Please try again.",
-
     "Prihlásenie – Connect Sports Pro": "Log in – Connect Sports Pro",
     "Vitaj späť": "Welcome back",
     "Prihlás sa do svojho profilu": "Log in to your profile",
@@ -198,7 +196,6 @@
     "E-mail bol potvrdený. Pokračuj prihlásením.": "Your email has been confirmed. Continue by logging in.",
     "Potvrdzovací odkaz mohol expirovať alebo už bol použitý. Skús sa prihlásiť.": "The confirmation link may have expired or already been used. Try logging in.",
     "Potvrdzovací token sa nepodarilo spracovať.": "The confirmation token could not be processed.",
-
     "Kalendár udalostí": "Event calendar",
     "Najbližšie udalosti": "Upcoming events",
     "Celý kalendár →": "Full calendar →",
@@ -256,7 +253,6 @@
     "Kopírovať meno + nickname": "Copy full name + nickname",
     "Vytvoriť turnaj z udalosti": "Create tournament from event",
     "Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči.": "The event details and all pre-registered players will be transferred.",
-
     "Turnaj": "Tournament",
     "Turnaje": "Tournaments",
     "Nový turnaj": "New tournament",
@@ -333,7 +329,6 @@
     "Nastala neočakávaná chyba.": "An unexpected error occurred.",
     "Nepodarilo sa overiť limit turnajov. Skús to znova.": "The tournament limit could not be verified. Please try again.",
     "Režim sa nepodarilo zmeniť.": "The mode could not be changed.",
-
     "Scoreboard Live & Training — Connect Sports Pro": "Live & Training Scoreboard — Connect Sports Pro",
     "CONNECT SPORTS PRO · LIVE & TRAINING": "CONNECT SPORTS PRO · LIVE & TRAINING",
     "CONNECT SPORTS PRO · TOURNAMENT TABLET": "CONNECT SPORTS PRO · TOURNAMENT TABLET",
@@ -406,7 +401,6 @@
     "Scoreboard pripravený": "Scoreboard ready",
     "MANUÁLNE ODOSLANIE": "MANUAL SUBMISSION",
     "TE nemá načítaný turnajový zápas.": "No tournament match is loaded in TE.",
-
     "Ligy – Connect Sports Pro": "Leagues – Connect Sports Pro",
     "Vytvoriť ligu": "Create league",
     "Ligové prostredie": "League hub",
@@ -446,7 +440,6 @@
     "Najprv pridaj hráčov, potom vygeneruj rozpis.": "Add players first, then generate the schedule.",
     "Nasadenie": "Seed",
     "Detail": "Details",
-
     "Club Manager": "Club Manager",
     "CSP Club Manager": "CSP Club Manager",
     "Dashboard": "Dashboard",
@@ -454,7 +447,7 @@
     "Prevádzka": "Operations",
     "Manažér": "Manager",
     "Scoreboardy": "Scoreboards",
-    "Rezervácie": "Bookings",
+    "Rezervácie": "Reservations",
     "Správa": "Management",
     "Športoviská": "Facilities",
     "Zákazníci": "Customers",
@@ -526,7 +519,6 @@
     "QR kód": "QR code",
     "Pridať na plochu": "Add to Home Screen",
     "Odkaz skopírovaný": "Link copied",
-
     "CMS Magazín": "Magazine CMS",
     "Editor článku — CMS Magazín": "Article editor — Magazine CMS",
     "Nový článok": "New article",
@@ -589,7 +581,6 @@
     "Koncept uložený ✓": "Draft saved ✓",
     "Stiahnuť": "Unpublish",
     "Nepodarilo sa zmazať článok.": "The article could not be deleted.",
-
     "Cenník": "Pricing",
     "Začať zadarmo": "Start for free",
     "Vybrať Pro": "Choose Pro",
@@ -615,7 +606,6 @@
     "Vyhľadávanie · Connect Sports Pro": "Search · Connect Sports Pro",
     "Vyhľadaj verejný obsah, kluby, turnaje, profily a články dostupné na Connect Sports Pro.": "Search public content, clubs, tournaments, profiles and articles on Connect Sports Pro.",
     "Výsledky závisia od toho, ktoré verejné stránky už Google zaradil do indexu.": "Results depend on which public pages Google has indexed.",
-
     "Connect Sports Pro – Landing page": "Connect Sports Pro – Home",
     "MAGAZÍN": "MAGAZINE",
     "3× 180 v sérii!": "Three 180s in a row!",
@@ -685,7 +675,6 @@
     "Upgradovať →": "Upgrade →",
     "Spravovať →": "Manage →",
     "Fotografia – verejná URL": "Photo — public URL",
-
     "Nastavenie turnaja | CardScoresPro": "Tournament setup | Connect Sports Pro",
     "Pridaj hráčov, skontroluj duplicity a priprav automatické rozdelenie stolov.": "Add players, check for duplicates and prepare automatic table assignments.",
     "Napr. Ján Novák Peter Kováč Martin Horváth": "E.g. John Smith Jane Miller Alex Brown",
@@ -699,7 +688,6 @@
     "(0 = ručne)": "(0 = manual)",
     "Po každom kole označíš vypadávajúcich hráčov a ukončíš všetky stoly. Ďalšie kolo sa vygeneruje iba z postupujúcich. Finále má vždy presne 4 hráčov.": "After each round, mark the eliminated players and complete every table. The next round is generated only from advancing players. The final always has exactly four players.",
     "Kartový turnaj pokračuje cez jednotlivé kolá až po finálový stôl so štyrmi hráčmi. Rozbehnutý stav sa priebežne ukladá v tomto zariadení.": "The card tournament continues round by round to a final table of four players. Progress is saved continuously on this device.",
-
     "CSP Manager – Riadenie živej prevádzky": "CSP Manager – Live operations management",
     "CSP Manager spája športoviská, stoly, terče, dráhy, rezervácie, časovače, platby a obsluhu do jedného operačného systému. Nie je určený iba pre kluby — funguje všade, kde sa riadi živá športová alebo komunitná prevádzka.": "CSP Manager connects facilities, tables, dartboards, lanes, bookings, timers, payments and staff in one operating system. It is not limited to clubs — it works anywhere live sports or community operations need to be managed.",
     "Biliardový stôl 01": "Pool table 01",
@@ -737,7 +725,6 @@
     "\"Pridať na plochu\"": "\"Add to Home Screen\"",
     "(Add to Home Screen) — vznikne ikona.": "— an icon will be created.",
     "Tablet odteraz otvára rovno svoj scoreboard. Opakuj pre každú stanicu.": "The tablet will now open directly to its scoreboard. Repeat for each station.",
-
     "CSP Magazine — Novinky, recenzie, história a pravidlá zo sveta športu": "CSP Magazine — News, reviews, history and rules from the world of sports",
     "Hľadať v článkoch…": "Search articles…",
     "Redakcia · CMS (len admin)": "Editorial · CMS (admins only)",
@@ -756,7 +743,6 @@
     "Prihlásiť · CMS": "Log in · CMS",
     "Načítavam… · Connect Sports Pro Magazine": "Loading… · Connect Sports Pro Magazine",
     "Načítavam článok…": "Loading article…",
-
     "Vymazanie dát – Connect Sports Pro": "Data deletion – Connect Sports Pro",
     "Vymazanie osobných dát": "Personal data deletion",
     "Informácie o tom, ako požiadať o zmazanie vašich údajov z platformy Connect Sports Pro": "How to request deletion of your data from Connect Sports Pro",
@@ -785,7 +771,6 @@
     "Odstrániť": "Remove",
     "— tým odvoláte prístup Facebooku k vašim dátam": "— this revokes Facebook access to your data",
     "Pre úplné vymazanie dát z našej databázy nás napriek tomu kontaktujte emailom vyššie.": "To fully delete your data from our database, you must still contact us at the email address above.",
-
     "Cookies – Connect Sports Pro": "Cookies – Connect Sports Pro",
     "Posledná aktualizácia: 7. 7. 2026 · Connect Sports Pro / connectsportspro.com": "Last updated: 7 July 2026 · Connect Sports Pro / connectsportspro.com",
     "1. Čo sú cookies a lokálne úložisko": "1. What cookies and local storage are",
@@ -813,7 +798,6 @@
     "4. Ako cookies spravovať": "4. How to manage cookies",
     "Cookies aj lokálne úložisko vieš kedykoľvek vymazať alebo zablokovať priamo v nastaveniach svojho prehliadača. Upozorňujeme, že zablokovanie nevyhnutných cookies (najmä prihlásenia) znamená, že sa nebudeš vedieť prihlásiť a appka nebude fungovať správne.": "You can delete or block cookies and local storage at any time in your browser settings. Please note that blocking essential cookies, especially authentication, will prevent you from logging in and the app will not work correctly.",
     "Otázky ohľadom cookies? Napíš na": "Questions about cookies? Email",
-
     "Ochrana osobných údajov – Connect Sports Pro": "Privacy Policy – Connect Sports Pro",
     "Posledná aktualizácia: 22. 5. 2026 · Connect Sports Pro / connectsportspro.com": "Last updated: 22 May 2026 · Connect Sports Pro / connectsportspro.com",
     "1. Prevádzkovateľ": "1. Controller",
@@ -861,7 +845,6 @@
     "Platforma používa nevyhnutné cookies pre fungovanie autentifikácie. Analytické alebo reklamné cookies nepoužívame bez vášho súhlasu.": "The system uses essential cookies for authentication. We do not use analytics or advertising cookies without your consent.",
     "9. Kontakt": "9. Contact",
     "V prípade otázok týkajúcich sa ochrany osobných údajov nás kontaktujte na:": "For questions about personal data protection, contact us at:",
-
     "Obchodné podmienky – Connect Sports Pro": "Terms and Conditions – Connect Sports Pro",
     "Posledná aktualizácia:": "Last updated:",
     "DOPLNIŤ DÁTUM": "DATE TO BE ADDED",
@@ -918,7 +901,6 @@
     "Tieto obchodné podmienky sa riadia právnym poriadkom Slovenskej republiky. Prevádzkovateľ si vyhradzuje právo podmienky meniť; o zmenách bude používateľov informovať emailom alebo oznámením v appke minimálne 14 dní vopred.": "These Terms and Conditions are governed by the laws of the Slovak Republic. The operator reserves the right to amend them and will notify users of changes by email or an in-app notice at least 14 days in advance.",
     "V prípade sporu, ktorý sa nepodarí vyriešiť dohodou, je používateľ ako spotrebiteľ oprávnený obrátiť sa na Slovenskú obchodnú inšpekciu (": "If a dispute cannot be resolved by agreement, a consumer may contact the Slovak Trade Inspection (",
     ") so sídlom Prievozská 32, 827 99 Bratislava, alebo využiť platformu Európskej komisie na riešenie sporov online (": "), Prievozská 32, 827 99 Bratislava, or use the European Commission's online dispute resolution system (",
-
     "Duplicitné mená:": "Duplicate names:",
     "Najprv oprav duplicity v zozname hráčov.": "Resolve duplicate names in the player list first.",
     "Obrázok je príliš veľký (max 5MB).": "The image is too large (maximum 5 MB).",
@@ -1024,41 +1006,192 @@
     "/ mesiac": "/ month",
     "práve teraz": "just now",
     "Pred chvíľou": "A moment ago",
-    "Osobný rekord": "Personal best"
+    "Osobný rekord": "Personal best",
+    "Connect Sports Pro — Hraj. Organizuj. Spravuj.": "Connect Sports Pro — Play. Organize. Manage.",
+    "Riešenia": "Solutions",
+    "Funkcie": "Features",
+    "Začať zdarma": "Start free",
+    "Jedna prepojená športová platforma": "One connected sports platform",
+    "Hraj. Organizuj.": "Play. Organize.",
+    "Spravuj.": "Manage.",
+    "Connect Sports Pro prepája hráčov, turnaje, ligy a športové kluby v jednom systéme. Od tréningu cez živé skórovanie a rezervácie až po prevádzku klubu a verejné výsledky.": "Connect Sports Pro connects players, tournaments, leagues and sports clubs in one system. From training and live scoring to reservations, club operations and public results.",
+    "Vytvoriť účet zdarma": "Create a free account",
+    "Pozrieť riešenia": "Explore solutions",
+    "Hráčsky účet zdarma": "Free player account",
+    "Živé skórovanie": "Live scoring",
+    "Turnaje a ligy": "Tournaments and leagues",
+    "Správa klubu": "Club management",
+    "Prehľad": "Overview",
+    "9-Ball turnaj · Stôl 03": "9-Ball tournament · Table 03",
+    "Hrá sa do": "Race to",
+    "Postavené podľa reálnych používateľov": "Built around real users",
+    "Jedna platforma. Tri jasné cesty.": "One platform. Three clear paths.",
+    "Začni tým, čo v športe skutočne robíš.": "Start with what you actually do in sport.",
+    "Pre hráčov": "For players",
+    "Hraj, trénuj, sleduj progres a zostaň prepojený so svojím športom.": "Play, train, track your progress and stay connected to your sport.",
+    "Profil a štatistiky": "Profile and statistics",
+    "Tréning a zápasy": "Training and matches",
+    "Achievements a výzvy": "Achievements and challenges",
+    "Pozrieť športy →": "Explore sports →",
+    "Pre organizátorov": "For organizers",
+    "Turnaje, ligy a série bez prepínania medzi viacerými nástrojmi.": "Tournaments, leagues and series without switching between multiple tools.",
+    "Skupiny → KO": "Groups → Knockout",
+    "Pozrieť riešenia →": "Explore solutions →",
+    "Pre kluby": "For clubs",
+    "Spravuj prevádzku, ľudí, rezervácie a súťaže v jednom systéme.": "Manage operations, staff, reservations and competitions in one system.",
+    "Stanice a rezervácie": "Stations and reservations",
+    "Personál a dochádzka": "Staff and attendance",
+    "Pokladňa a reporting": "Cash desk and reporting",
+    "Pozrieť Club Manager →": "Explore Club Manager →",
+    "Jadro platformy": "Platform core",
+    "Nie ďalšia aplikácia na jednu vec.": "Not another single-purpose app.",
+    "CSP prepája súťaže, skórovanie, hráčsku identitu a klubovú prevádzku.": "CSP connects competitions, scoring, player identity and club operations.",
+    "RR, SKO, DKO, skupiny a hybridné formáty.": "Round robin, single elimination, double elimination, groups and hybrid formats.",
+    "Ligy a série": "Leagues and series",
+    "Tímy, tabuľky, zápisy a viacdňové série.": "Teams, standings, match sheets and multi-day series.",
+    "Živý scoreboard": "Live scoreboard",
+    "Skórovanie podľa konkrétneho športu.": "Scoring tailored to each sport.",
+    "Živé klubové obrazovky.": "Live club displays.",
+    "Dostupnosť športovísk v reálnom čase.": "Real-time venue availability.",
+    "Prevádzka, ľudia a reporting.": "Operations, people and reporting.",
+    "Progres hráča": "Player progress",
+    "Tréningy, achievements a výzvy.": "Training, achievements and challenges.",
+    "Verejná športová vrstva": "Public sports layer",
+    "Kluby, turnaje, výsledky a profily.": "Clubs, tournaments, results and profiles.",
+    "Pozrieť všetky funkcie": "Explore all features"
   },
   "patterns": [
-    { "source": "^Stôl (\\d+)$", "target": "Table $1" },
-    { "source": "^Šípky (\\d+)$", "target": "Darts $1" },
-    { "source": "^(\\d+) hráči$", "target": "$1 players" },
-    { "source": "^(\\d+) hráčov$", "target": "$1 players" },
-    { "source": "^(\\d+) hráč$", "target": "$1 player" },
-    { "source": "^Kolo (\\d+)$", "target": "Round $1" },
-    { "source": "^Frame (\\d+)$", "target": "Frame $1" },
-    { "source": "^Sledovatelia · (\\d+)$", "target": "Followers · $1" },
-    { "source": "^Rezervácia (.+) o (.+) — potvrdenie pošleme e-mailom \\(ULTRA\\)\\.$", "target": "Booking $1 at $2 — confirmation will be sent by email (ULTRA)." },
-    { "source": "^(.+) športovisko$", "target": "$1 facility" },
-    { "source": "^(.+) športoviská$", "target": "$1 facilities" },
-    { "source": "^(.+) športovísk$", "target": "$1 facilities" },
-    { "source": "^(.+) vyhral zápas!$", "target": "$1 won the match!" },
-    { "source": "^(.+) vyhral zápas \\(Race to (.+)\\)$", "target": "$1 won the match (Race to $2)" },
-    { "source": "^Turnajový zápas načítaný: (.+) vs (.+)$", "target": "Tournament match loaded: $1 vs $2" },
-    { "source": "^Zápas je už uzavretý: (.+)$", "target": "The match is already closed: $1" },
-    { "source": "^Rezervácia potvrdená — (.+)$", "target": "Booking confirmed — $1" },
-    { "source": "^Naozaj odstrániť \"(.+)\"\\?$", "target": "Remove \"$1\"?" },
-    { "source": "^Vypadáva: (.+)$", "target": "Eliminated: $1" }
-    ,{ "source": "^Na stole „(.+)“ označ aspoň jedného vypadávajúceho hráča\\.$", "target": "Mark at least one eliminated player at table “$1”." }
-    ,{ "source": "^Zo stola „(.+)“ musí postúpiť aspoň jeden hráč\\.$", "target": "At least one player must advance from table “$1”." }
-    ,{ "source": "^(.+) hráčov · (.+)$", "target": "$1 players · $2" }
-    ,{ "source": "^(.+)\\. kolo$", "target": "Round $1" }
-    ,{ "source": "^Loser kolo (.+)$", "target": "Losers' round $1" }
-    ,{ "source": "^Pozri si profil (.+) na Connect Sports Pro\\.$", "target": "View $1's profile on Connect Sports Pro." }
-    ,{ "source": "^⚠ Stav (.+) sa nepodarilo synchronizovať$", "target": "⚠ $1 status could not be synchronized" }
-    ,{ "source": "^(.+) dosiahol cieľ (.+)$", "target": "$1 reached the target $2" }
-    ,{ "source": "^(.+) — séria (.+) \\(frame (.+)\\)$", "target": "$1 — run $2 (frame $3)" }
-    ,{ "source": "^Cieľ (.+) b\\. · Race to (.+)$", "target": "Target $1 pts · Race to $2" }
-    ,{ "source": "^Nový (.+) (.+)$", "target": "New $1 $2" }
-    ,{ "source": "^(.+) športovísk pridaných\\.$", "target": "$1 facilities added." }
-    ,{ "source": "^Šípky (.+)$", "target": "Darts $1" }
-    ,{ "source": "^Skupinová fáza ukončená — (.+) pavúk je pripravený ✓$", "target": "Group stage completed — the $1 bracket is ready ✓" }
+    {
+      "source": "^Stôl (\\d+)$",
+      "target": "Table $1"
+    },
+    {
+      "source": "^Šípky (\\d+)$",
+      "target": "Darts $1"
+    },
+    {
+      "source": "^(\\d+) hráči$",
+      "target": "$1 players"
+    },
+    {
+      "source": "^(\\d+) hráčov$",
+      "target": "$1 players"
+    },
+    {
+      "source": "^(\\d+) hráč$",
+      "target": "$1 player"
+    },
+    {
+      "source": "^Kolo (\\d+)$",
+      "target": "Round $1"
+    },
+    {
+      "source": "^Frame (\\d+)$",
+      "target": "Frame $1"
+    },
+    {
+      "source": "^Sledovatelia · (\\d+)$",
+      "target": "Followers · $1"
+    },
+    {
+      "source": "^Rezervácia (.+) o (.+) — potvrdenie pošleme e-mailom \\(ULTRA\\)\\.$",
+      "target": "Booking $1 at $2 — confirmation will be sent by email (ULTRA)."
+    },
+    {
+      "source": "^(.+) športovisko$",
+      "target": "$1 facility"
+    },
+    {
+      "source": "^(.+) športoviská$",
+      "target": "$1 facilities"
+    },
+    {
+      "source": "^(.+) športovísk$",
+      "target": "$1 facilities"
+    },
+    {
+      "source": "^(.+) vyhral zápas!$",
+      "target": "$1 won the match!"
+    },
+    {
+      "source": "^(.+) vyhral zápas \\(Race to (.+)\\)$",
+      "target": "$1 won the match (Race to $2)"
+    },
+    {
+      "source": "^Turnajový zápas načítaný: (.+) vs (.+)$",
+      "target": "Tournament match loaded: $1 vs $2"
+    },
+    {
+      "source": "^Zápas je už uzavretý: (.+)$",
+      "target": "The match is already closed: $1"
+    },
+    {
+      "source": "^Rezervácia potvrdená — (.+)$",
+      "target": "Booking confirmed — $1"
+    },
+    {
+      "source": "^Naozaj odstrániť \"(.+)\"\\?$",
+      "target": "Remove \"$1\"?"
+    },
+    {
+      "source": "^Vypadáva: (.+)$",
+      "target": "Eliminated: $1"
+    },
+    {
+      "source": "^Na stole „(.+)“ označ aspoň jedného vypadávajúceho hráča\\.$",
+      "target": "Mark at least one eliminated player at table “$1”."
+    },
+    {
+      "source": "^Zo stola „(.+)“ musí postúpiť aspoň jeden hráč\\.$",
+      "target": "At least one player must advance from table “$1”."
+    },
+    {
+      "source": "^(.+) hráčov · (.+)$",
+      "target": "$1 players · $2"
+    },
+    {
+      "source": "^(.+)\\. kolo$",
+      "target": "Round $1"
+    },
+    {
+      "source": "^Loser kolo (.+)$",
+      "target": "Losers' round $1"
+    },
+    {
+      "source": "^Pozri si profil (.+) na Connect Sports Pro\\.$",
+      "target": "View $1's profile on Connect Sports Pro."
+    },
+    {
+      "source": "^⚠ Stav (.+) sa nepodarilo synchronizovať$",
+      "target": "⚠ $1 status could not be synchronized"
+    },
+    {
+      "source": "^(.+) dosiahol cieľ (.+)$",
+      "target": "$1 reached the target $2"
+    },
+    {
+      "source": "^(.+) — séria (.+) \\(frame (.+)\\)$",
+      "target": "$1 — run $2 (frame $3)"
+    },
+    {
+      "source": "^Cieľ (.+) b\\. · Race to (.+)$",
+      "target": "Target $1 pts · Race to $2"
+    },
+    {
+      "source": "^Nový (.+) (.+)$",
+      "target": "New $1 $2"
+    },
+    {
+      "source": "^(.+) športovísk pridaných\\.$",
+      "target": "$1 facilities added."
+    },
+    {
+      "source": "^Šípky (.+)$",
+      "target": "Darts $1"
+    },
+    {
+      "source": "^Skupinová fáza ukončená — (.+) pavúk je pripravený ✓$",
+      "target": "Group stage completed — the $1 bracket is ready ✓"
+    }
   ]
 }
