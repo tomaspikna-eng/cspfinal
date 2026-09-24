@@ -2165,6 +2165,14 @@ function showTrainingSummary(){
   }
 
   $("trainingSummaryOverlay").classList.remove("hidden");
+
+  // A finished training is an activity, not a draft. Persist it immediately
+  // for authenticated players so leaving the summary (including via
+  // "Moje tréningy", browser navigation or closing the tab) cannot strand
+  // the session in status=active. The save CTA remains as a retry surface.
+  if(currentUserId&&!trainingSummarySaved){
+    void savePendingTrainingSummary();
+  }
 }
 
 async function savePendingTrainingSummary(){
@@ -2221,7 +2229,13 @@ function closeTrainingSummary(){
 
 $("saveTrainingSummaryBtn").onclick=savePendingTrainingSummary;
 $("shareTrainingSummaryBtn").onclick=shareTrainingSummary;
-$("trainingSummaryDetailBtn").onclick=()=>{ location.href="/profil/treningy/"; };
+$("trainingSummaryDetailBtn").onclick=async()=>{
+  if(currentUserId&&!trainingSummarySaved&&pendingTrainingSummary){
+    await savePendingTrainingSummary();
+    if(!trainingSummarySaved)return;
+  }
+  location.href="/profil/treningy/";
+};
 $("closeTrainingSummaryBtn").onclick=closeTrainingSummary;
 
 /* ════════════════════ CHECKOUT (šípky) ════════════════════ */
