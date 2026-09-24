@@ -111,8 +111,8 @@ jobs:
       - name: Collect unsigned release files
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Connect-Sports-Pro-1.0.4-unsigned.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab dist/Connect-Sports-Pro-1.0.4-unsigned.aab
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Connect-Sports-Pro-1.0.5-unsigned.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab dist/Connect-Sports-Pro-1.0.5-unsigned.aab
 
       - name: Collect Android apksigner tool
         run: |
@@ -127,10 +127,10 @@ jobs:
       - name: Upload production release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: Connect-Sports-Pro-Android-Release-1.0.4
+          name: Connect-Sports-Pro-Android-Release-1.0.5
           path: |
-            mobile/csp-android/dist/Connect-Sports-Pro-1.0.4-unsigned.apk
-            mobile/csp-android/dist/Connect-Sports-Pro-1.0.4-unsigned.aab
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.5-unsigned.apk
+            mobile/csp-android/dist/Connect-Sports-Pro-1.0.5-unsigned.aab
             mobile/csp-android/dist/android-build-tools/**
           if-no-files-found: error
           retention-days: 30
