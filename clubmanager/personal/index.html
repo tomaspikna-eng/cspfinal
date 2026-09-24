@@ -191,6 +191,8 @@ employeeList.onclick=e=>{
   const addEmail=e.target.dataset.addEmail;
   const activate=e.target.dataset.activate;
   const card=e.target.dataset.card;
+  const detail=e.target.dataset.detail;
+  if(detail){openEmployeeDetail(detail);return;}
   if(card){
     const emp=employees.find(x=>x.id===card);if(!emp)return;
     cardEmployeeName.textContent=emp.full_name||'Zamestnanec';
@@ -210,6 +212,71 @@ employeeList.onclick=e=>{
     activationEmail.textContent=emp.email||'—';
     activationModal.classList.remove('hidden');
   }
+};
+
+function shiftSeconds(s){
+  if(!s)return 0;
+  const start=new Date(s.clock_in_at).getTime();
+  const end=s.clock_out_at?new Date(s.clock_out_at).getTime():Date.now();
+  let seconds=Math.max(0,Math.floor((end-start)/1000)-Number(s.break_seconds||0));
+  if(s.status==='break'&&s.break_started_at)seconds-=Math.max(0,Math.floor((Date.now()-new Date(s.break_started_at).getTime())/1000));
+  return Math.max(0,seconds);
+}
+function durationLabel(seconds){
+  const minutes=Math.max(0,Math.floor(Number(seconds||0)/60));
+  const h=Math.floor(minutes/60),m=minutes%60;
+  return h?h+' h '+m+' min':m+' min';
+}
+function openEmployeeDetail(id){
+  const emp=employees.find(x=>x.id===id);if(!emp)return;
+  detailEmployee=emp;
+  detailName.textContent=emp.full_name||'Zamestnanec';
+  detailCode.textContent=emp.employee_code||'—';
+  detailRole.textContent=emp.role_name||'Zamestnanec';
+  detailStatus.textContent=emp.is_active?'Aktívny':'Vyradený';
+  detailEmail.textContent=emp.email||'—';
+  detailPhone.textContent=emp.phone||'—';
+  const rows=attendance.filter(s=>s.employee_id===emp.id).sort((a,b)=>new Date(b.clock_in_at)-new Date(a.clock_in_at));
+  const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+  const monthSeconds=rows.filter(s=>new Date(s.clock_in_at)>=monthStart).reduce((sum,s)=>sum+shiftSeconds(s),0);
+  detailMonthHours.textContent=durationLabel(monthSeconds);
+  detailAttendance.innerHTML=rows.length?rows.slice(0,20).map(s=>{
+    const d=new Date(s.clock_in_at);
+    const out=s.clock_out_at?new Date(s.clock_out_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'—';
+    const status=s.status==='working'?'V práci':s.status==='break'?'Prestávka':'Ukončená';
+    return '<div class="attendance-item"><time>'+d.toLocaleDateString('sk-SK')+'</time><span>'+d.toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+'–'+out+'</span><span class="work">'+durationLabel(shiftSeconds(s))+'</span><span>'+status+'</span></div>';
+  }).join(''):'<div class="empty">Zatiaľ bez dochádzky.</div>';
+  detailDeleteBtn.hidden=!emp.is_active;
+  detailRestoreBtn.hidden=!!emp.is_active;
+  employeeDetailModal.classList.remove('hidden');
+}
+function closeEmployeeDetail(){employeeDetailModal.classList.add('hidden');detailEmployee=null}
+employeeDetailClose.onclick=closeEmployeeDetail;
+employeeDetailModal.onclick=e=>{if(e.target===employeeDetailModal)closeEmployeeDetail()};
+detailEditBtn.onclick=()=>{if(!detailEmployee)return;const emp=detailEmployee;closeEmployeeDetail();openModal(emp)};
+detailCardBtn.onclick=()=>{
+  if(!detailEmployee)return;
+  const emp=detailEmployee;
+  cardEmployeeName.textContent=emp.full_name||'Zamestnanec';
+  cardEmployeeCode.textContent=emp.employee_code||'—';
+  cardModal.classList.remove('hidden');
+  if(window.JsBarcode&&emp.employee_code)JsBarcode('#employeeBarcode',emp.employee_code,{format:'CODE128',displayValue:true,height:84,margin:8,fontSize:16});
+};
+detailDeleteBtn.onclick=async()=>{
+  if(!detailEmployee)return;
+  const emp=detailEmployee;
+  if(!confirm('Vyradiť zamestnanca '+emp.full_name+'?\n\nDochádzka a história zostanú zachované. Jeho PIN prestane fungovať.'))return;
+  const {error}=await A.db.rpc('club_manager_archive_employee',{p_employee_id:emp.id});
+  if(error)return show(error.message,true);
+  closeEmployeeDetail();await load();show('Zamestnanec bol vyradený. História dochádzky zostala zachovaná.');
+};
+detailRestoreBtn.onclick=async()=>{
+  if(!detailEmployee)return;
+  const emp=detailEmployee;
+  const {error}=await A.db.rpc('club_manager_restore_employee',{p_employee_id:emp.id});
+  if(error)return show(error.message,true);
+  employeeFilter.value='active';
+  closeEmployeeDetail();await load();show('Zamestnanec bol obnovený.');
 };
 
 function closeCard(){cardModal.classList.add('hidden')}
