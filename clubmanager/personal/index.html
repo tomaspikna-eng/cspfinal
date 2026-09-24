@@ -126,21 +126,21 @@ function accountLabel(e){
   return '<span class="status-chip gold">Čaká na aktiváciu</span>';
 }
 function accountActions(e){
-  const card='<button class="ghost" data-card="'+e.id+'">Karta</button>';
-  const edit='<button class="ghost" data-edit="'+e.id+'">Upraviť</button>';
-  if(e.account_activated_at)return card+edit;
-  if(!e.email)return card+edit+'<button class="activation-btn" data-add-email="'+e.id+'">Doplniť e-mail</button>';
-  return card+edit+'<button class="activation-btn" data-activate="'+e.id+'">'+(e.activation_sent_at?'Poslať znova':'Poslať aktiváciu')+'</button>';
+  const detail='<button class="ghost" data-detail="'+e.id+'">Detail</button>';
+  if(e.account_activated_at)return detail;
+  if(!e.email)return detail+'<button class="activation-btn" data-add-email="'+e.id+'">Doplniť e-mail</button>';
+  return detail+'<button class="activation-btn" data-activate="'+e.id+'">'+(e.activation_sent_at?'Poslať znova':'Poslať aktiváciu')+'</button>';
 }
 function render(){
   const q=employeeSearch.value.trim().toLowerCase();
-  const rows=employees.filter(e=>!q||[e.full_name,e.email,e.role_name,e.employee_code].some(v=>String(v||'').toLowerCase().includes(q)));
+  const mode=employeeFilter.value;
+  const rows=employees.filter(e=>(mode==='all'||(mode==='active'&&e.is_active)||(mode==='archived'&&!e.is_active))&&(!q||[e.full_name,e.email,e.role_name,e.employee_code].some(v=>String(v||'').toLowerCase().includes(q))));
   employeeList.innerHTML=rows.length?rows.map(e=>`
     <article class="employee-row">
       <div class="employee-avatar">${esc(initials(e.full_name))}</div>
       <div class="employee-main"><b>${esc(e.full_name)}</b><span>${esc(e.role_name||'Zamestnanec')} · ${esc(e.email||'bez e-mailu')}</span></div>
       <div><div class="employee-code">${esc(e.employee_code||'—')}</div><div style="margin-top:5px">${accountLabel(e)}</div></div>
-      <div class="employee-status ${e.is_active?'active':'pending'}">${e.is_active?'Aktívny':'Neaktívny'}<br><span style="color:var(--muted)">${Number(e.hourly_rate||0).toFixed(2)} €/h</span></div>
+      <div class="employee-status ${e.is_active?'active':'pending'}">${e.is_active?'Aktívny':'Vyradený'}<br><span style="color:var(--muted)">${Number(e.hourly_rate||0).toFixed(2)} €/h</span></div>
       <div class="row-actions">${accountActions(e)}</div>
     </article>`).join(''):'<div class="empty">Žiadni zamestnanci.</div>';
 
@@ -161,12 +161,14 @@ function render(){
 async function load(){
   ctx=await A.requireAccess();if(!ctx.club)throw new Error('Klub neexistuje.');
   clubName.textContent=ctx.club.name||'Klub';
-  const [er,rr]=await Promise.all([
+  const [er,rr,ar]=await Promise.all([
     A.db.from('club_employees').select('*').eq('club_id',ctx.club.id).order('full_name'),
-    A.db.from('club_employee_leave_requests').select('*').eq('club_id',ctx.club.id).order('created_at',{ascending:false})
+    A.db.from('club_employee_leave_requests').select('*').eq('club_id',ctx.club.id).order('created_at',{ascending:false}),
+    A.db.from('club_attendance_sessions').select('id,employee_id,clock_in_at,clock_out_at,break_started_at,break_seconds,status').eq('club_id',ctx.club.id).order('clock_in_at',{ascending:false}).limit(500)
   ]);
-  if(er.error)throw er.error;if(rr.error)throw rr.error;
+  if(er.error)throw er.error;if(rr.error)throw rr.error;if(ar.error)throw ar.error;
   employees=er.data||[];
+  attendance=ar.data||[];
   const byId=Object.fromEntries(employees.map(e=>[e.id,e]));
   requests=(rr.data||[]).map(r=>({...r,employee:byId[r.employee_id]||null}));
   render();
@@ -183,6 +185,7 @@ addEmployeeBtn.onclick=()=>openModal();
 employeeModalClose.onclick=closeModal;employeeCancel.onclick=closeModal;
 employeeModal.onclick=e=>{if(e.target===employeeModal)closeModal()};
 employeeSearch.oninput=render;
+employeeFilter.onchange=render;
 employeeList.onclick=e=>{
   const edit=e.target.dataset.edit;
   const addEmail=e.target.dataset.addEmail;
