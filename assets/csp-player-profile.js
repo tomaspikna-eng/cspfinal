@@ -249,8 +249,16 @@ async function init(){
     const demo=new URLSearchParams(location.search).get("demo");if(location.hostname==="terminal.local"&&["pro","free"].includes(demo)){renderPreview(demo);return}
     if(!window.supabase)throw new Error("Supabase client unavailable");
     const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    const {data:userData,error:userError}=await client.auth.getUser();if(userError||!userData.user){authState(false);return}
-    const {data,error}=await client.rpc("get_my_player_profile_dashboard");if(error)throw error;
+    const authResult=await Promise.race([
+      client.auth.getUser(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Auth timeout")),10000))
+    ]);
+    const {data:userData,error:userError}=authResult;if(userError||!userData.user){authState(false);return}
+    const dashboardResult=await Promise.race([
+      client.rpc("get_my_player_profile_dashboard"),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Profile dashboard timeout")),12000))
+    ]);
+    const {data,error}=dashboardResult;if(error)throw error;
     const from=new Date();from.setDate(from.getDate()-180);const to=new Date();to.setDate(to.getDate()+180);
     const requests=[client.from("training_plans").select("id,title,sport,discipline,venue,notes,scheduled_for,status,created_at").gte("scheduled_for",from.toISOString()).lte("scheduled_for",to.toISOString()).order("scheduled_for",{ascending:false})];
     if(PAGE==="tournaments")requests.push(Promise.all([client.from("user_tournament_history").select("*").eq("user_id",userData.user.id).order("date",{ascending:false}),client.from("tournament_players").select("tournament_id,tournaments!inner(id,name,sport,discipline,format,date,venue,status,source_event_id)").eq("user_id",userData.user.id)]));
