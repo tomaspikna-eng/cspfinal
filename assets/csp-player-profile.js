@@ -93,7 +93,10 @@ function seriesFolder(items,renderer){
 function groupedTournamentHtml(items,renderer,limit,ascending=false){
   const groups=new Map(),standalone=[];
   items.forEach(item=>{if(item.series_id){if(!groups.has(item.series_id))groups.set(item.series_id,[]);groups.get(item.series_id).push(item)}else standalone.push(item)});
-  const blocks=[...groups.values()].map(group=>({date:group.map(x=>x.date||"").sort()[0]||"",html:seriesFolder(group,renderer)})),...standalone.map(item=>({date:item.date||"",html:renderer(item)}))];
+  const blocks=[
+    ...[...groups.values()].map(group=>({date:group.map(x=>x.date||"").sort()[0]||"",html:seriesFolder(group,renderer)})),
+    ...standalone.map(item=>({date:item.date||"",html:renderer(item)}))
+  ];
   blocks.sort((a,b)=>ascending?String(a.date).localeCompare(String(b.date)):String(b.date).localeCompare(String(a.date)));
   return blocks.slice(0,limit).map(x=>x.html).join("");
 }
