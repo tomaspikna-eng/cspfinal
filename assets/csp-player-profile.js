@@ -82,46 +82,26 @@ function tournamentResultCard(t){
   const positionText=Number.isFinite(position)&&position>0?`${position}. miesto`:"Umiestnenie neuvedené";
   return`<article class="tournament-card tournament-result-card"><div class="result-rank">${esc(positionText)}</div><time>${formatDate(t.date,{day:"numeric",month:"long",year:"numeric"})}</time><h3>${esc(t.name)}</h3><p>${esc([t.sport,t.discipline,t.venue].filter(Boolean).join(" · "))}</p><div class="result-stats"><span><b>${wins}</b> výhier</span><span><b>${losses}</b> prehier</span><span><b>${played}</b> zápasov</span><span><b>${scoreFor}:${scoreAgainst}</b> skóre</span></div></article>`;
 }
+function seriesFolder(items,renderer){
+  const sorted=[...items].sort((a,b)=>(Number(a.series_round_number)||999)-(Number(b.series_round_number)||999)||String(a.date||"").localeCompare(String(b.date||"")));
+  const first=sorted[0]||{},last=sorted[sorted.length-1]||first;
+  const title=first.series_title||first.name||"Turnajová séria";
+  const dates=[first.date,last.date].filter(Boolean);
+  const range=dates.length?(dates.length===1||dates[0]===dates[1]?formatDate(dates[0],{day:"numeric",month:"short",year:"numeric"}):\`\${formatDate(dates[0],{day:"numeric",month:"short"})} – \${formatDate(dates[1],{day:"numeric",month:"short",year:"numeric"})}\`):"";
+  return\`<details class="tournament-series"><summary><span class="series-folder-icon">▸</span><div><b>\${esc(title)}</b><small>\${esc([sorted.length+" kôl",range].filter(Boolean).join(" · "))}</small></div><span class="series-count">\${sorted.length}</span></summary><div class="series-rounds">\${sorted.map((item,index)=>renderer({...item,name:item.name||\`\${title} · \${Number(item.series_round_number)||index+1}. kolo\`})).join("")}</div></details>\`;
+}
+function groupedTournamentHtml(items,renderer,limit,ascending=false){
+  const groups=new Map(),standalone=[];
+  items.forEach(item=>{if(item.series_id){if(!groups.has(item.series_id))groups.set(item.series_id,[]);groups.get(item.series_id).push(item)}else standalone.push(item)});
+  const blocks=[...groups.values()].map(group=>({date:group.map(x=>x.date||"").sort()[0]||"",html:seriesFolder(group,renderer)})),...standalone.map(item=>({date:item.date||"",html:renderer(item)}))];
+  blocks.sort((a,b)=>ascending?String(a.date).localeCompare(String(b.date)):String(b.date).localeCompare(String(a.date)));
+  return blocks.slice(0,limit).map(x=>x.html).join("");
+}
 function tournamentsPage(data,tournaments,historyRows=[]){
   const now=new Date().toISOString().slice(0,10);
   const upcoming=tournaments.filter(t=>t.date&&t.date>=now&&t.status!=="completed").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const history=[...historyRows].sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
-  return`${pageIntro("MOJE TURNAJE","Kalendár a história","Nadchádzajúce turnaje a tvoje konečné umiestnenia v ukončených turnajoch.",'<a class="button gold" href="/kalendar-turnajov/">Nájsť turnaj</a>')}<div class="grid calendar-layout"><section class="panel panel-pad" data-pro-content>${lock()}<div class="panel-heading"><div><span class="label">KALENDÁR</span><h2>${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</h2></div></div>${monthGrid(tournaments)}</section><div class="side-stack"><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">NADCHÁDZAJÚCE</span>${upcoming.length?upcoming.slice(0,4).map(tournamentCard).join(""):'<div class="empty">Žiadny nadchádzajúci turnaj.</div>'}</section><section class="panel panel-pad" data-pro-content>${lock()}<span class="label">VÝSLEDKOVÁ LISTINA</span>${history.length?history.slice(0,8).map(tournamentResultCard).join(""):'<div class="empty">Zatiaľ nemáš ukončený turnaj s výsledkom.</div>'}</section></div></div>${metrics(data.summary)}`}
-function trainingScoreText(session){
-  const players=Array.isArray(session?.final_score?.players)?session.final_score.players:[];
-  if(players.length){
-    const mode=session?.final_score?.mode||"frame";
-    const value=p=>mode==="frame"?Number(p?.score)||0:mode==="points"?Number(p?.frames)||0:mode==="darts"?Number(p?.legs)||0:Number(p?.sets)||0;
-    return players.map(p=>`${p?.name||"Hráč"} ${value(p)}`).join(" : ");
-  }
-  const names=Array.isArray(session?.player_names)?session.player_names:[];
-  const scores=Array.isArray(session?.live_scores)?session.live_scores:[];
-  if(names.length&&scores.length)return names.map((name,i)=>`${name||"Hráč"} ${Number(scores[i])||0}`).join(" : ");
-  return session?.winner_name?`Víťaz: ${session.winner_name}`:"Bez výsledku";
-}
-function trainingOpponentText(session){
-  const names=Array.isArray(session?.player_names)?session.player_names.filter(Boolean):[];
-  if(names.length<=1)return"Individuálny tréning";
-  return names.slice(1).join(", ");
-}
-function trainingUnitLabel(session,count){
-  const mode=session?.session_summary?.mode||session?.final_score?.mode||"frame";
-  if(mode==="darts")return count===1?"leg":"legov";
-  if(["tabletennis","racket","universal"].includes(mode))return count===1?"set":"setov";
-  return count===1?"frame":"frameov";
-}
-function trainingHighlightChips(session){
-  const m=session?.session_summary||{},chips=[];
-  const add=(value,label)=>{if(Number(value)>0)chips.push(`<span class="training-highlight">${Number(value)}× ${esc(label)}</span>`)};
-  add(m.break_and_runs,"Čistá hra");
-  add(m.runouts,"Dohrávka");
-  add(m.golden_breaks,"ESO");
-  add(m.combo_wins,"Combo");
-  add(m.three_foul_wins,"3 chyby");
-  if(Number(m.achievement_count)>0)chips.push(`<span class="training-highlight reward">Achievement +${Number(m.achievement_count)}</span>`);
-  if(Number(m.challenge_count)>0)chips.push(`<span class="training-highlight reward">Výzva +${Number(m.challenge_count)}</span>`);
-  return chips.slice(0,3).join("");
-}
+  return\`\${pageIntro("MOJE TURNAJE","Kalendár a história","Nadchádzajúce turnaje a tvoje konečné umiestnenia v ukončených turnajoch.",'<a class="button gold" href="/kalendar-turnajov/">Nájsť turnaj</a>')}<div class="grid calendar-layout"><section class="panel panel-pad" data-pro-content>\${lock()}<div class="panel-heading"><div><span class="label">KALENDÁR</span><h2>\${MONTHS[new Date().getMonth()]} \${new Date().getFullYear()}</h2></div></div>\${monthGrid(tournaments)}</section><div class="side-stack"><section class="panel panel-pad" data-pro-content>\${lock()}<span class="label">NADCHÁDZAJÚCE</span>\${upcoming.length?groupedTournamentHtml(upcoming,tournamentCard,4,true):'<div class="empty">Žiadny nadchádzajúci turnaj.</div>'}</section><section class="panel panel-pad" data-pro-content>\${lock()}<span class="label">VÝSLEDKOVÁ LISTINA</span>\${history.length?groupedTournamentHtml(history,tournamentResultCard,8,false):'<div class="empty">Zatiaľ nemáš ukončený turnaj s výsledkom.</div>'}</section></div></div>\${metrics(data.summary)}\`}
 function trainingSessionRows(sessions){
   if(!sessions.length)return'<div class="empty">Zatiaľ nie sú zaznamenané žiadne tréningy.</div>';
   return `<div class="training-session-list">${sessions.map(session=>{
@@ -272,14 +252,14 @@ async function init(){
     const {data,error}=await client.rpc("get_my_player_profile_dashboard");if(error)throw error;
     const from=new Date();from.setDate(from.getDate()-180);const to=new Date();to.setDate(to.getDate()+180);
     const requests=[client.from("training_plans").select("id,title,sport,discipline,venue,notes,scheduled_for,status,created_at").gte("scheduled_for",from.toISOString()).lte("scheduled_for",to.toISOString()).order("scheduled_for",{ascending:false})];
-    if(PAGE==="tournaments")requests.push(Promise.all([client.from("user_tournament_history").select("*").eq("user_id",userData.user.id).order("date",{ascending:false}),client.from("tournament_players").select("tournament_id,tournaments!inner(id,name,sport,discipline,format,date,venue,status)").eq("user_id",userData.user.id)]));
+    if(PAGE==="tournaments")requests.push(Promise.all([client.from("user_tournament_history").select("*").eq("user_id",userData.user.id).order("date",{ascending:false}),client.from("tournament_players").select("tournament_id,tournaments!inner(id,name,sport,discipline,format,date,venue,status,source_event_id)").eq("user_id",userData.user.id)]));
     if(PAGE==="rankings")requests.push(client.from("event_series_standings").select("standing_position,series_id,series_title,total_points,rounds_played,counted_rounds,victories").eq("profile_id",userData.user.id).order("standing_position",{ascending:true}));
     if(PAGE==="friends")requests.push(client.from("profiles").select("id,full_name,role,plan,avatar_url").eq("role","player").not("full_name","is",null).limit(30));
     const results=await Promise.all(requests),plans=results[0].data||[];if(results[0].error)console.warn(results[0].error.message);
     const profile=data.profile||{},isFree=String(profile.plan||"free").toLowerCase()==="free";let content="";
     if(PAGE==="overview")content=overviewPage(data,plans);
     if(PAGE==="profile")content=profilePage(data);
-    if(PAGE==="tournaments"){const pair=results[1]||[],history=pair[0]?.data||[],joined=(pair[1]?.data||[]).map(row=>row.tournaments).filter(Boolean),map=new Map();joined.forEach(t=>map.set(t.id,t));history.forEach(t=>{const key=t.tournament_id||t.id;map.set(key,{...(map.get(key)||{}),...t})});content=tournamentsPage(data,[...map.values()],history)}
+    if(PAGE==="tournaments"){const pair=results[1]||[],history=pair[0]?.data||[],joined=(pair[1]?.data||[]).map(row=>row.tournaments).filter(Boolean),map=new Map();joined.forEach(t=>map.set(t.id,t));history.forEach(t=>{const key=t.tournament_id||t.id;map.set(key,{...(map.get(key)||{}),...t})});const sourceIds=[...new Set([...map.values()].map(t=>t.source_event_id).filter(Boolean))];if(sourceIds.length){const {data:eventRows,error:eventError}=await client.from("events").select("id,series_id,series_round_number").in("id",sourceIds);if(eventError)console.warn("[player-profile] tournament series events",eventError.message);else{const seriesIds=[...new Set((eventRows||[]).map(e=>e.series_id).filter(Boolean))];let seriesTitles=new Map();if(seriesIds.length){const {data:seriesRows,error:seriesError}=await client.from("event_series").select("id,title,total_rounds").in("id",seriesIds);if(seriesError)console.warn("[player-profile] tournament series",seriesError.message);else seriesTitles=new Map((seriesRows||[]).map(s=>[s.id,s]))}const eventMap=new Map((eventRows||[]).map(e=>[e.id,e]));map.forEach((t,key)=>{const e=eventMap.get(t.source_event_id);if(!e)return;const s=seriesTitles.get(e.series_id)||{};map.set(key,{...t,series_id:e.series_id||null,series_round_number:e.series_round_number||null,series_title:s.title||null,series_total_rounds:s.total_rounds||null})});history.forEach(t=>{const sourceId=t.source_event_id||map.get(t.tournament_id||t.id)?.source_event_id;const e=eventMap.get(sourceId);if(!e)return;const s=seriesTitles.get(e.series_id)||{};t.series_id=e.series_id||null;t.series_round_number=e.series_round_number||null;t.series_title=s.title||null;t.series_total_rounds=s.total_rounds||null})}}content=tournamentsPage(data,[...map.values()],history)}
     if(PAGE==="training")content=trainingPage(data,plans);
     if(PAGE==="rankings")content=rankingsPage(data,results[1]?.data||[]);
     if(PAGE==="friends")content=friendsPage(data,results[1]?.data||[]);
