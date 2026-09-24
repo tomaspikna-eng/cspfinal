@@ -1047,6 +1047,19 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="checkoutDartsOverlay">
+  <div class="modal-card">
+    <div class="modal-title">🎯 Checkout</div>
+    <div class="modal-sets" id="checkoutDartsScore">Zatvorené</div>
+    <div style="margin:10px 0 14px;color:var(--muted);font-size:.8rem">Na ktorú šípku v poslednej návšteve si zavrel?</div>
+    <div class="modal-actions">
+      <button class="modal-btn" type="button" data-checkout-darts="1">1. šípka</button>
+      <button class="modal-btn" type="button" data-checkout-darts="2">2. šípka</button>
+      <button class="modal-btn primary" type="button" data-checkout-darts="3">3. šípka</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="trainingSummaryOverlay">
   <div class="modal-card training-summary-card">
     <div class="training-summary-kicker">SÚHRN TRÉNINGU</div>
@@ -1333,6 +1346,7 @@ const defaultState={
   sport:"billiard",discipline:"8-ball",customLabel:"Univerzál",
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,soloTraining:false,checkoutStart:null,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
+  checkoutResults:[],checkoutAttemptStartTurns:0,
   players:[
     {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
     {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
@@ -2109,10 +2123,11 @@ function currentTrainingFinalScore(){
   return {mode:m,players:activePlayers().map(p=>{
     if(m==="frame")return {name:p.name,score:p.score};
     if(m==="points")return {name:p.name,frames:p.frames,framePoints:p.framePoints};
-    if(m==="darts")return {name:p.name,legs:p.legs,remaining:p.remaining};
+    if(m==="darts")return {name:p.name,legs:p.legs,remaining:p.remaining,turns:p.turns};
+
     if(["tabletennis","racket","universal"].includes(m))return {name:p.name,sets:p.sets,points:p.points||0};
     return {name:p.name,points:p.points};
-  })};
+  }),...(m==="darts"&&state.soloTraining&&state.discipline==="Tréning zatvárania"?{checkout_results:Array.isArray(state.checkoutResults)?state.checkoutResults:[]}:{})};
 }
 
 function endTrainingManually(){
@@ -2481,6 +2496,42 @@ function awardFrame(i){
 }
 
 /* ════════════════════ DARTS engine (501/301) ════════════════════ */
+let pendingCheckoutWinIndex=null;
+
+function requestCheckoutDarts(i){
+  pendingCheckoutWinIndex=i;
+  const p=activePlayers()[i];
+  $("checkoutDartsScore").textContent=`${startScore()} → 0`;
+  $("checkoutDartsOverlay").classList.remove("hidden");
+}
+
+function confirmCheckoutDarts(lastVisitDarts){
+  const i=pendingCheckoutWinIndex;
+  if(i===null)return;
+  const p=activePlayers()[i];
+  const used=Math.max(1,Math.min(3,Number(lastVisitDarts)||3));
+  const previousTurns=Math.max(0,Number(state.checkoutAttemptStartTurns)||0);
+  const completedTurns=Math.max(1,Number(p.turns)||1)-previousTurns;
+  const totalDarts=Math.max(1,(completedTurns-1)*3+used);
+  const result={
+    attempt:Number(state.period)||1,
+    start_score:startScore(),
+    darts:totalDarts,
+    closing_visit_darts:used,
+    completed_at:new Date().toISOString()
+  };
+  if(!Array.isArray(state.checkoutResults))state.checkoutResults=[];
+  state.checkoutResults.push(result);
+  state.checkoutAttemptStartTurns=Number(p.turns)||0;
+  addLog(`🎯 Checkout ${startScore()} · ${totalDarts} šípok (zavreté ${used}. šípkou návštevy)`);
+  $("checkoutDartsOverlay").classList.add("hidden");
+  pendingCheckoutWinIndex=null;
+  dartsWinLeg(i);
+}
+document.querySelectorAll("[data-checkout-darts]").forEach(button=>{
+  button.addEventListener("click",()=>confirmCheckoutDarts(button.dataset.checkoutDarts));
+});
+
 function submitRunDarts(){
   invalidateScoreEventUndo();
   const score=Number(state.runInput||0);
@@ -2488,10 +2539,19 @@ function submitRunDarts(){
   const left=p.remaining-score;
   let bust=false;
   if(left<0)bust=true; else if(state.doubleOut&&left===1)bust=true;
-  if(bust){addLog(`${p.name} — ${score} BUST (zostáva ${p.remaining})`);state.runInput="";dartsNext();return;}
+  if(bust){
+    p.turns++;
+    addLog(`${p.name} — ${score} BUST (zostáva ${p.remaining})`);
+    state.runInput="";
+    dartsNext();
+    return;
+  }
   p.remaining=left;p.scored+=score;p.turns++;p.last=score;if(score>p.high)p.high=score;
   addLog(`${p.name} — ${score} (zostáva ${left})`);state.runInput="";
-  if(left===0){dartsWinLeg(state.currentIndex);return;}
+  if(left===0){
+    if(state.soloTraining&&state.discipline==="Tréning zatvárania"){requestCheckoutDarts(state.currentIndex);render();return;}
+    dartsWinLeg(state.currentIndex);return;
+  }
   dartsNext();
 }
 function dartsNext(){state.currentIndex=(state.currentIndex+1)%state.playerCount;render();}
@@ -2508,6 +2568,7 @@ function dartsWinLeg(i){
     state.currentIndex=0;
     state.starter=0;
     state.runInput="";
+    state.checkoutAttemptStartTurns=Number(w.turns)||0;
     activePlayers().forEach(p=>p.remaining=startScore());
     render();
     return;
@@ -2773,6 +2834,7 @@ function applySettings(){
   state.players[1].name=$("p2").value.trim()||"Hráč 2";
   state.players[2].name=$("p3").value.trim()||"Hráč 3";
   state.currentIndex=0;state.starter=0;state.runInput="";
+  state.checkoutResults=[];state.checkoutAttemptStartTurns=0;
   resetScoresForMode();
   addLog("Nastavenie uložené");
   syncSettingsUI();render();loadScoreActionDefinitions();
@@ -2822,6 +2884,7 @@ $("sportSelect").onchange=()=>{
   if(state.sport==="padel")state.raceTo=2;
   if(mode()==="points")state.pointsTarget=DEFAULT_TARGET[state.discipline]??0;
   state.period=1;state.currentIndex=0;state.starter=0;state.runInput="";
+  state.checkoutResults=[];state.checkoutAttemptStartTurns=0;
   resetScoresForMode();
   syncSettingsUI();render();loadScoreActionDefinitions();
 };
