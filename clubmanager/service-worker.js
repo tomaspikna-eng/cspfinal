@@ -1,4 +1,4 @@
-const CACHE='csp-club-manager-v3';
+const CACHE='csp-club-manager-v4';
 const CORE=[
   '/clubmanager/',
   '/clubmanager/dashboard/',

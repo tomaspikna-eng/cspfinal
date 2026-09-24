@@ -71,11 +71,24 @@
       <label>Pozícia<input id="fRole"></label>
       <label>Hodinová sadzba €<input id="fRate" type="number" min="0" step=".01"></label>
       <label>Dovolenka / rok<input id="fVacationTotal" type="number" min="0" value="20"></label>
-      <label>PIN na tablet<input id="fPin" type="password" inputmode="numeric" maxlength="6" placeholder="4–6 číslic"></label>
+      <label>PIN na tablet<input id="fPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="4 číslice"><small>Osobný PIN otvorí pracovný Club Manager. Začiatok zmeny sa potvrdzuje kartou.</small></label>
       <label>Stav<select id="fActive"><option value="true">Aktívny</option><option value="false">Neaktívny</option></select></label>
       <label class="wide">Foto URL<input id="fPhoto"></label>
     </div>
     <div class="modal-actions"><button class="ghost" id="employeeCancel">Zrušiť</button><button class="primary" id="employeeSave">Uložiť</button></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="cardModal">
+  <div class="modal-card" style="width:min(560px,100%)">
+    <div class="modal-head"><h3>Zamestnanecká karta</h3><div class="grow"></div><button class="ghost" id="cardModalClose">✕</button></div>
+    <div style="text-align:center;padding:8px 0 4px">
+      <strong id="cardEmployeeName" style="font-size:20px">—</strong>
+      <div style="margin:14px auto;background:#fff;padding:14px;border-radius:10px;max-width:430px;overflow:auto"><svg id="employeeBarcode"></svg></div>
+      <div class="employee-code" id="cardEmployeeCode" style="margin-top:10px">—</div>
+      <p style="color:var(--muted);font-size:11px">Tento čiarový kód sa používa na potvrdenie začiatku zmeny.</p>
+    </div>
+    <div class="modal-actions"><button class="ghost" id="cardModalDone">Zavrieť</button></div>
   </div>
 </div>
 
@@ -95,6 +108,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/clubmanager/assets/config.js"></script>
 <script src="/clubmanager/assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script>
 (()=>{'use strict';
 const A=window.CSPClubManager,$=id=>document.getElementById(id);
@@ -110,10 +124,11 @@ function accountLabel(e){
   return '<span class="status-chip gold">Čaká na aktiváciu</span>';
 }
 function accountActions(e){
+  const card='<button class="ghost" data-card="'+e.id+'">Karta</button>';
   const edit='<button class="ghost" data-edit="'+e.id+'">Upraviť</button>';
-  if(e.account_activated_at)return edit;
-  if(!e.email)return edit+'<button class="activation-btn" data-add-email="'+e.id+'">Doplniť e-mail</button>';
-  return edit+'<button class="activation-btn" data-activate="'+e.id+'">'+(e.activation_sent_at?'Poslať znova':'Poslať aktiváciu')+'</button>';
+  if(e.account_activated_at)return card+edit;
+  if(!e.email)return card+edit+'<button class="activation-btn" data-add-email="'+e.id+'">Doplniť e-mail</button>';
+  return card+edit+'<button class="activation-btn" data-activate="'+e.id+'">'+(e.activation_sent_at?'Poslať znova':'Poslať aktiváciu')+'</button>';
 }
 function render(){
   const q=employeeSearch.value.trim().toLowerCase();
@@ -170,6 +185,15 @@ employeeList.onclick=e=>{
   const edit=e.target.dataset.edit;
   const addEmail=e.target.dataset.addEmail;
   const activate=e.target.dataset.activate;
+  const card=e.target.dataset.card;
+  if(card){
+    const emp=employees.find(x=>x.id===card);if(!emp)return;
+    cardEmployeeName.textContent=emp.full_name||'Zamestnanec';
+    cardEmployeeCode.textContent=emp.employee_code||'—';
+    cardModal.classList.remove('hidden');
+    if(window.JsBarcode&&emp.employee_code)JsBarcode('#employeeBarcode',emp.employee_code,{format:'CODE128',displayValue:true,height:84,margin:8,fontSize:16});
+    return;
+  }
   if(edit)return openModal(employees.find(x=>x.id===edit));
   if(addEmail)return openModal(employees.find(x=>x.id===addEmail));
   if(activate){
@@ -183,6 +207,8 @@ employeeList.onclick=e=>{
   }
 };
 
+function closeCard(){cardModal.classList.add('hidden')}
+cardModalClose.onclick=closeCard;cardModalDone.onclick=closeCard;cardModal.onclick=e=>{if(e.target===cardModal)closeCard()};
 function closeActivation(){activationModal.classList.add('hidden');activationEmployee=null}
 activationModalClose.onclick=closeActivation;
 activationCancel.onclick=closeActivation;
@@ -229,10 +255,14 @@ employeeSave.onclick=async()=>{
     }
     const pin=fPin.value.trim();
     if(pin){
+      if(!/^\d{4}$/.test(pin))throw new Error('PIN_FORMAT');
       const {error}=await A.db.rpc('club_manager_set_employee_pin',{p_employee_id:employeeId,p_pin:pin});if(error)throw error;
     }
     closeModal();await load();show(editingId?'Zamestnanec bol upravený.':'Zamestnanec bol vytvorený.');
-  }catch(err){show(err.message||'Uloženie zlyhalo.',true)}
+  }catch(err){
+    const m=String(err.message||err);
+    show(m.includes('PIN_ALREADY_USED')?'Tento 4-miestny PIN už používa iný aktívny zamestnanec.':m.includes('PIN_FORMAT')?'PIN musí mať presne 4 číslice.':(err.message||'Uloženie zlyhalo.'),true)
+  }
   finally{btn.disabled=false;btn.textContent='Uložiť'}
 };
 

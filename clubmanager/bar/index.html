@@ -22,6 +22,9 @@ body{background:radial-gradient(circle at 70% 0,rgba(32,51,40,.16),transparent 3
 .res-list{display:grid;gap:8px}.res-card{padding:11px;border:1px solid var(--line);border-radius:8px;background:#0d1112}.res-card time{color:var(--gold2);font-size:11px;font-weight:800}.res-card b{display:block;margin-top:4px;font-size:12px}.res-card small{display:block;margin-top:4px;color:var(--muted);font-size:9px}
 .login-backdrop,.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.84);backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px}.hidden{display:none!important}.login-card,.modal-card{width:min(560px,100%);border:1px solid rgba(228,187,98,.28);border-radius:16px;background:linear-gradient(180deg,#111617,#090c0d);padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.55)}.login-card h1,.modal-card h2{margin:0 0 7px}.login-card p,.modal-card p{color:var(--muted);font-size:11px;line-height:1.5}.login-card select,.login-card input,.modal-card input,.modal-card select,.modal-card textarea{width:100%;margin-top:8px}.pin{font:800 26px/1 var(--mono);letter-spacing:.25em;text-align:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.availability{display:grid;gap:7px;margin-top:12px}.avail{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0d1112}.avail.free{border-color:rgba(88,223,138,.25)}.avail b{font-size:11px}.avail span{font-size:9px;color:var(--green)}
 .notice-inline{margin-top:10px;color:#ff8b91;font-size:10px}
+.start-shift-cta{min-height:58px;padding:0 26px;font-size:15px;letter-spacing:.04em;box-shadow:0 0 0 1px rgba(88,223,138,.15),0 12px 34px rgba(88,223,138,.12)}
+.start-shift-cta[hidden]{display:none!important}
+.scan-card{width:min(620px,100%)}.scanner-box{min-height:230px;margin:14px 0;border:1px dashed rgba(228,187,98,.4);border-radius:12px;overflow:hidden;background:#070a0b;display:grid;place-items:center}.scanner-box video{width:100%!important;height:auto!important}.scanner-help{color:var(--muted);font-size:10px;line-height:1.55}.scan-fallback{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.scan-fallback input{margin:0}.scan-status{min-height:18px;margin-top:8px;color:var(--gold2);font-size:10px}.scan-status.error{color:#ff8b91}
 @media(max-width:1000px){.hero-strip{grid-template-columns:1fr 1fr}.bar-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.bar-main{padding:12px}.hero-strip{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}.bar-top{padding:0 12px}.station-grid{grid-template-columns:1fr}}
 </style>
@@ -41,6 +44,7 @@ body{background:radial-gradient(circle at 70% 0,rgba(32,51,40,.16),transparent 3
     <div class="hero-card"><span>DNES REZERVÁCIÍ</span><strong id="todayReservations">0</strong></div>
   </section>
   <div class="actions">
+    <button class="big-action green start-shift-cta" id="startShiftBtn" hidden>▶ ZAČAŤ ZMENU</button>
     <button class="big-action green" id="newReservation">+ Nová rezervácia</button>
     <button class="big-action" id="refreshBtn">Obnoviť</button>
   </div>
@@ -59,12 +63,26 @@ body{background:radial-gradient(circle at 70% 0,rgba(32,51,40,.16),transparent 3
 
 <div class="login-backdrop" id="loginLayer">
   <div class="login-card">
-    <h1>Začať smenu</h1>
-    <p>Vyber svoje meno a zadaj osobný PIN. Tablet zostáva prihlásený ku klubu, PIN identifikuje konkrétnu obsluhu.</p>
-    <select id="loginEmployee"></select>
-    <input class="pin" id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+    <h1>Prihlásenie personálu</h1>
+    <p>Zadaj svoj osobný 4-miestny PIN. PIN otvorí pracovný Club Manager, ale ešte nezačne dochádzku.</p>
+    <input class="pin" id="loginPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
     <div class="notice-inline" id="loginError"></div>
-    <button class="primary" id="loginBtn" style="width:100%;margin-top:14px;min-height:46px">PRIHLÁSIŤ / ZAČAŤ SMENU</button>
+    <button class="primary" id="loginBtn" style="width:100%;margin-top:14px;min-height:50px">PRIHLÁSIŤ SA</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="shiftScanModal">
+  <div class="modal-card scan-card">
+    <h2>Začať zmenu</h2>
+    <p>Naskenuj čiarový kód zo svojej zamestnaneckej karty. Až úspešný sken zapíše začiatok zmeny.</p>
+    <div class="scanner-box" id="shiftScanner"><span class="scanner-help">Pripravujem kameru…</span></div>
+    <div class="scanner-help">Ak kamera nie je dostupná, načítaj kód externou čítačkou alebo ho zadaj ručne.</div>
+    <div class="scan-fallback">
+      <input id="shiftCode" autocomplete="off" placeholder="Kód zamestnanca">
+      <button class="primary" id="confirmShiftCode">Potvrdiť</button>
+    </div>
+    <div class="scan-status" id="shiftScanStatus"></div>
+    <div class="modal-actions"><button class="ghost" id="cancelShiftScan">Zrušiť</button></div>
   </div>
 </div>
 
@@ -87,12 +105,13 @@ body{background:radial-gradient(circle at 70% 0,rgba(32,51,40,.16),transparent 3
 </div>
 
 <div class="modal-backdrop hidden" id="pinOutModal">
- <div class="modal-card"><h2>Ukončiť smenu</h2><p>Pre potvrdenie zadaj svoj PIN.</p><input class="pin" id="outPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••"><div class="modal-actions"><button class="ghost" id="cancelOut">Zrušiť</button><button class="primary" id="confirmOut">Ukončiť smenu</button></div></div>
+ <div class="modal-card"><h2>Ukončiť smenu</h2><p>Pre potvrdenie zadaj svoj PIN.</p><input class="pin" id="outPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••"><div class="modal-actions"><button class="ghost" id="cancelOut">Zrušiť</button><button class="primary" id="confirmOut">Ukončiť smenu</button></div></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/clubmanager/assets/config.js"></script>
 <script src="/clubmanager/assets/app.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -107,11 +126,10 @@ async function bootstrap(){
  ctx=await A.requireAccess();if(!ctx.club)throw new Error('CLUB_REQUIRED');
  const cid=ctx.club.id;
  const [e,st]=await Promise.all([
-  A.db.from('club_employees').select('id,full_name,role_name').eq('club_id',cid).eq('is_active',true).order('full_name'),
+  A.db.from('club_employees').select('id,full_name,role_name,employee_code').eq('club_id',cid).eq('is_active',true).order('full_name'),
   A.db.from('stations').select('*').eq('club_id',cid).eq('is_active',true).order('sort_order').order('name')
  ]);
  if(e.error||st.error)throw e.error||st.error;employees=e.data||[];stations=st.data||[];
- loginEmployee.innerHTML=employees.map(x=>'<option value="'+x.id+'">'+A.esc(x.full_name)+'</option>').join('');
  const saved=sessionStorage.getItem('csp_bar_employee');
  if(saved){employee=employees.find(x=>x.id===saved)||null;if(employee)await restoreEmployee()}
  await loadLive();render();
@@ -120,7 +138,7 @@ async function bootstrap(){
 }
 async function restoreEmployee(){
  const {data}=await A.db.from('club_attendance_sessions').select('*').eq('employee_id',employee.id).in('status',['working','break']).order('clock_in_at',{ascending:false}).limit(1);
- attendanceSession=data?.[0]||null;if(!attendanceSession){employee=null;sessionStorage.removeItem('csp_bar_employee')}
+ attendanceSession=data?.[0]||null
 }
 async function loadLive(){
  const now=new Date(),from=new Date(now);from.setHours(0,0,0,0);const to=new Date(from);to.setDate(to.getDate()+2);
@@ -133,14 +151,100 @@ async function loadLive(){
 }
 function render(){
  employeeBox.hidden=!employee;
- if(employee){employeeName.textContent=employee.full_name;heroEmployee.textContent=employee.full_name;heroRole.textContent=employee.role_name||'Obsluha';employeeShift.textContent=attendanceSession?(attendanceSession.status==='break'?'Prestávka · ':'V práci od ')+new Date(attendanceSession.clock_in_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'—';breakBtn.textContent=attendanceSession?.status==='break'?'Pokračovať':'Prestávka'}
+ startShiftBtn.hidden=!employee||!!attendanceSession;
+ breakBtn.hidden=!attendanceSession;
+ endShiftBtn.hidden=!attendanceSession;
+ if(employee){
+  employeeName.textContent=employee.full_name;
+  heroEmployee.textContent=employee.full_name;
+  heroRole.textContent=(employee.role_name||'Obsluha')+(attendanceSession?'':' · zmena nezačatá');
+  employeeShift.textContent=attendanceSession?(attendanceSession.status==='break'?'Prestávka · ':'V práci od ')+new Date(attendanceSession.clock_in_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'Zmena ešte nezačala';
+  breakBtn.textContent=attendanceSession?.status==='break'?'Pokračovať':'Prestávka';
+ }else{
+  heroEmployee.textContent='Neprihlásený zamestnanec';
+  heroRole.textContent='Prihlásenie 4-miestnym PIN-om';
+ }
  activeCount.textContent=sessions.length;
  const future=reservations.filter(r=>new Date(r.starts_at)>=new Date());nextReservation.textContent=future[0]?new Date(future[0].starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'}):'—';
  const today=new Date().toDateString();todayReservations.textContent=reservations.filter(r=>new Date(r.starts_at).toDateString()===today).length;
  stationGrid.innerHTML=stations.map(st=>{const s=activeStation(st.id),r=upcomingStation(st.id);return '<article class="station-card '+(s?'running':'')+'"><div class="station-head"><b>'+A.esc(st.name)+'</b><span>'+A.esc(st.sport||'')+'</span></div><div class="station-state"><strong>'+(s?A.time(A.currentSeconds(s)):'VOĽNÉ')+'</strong><small>'+(r?'Rezervácia '+new Date(r.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+' · '+A.esc(r.customer_name):'Bez najbližšej rezervácie')+'</small></div><div class="station-actions">'+(s?'<button class="ghost" data-act="stop" data-id="'+s.id+'">Stop</button>':'<button class="primary" data-act="start" data-id="'+st.id+'">Spustiť</button>')+'</div></article>'}).join('');
  reservationList.innerHTML=future.slice(0,10).map(r=>'<article class="res-card"><time>'+new Date(r.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+'–'+new Date(r.ends_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+'</time><b>'+A.esc(r.customer_name)+'</b><small>'+A.esc(r.station_name_snapshot||stations.find(s=>s.id===r.station_id)?.name||'Stanica')+' · '+(r.source==='phone'?'Telefonicky':r.source==='walk_in'?'Osobne':r.source==='public'?'Online':A.esc(r.source))+'</small></article>').join('')||'<div class="empty">Žiadne ďalšie rezervácie.</div>';
 }
-loginBtn.onclick=async()=>{loginError.textContent='';const id=loginEmployee.value,pin=loginPin.value.trim();if(!pin)return loginError.textContent='Zadaj PIN.';loginBtn.disabled=true;try{const {data,error}=await A.db.rpc('club_manager_employee_pin_login',{p_employee_id:id,p_pin:pin});if(error)throw error;employee=employees.find(x=>x.id===id);attendanceSession={id:data.session_id,status:data.status,clock_in_at:data.clock_in_at};sessionStorage.setItem('csp_bar_employee',id);loginPin.value='';loginLayer.classList.add('hidden');await loadLive();render()}catch(e){loginError.textContent=e.message.includes('PIN_INVALID')?'Nesprávny PIN.':e.message.includes('PIN_FORMAT')?'PIN musí mať 4–6 číslic.':e.message}finally{loginBtn.disabled=false}};
+loginBtn.onclick=async()=>{
+ loginError.textContent='';
+ const pin=loginPin.value.trim();
+ if(!/^\d{4}$/.test(pin))return loginError.textContent='PIN musí mať presne 4 číslice.';
+ loginBtn.disabled=true;
+ try{
+  const {data,error}=await A.db.rpc('club_manager_employee_pin_unlock',{p_club_id:ctx.club.id,p_pin:pin});
+  if(error)throw error;
+  employee=employees.find(x=>x.id===data.employee_id)||{id:data.employee_id,full_name:data.employee_name,role_name:data.role_name,employee_code:data.employee_code};
+  attendanceSession=data.has_active_shift?{id:data.session_id,status:data.status,clock_in_at:data.clock_in_at}:null;
+  sessionStorage.setItem('csp_bar_employee',employee.id);
+  loginPin.value='';
+  loginLayer.classList.add('hidden');
+  await loadLive();
+  render();
+ }catch(e){
+  loginError.textContent=e.message.includes('PIN_INVALID')?'Nesprávny PIN.':e.message.includes('PIN_AMBIGUOUS')?'Tento PIN má priradených viac zamestnancov. Zmeň PIN v Personal.':e.message.includes('PIN_FORMAT')?'PIN musí mať presne 4 číslice.':e.message;
+ }finally{loginBtn.disabled=false}
+};
+loginPin.addEventListener('keydown',e=>{if(e.key==='Enter')loginBtn.click()});
+let shiftScannerInstance=null,shiftScannerBusy=false;
+async function stopShiftScanner(){
+ if(!shiftScannerInstance)return;
+ try{await shiftScannerInstance.stop()}catch(_e){}
+ try{await shiftScannerInstance.clear()}catch(_e){}
+ shiftScannerInstance=null;
+}
+async function clockInWithCode(rawCode){
+ if(shiftScannerBusy||!employee)return;
+ const code=String(rawCode||'').trim();
+ if(!code)return;
+ shiftScannerBusy=true;
+ shiftScanStatus.classList.remove('error');
+ shiftScanStatus.textContent='Overujem kartu…';
+ try{
+  const {data,error}=await A.db.rpc('club_manager_employee_clock_in_by_code',{p_employee_id:employee.id,p_code:code});
+  if(error)throw error;
+  attendanceSession={id:data.session_id,status:data.status,clock_in_at:data.clock_in_at};
+  await stopShiftScanner();
+  shiftScanModal.classList.add('hidden');
+  shiftCode.value='';
+  shiftScanStatus.textContent='';
+  await loadLive();
+  render();
+  msg('Zmena bola začatá.');
+ }catch(e){
+  shiftScanStatus.classList.add('error');
+  shiftScanStatus.textContent=e.message.includes('CARD_INVALID')?'Táto karta nepatrí prihlásenému zamestnancovi.':e.message;
+ }finally{shiftScannerBusy=false}
+}
+async function openShiftScanner(){
+ shiftCode.value='';shiftScanStatus.textContent='';shiftScanStatus.classList.remove('error');
+ shiftScanModal.classList.remove('hidden');
+ const scannerHost=document.getElementById('shiftScanner');
+ scannerHost.innerHTML='<span class="scanner-help">Pripravujem kameru…</span>';
+ if(!window.Html5Qrcode){
+  scannerHost.innerHTML='<span class="scanner-help">Kamera nie je dostupná. Použi čítačku alebo ručný kód.</span>';
+  shiftCode.focus();return;
+ }
+ try{
+  scannerHost.innerHTML='';
+  shiftScannerInstance=new Html5Qrcode('shiftScanner');
+  await shiftScannerInstance.start({facingMode:'environment'},{fps:10,qrbox:{width:280,height:150}},decoded=>clockInWithCode(decoded),()=>{});
+ }catch(e){
+  console.warn('[club-manager] scanner',e);
+  try{await stopShiftScanner()}catch(_e){}
+  scannerHost.innerHTML='<span class="scanner-help">Kameru sa nepodarilo spustiť. Použi čítačku alebo ručný kód.</span>';
+  shiftCode.focus();
+ }
+}
+startShiftBtn.onclick=openShiftScanner;
+cancelShiftScan.onclick=async()=>{await stopShiftScanner();shiftScanModal.classList.add('hidden')};
+confirmShiftCode.onclick=()=>clockInWithCode(shiftCode.value);
+shiftCode.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clockInWithCode(shiftCode.value)}});
+
 breakBtn.onclick=async()=>{if(!attendanceSession)return;const {error}=await A.db.rpc('club_manager_attendance_toggle_break',{p_session_id:attendanceSession.id});if(error)return msg(error.message);await loadLive();render()};
 endShiftBtn.onclick=()=>{outPin.value='';pinOutModal.classList.remove('hidden')};cancelOut.onclick=()=>pinOutModal.classList.add('hidden');
 confirmOut.onclick=async()=>{if(!employee)return;const {error}=await A.db.rpc('club_manager_employee_pin_clock_out',{p_employee_id:employee.id,p_pin:outPin.value.trim()});if(error)return msg(error.message.includes('PIN_INVALID')?'Nesprávny PIN.':error.message);sessionStorage.removeItem('csp_bar_employee');employee=null;attendanceSession=null;pinOutModal.classList.add('hidden');loginLayer.classList.remove('hidden');render()};
