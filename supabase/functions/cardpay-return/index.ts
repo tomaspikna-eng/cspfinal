@@ -1,12 +1,14 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const KEY_LIST_URL="https://moja.tatrabanka.sk/e-commerce/ecdsa_keys.txt";
+
 function textResponse(body:string,status=200){
   return new Response(body,{status,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
 }
 function hexToBytes(hex:string){
   const clean=String(hex||"").trim().replace(/^0x/i,"");
-  if(!clean || clean.length%2!==0 || !/^[0-9a-f]+$/i.test(clean)) throw new Error("INVALID_HEX");
+  if(!clean || clean.length%2!==0 || !/^[0-9a-f]+$/i.test(clean))throw new Error("INVALID_HEX");
   const out=new Uint8Array(clean.length/2);
   for(let i=0;i<out.length;i++)out[i]=parseInt(clean.slice(i*2,i*2+2),16);
   return out;
@@ -15,7 +17,9 @@ function bytesToHex(bytes:ArrayBuffer){
   return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 async function hmacSha256(message:string,keyHex:string){
-  const key=await crypto.subtle.importKey("raw",hexToBytes(keyHex),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const clean=keyHex.trim().replace(/^0x/i,"");
+  if(!/^[0-9a-f]{128}$/i.test(clean))throw new Error("CARDPAY_HMAC_KEY_HEX_INVALID");
+  const key=await crypto.subtle.importKey("raw",hexToBytes(clean),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   return bytesToHex(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(message)));
 }
 function safeHexEqual(a:string,b:string){
@@ -26,7 +30,7 @@ function safeHexEqual(a:string,b:string){
   return diff===0;
 }
 function pemToDer(pem:string){
-  const body=pem.replace(/\\n/g,"\n").replace(/-----BEGIN PUBLIC KEY-----/g,"").replace(/-----END PUBLIC KEY-----/g,"").replace(/\s+/g,"");
+  const body=pem.replace(/-----BEGIN PUBLIC KEY-----/g,"").replace(/-----END PUBLIC KEY-----/g,"").replace(/\s+/g,"");
   const bin=atob(body);
   const out=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
@@ -59,11 +63,27 @@ function derEcdsaToRaw(sig:Uint8Array,size=32){
   raw.set(s,size+(size-s.length));
   return raw;
 }
+async function bankPublicKey(keyId:string){
+  const fallback=(Deno.env.get("CARDPAY_ECDSA_PUBKEY_"+keyId)||"").replace(/\\n/g,"\n");
+  try{
+    const r=await fetch(KEY_LIST_URL,{headers:{"accept":"text/plain"},cache:"no-store"});
+    if(r.ok){
+      const txt=await r.text();
+      const blocks=txt.split(/(?=KEY_ID:\s*)/g);
+      for(const block of blocks){
+        const id=block.match(/KEY_ID:\s*([^\r\n]+)/)?.[1]?.trim();
+        const status=block.match(/STATUS:\s*([^\r\n]+)/)?.[1]?.trim().toUpperCase();
+        const pem=block.match(/-----BEGIN PUBLIC KEY-----[\s\S]*?-----END PUBLIC KEY-----/)?.[0]||"";
+        if(id===keyId&&status==="VALID"&&pem)return pem;
+      }
+    }
+  }catch{}
+  if(fallback)return fallback;
+  throw new Error("CARDPAY_ECDSA_PUBLIC_KEY_MISSING");
+}
 async function verifyEcdsa(message:string,signatureHex:string,keyId:string){
-  const pem=Deno.env.get("CARDPAY_ECDSA_PUBKEY_"+keyId)||"";
-  if(!pem)throw new Error("CARDPAY_ECDSA_PUBLIC_KEY_MISSING");
-  const curve=Deno.env.get("CARDPAY_ECDSA_CURVE")||"P-256";
-  const key=await crypto.subtle.importKey("spki",pemToDer(pem),{name:"ECDSA",namedCurve:curve},false,["verify"]);
+  const pem=await bankPublicKey(keyId);
+  const key=await crypto.subtle.importKey("spki",pemToDer(pem),{name:"ECDSA",namedCurve:"P-256"},false,["verify"]);
   const rawSig=derEcdsaToRaw(hexToBytes(signatureHex),32);
   return await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"},key,rawSig,new TextEncoder().encode(message));
 }
@@ -112,7 +132,7 @@ Deno.serve(async(req:Request)=>{
 
   const enabled=(Deno.env.get("CARDPAY_ENABLED")||"").toLowerCase()==="true";
   const keyHex=Deno.env.get("CARDPAY_HMAC_KEY_HEX")||"";
-  if(!enabled||!keyHex)return textResponse("CardPay nie je aktivovaný.",503);
+  if(!enabled||!/^[0-9a-f]{128}$/i.test(keyHex))return textResponse("CardPay nie je aktivovaný.",503);
 
   try{
     const p=await readParams(req);
@@ -154,7 +174,8 @@ Deno.serve(async(req:Request)=>{
       p_metadata:{
         cardpayVerified:true,
         hmacVerified:true,
-        ecdsaVerified:true
+        ecdsaVerified:true,
+        publicKeySource:KEY_LIST_URL
       }
     });
 
