@@ -20,7 +20,7 @@ function decodeJwt(token:string){
 }
 function hexToBytes(hex:string){
   const clean=hex.trim().replace(/^0x/i,"");
-  if(!clean || clean.length%2!==0 || !/^[0-9a-f]+$/i.test(clean)) throw new Error("CARDPAY_HMAC_KEY_HEX_INVALID");
+  if(!/^[0-9a-f]{128}$/i.test(clean))throw new Error("CARDPAY_HMAC_KEY_HEX_INVALID");
   const out=new Uint8Array(clean.length/2);
   for(let i=0;i<out.length;i++)out[i]=parseInt(clean.slice(i*2,i*2+2),16);
   return out;
@@ -40,8 +40,18 @@ function clientIp(req:Request){
   const raw=req.headers.get("x-forwarded-for")||req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||"";
   return raw.split(",")[0].trim().slice(0,45);
 }
-function cleanText(v:unknown,max=64){
-  return String(v??"").replace(/[\r\n\t]+/g," ").trim().slice(0,max);
+function cardPayName(v:unknown,fallback:string){
+  const cleaned=String(v??"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^0-9A-Za-z ._@-]+/g," ")
+    .replace(/\s+/g," ").trim().slice(0,64);
+  if(cleaned)return cleaned;
+  return fallback.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^0-9A-Za-z ._@-]+/g," ").trim().slice(0,64);
+}
+function notificationEmail(v:unknown){
+  const s=String(v??"").trim();
+  if(s.length>50)return "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)?s:"";
 }
 function amountString(cents:number){return (cents/100).toFixed(2)}
 async function rpc(name:string,payload:Record<string,unknown>){
@@ -68,7 +78,8 @@ Deno.serve(async(req:Request)=>{
   const keyHex=Deno.env.get("CARDPAY_HMAC_KEY_HEX")||"";
   const gateway=Deno.env.get("CARDPAY_GATEWAY_URL")||"https://moja.tatrabanka.sk/cgi-bin/e-commerce/start/cardpay";
   const supabaseUrl=Deno.env.get("SUPABASE_URL")||"";
-  const configured=enabled&&!!mid&&!!keyHex&&!!supabaseUrl;
+  const configValid=/^\d{3,5}$/.test(mid)&&/^[0-9a-f]{128}$/i.test(keyHex)&&!!supabaseUrl;
+  const configured=enabled&&configValid;
 
   let body:any={};
   try{body=await req.json()}catch{}
@@ -87,7 +98,7 @@ Deno.serve(async(req:Request)=>{
     return json({
       ok:false,
       error:"CARDPAY_NOT_CONFIGURED",
-      userMessage:"CardPay je technicky pripravený, ale čaká na MID a bezpečnostný kľúč od Tatra banky."
+      userMessage:"CardPay je technicky pripravený, ale čaká na MID a 64-bajtový bezpečnostný kľúč od Tatra banky."
     },503);
   }
 
@@ -97,7 +108,7 @@ Deno.serve(async(req:Request)=>{
   const userId=String(claims?.sub||"");
   if(!userId)return json({error:"AUTH_REQUIRED",userMessage:"Najprv sa prihlás."},401);
 
-  const productCode=cleanText(body?.productCode,80);
+  const productCode=String(body?.productCode||"").trim().slice(0,80);
   if(!productCode)return json({error:"PRODUCT_REQUIRED"},400);
 
   const order=await rpc("csp_create_cardpay_order",{
@@ -109,11 +120,13 @@ Deno.serve(async(req:Request)=>{
   const curr="978";
   const vs=String(order?.variableSymbol||"");
   const rurl=supabaseUrl+"/functions/v1/cardpay-return";
-  const ipc=clientIp(req)||"0.0.0.0";
-  const email=cleanText(claims?.email||"",64);
+  const ipc=clientIp(req);
+  if(!ipc)return json({error:"CLIENT_IP_MISSING",userMessage:"Nepodarilo sa zistiť IP adresu klienta."},400);
+
+  const email=String(claims?.email||"");
   const meta=claims?.user_metadata||{};
-  const name=cleanText(meta?.display_name||meta?.full_name||meta?.name||"Connect Sports Pro",64);
-  const rem=email;
+  const name=cardPayName(meta?.display_name||meta?.full_name||meta?.name||email,"Connect Sports Pro");
+  const rem=notificationEmail(email);
   const timestamp=utcTimestamp();
 
   const hmacString=mid+amt+curr+vs+rurl+ipc+name+rem+timestamp;
