@@ -28,6 +28,9 @@ values
 on conflict(code) do update set plan=excluded.plan,billing_period=excluded.billing_period,
   name=excluded.name,amount_cents=excluded.amount_cents,currency=excluded.currency,updated_at=now();
 
+alter table public.csp_payment_products enable row level security;
+revoke all on table public.csp_payment_products from anon, authenticated;
+
 create table if not exists public.csp_payment_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
