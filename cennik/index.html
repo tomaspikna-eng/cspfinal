@@ -32,6 +32,8 @@
 <meta property="og:url" content="https://connectsportspro.com/cennik/">
 <meta property="og:image" content="https://connectsportspro.com/assets/csp-logo-full.png">
 <meta name="twitter:card" content="summary_large_image">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
+<script src="/assets/csp-auth.js"></script>
 </head>
 <body>
   <div class="page">
@@ -119,17 +121,117 @@
       const meta=card.querySelector('[data-billing-meta]');
       const cta=card.querySelector('[data-plan-cta]');
       const render=billing=>{
+        card.dataset.selectedBilling=billing;
         const annual=billing==='annual';
         price.textContent=annual?card.dataset.yearly:card.dataset.monthly;
         period.textContent=annual?'/ rok':'/ mesiac';
         note.textContent=annual?`V prepočte ${card.dataset.effective} / mesiac. Ročná platba naraz.`:'Platba každý mesiac.';
         saving.hidden=!annual;
         saving.textContent=annual?`Ušetríš ${card.dataset.saving} ročne`:'';
-        meta.textContent=annual?'12 mesiacov za cenu 10 · po spustení platieb':'Plán zatiaľ nemožno objednať';
+        meta.textContent=annual?'12 mesiacov za cenu 10':'Mesačná platba';
         buttons.forEach(button=>{const active=button.dataset.billing===billing;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active))});
       };
       buttons.forEach(button=>button.addEventListener('click',()=>render(button.dataset.billing)));
     });
+
+    const CARDPAY_CHECKOUT_URL='https://lcmoykaqvvfybtobhtqg.supabase.co/functions/v1/cardpay-checkout';
+    let cardPayConfigured=false;
+
+    function productCodeFor(card){
+      const plan=card.dataset.plan;
+      const billing=card.dataset.selectedBilling||'monthly';
+      return plan+'_'+billing;
+    }
+
+    function setPaymentCtas(state){
+      document.querySelectorAll('[data-plan]').forEach(card=>{
+        const cta=card.querySelector('[data-plan-cta]');
+        if(!cta)return;
+        const planName=card.querySelector('h2')?.textContent||'plán';
+        if(state==='ready'){
+          cta.disabled=false;
+          cta.textContent='Kúpiť '+planName;
+        }else if(state==='login'){
+          cta.disabled=false;
+          cta.textContent='Prihlásiť sa a kúpiť';
+        }else{
+          cta.disabled=true;
+          cta.textContent='Platby čoskoro';
+        }
+      });
+    }
+
+    async function cardPayRequest(session,body){
+      const res=await fetch(CARDPAY_CHECKOUT_URL,{
+        method:'POST',
+        headers:{
+          'content-type':'application/json',
+          'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA',
+          'authorization':'Bearer '+session.access_token
+        },
+        body:JSON.stringify(body)
+      });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok)throw new Error(data?.userMessage||data?.error||'CardPay sa nepodarilo spustiť.');
+      return data;
+    }
+
+    function submitCardPay(data){
+      const form=document.createElement('form');
+      form.method=data?.method||'POST';
+      form.action=data?.gatewayUrl||'';
+      form.style.display='none';
+      Object.entries(data?.fields||{}).forEach(([name,value])=>{
+        const input=document.createElement('input');
+        input.type='hidden';
+        input.name=name;
+        input.value=String(value??'');
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    async function initPayments(){
+      try{
+        const result=await cspAuth.getSession();
+        const session=result?.data?.session||null;
+        if(!session){setPaymentCtas('login');return}
+        const status=await cardPayRequest(session,{action:'status'});
+        cardPayConfigured=status?.configured===true;
+        setPaymentCtas(cardPayConfigured?'ready':'disabled');
+      }catch{
+        setPaymentCtas('disabled');
+      }
+    }
+
+    document.querySelectorAll('[data-plan-cta]').forEach(cta=>{
+      cta.addEventListener('click',async()=>{
+        const card=cta.closest('[data-plan]');
+        if(!card)return;
+        const sessionResult=await cspAuth.getSession();
+        const session=sessionResult?.data?.session||null;
+        if(!session){
+          const returnTo='/cennik/#'+encodeURIComponent(card.id||'');
+          window.location.href='/login/?returnTo='+encodeURIComponent(returnTo);
+          return;
+        }
+        if(!cardPayConfigured)return;
+        const old=cta.textContent;
+        cta.disabled=true;
+        cta.textContent='Otváram CardPay…';
+        try{
+          const data=await cardPayRequest(session,{action:'create',productCode:productCodeFor(card)});
+          submitCardPay(data);
+        }catch(e){
+          alert(e?.message||'CardPay sa nepodarilo spustiť.');
+          cta.disabled=false;
+          cta.textContent=old;
+        }
+      });
+    });
+
+    initPayments();
 
     const topbar=document.getElementById('topbar');
     const menuToggle=document.getElementById('menuToggle');
