@@ -256,7 +256,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
 
     const available =
       currentEvent.status === 'published' &&
-      currentEvent.visibility === 'public' &&
+      ['public','unlisted'].includes(currentEvent.visibility) &&
       currentEvent.registration_enabled === true &&
       (!currentEvent.registration_deadline || new Date(currentEvent.registration_deadline) >= new Date());
 
