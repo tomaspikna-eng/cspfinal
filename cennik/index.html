@@ -83,7 +83,7 @@
       </article>
     </main>
 
-    <section class="panel billing-notice"><span><strong>Platobná brána zatiaľ nie je aktívna.</strong> Uvedené ceny sú informatívne a platené predplatné ešte nemožno objednať.</span><a href="/obchodne-podmienky/">Obchodné podmienky →</a></section>
+    <section class="panel billing-notice"><span><strong>Online platby sa pripravujú na spustenie.</strong> Stripe je momentálne pripojený v testovacom režime; reálne platby ešte nie sú aktívne.</span><a href="/obchodne-podmienky/">Obchodné podmienky →</a></section>
 
     <section class="panel comparison" id="porovnanie">
       <div class="section-head"><div><h2>Presné porovnanie plánov</h2><p>Rozdiel medzi hráčskym, organizátorským a klubovým účtom.</p></div></div>
@@ -139,8 +139,8 @@
       buttons.forEach(button=>button.addEventListener('click',()=>render(button.dataset.billing)));
     });
 
-    const CARDPAY_CHECKOUT_URL='https://lcmoykaqvvfybtobhtqg.supabase.co/functions/v1/cardpay-checkout';
-    let cardPayConfigured=false;
+    const STRIPE_BILLING_URL='https://lcmoykaqvvfybtobhtqg.supabase.co/functions/v1/stripe-billing';
+    let stripeConfigured=false;
 
     function productCodeFor(card){
       const plan=card.dataset.plan;
@@ -155,10 +155,10 @@
         const planName=card.querySelector('h2')?.textContent||'plán';
         if(state==='ready'){
           cta.disabled=false;
-          cta.textContent='Kúpiť '+planName;
+          cta.textContent='Testovať '+planName+' cez Stripe';
         }else if(state==='login'){
           cta.disabled=false;
-          cta.textContent='Prihlásiť sa a kúpiť';
+          cta.textContent='Prihlásiť sa';
         }else{
           cta.disabled=true;
           cta.textContent='Platby čoskoro';
@@ -166,35 +166,19 @@
       });
     }
 
-    async function cardPayRequest(session,body){
-      const res=await fetch(CARDPAY_CHECKOUT_URL,{
+    async function stripeRequest(session,body){
+      const res=await fetch(STRIPE_BILLING_URL,{
         method:'POST',
         headers:{
           'content-type':'application/json',
-          'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA',
+          'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA',
           'authorization':'Bearer '+session.access_token
         },
         body:JSON.stringify(body)
       });
       const data=await res.json().catch(()=>({}));
-      if(!res.ok)throw new Error(data?.userMessage||data?.error||'CardPay sa nepodarilo spustiť.');
+      if(!res.ok)throw new Error(data?.error||'Stripe checkout sa nepodarilo spustiť.');
       return data;
-    }
-
-    function submitCardPay(data){
-      const form=document.createElement('form');
-      form.method=data?.method||'POST';
-      form.action=data?.gatewayUrl||'';
-      form.style.display='none';
-      Object.entries(data?.fields||{}).forEach(([name,value])=>{
-        const input=document.createElement('input');
-        input.type='hidden';
-        input.name=name;
-        input.value=String(value??'');
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
     }
 
     async function initPayments(){
@@ -202,9 +186,9 @@
         const result=await cspAuth.getSession();
         const session=result?.data?.session||null;
         if(!session){setPaymentCtas('login');return}
-        const status=await cardPayRequest(session,{action:'status'});
-        cardPayConfigured=status?.configured===true;
-        setPaymentCtas(cardPayConfigured?'ready':'disabled');
+        const status=await stripeRequest(session,{action:'status'});
+        stripeConfigured=status?.configured===true;
+        setPaymentCtas(stripeConfigured?'ready':'disabled');
       }catch{
         setPaymentCtas('disabled');
       }
@@ -221,15 +205,16 @@
           window.location.href='/login/?returnTo='+encodeURIComponent(returnTo);
           return;
         }
-        if(!cardPayConfigured)return;
+        if(!stripeConfigured)return;
         const old=cta.textContent;
         cta.disabled=true;
-        cta.textContent='Otváram CardPay…';
+        cta.textContent='Otváram Stripe…';
         try{
-          const data=await cardPayRequest(session,{action:'create',productCode:productCodeFor(card)});
-          submitCardPay(data);
+          const data=await stripeRequest(session,{action:'checkout',productCode:productCodeFor(card)});
+          if(!data?.url)throw new Error('Stripe nevrátil checkout URL.');
+          window.location.href=data.url;
         }catch(e){
-          alert(e?.message||'CardPay sa nepodarilo spustiť.');
+          alert(e?.message||'Stripe checkout sa nepodarilo spustiť.');
           cta.disabled=false;
           cta.textContent=old;
         }
