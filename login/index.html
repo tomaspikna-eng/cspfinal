@@ -42,6 +42,10 @@ body{
 .field label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2)}
 .field input{background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--font);font-size:.92rem;padding:11px 13px;outline:none;transition:.12s}
 .field input:focus{border-color:var(--gold-b);background:rgba(212,168,67,.03)}
+.remember{display:flex;align-items:center;gap:9px;color:var(--muted2);font-size:.75rem;cursor:pointer;user-select:none}
+.remember input{appearance:none;width:17px;height:17px;flex:0 0 17px;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:var(--bg3);display:grid;place-items:center;cursor:pointer}
+.remember input:checked{background:var(--gold);border-color:var(--gold)}
+.remember input:checked:after{content:'✓';color:#1a1000;font-size:.72rem;font-weight:900;line-height:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:13px 20px;border-radius:10px;font:700 .92rem/1 var(--font);cursor:pointer;border:none;width:100%;transition:.15s}
 .btn-gold{background:var(--gold);color:#1a1000}
 .btn-gold:hover{background:var(--gold-bright)}
@@ -53,7 +57,7 @@ body{
 .foot a:hover{text-decoration:underline}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
-<script src="/assets/csp-auth.js"></script>
+<script src="/assets/csp-auth.js?v=20261008-remember-session-1"></script>
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
 <meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
 <meta name="robots" content="noindex,nofollow">
@@ -81,6 +85,7 @@ body{
 
     <div class="field"><label>E-mail</label><input id="email" type="email" placeholder="vas@email.sk" autocomplete="email"/></div>
     <div class="field"><label>Heslo</label><input id="password" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <label class="remember" for="rememberMe"><input id="rememberMe" type="checkbox" checked><span>Zostať prihlásený</span></label>
 
     <div class="msg" id="msg"></div>
     <button class="btn btn-gold" id="btnLogin">Prihlásiť sa →</button>
@@ -160,6 +165,8 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   if(!password){ showMsg('Zadaj heslo.'); return; }
 
   const btn = document.getElementById('btnLogin');
+  const remember = document.getElementById('rememberMe')?.checked !== false;
+  cspAuth.setRememberMe(remember);
   btn.disabled = true; btn.textContent = 'Prihlasujem...';
 
   const { data, error } = await cspAuth.signIn(email, password);
