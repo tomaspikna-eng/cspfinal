@@ -44,11 +44,73 @@
     return;
   }
 
+  var REMEMBER_SESSION_KEY = 'csp_remember_session';
+
+  function authStorageTarget() {
+    try {
+      return global.sessionStorage.getItem(REMEMBER_SESSION_KEY) === '0'
+        ? global.sessionStorage
+        : global.localStorage;
+    } catch (_e) {
+      return global.localStorage;
+    }
+  }
+
+  var authStorage = {
+    getItem: function (key) {
+      try { return authStorageTarget().getItem(key); } catch (_e) { return null; }
+    },
+    setItem: function (key, value) {
+      try { authStorageTarget().setItem(key, value); } catch (_e) {}
+    },
+    removeItem: function (key) {
+      try {
+        global.localStorage.removeItem(key);
+        global.sessionStorage.removeItem(key);
+      } catch (_e) {}
+    }
+  };
+
+  function migrateSupabaseAuthStorage(toPersistent) {
+    try {
+      var from = toPersistent ? global.sessionStorage : global.localStorage;
+      var to = toPersistent ? global.localStorage : global.sessionStorage;
+      var keys = [];
+      for (var i = 0; i < from.length; i++) {
+        var key = from.key(i);
+        if (key && /^sb-.*-auth-token$/.test(key)) keys.push(key);
+      }
+      keys.forEach(function (key) {
+        var value = from.getItem(key);
+        if (value !== null) to.setItem(key, value);
+        from.removeItem(key);
+      });
+    } catch (_e) {}
+  }
+
+  function setRememberMe(remember) {
+    try {
+      if (remember) {
+        migrateSupabaseAuthStorage(true);
+        global.sessionStorage.removeItem(REMEMBER_SESSION_KEY);
+      } else {
+        global.sessionStorage.setItem(REMEMBER_SESSION_KEY, '0');
+        migrateSupabaseAuthStorage(false);
+      }
+    } catch (_e) {}
+  }
+
+  function getRememberMe() {
+    try { return global.sessionStorage.getItem(REMEMBER_SESSION_KEY) !== '0'; }
+    catch (_e) { return true; }
+  }
+
   var client = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: authStorage
     }
   });
 
@@ -199,6 +261,8 @@
     signInWithGoogle: signInWithGoogle,
     signOut: signOut,
     getSession: getSession,
+    setRememberMe: setRememberMe,
+    getRememberMe: getRememberMe,
     getCurrentProfile: getCurrentProfile,
     friendlyError: friendlyError,
     isDuplicateSignup: isDuplicateSignup,
