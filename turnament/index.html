@@ -2267,7 +2267,7 @@ function restoreDkoBracketScroll(){
 function dkoBracketColumn(round,title,prefix,roundIndex,side){
   const sideLabel=side==='loser'?'B':(side==='start'||side==='winner')?'A':'Finálová fáza';
   const marker=side==='start'?'data-dko-start="true"':(side==='grand-final'?'data-dko-final="true"':'');
-  return `<section class="bracket-column dko-bracket-column ${side}" ${marker}>`
+  return `<section class="bracket-column dko-bracket-column ${side}" ${marker}>
     <div class="dko-column-side">${sideLabel}</div>
     <div class="bracket-column-title">${esc(title)}${roundRaceControl(prefix,roundIndex)}</div>
     <div class="bracket-column-matches">${(round||[]).map((m,mi)=>bracketMatchCard(m,`${prefix}:${roundIndex}:${mi}`)).join('')}</div>
