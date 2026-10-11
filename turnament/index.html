@@ -3436,35 +3436,35 @@ async function saveMatch(){
   const m=getMatchByLoc(editLoc);
   const s1=+document.getElementById('mmS1').value, s2=+document.getElementById('mmS2').value;
   if(isNaN(s1)||isNaN(s2)){ toast('Zadaj skóre oboch hráčov.',true); return; }
+  if(s1<0||s2<0){ toast('Skóre nemôže byť záporné.',true); return; }
   if(s1===s2){ toast('Skóre nemôže byť nerozhodné — určí víťaza.',true); return; }
-  // Bracket-advancement logic (recomputeFor) is completely unchanged --
-  // it runs exactly as before, on the same local m/curT state. Only the
-  // real DB write below is new.
+
+  // Najprv zapíš presne to, čo organizátor zadal. Až potom prepočítaj pavúk.
+  // Predchádzajúce poradie bolo opačné a pri zápase o 3. miesto sync funkcia
+  // prepísala čerstvé 2:3 späť na NULL ešte pred RPC volaním.
+  const savedLoc=editLoc;
   m.s1=s1; m.s2=s2; m.winner=s1>s2?1:2; m.resultSig=TM.matchSig(m);
-  recomputeFor(editLoc);
-  // Group result may have completed the final pending group match, or a
-  // protected preliminary round may have produced its required survivors.
-  // This is deliberately automatic: no separate \"generate\" click.
-  maybeGenerateComboPhase(curT);
-  syncThirdPlaceMatch(curT);
-  normalizeTournamentMatchIdentity(curT);
-  const savedLoc=editLoc, savedM=m;
   pendingTournamentWrite=true;
 
   try {
-    await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
-    // If correcting a winner changes later participants, any already completed
-    // dependent match is no longer valid and must be reopened in the database.
+    await cspAuth.withTimeout(saveMatchToDB(savedLoc, m), 8000, 'save match');
+
+    recomputeFor(savedLoc);
+    maybeGenerateComboPhase(curT);
+    syncThirdPlaceMatch(curT);
+    normalizeTournamentMatchIdentity(curT);
+
+    // Ak oprava víťaza zmenila účastníkov ďalších už odohraných zápasov,
+    // tieto výsledky už nie sú platné a vrátia sa do pending.
     await cspAuth.withTimeout(clearInvalidatedCompletedMatches(), 10000, 'clear invalidated matches');
-    // Persist advancement only after the authoritative match write succeeded.
-    // This prevents bracket_state from getting ahead of `matches` when a DB
-    // write is rejected. Then reload both sources that drive station selects,
-    // so a released table is immediately usable in the next round.
+
     const bracketSaved=await cspAuth.withTimeout(persistT(),8000,'save bracket state');
     if(!bracketSaved)throw new Error('Bracket state was not saved');
     await reloadRealMatches();
+    applyMatchRowsToBracket([...realMatchesByKey.values()]);
     await loadTournamentOperations(curT.id);
     document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
+
     if(savedLoc.split(':')[0]==='grp' && comboAllGroupsDone(curT)){
       await cspAuth.withTimeout(syncComboPhaseTransition(curT), 10000, 'complete group phase');
       document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
@@ -3473,6 +3473,7 @@ async function saveMatch(){
         if(phaseBanner) phaseBanner.scrollIntoView({behavior:'smooth',block:'start'});
       },80);
     }
+
     await maybeAutoCompleteTournament(curT);
     pendingTournamentWrite=false;
     closeMatch();
@@ -3481,24 +3482,26 @@ async function saveMatch(){
   } catch(err){
     pendingTournamentWrite=false;
     console.error('[turnament] Failed to save match/transition:', err);
-    toast('Výsledok alebo prechod fázy sa neuložil do databázy.', true);
+    await silentSyncMatches(curT.id);
+    toast('Výsledok sa neuložil: '+cspErrorMessage(err), true);
   }
 }
 async function clearMatch(){
   const m=getMatchByLoc(editLoc);
   if(!m)return;
   const clearedLoc=editLoc;
-  m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
-  recomputeFor(clearedLoc);
-
-  // A group result no longer being final invalidates every generated phase
-  // 2 slot. Likewise, clearing a protected preliminary result invalidates
-  // its already-built main bracket.
-  if(clearedLoc.split(':')[0]==='grp') delete curT.phase2;
-  else if(clearedLoc.split(':')[0]==='p2p' && curT.phase2 && curT.phase2.kind==='protected-sko') curT.phase2.main=null;
 
   try{
+    // Najprv zruš autoritatívny DB výsledok. Inak sync pri treťom mieste
+    // môže lokálne NULL hodnoty okamžite prepísať starým výsledkom z DB.
     await cspAuth.withTimeout(clearMatchInDB(clearedLoc),8000,'clear match');
+
+    m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
+    recomputeFor(clearedLoc);
+
+    if(clearedLoc.split(':')[0]==='grp') delete curT.phase2;
+    else if(clearedLoc.split(':')[0]==='p2p' && curT.phase2 && curT.phase2.kind==='protected-sko') curT.phase2.main=null;
+
     await cspAuth.withTimeout(clearInvalidatedCompletedMatches(),10000,'clear dependent matches');
     const bracketSaved=await cspAuth.withTimeout(persistT(),8000,'save bracket state');
     if(!bracketSaved)throw new Error('Bracket state was not saved');
