@@ -3252,10 +3252,24 @@ function resolvePlayerId(p){
 // check a no-op here; finalizeAppliedMatches() below stamps it correctly
 // afterward, once every match's p1/p2 reflects real advancement.
 function applyRealMatches(matchRows){
+  const playerById=new Map((Array.isArray(curT?.players)?curT.players:[]).map(p=>[p.id,p]));
   matchRows.forEach(row=>{
     if(row.status!=='completed' || row.score1==null || row.score2==null) return;
     const m=matchFromDbRow(row);
     if(!m) return; // stale row from a shape that no longer exists
+
+    // The matches table is authoritative for completed matches. A saved
+    // bracket snapshot can be stale after a corrected upstream result, so
+    // restore the actual participants before applying the winner/score.
+    if(row.player1_id && playerById.has(row.player1_id)){
+      const p=playerById.get(row.player1_id);
+      m.p1={name:p.name,seed:p.seed,id:p.id};
+    }
+    if(row.player2_id && playerById.has(row.player2_id)){
+      const p=playerById.get(row.player2_id);
+      m.p2={name:p.name,seed:p.seed,id:p.id};
+    }
+
     m.s1=row.score1; m.s2=row.score2;
     m.winner = row.winner_id===row.player1_id ? 1 : (row.winner_id===row.player2_id ? 2 : null);
   });
