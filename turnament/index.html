@@ -2255,14 +2255,19 @@ function restoreDkoBracketScroll(){
   if(!scroller)return;
   const max=Math.max(0,scroller.scrollWidth-scroller.clientWidth);
   if(dkoBracketScrollLeft===null){
-    const start=scroller.querySelector('[data-dko-start]');
-    if(start)dkoBracketScrollLeft=Math.max(0,Math.min(max,start.offsetLeft+(start.offsetWidth/2)-(scroller.clientWidth/2)));
+    // When the grand final is already known, open the bracket on the part
+    // that matters now instead of leaving the final hidden off-screen.
+    const finalCard=scroller.querySelector('[data-dko-final]');
+    const finalReady=!!(curT?.dko?.F?.p1&&curT?.dko?.F?.p2&&!curT?.dko?.F?.winner);
+    const target=finalReady?finalCard:scroller.querySelector('[data-dko-start]');
+    if(target)dkoBracketScrollLeft=Math.max(0,Math.min(max,target.offsetLeft+(target.offsetWidth/2)-(scroller.clientWidth/2)));
   }
   scroller.scrollLeft=Math.max(0,Math.min(max,dkoBracketScrollLeft||0));
 }
 function dkoBracketColumn(round,title,prefix,roundIndex,side){
   const sideLabel=side==='loser'?'B':(side==='start'||side==='winner')?'A':'Finálová fáza';
-  return `<section class="bracket-column dko-bracket-column ${side}" ${side==='start'?'data-dko-start="true"':''}>
+  const marker=side==='start'?'data-dko-start="true"':(side==='grand-final'?'data-dko-final="true"':'');
+  return `<section class="bracket-column dko-bracket-column ${side}" ${marker}>`
     <div class="dko-column-side">${sideLabel}</div>
     <div class="bracket-column-title">${esc(title)}${roundRaceControl(prefix,roundIndex)}</div>
     <div class="bracket-column-matches">${(round||[]).map((m,mi)=>bracketMatchCard(m,`${prefix}:${roundIndex}:${mi}`)).join('')}</div>
@@ -2285,7 +2290,7 @@ function dkoBracketColumns(dko,phase2=false){
   }
   if(dko.QF?.length)columns.push(dkoBracketColumn(dko.QF,'Štvrťfinále',p.q,0,'final'));
   if(dko.SF?.length)columns.push(dkoBracketColumn(dko.SF,'Semifinále',p.s,0,'final'));
-  columns.push(dkoBracketColumn([dko.F],'Finále',p.f,0,'final'));
+  columns.push(dkoBracketColumn([dko.F],'GRAND FINÁLE',p.f,0,'grand-final'));
 
   return `<div class="bracket-scroll dko-bracket-scroll" onscroll="rememberDkoBracketScroll(this)"><div class="bracket-grid dko-bracket-grid">${columns.join('')}</div></div>`;
 }
@@ -2346,7 +2351,7 @@ function renderMatchList(t){
     if(dko.L.length)html+=sect('A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
     if(dko.QF.length)html+=sect('◆ TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'dkoQ');
     if(dko.SF.length)html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
-    html+=sect('◆ FINÁLE','conv',[[dko.F]],['Finále'],'dkoF');
+    html+=sect('◆ GRAND FINÁLE','conv',[[dko.F]],['Grand finále'],'dkoF');
     html+=renderThirdPlaceMatch(t);
     const champ=TM.dkoChampion(dko);if(champ) html=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${esc(champ.name)}</b></div>`+html;
     if(played && !tournamentFlowFinished(t)) html+=renderRankTable(rank);
@@ -2421,7 +2426,7 @@ function renderPhaseDKO(dko){
     (dko.L.length?sect('Phase 2 · A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
     (dko.QF.length?sect('◆ Phase 2 · TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'p2dQ'):'')+
     (dko.SF.length?sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS'):'')+
-    sect('◆ Phase 2 · FINÁLE','conv',[[dko.F]],['Finále'],'p2dF');
+    sect('◆ Phase 2 · GRAND FINÁLE','conv',[[dko.F]],['Grand finále'],'p2dF');
 }
 function renderComboPhase2(phase){
   if(phase.kind==='standard-sko') return renderPhaseSKO(phase.bracket,'p2s','✓ Phase 2 · Single KO');
