@@ -3289,8 +3289,8 @@ async function saveMatchToDB(loc, m){
   if(!roundKey||!Number.isInteger(matchNumber))throw new Error('Zápas nemá platné globálne číslo.');
 
   const assignedRow=rowForMatch(m,loc);
-  if(assignedRow?.id && assignedRow.tournament_resource_id){
-    const {data,error}=await cspAuth.client.rpc('complete_organizer_match',{
+  if(assignedRow?.id){
+    const {data,error}=await tournamentRpc('set_organizer_match_result',{
       p_match_id:assignedRow.id,
       p_score1:m.s1,
       p_score2:m.s2,
@@ -3323,15 +3323,38 @@ async function saveMatchToDB(loc, m){
     if(data) realMatchesByKey.set(data.round_key,data);
   }catch(e){}
 }
+async function reopenMatchRow(row){
+  if(!row?.id)return null;
+  const {data,error}=await tournamentRpc('reopen_organizer_match',{p_match_id:row.id});
+  if(error)throw error;
+  if(data?.round_key)realMatchesByKey.set(data.round_key,data);
+  return data||null;
+}
+
 async function clearMatchInDB(loc){
   const m=getMatchByLoc(loc);
   if(!m)return;
   const row=rowForMatch(m,loc);
+  if(row?.id){
+    await reopenMatchRow(row);
+    return;
+  }
   let query=cspAuth.client.from('matches')
-    .update({ score1: null, score2: null, winner_id: null, status: 'pending' });
-  query=row?.id?query.eq('id',row.id):query.eq('tournament_id',curT.id).eq('round_key',canonicalRoundKey(m));
-  const { error } = await query;
-  if(error) throw error;
+    .update({ score1:null,score2:null,winner_id:null,status:'pending',completed_at:null });
+  query=query.eq('tournament_id',curT.id).eq('round_key',canonicalRoundKey(m));
+  const {error}=await query;
+  if(error)throw error;
+}
+
+async function clearInvalidatedCompletedMatches(){
+  const rows=[...realMatchesByKey.values()].filter(row=>row?.id&&row.status==='completed');
+  for(const row of rows){
+    const m=matchFromDbRow(row);
+    if(!m)continue;
+    const p1Id=resolvePlayerId(m.p1),p2Id=resolvePlayerId(m.p2);
+    const participantsChanged=(p1Id||null)!==(row.player1_id||null)||(p2Id||null)!==(row.player2_id||null);
+    if(!m.winner||participantsChanged)await reopenMatchRow(row);
+  }
 }
 function openMatch(loc){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
@@ -3386,6 +3409,9 @@ async function saveMatch(){
 
   try {
     await cspAuth.withTimeout(saveMatchToDB(savedLoc, savedM), 8000, 'save match');
+    // If correcting a winner changes later participants, any already completed
+    // dependent match is no longer valid and must be reopened in the database.
+    await cspAuth.withTimeout(clearInvalidatedCompletedMatches(), 10000, 'clear invalidated matches');
     // Persist advancement only after the authoritative match write succeeded.
     // This prevents bracket_state from getting ahead of `matches` when a DB
     // write is rejected. Then reload both sources that drive station selects,
@@ -3415,25 +3441,33 @@ async function saveMatch(){
   }
 }
 async function clearMatch(){
-  const m=getMatchByLoc(editLoc); m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
+  const m=getMatchByLoc(editLoc);
+  if(!m)return;
   const clearedLoc=editLoc;
+  m.s1=null;m.s2=null;m.winner=null;m.resultSig=null;
   recomputeFor(clearedLoc);
+
   // A group result no longer being final invalidates every generated phase
   // 2 slot. Likewise, clearing a protected preliminary result invalidates
-  // its already-built main bracket. They will regenerate automatically
-  // once the necessary results are complete again.
+  // its already-built main bracket.
   if(clearedLoc.split(':')[0]==='grp') delete curT.phase2;
   else if(clearedLoc.split(':')[0]==='p2p' && curT.phase2 && curT.phase2.kind==='protected-sko') curT.phase2.main=null;
-  persistT();
-  const savedLoc=editLoc;
-  closeMatch();
-  document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
-  toast('Výsledok vymazaný');
 
-  try {
-    await cspAuth.withTimeout(clearMatchInDB(savedLoc), 8000, 'clear match');
-  } catch(err){
-    console.error('[turnament] Failed to clear match in the real matches table:', err);
+  try{
+    await cspAuth.withTimeout(clearMatchInDB(clearedLoc),8000,'clear match');
+    await cspAuth.withTimeout(clearInvalidatedCompletedMatches(),10000,'clear dependent matches');
+    const bracketSaved=await cspAuth.withTimeout(persistT(),8000,'save bracket state');
+    if(!bracketSaved)throw new Error('Bracket state was not saved');
+    await reloadRealMatches();
+    applyMatchRowsToBracket([...realMatchesByKey.values()]);
+    await loadTournamentOperations(curT.id);
+    closeMatch();
+    document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
+    toast('Výsledok vymazaný ✓');
+  }catch(err){
+    console.error('[turnament] Failed to clear match result:',err);
+    await silentSyncMatches(curT.id);
+    toast('Výsledok sa nepodarilo vymazať: '+cspErrorMessage(err),true);
   }
 }
 
