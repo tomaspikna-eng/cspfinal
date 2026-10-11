@@ -3405,21 +3405,29 @@ function openMatch(loc){
   const m=getMatchByLoc(loc);
   if(!m || !m.p1 || !m.p2 || m.p1.bye || m.p2.bye) return;
   editLoc=loc;
+  const row=rowForMatch(m,loc);
+  const hasSavedResult=!!(
+    m.winner ||
+    m.s1!=null || m.s2!=null ||
+    row?.winner_id ||
+    row?.score1!=null || row?.score2!=null ||
+    row?.status==='completed'
+  );
   document.getElementById('matchModalArea').innerHTML=`
     <div class="overlay" onclick="closeMatch(event)">
       <div class="match-modal" onclick="event.stopPropagation()">
         <div class="mm-key mono">${esc(matchDisplayKey(m))}</div>
         <div class="mm-players">
-          <div class="mm-p"><div class="mm-name">${esc(m.p1.name)}</div><input type="number" id="mmS1" min="0" value="${m.s1??''}" placeholder="0"/></div>
+          <div class="mm-p"><div class="mm-name">${esc(m.p1.name)}</div><input type="number" id="mmS1" min="0" value="${m.s1??row?.score1??''}" placeholder="0"/></div>
           <div class="mm-x">:</div>
-          <div class="mm-p"><div class="mm-name">${esc(m.p2.name)}</div><input type="number" id="mmS2" min="0" value="${m.s2??''}" placeholder="0"/></div>
+          <div class="mm-p"><div class="mm-name">${esc(m.p2.name)}</div><input type="number" id="mmS2" min="0" value="${m.s2??row?.score2??''}" placeholder="0"/></div>
         </div>
         <div class="mm-quick">
           <button onclick="quickWin(1)">Vyhral ${esc(m.p1.name.split(' ')[0])}</button>
           <button onclick="quickWin(2)">Vyhral ${esc(m.p2.name.split(' ')[0])}</button>
         </div>
         <div class="mm-actions">
-          ${m.winner?`<button class="btn btn-ghost btn-danger" onclick="clearMatch()">Vymazať výsledok</button>`:'<span></span>'}
+          ${hasSavedResult?`<button class="btn btn-ghost btn-danger" onclick="clearMatch()">Vynulovať výsledok</button>`:'<span></span>'}
           <button class="btn btn-green" onclick="saveMatch()">Uložiť výsledok</button>
         </div>
       </div>
