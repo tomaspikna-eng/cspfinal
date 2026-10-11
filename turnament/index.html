@@ -1608,8 +1608,33 @@ function tournamentSemifinals(t){
 function thirdPlaceEnabled(t){return t?.config?.third_place_playoff===true;}
 function syncThirdPlaceMatch(t){
   if(!thirdPlaceEnabled(t))return null;
+
+  // If a third-place match already exists in the real matches table, that
+  // row is authoritative. This matters after corrected semifinal/QF results:
+  // the structural DKO recompute may still be based on an older snapshot.
+  const existing=t.thirdPlaceMatch||null;
+  const existingNumber=Number(existing?.number);
+  const dbRow=Number.isInteger(existingNumber)
+    ? [...realMatchesByKey.values()].find(r=>Number(r.match_number)===existingNumber)
+    : null;
+  if(dbRow?.player1_id&&dbRow?.player2_id){
+    const byId=new Map((Array.isArray(t.players)?t.players:[]).map(p=>[p.id,p]));
+    const p1=byId.get(dbRow.player1_id),p2=byId.get(dbRow.player2_id);
+    if(p1&&p2){
+      if(!t.thirdPlaceMatch)t.thirdPlaceMatch=TM.mkMatch(existingNumber||1,null,null);
+      const match=t.thirdPlaceMatch;
+      match.p1={id:p1.id,name:p1.name,seed:p1.seed};
+      match.p2={id:p2.id,name:p2.name,seed:p2.seed};
+      match.s1=dbRow.score1;
+      match.s2=dbRow.score2;
+      match.winner=dbRow.winner_id===dbRow.player1_id?1:(dbRow.winner_id===dbRow.player2_id?2:null);
+      match.resultSig=match.winner?TM.matchSig(match):null;
+      return match;
+    }
+  }
+
   const semifinalists=tournamentSemifinals(t).map(loserOf).filter(player=>player&&!player.bye);
-  if(semifinalists.length!==2)return null;
+  if(semifinalists.length!==2)return existing;
   if(!t.thirdPlaceMatch)t.thirdPlaceMatch=TM.mkMatch(1,null,null);
   const match=t.thirdPlaceMatch;
   match.p1=semifinalists[0];match.p2=semifinalists[1];
