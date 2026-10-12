@@ -697,8 +697,8 @@ const TM = {
     const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.dkoSlots(seeded,N,seedCount,drawKey);
     const total=Math.log2(N);
-    const requestedCutover=[4,6,8,16].includes(Number(cutoverSize))?Number(cutoverSize):8;
-    const koSize=requestedCutover===6?8:Math.min(N,requestedCutover);
+    const requestedCutover=[4,8,16].includes(Number(cutoverSize))?Number(cutoverSize):8;
+    const koSize=Math.min(N,requestedCutover);
     const winnerQualifierCount=koSize/2;
     const winnerRoundCount=Math.log2(N/winnerQualifierCount);
     const W=[],L=[];
@@ -1612,7 +1612,7 @@ function ensureBracket(t){
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
     const dkoPlayed=!!t.dko && [...(t.dko.W||[]).flat(),...(t.dko.L||[]).flat(),...(t.dko.QF||[]),...(t.dko.SF||[]),...(t.dko.F?[t.dko.F]:[])].some(m=>m&&!m._walkover&&m.winner&&m.s1!=null&&m.s2!=null);
-    const configuredCutover=[4,6,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8;
+    const configuredCutover=[4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8;
     const cutoverChanged=Number(t.dko?.requestedCutover||8)!==configuredCutover;
     const needsDkoBuild=!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F || (t.dko.seedLayoutVersion!==2&&!dkoPlayed) || (cutoverChanged&&!dkoPlayed);
     if(needsDkoBuild) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0,configuredCutover);
@@ -3753,7 +3753,7 @@ function wizardSnapshot(){
       name:p.name,user_id:p.user_id||null,present:!!p.present
     })):[],
     seedCount:Math.max(0,Number(wiz?.seedCount)||0),
-    dkoCutover:[4,6,8,16].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
+    dkoCutover:[4,8,16].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
     groups:Math.max(1,Number(wiz?.groups)||2),
     advance:Math.max(1,Number(wiz?.advance)||1),
     protectedSeeds:Math.max(0,Number(wiz?.protectedSeeds)||0),
@@ -3951,9 +3951,9 @@ function renderWiz(){
       </div>
       <div class="field"><label>Skrátené DKO → SKO od</label>
         <div class="pill-row">
-          ${[4,6,8,16].map(n=>`<button type="button" class="pill ${Number(wiz.dkoCutover)===n?'sel':''}" onclick="wiz.dkoCutover=${n};renderWiz()">TOP ${n}</button>`).join('')}
+          ${[4,8,16].map(n=>`<button type="button" class="pill ${Number(wiz.dkoCutover)===n?'sel':''}" onclick="wiz.dkoCutover=${n};renderWiz()">TOP ${n}</button>`).join('')}
         </div>
-        <div class="hint">Pri DKO určuje, pri koľkých zostávajúcich hráčoch sa turnaj prepne do Single KO. TOP 6 = 3 hráči z A + 3 hráči z B; dvaja dostanú voľný los do semifinále.</div>
+        <div class="hint">Pri DKO určuje, pri koľkých zostávajúcich hráčoch sa turnaj prepne do Single KO.</div>
       </div>
       <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" ${wiz.structureLocked?'':'draggable="true"'} data-player-index="${i}" ${wiz.structureLocked?'':`ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)"`}>
         ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
@@ -4195,7 +4195,7 @@ async function createTournament(){
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
-      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_cutover_size:[4,6,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
+      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
@@ -4236,7 +4236,7 @@ async function createTournament(){
           config:{
             ...safeConfig,
             ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}),
-            dko_cutover_size:[4,6,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
+            dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
             third_place_playoff:!!wiz.thirdPlace,
             present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
             draft_wizard:wizardSnapshot()
