@@ -686,13 +686,6 @@ const TM = {
   // overenému CueScore poradiu pre 16/32/64 aj veľkým 256-player schémam.
   dkoDropMap(count,level){
     if(count<=1)return [0];
-    // Exact crossings from the 16-player DKO federation sheet:
-    // A1 losers top→bottom are marked =>B, =>A, =>D, =>C while
-    // B1a branches top→bottom are D,C,B,A. Therefore B1a target
-    // indices 0..3 receive A1 losers 2,3,0,1.
-    if(count===4&&level===1)return [2,3,0,1];
-    // At the next narrowing the sheet keeps the two lanes F/E aligned.
-    if(count===2&&level===2)return [0,1];
     const mask=level===1
       ? count-1
       : (level%2===0 ? Math.max(1,count/2-1) : Math.max(1,count/2));
@@ -1619,8 +1612,10 @@ function ensureBracket(t){
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
     const dkoPlayed=!!t.dko && [...(t.dko.W||[]).flat(),...(t.dko.L||[]).flat(),...(t.dko.QF||[]),...(t.dko.SF||[]),...(t.dko.F?[t.dko.F]:[])].some(m=>m&&!m._walkover&&m.winner&&m.s1!=null&&m.s2!=null);
-    const needsDkoBuild=!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F || (t.dko.seedLayoutVersion!==2&&!dkoPlayed);
-    if(needsDkoBuild) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0,Number(t.config?.dko_cutover_size)||8);
+    const configuredCutover=[4,6,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8;
+    const cutoverChanged=Number(t.dko?.requestedCutover||8)!==configuredCutover;
+    const needsDkoBuild=!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F || (t.dko.seedLayoutVersion!==2&&!dkoPlayed) || (cutoverChanged&&!dkoPlayed);
+    if(needsDkoBuild) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0,configuredCutover);
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
@@ -3435,6 +3430,7 @@ function finalizeAppliedMatches(matchRows){
 async function saveMatchToDB(loc, m){
   normalizeTournamentMatchIdentity(curT);
   const p1Id=resolvePlayerId(m.p1), p2Id=resolvePlayerId(m.p2);
+  if(!p1Id||!p2Id)throw new Error('Zápas nemá oboch hráčov prepojených s turnajom.');
   const prefix=loc.split(':')[0];
   const isGroup=prefix==='grp';
   const phaseId=isGroup ? curT.groupPhaseId : ((prefix.startsWith('p2')) ? curT.knockoutPhaseId : curT.current_phase_id);
@@ -3447,40 +3443,24 @@ async function saveMatchToDB(loc, m){
   const roundKey=canonicalRoundKey(m);
   if(!roundKey||!Number.isInteger(matchNumber))throw new Error('Zápas nemá platné globálne číslo.');
 
-  const assignedRow=rowForMatch(m,loc);
-  if(assignedRow?.id){
-    const {data,error}=await tournamentRpc('set_organizer_match_result',{
-      p_match_id:assignedRow.id,
-      p_score1:m.s1,
-      p_score2:m.s2,
-      p_winner_id:m.winner===1 ? p1Id : p2Id
-    });
-    if(error)throw error;
-    if(data)realMatchesByKey.set(data.round_key,data);
-    return;
-  }
-
-  const { error } = await cspAuth.client.from('matches').upsert({
-    tournament_id: curT.id,
-    phase_id: phaseId||null,
-    round_key: roundKey,
-    round_number: roundNumber,
-    match_number: matchNumber,
-    group_index: isGroup ? (+parts[1]+1) : null,
-    bracket_side: phaseSide,
-    player1_id: p1Id,
-    player2_id: p2Id,
-    score1: m.s1,
-    score2: m.s2,
-    winner_id: m.winner===1 ? p1Id : p2Id,
-    status: 'completed',
-  }, { onConflict: 'tournament_id,round_key' });
-  if(error) throw error;
-  try{
-    const {data}=await cspAuth.client.from('matches').select('*')
-      .eq('tournament_id',curT.id).eq('round_key',roundKey).single();
-    if(data) realMatchesByKey.set(data.round_key,data);
-  }catch(e){}
+  const {data,error}=await tournamentRpc('save_organizer_match_result',{
+    p_tournament_id:curT.id,
+    p_phase_id:phaseId||null,
+    p_round_key:roundKey,
+    p_round_number:roundNumber,
+    p_match_number:matchNumber,
+    p_group_index:isGroup ? (+parts[1]+1) : null,
+    p_bracket_side:phaseSide,
+    p_player1_id:p1Id,
+    p_player2_id:p2Id,
+    p_score1:m.s1,
+    p_score2:m.s2,
+    p_winner_id:m.winner===1 ? p1Id : p2Id,
+    p_race_to:matchRaceTo(loc,m),
+    p_race_to_key:matchRaceKey(loc,m)
+  });
+  if(error)throw error;
+  if(data?.round_key)realMatchesByKey.set(data.round_key,data);
 }
 async function reopenMatchRow(row){
   if(!row?.id)return null;
