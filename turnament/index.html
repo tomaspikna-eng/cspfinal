@@ -380,11 +380,14 @@ input:focus,select:focus{border-color:var(--gold)}
 .note-box b{color:var(--gold)}
 
 /* ── LIVE MATCH CONTROL ── */
-.match-wrap{border-radius:12px;margin-bottom:8px}
+.match-wrap{border-radius:12px;margin-bottom:8px;overflow:hidden}
 .match-wrap .match-row{margin-bottom:0}
-.match-wrap.live-running{border:1px solid rgba(38,208,125,.48);background:rgba(38,208,125,.055);box-shadow:0 0 0 1px rgba(38,208,125,.05)}
+.match-wrap.live-running{border:2px solid var(--green);background:linear-gradient(90deg,rgba(38,208,125,.20),rgba(38,208,125,.07));box-shadow:0 0 0 3px rgba(38,208,125,.10),0 10px 26px rgba(38,208,125,.10)}
+.match-wrap.live-running .match-row{background:rgba(38,208,125,.08)}
 .match-wrap.live-paused{border:1px solid rgba(212,168,67,.42);background:rgba(212,168,67,.045)}
 .match-wrap.live-stopped{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.025)}
+.match-live-banner{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:var(--green-dark);font-family:var(--mono);font-size:.68rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;padding:7px 10px}
+.match-live-banner .pulse{width:8px;height:8px;border-radius:50%;background:var(--green-dark);box-shadow:0 0 0 4px rgba(6,35,15,.16);animation:livepulse 1.4s ease-in-out infinite}
 .match-livebar{display:grid;grid-template-columns:minmax(90px,130px) auto 1fr auto;gap:8px;align-items:center;padding:8px 10px 10px;border-top:1px solid var(--line-2)}
 .match-table-input{width:100%;padding:7px 9px;font-size:.74rem;border-radius:7px;font-family:var(--mono)}
 .match-live-status{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -3240,8 +3243,10 @@ function matchRow(m, loc){
   const showLiveScore=!walkover&&(running||smartAssigned||hasDbScore);
   const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (walkover?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
   const clickable = !isPublicReadOnly && !walkover && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
+  const isRunning=(row?.status==='live'||row?.status==='in_progress')&&!row?.match_clock_paused_at;
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}" data-match-number="${Number(m.number)||''}">
+    ${isRunning?'<div class="match-live-banner"><span class="pulse"></span>Prebiehajúci zápas</div>':''}
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
       <span class="mt-key mono">${esc(matchDisplayKey(m))}</span>
       <span class="mt-side ${w1?'win':''}">${name(m.p1)}</span>
