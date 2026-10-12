@@ -1962,7 +1962,7 @@ function closeDisplayCenter(){
   document.getElementById('displayCenterOverlay')?.classList.add('hidden');
 }
 async function viewDetail(id){
-  let t, matchRows=[], eventSeries=null;
+  let t, matchRows=[], resultRows=[], eventSeries=null;
   try {
     const { data: tournament, error: tErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
@@ -1996,6 +1996,14 @@ async function viewDetail(id){
     if(mErr) throw mErr;
     matchRows = matches || [];
     realMatchesByKey = new Map(matchRows.map(row => [row.round_key, row]));
+
+    const { data: results, error: rErr } = await cspAuth.withTimeout(
+      cspAuth.client.from('tournament_results').select('*').eq('tournament_id', id),
+      8000, 'load tournament results'
+    );
+    if(rErr) console.warn('[turnament] Could not load tournament results:', rErr);
+    else resultRows = results || [];
+    t.resultRows = resultRows;
 
     const { data: phases, error: phaseErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_phases').select('*').eq('tournament_id', id).order('phase_number', { ascending: true }),
@@ -2571,9 +2579,31 @@ function finalTournamentRanking(t){
   }
   return [];
 }
+function authoritativeCompletedRanking(t){
+  if(t?.status!=='completed' || !Array.isArray(t.resultRows) || !t.resultRows.length) return null;
+  const byId=new Map((t.players||[]).map(p=>[p.id,p]));
+  return t.resultRows
+    .filter(r=>Number(r.final_position)>0)
+    .map(r=>{
+      const p=byId.get(r.tournament_player_id)||{};
+      const sf=Number(r.score_for||0),sa=Number(r.score_against||0);
+      return {
+        id:r.tournament_player_id,
+        name:p.name||'Neznámy hráč',
+        place:Number(r.final_position),
+        wins:Number(r.wins||0),
+        losses:Number(r.losses||0),
+        gw:sf,
+        gl:sa,
+        pct:(sf+sa)?Math.round(100*sf/(sf+sa)):0,
+        stage:r.metadata?.stage||'knockout'
+      };
+    })
+    .sort((a,b)=>a.place-b.place || b.wins-a.wins || (b.gw-b.gl)-(a.gw-a.gl) || a.name.localeCompare(b.name,'sk'));
+}
 function renderTournamentEvaluation(t){
-  if(!tournamentFlowFinished(t) || t.format==='rr') return '';
-  const rank=finalTournamentRanking(t);
+  if(t.format==='rr') return '';
+  const rank=authoritativeCompletedRanking(t) || (tournamentFlowFinished(t)?finalTournamentRanking(t):[]);
   if(!rank.length) return '';
   let html=`<div class="final-standings" style="margin-top:22px">
     <div class="fs-title">KONEČNÉ PORADIE · ${rank.length} HRÁČOV</div>
