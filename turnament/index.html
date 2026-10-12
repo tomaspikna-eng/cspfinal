@@ -2264,6 +2264,7 @@ async function editTournament(id){
       protectedSeeds:draftSnap?.protectedSeeds ?? bracketState.protectedSeeds ?? 0,
       thirdPlace:draftSnap?.thirdPlace ?? t.config?.third_place_playoff ?? false,
       seedCount:Number(draftSnap?.seedCount ?? t.config?.seed_count ?? restoredPlayers.length),
+      dkoShortened:draftSnap?.dkoShortened ?? t.config?.dko_shortened_sko ?? (t.config?.dko_cutover_size!=null),
       dkoCutover:Number(draftSnap?.dkoCutover ?? t.config?.dko_cutover_size ?? 8),
       source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
       players:restoredPlayers,
@@ -3756,6 +3757,7 @@ function wizardSnapshot(){
       name:p.name,user_id:p.user_id||null,present:!!p.present
     })):[],
     seedCount:Math.max(0,Number(wiz?.seedCount)||0),
+    dkoShortened:!!wiz?.dkoShortened,
     dkoCutover:[4,8,16].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
     groups:Math.max(1,Number(wiz?.groups)||2),
     advance:Math.max(1,Number(wiz?.advance)||1),
@@ -3791,6 +3793,7 @@ async function flushWizardAutosave(force=false){
       config:{
         ...cleanConfig,
         ...(cardSnapshot?{}:{race_to:snap.raceTo}),
+        dko_shortened_sko:snap.dkoShortened,
         dko_cutover_size:snap.dkoCutover,
         third_place_playoff:snap.thirdPlace,
         present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
@@ -3809,6 +3812,7 @@ async function flushWizardAutosave(force=false){
       config:{
         ...cleanConfig,
         ...(cardSnapshot?{}:{race_to:snap.raceTo}),
+        dko_shortened_sko:snap.dkoShortened,
         dko_cutover_size:snap.dkoCutover,
         third_place_playoff:snap.thirdPlace,
         seed_count:Math.min(snap.players.length,snap.seedCount),
@@ -3869,7 +3873,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, dkoCutover:8, groups:2, advance:8, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, dkoShortened:false, dkoCutover:8, groups:2, advance:8, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return [0,1,2,3]; }
@@ -3884,7 +3888,7 @@ function initWizard(existing){
   wiz=blankWiz();
   if(existing){ // editácia / obnovený draft
     const restoredStep=Number.isInteger(existing.resumeStep)?existing.resumeStep:0;
-    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, dkoCutover:Number(existing.dkoCutover??existing.config?.dko_cutover_size??8), thirdPlace:existing.thirdPlace??existing.config?.third_place_playoff??false, ihsCategories:Array.isArray(existing.ihsCategories)&&existing.ihsCategories.length?[...existing.ihsCategories]:(Array.isArray(existing.ihs_allowed_categories)&&existing.ihs_allowed_categories.length?[...existing.ihs_allowed_categories]:[...IHS_ALL]), seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, dkoShortened:existing.dkoShortened??existing.config?.dko_shortened_sko??(existing.config?.dko_cutover_size!=null), dkoCutover:Number(existing.dkoCutover??existing.config?.dko_cutover_size??8), thirdPlace:existing.thirdPlace??existing.config?.third_place_playoff??false, ihsCategories:Array.isArray(existing.ihsCategories)&&existing.ihsCategories.length?[...existing.ihsCategories]:(Array.isArray(existing.ihs_allowed_categories)&&existing.ihs_allowed_categories.length?[...existing.ihs_allowed_categories]:[...IHS_ALL]), seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
   }
   renderWiz();
   startWizardAutosave();
@@ -4198,7 +4202,7 @@ async function createTournament(){
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
-      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
+      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
@@ -4239,7 +4243,7 @@ async function createTournament(){
           config:{
             ...safeConfig,
             ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}),
-            dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
+            dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
             third_place_playoff:!!wiz.thirdPlace,
             present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
             draft_wizard:wizardSnapshot()
