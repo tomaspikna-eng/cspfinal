@@ -231,7 +231,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .fs-row:last-child{border-bottom:none}
 .fs-place{font-size:1.1rem;width:32px;text-align:center}
 .fs-name{font-weight:700;font-size:.95rem}
-.rank-head,.rank-row{display:grid;grid-template-columns:44px 1fr 62px 60px 48px;gap:8px;align-items:center;padding:8px 0;font-size:.85rem}
+.rank-head,.rank-row{display:grid;grid-template-columns:minmax(170px,1fr) 68px 68px 72px 58px 64px;gap:8px;align-items:center;padding:8px 0;font-size:.85rem}
 .rank-head{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px}
 .rank-row{border-bottom:1px solid var(--line-2)}
 .rank-row:last-child{border-bottom:none}
@@ -239,6 +239,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .rank-name{font-weight:600}
 .rank-games{color:var(--muted)}
 .rank-pct{color:var(--gold)}
+.rank-points{font-weight:800;color:var(--gold)}
 .rank-row.top{border-radius:9px;margin:2px 0;padding:11px 10px;border-bottom:none}
 .rank-row.top .rank-pl{font-size:1.15rem}
 .rank-row.top .rank-name{font-weight:800;font-size:1rem}
@@ -1976,7 +1977,17 @@ async function viewDetail(id){
         8000,'load tournament series'
       );
       if(sourceEventError)console.warn('[turnament] Could not load series link:',sourceEventError);
-      else eventSeries=sourceEvent||null;
+      else {
+        eventSeries=sourceEvent||null;
+        if(eventSeries?.series_id){
+          const {data:seriesRow,error:seriesErr}=await cspAuth.withTimeout(
+            cspAuth.client.from('event_series').select('ranking_config').eq('id',eventSeries.series_id).maybeSingle(),
+            8000,'load series scoring'
+          );
+          if(seriesErr)console.warn('[turnament] Could not load series scoring:',seriesErr);
+          else eventSeries.ranking_config=seriesRow?.ranking_config||null;
+        }
+      }
     }
     const { data: players, error: pErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournament_players').select('*').eq('tournament_id', id).order('seed', { ascending: true }),
@@ -1986,6 +1997,7 @@ async function viewDetail(id){
     // id carried through so the bracket engine's player objects can
     // reference their real tournament_players row when a match is saved.
     t = { ...tournament, series_id:eventSeries?.series_id||null, series_round_number:eventSeries?.series_round_number||null,
+          series_ranking_config:eventSeries?.ranking_config||null,
           groups: tournament.groups_count, advance: tournament.advance_count,
           players: (players||[]).map(p=>({ id: p.id, name: p.name, user_id:p.user_id||null, seed: p.seed })) };
 
@@ -2579,6 +2591,16 @@ function finalTournamentRanking(t){
   }
   return [];
 }
+function tournamentPointsForPlace(t,place){
+  const pos=Number(place);
+  if(!pos||pos<1)return 0;
+  const rules=Array.isArray(t?.series_ranking_config?.points)?t.series_ranking_config.points:[];
+  for(const rule of rules){
+    const min=Number(rule?.min_position||0),max=rule?.max_position==null?null:Number(rule.max_position);
+    if(pos>=min&&(max==null||pos<=max))return Number(rule?.points||0);
+  }
+  return 0;
+}
 function authoritativeCompletedRanking(t){
   if(t?.status!=='completed' || !Array.isArray(t.resultRows) || !t.resultRows.length) return null;
   const byId=new Map((t.players||[]).map(p=>[p.id,p]));
@@ -2596,6 +2618,7 @@ function authoritativeCompletedRanking(t){
         gw:sf,
         gl:sa,
         pct:(sf+sa)?Math.round(100*sf/(sf+sa)):0,
+        points:tournamentPointsForPlace(t,Number(r.final_position)),
         stage:r.metadata?.stage||'knockout'
       };
     })
@@ -2607,17 +2630,18 @@ function renderTournamentEvaluation(t){
   if(!rank.length) return '';
   let html=`<div class="final-standings" style="margin-top:22px">
     <div class="fs-title">KONEČNÉ PORADIE · ${rank.length} HRÁČOV</div>
-    <div class="rank-head"><span>#</span><span>Hráč</span><span>V/P</span><span>Hry</span><span>%</span></div>`;
+    <div class="rank-head"><span>Meno priezvisko</span><span>Výhry</span><span>Prehry</span><span>Skóre</span><span>%</span><span>Body</span></div>`;
   rank.forEach(s=>{
-    const medal=s.place===1?'🥇':s.place===2?'🥈':s.place===3?'🥉':'';
     const top=s.place<=3?`top top${s.place}`:'';
     const stage=s.stage==='group'&&s.group?` <span style="font-size:.67rem;color:var(--muted)">· skupina ${esc(s.group)}</span>`:'';
+    const points=Number.isFinite(Number(s.points))?Number(s.points):tournamentPointsForPlace(t,s.place);
     html+=`<div class="rank-row ${top}">
-      <span class="rank-pl mono">${medal||s.place+'.'}</span>
       <span class="rank-name">${esc(s.name)}${stage}</span>
-      <span class="mono">${Number(s.wins||0)}/${Number(s.losses||0)}</span>
+      <span class="mono">${Number(s.wins||0)}</span>
+      <span class="mono">${Number(s.losses||0)}</span>
       <span class="mono rank-games">${Number(s.gw||0)}:${Number(s.gl||0)}</span>
       <span class="mono rank-pct">${Number(s.pct||0)}%</span>
+      <span class="mono rank-points">${points}</span>
     </div>`;
   });
   return html+`</div>`;
