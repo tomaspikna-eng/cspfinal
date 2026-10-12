@@ -3956,6 +3956,22 @@ function renderWiz(){
         <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
         <div class="seed-info">Prvých <b>${Math.min(wiz.seedCount,wiz.players.length)}</b> hráčov v zozname bude nasadených. Poradie zmeníš potiahnutím alebo šípkami. Ostatní zostanú bez seedu.</div>
       </div>
+      ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="fmt-section" style="margin-top:18px">Nastavenie Double KO</div>
+      <div class="row2">
+        <div class="field"><label>Skrátené SKO</label>
+          <select onchange="wiz.dkoShortened=this.value==='yes';renderWiz()">
+            <option value="no" ${!wiz.dkoShortened?'selected':''}>Nie</option>
+            <option value="yes" ${wiz.dkoShortened?'selected':''}>Áno</option>
+          </select>
+        </div>
+        ${wiz.dkoShortened?`<div class="field"><label>Prepnúť do SKO od</label>
+          <select onchange="wiz.dkoCutover=Number(this.value);renderWiz()">
+            <option value="4" ${Number(wiz.dkoCutover)===4?'selected':''}>TOP 4</option>
+            <option value="8" ${Number(wiz.dkoCutover)===8?'selected':''}>TOP 8</option>
+            <option value="16" ${Number(wiz.dkoCutover)===16?'selected':''}>TOP 16</option>
+          </select>
+        </div>`:`<div class="field"><label>Režim</label><div class="note-box">Double KO až do finále.</div></div>`}
+      </div>`:''}
       <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" ${wiz.structureLocked?'':'draggable="true"'} data-player-index="${i}" ${wiz.structureLocked?'':`ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)"`}>
         ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
@@ -3979,22 +3995,6 @@ function renderWiz(){
       ${formatChanged?`<div class="note-box"><b>Zmena formátu:</b> po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.</div>`:''}
       <div class="fmt-section">Jedna fáza</div><div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
       <div class="fmt-section">Kombinácia — skupiny → vyraďovák</div><div class="fmt-list">${card('rr_sko')}${card('rr_dko')}</div>
-      ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="fmt-section">Nastavenie Double KO</div>
-      <div class="row2">
-        <div class="field"><label>Skrátené SKO</label>
-          <select onchange="wiz.dkoShortened=this.value==='yes';renderWiz()">
-            <option value="no" ${!wiz.dkoShortened?'selected':''}>Nie</option>
-            <option value="yes" ${wiz.dkoShortened?'selected':''}>Áno</option>
-          </select>
-        </div>
-        ${wiz.dkoShortened?`<div class="field"><label>Prepnúť do SKO od</label>
-          <select onchange="wiz.dkoCutover=Number(this.value);renderWiz()">
-            <option value="4" ${Number(wiz.dkoCutover)===4?'selected':''}>TOP 4</option>
-            <option value="8" ${Number(wiz.dkoCutover)===8?'selected':''}>TOP 8</option>
-            <option value="16" ${Number(wiz.dkoCutover)===16?'selected':''}>TOP 16</option>
-          </select>
-        </div>`:`<div class="field"><label>Režim</label><div class="note-box">Double KO až do finále.</div></div>`}
-      </div>`:''}
       ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
         <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/><div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
         <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div></div>
