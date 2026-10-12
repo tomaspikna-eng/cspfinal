@@ -860,8 +860,9 @@ const TM = {
     const enrich=p=>p?({...p,...(byName.get(p.name)||{})}):null;
     const result=[];
     const pushBand=players=>{
-      const bandPlace=result.length+1;
-      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>result.push({...p,place:bandPlace}));
+      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>{
+        result.push({...p,place:result.length+1});
+      });
     };
 
     pushBand([wOf(dko.F)]);
