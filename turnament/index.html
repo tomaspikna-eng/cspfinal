@@ -697,7 +697,7 @@ const TM = {
     const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.dkoSlots(seeded,N,seedCount,drawKey);
     const total=Math.log2(N);
-    const requestedCutover=[4,8,16].includes(Number(cutoverSize))?Number(cutoverSize):8;
+    const requestedCutover=[2,4,8,16].includes(Number(cutoverSize))?Number(cutoverSize):8;
     const koSize=Math.min(N,requestedCutover);
     const winnerQualifierCount=koSize/2;
     const winnerRoundCount=Math.log2(N/winnerQualifierCount);
@@ -1612,7 +1612,8 @@ function ensureBracket(t){
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
     const dkoPlayed=!!t.dko && [...(t.dko.W||[]).flat(),...(t.dko.L||[]).flat(),...(t.dko.QF||[]),...(t.dko.SF||[]),...(t.dko.F?[t.dko.F]:[])].some(m=>m&&!m._walkover&&m.winner&&m.s1!=null&&m.s2!=null);
-    const configuredCutover=[4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8;
+    const shortenedEnabled=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16].includes(Number(t.config?.dko_cutover_size)));
+    const configuredCutover=shortenedEnabled ? ([4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
     const cutoverChanged=Number(t.dko?.requestedCutover||8)!==configuredCutover;
     const needsDkoBuild=!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F || (t.dko.seedLayoutVersion!==2&&!dkoPlayed) || (cutoverChanged&&!dkoPlayed);
     if(needsDkoBuild) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0,configuredCutover);
@@ -1887,7 +1888,9 @@ function maybeGenerateComboPhase(t){
     }else if(t.format==='rr_sko'){
       t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
     }else{
-      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`,crossSeeded.length,Number(t.config?.dko_cutover_size)||8)};
+      const phase2Shortened=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16].includes(Number(t.config?.dko_cutover_size)));
+      const phase2Cutover=phase2Shortened ? ([4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
+      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`,crossSeeded.length,phase2Cutover)};
     }
   }
   if(t.phase2.kind==='protected-sko'){
