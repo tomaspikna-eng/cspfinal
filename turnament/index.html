@@ -540,6 +540,89 @@ const TM = {
     const Q=qualifiers.length, order=this.seedKO(N);
     return order.map(s => s<=Q ? qualifiers[s-1] : {bye:true});
   },
+  // DKO: W.O. najprv dostanú nasadení hráči. Nadbytočné W.O. medzi
+  // nenasadenými rozkladáme tak, aby sa nehromadili v susedných zápasoch
+  // a nevytvárali zbytočne prázdne bloky v B vetve.
+  dkoSlotsWithBalancedByes(players,N,seedCount,drawKey=''){
+    const Q=players.length;
+    const byeCount=Math.max(0,N-Q);
+    const slots=Array(N).fill(null);
+    const seedOrder=this.seedKO(N);
+    const seededCount=Math.max(0,Math.min(Q,Number(seedCount)||0));
+    const protectedByes=Math.min(seededCount,byeCount);
+    const byeMatches=new Set();
+
+    const slotForSeed=new Map(seedOrder.map((seed,slot)=>[seed,slot]));
+    for(let seed=1;seed<=seededCount;seed++){
+      const slot=slotForSeed.get(seed);
+      if(slot==null)continue;
+      slots[slot]=players[seed-1];
+      if(seed<=protectedByes){
+        const mate=slot%2===0?slot+1:slot-1;
+        slots[mate]={bye:true};
+        byeMatches.add(Math.floor(slot/2));
+      }
+    }
+
+    const unseeded=players.slice(seededCount);
+    const draw=this.dkoDrawOrder(unseeded.length,String(drawKey)+'|unseeded');
+    const pool=draw.map(i=>unseeded[i]);
+    const extraByes=byeCount-protectedByes;
+    const matchCount=N/2;
+    const maxRun=set=>{
+      let best=0,run=0;
+      for(let i=0;i<matchCount;i++){
+        if(set.has(i)){run++;best=Math.max(best,run);}else run=0;
+      }
+      return best;
+    };
+    const adjacentPairs=set=>{
+      let n=0;
+      for(let i=1;i<matchCount;i++)if(set.has(i-1)&&set.has(i))n++;
+      return n;
+    };
+    const halfImbalance=set=>{
+      const half=matchCount/2;
+      let a=0,b=0;
+      set.forEach(i=>{if(i<half)a++;else b++;});
+      return Math.abs(a-b);
+    };
+    const tieHash=i=>{
+      let h=2166136261;
+      const s=String(drawKey)+'|bye|'+String(i);
+      for(let k=0;k<s.length;k++){h^=s.charCodeAt(k);h=Math.imul(h,16777619)>>>0;}
+      return h;
+    };
+
+    for(let n=0;n<extraByes;n++){
+      const candidates=[];
+      for(let mi=0;mi<matchCount;mi++){
+        if(byeMatches.has(mi))continue;
+        const a=mi*2,b=a+1;
+        if(slots[a]&&!slots[a].bye)continue;
+        if(slots[b]&&!slots[b].bye)continue;
+        const test=new Set(byeMatches);test.add(mi);
+        candidates.push({mi,run:maxRun(test),adj:adjacentPairs(test),imb:halfImbalance(test),tie:tieHash(mi)});
+      }
+      candidates.sort((a,b)=>a.run-b.run||a.adj-b.adj||a.imb-b.imb||a.tie-b.tie);
+      const pick=candidates[0];
+      if(!pick)break;
+      const mi=pick.mi,a=mi*2,b=a+1;
+      const player=pool.shift();
+      if(!player)break;
+      const playerOnLeft=(tieHash(mi)&1)===0;
+      slots[playerOnLeft?a:b]=player;
+      slots[playerOnLeft?b:a]={bye:true};
+      byeMatches.add(mi);
+    }
+
+    for(let i=0;i<N;i++){
+      if(slots[i]!==null)continue;
+      const player=pool.shift();
+      slots[i]=player||{bye:true};
+    }
+    return slots;
+  },
   // Round Robin: rozlosovanie každý s každým (berger tables, jednoduchá verzia)
   roundRobin(players){
     const ps=[...players]; if(ps.length%2) ps.push({bye:true});
@@ -649,11 +732,11 @@ const TM = {
       : (level%2===0 ? Math.max(1,count/2-1) : Math.max(1,count/2));
     return Array.from({length:count},(_,i)=>i^mask);
   },
-  buildDKO(players,startNumber=1,drawKey=''){
+  buildDKO(players,startNumber=1,drawKey='',seedCount=players.length){
     if(players.length>this.MAX_DKO_PLAYERS)throw new RangeError(`Double KO podporuje najviac ${this.MAX_DKO_PLAYERS} hráčov.`);
     const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
     const N=this.nextPow2(Math.max(4,seeded.length));
-    const slots=this.bracketWithByes(seeded,N);
+    const slots=this.dkoSlotsWithBalancedByes(seeded,N,seedCount,drawKey);
     const total=Math.log2(N);
     const koSize=N>=16?8:Math.max(2,N/2);
     const winnerQualifierCount=koSize/2;
@@ -1568,7 +1651,7 @@ function ensureBracket(t){
     if(!t.bracket || t.bracket.type!=='sko' || !t.bracket.rounds) t.bracket=TM.buildSKO(players);
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
-    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players,1,t.id||'');
+    if(!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0);
     else TM.recomputeDKO(t.dko);
   } else if(t.format==='rr'){
     if(!t.rr || !t.rr.matches || !t.rr.matches.length){
@@ -1840,7 +1923,7 @@ function maybeGenerateComboPhase(t){
     }else if(t.format==='rr_sko'){
       t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
     }else{
-      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`)};
+      t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`,crossSeeded.length)};
     }
   }
   if(t.phase2.kind==='protected-sko'){
@@ -4098,7 +4181,7 @@ function renderPreview(){
       el.innerHTML=demoNote+`<div class="note-box"><b>Príliš veľa hráčov:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS}. Zníž počet hráčov pred spustením turnaja.</div>`;
       return;
     }
-    const bracket=wiz.format==='dko'?TM.buildDKO(players):TM.buildSKO(players);
+    const bracket=wiz.format==='dko'?TM.buildDKO(players,1,'preview',Number(wiz.seedCount)||0):TM.buildSKO(players);
     const firstRound=wiz.format==='dko'?(bracket.W?.[0]||[]):(bracket.rounds?.[0]||[]);
     const N=bracket.N;
     let html=`<div class="preview"><h4>${wiz.format==='dko'?'Double KO':'Single KO'} · pavúk ${N} — prvé kolo</h4>`;
