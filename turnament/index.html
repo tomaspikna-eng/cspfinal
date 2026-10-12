@@ -2214,6 +2214,7 @@ async function editTournament(id){
       protectedSeeds:draftSnap?.protectedSeeds ?? bracketState.protectedSeeds ?? 0,
       thirdPlace:draftSnap?.thirdPlace ?? t.config?.third_place_playoff ?? false,
       seedCount:Number(draftSnap?.seedCount ?? t.config?.seed_count ?? restoredPlayers.length),
+      dkoCutover:Number(draftSnap?.dkoCutover ?? t.config?.dko_cutover_size ?? 8),
       source_event_id:draftSnap?.source_event_id ?? t.source_event_id ?? null,
       players:restoredPlayers,
       autoDraft:!!draftSnap?.autoDraft,
@@ -3720,6 +3721,7 @@ function wizardSnapshot(){
       name:p.name,user_id:p.user_id||null,present:!!p.present
     })):[],
     seedCount:Math.max(0,Number(wiz?.seedCount)||0),
+    dkoCutover:[4,6,8,16].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
     groups:Math.max(1,Number(wiz?.groups)||2),
     advance:Math.max(1,Number(wiz?.advance)||1),
     protectedSeeds:Math.max(0,Number(wiz?.protectedSeeds)||0),
@@ -3754,6 +3756,7 @@ async function flushWizardAutosave(force=false){
       config:{
         ...cleanConfig,
         ...(cardSnapshot?{}:{race_to:snap.raceTo}),
+        dko_cutover_size:snap.dkoCutover,
         third_place_playoff:snap.thirdPlace,
         present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
         draft_wizard:snap
@@ -3771,6 +3774,7 @@ async function flushWizardAutosave(force=false){
       config:{
         ...cleanConfig,
         ...(cardSnapshot?{}:{race_to:snap.raceTo}),
+        dko_cutover_size:snap.dkoCutover,
         third_place_playoff:snap.thirdPlace,
         seed_count:Math.min(snap.players.length,snap.seedCount),
         present_player_names:snap.players.filter(p=>p.present).map(p=>p.name),
@@ -3830,7 +3834,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, groups:2, advance:8, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, dkoCutover:8, groups:2, advance:8, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function isKarty(){ return wiz.sport==='Karty'; }
 function activeSteps(){ return [0,1,2,3]; }
@@ -3845,7 +3849,7 @@ function initWizard(existing){
   wiz=blankWiz();
   if(existing){ // editácia / obnovený draft
     const restoredStep=Number.isInteger(existing.resumeStep)?existing.resumeStep:0;
-    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, thirdPlace:existing.thirdPlace??existing.config?.third_place_playoff??false, ihsCategories:Array.isArray(existing.ihsCategories)&&existing.ihsCategories.length?[...existing.ihsCategories]:(Array.isArray(existing.ihs_allowed_categories)&&existing.ihs_allowed_categories.length?[...existing.ihs_allowed_categories]:[...IHS_ALL]), seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
+    wiz={...wiz, ...existing, raceTo:existing.raceTo||existing.config?.race_to||5, dkoCutover:Number(existing.dkoCutover??existing.config?.dko_cutover_size??8), thirdPlace:existing.thirdPlace??existing.config?.third_place_playoff??false, ihsCategories:Array.isArray(existing.ihsCategories)&&existing.ihsCategories.length?[...existing.ihsCategories]:(Array.isArray(existing.ihs_allowed_categories)&&existing.ihs_allowed_categories.length?[...existing.ihs_allowed_categories]:[...IHS_ALL]), seedCount:Math.max(0,Math.min((existing.players||[]).length,Number(existing.seedCount??existing.config?.seed_count??(existing.players||[]).length))), players:Array.isArray(existing.players)?existing.players.map(p=>({...p})):[], editId:existing.id||existing.editId, step:restoredStep, showBulk:false};
   }
   renderWiz();
   startWizardAutosave();
@@ -3913,6 +3917,12 @@ function renderWiz(){
         <div class="field"><label>Počet seedovaných hráčov</label><input type="number" id="wSeedCount" min="0" max="${wiz.players.length}" value="${Math.min(wiz.seedCount,wiz.players.length)}" oninput="setSeedCount(this.value)"/></div>
         <div class="seed-info">Prvých <b>${Math.min(wiz.seedCount,wiz.players.length)}</b> hráčov v zozname bude nasadených. Poradie zmeníš potiahnutím alebo šípkami. Ostatní zostanú bez seedu.</div>
       </div>
+      <div class="field"><label>Skrátené DKO → SKO od</label>
+        <div class="pill-row">
+          ${[4,6,8,16].map(n=>`<button type="button" class="pill ${Number(wiz.dkoCutover)===n?'sel':''}" onclick="wiz.dkoCutover=${n};renderWiz()">TOP ${n}</button>`).join('')}
+        </div>
+        <div class="hint">Pri DKO určuje, pri koľkých zostávajúcich hráčoch sa turnaj prepne do Single KO. TOP 6 = 3 hráči z A + 3 hráči z B; dvaja dostanú voľný los do semifinále.</div>
+      </div>
       <div class="player-list" id="seedPlayerList">${wiz.players.map((pl,i)=>`<div class="pl-item" ${wiz.structureLocked?'':'draggable="true"'} data-player-index="${i}" ${wiz.structureLocked?'':`ondragstart="playerDragStart(event,${i})" ondragover="playerDragOver(event,${i})" ondragleave="playerDragLeave(event)" ondrop="playerDrop(event,${i})" ondragend="playerDragEnd(event)"`}>
         ${wiz.structureLocked?'':'<span class="pl-drag" title="Potiahni pre zmenu poradia">☰</span>'}
         <span class="pl-seed ${i<wiz.seedCount?'':'unseeded'}">${i<wiz.seedCount?`Seed ${i+1}`:'bez seedu'}</span>
@@ -3960,6 +3970,7 @@ function renderWiz(){
         ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
+        ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="sumrow"><span class="k">Skrátené DKO → SKO</span><span class="v">TOP ${wiz.dkoCutover}</span></div>`:''}
         ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
         ${!isKarty()&&wiz.format!=='rr'?`<div class="sumrow"><span class="k">Hra o tretie miesto</span><span class="v">${wiz.thirdPlace?'Áno':'Nie'}</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
@@ -4152,7 +4163,7 @@ async function createTournament(){
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
-      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
+      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_cutover_size:[4,6,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
@@ -4193,6 +4204,7 @@ async function createTournament(){
           config:{
             ...safeConfig,
             ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}),
+            dko_cutover_size:[4,6,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
             third_place_playoff:!!wiz.thirdPlace,
             present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
             draft_wizard:wizardSnapshot()
