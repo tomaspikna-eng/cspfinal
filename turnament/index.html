@@ -231,7 +231,7 @@ input:focus,select:focus{border-color:var(--gold)}
 .fs-row:last-child{border-bottom:none}
 .fs-place{font-size:1.1rem;width:32px;text-align:center}
 .fs-name{font-weight:700;font-size:.95rem}
-.rank-head,.rank-row{display:grid;grid-template-columns:minmax(170px,1fr) 68px 68px 72px 58px 64px;gap:8px;align-items:center;padding:8px 0;font-size:.85rem}
+.rank-head,.rank-row{display:grid;grid-template-columns:44px minmax(170px,1fr) 68px 68px 72px 58px 64px;gap:8px;align-items:center;padding:8px 0;font-size:.85rem}
 .rank-head{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px}
 .rank-row{border-bottom:1px solid var(--line-2)}
 .rank-row:last-child{border-bottom:none}
@@ -2630,12 +2630,14 @@ function renderTournamentEvaluation(t){
   if(!rank.length) return '';
   let html=`<div class="final-standings" style="margin-top:22px">
     <div class="fs-title">KONEČNÉ PORADIE · ${rank.length} HRÁČOV</div>
-    <div class="rank-head"><span>Meno priezvisko</span><span>Výhry</span><span>Prehry</span><span>Skóre</span><span>%</span><span>Body</span></div>`;
+    <div class="rank-head"><span>#</span><span>Meno priezvisko</span><span>Výhry</span><span>Prehry</span><span>Skóre</span><span>%</span><span>Body</span></div>`;
   rank.forEach(s=>{
+    const medal=s.place===1?'🥇':s.place===2?'🥈':s.place===3?'🥉':'';
     const top=s.place<=3?`top top${s.place}`:'';
     const stage=s.stage==='group'&&s.group?` <span style="font-size:.67rem;color:var(--muted)">· skupina ${esc(s.group)}</span>`:'';
     const points=Number.isFinite(Number(s.points))?Number(s.points):tournamentPointsForPlace(t,s.place);
     html+=`<div class="rank-row ${top}">
+      <span class="rank-pl mono">${medal||s.place+'.'}</span>
       <span class="rank-name">${esc(s.name)}${stage}</span>
       <span class="mono">${Number(s.wins||0)}</span>
       <span class="mono">${Number(s.losses||0)}</span>
