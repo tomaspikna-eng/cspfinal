@@ -48,7 +48,7 @@
 
   function authStorageTarget() {
     try {
-      return global.sessionStorage.getItem(REMEMBER_SESSION_KEY) === '0'
+      return global.localStorage.getItem(REMEMBER_SESSION_KEY) === '0'
         ? global.sessionStorage
         : global.localStorage;
     } catch (_e) {
@@ -90,18 +90,14 @@
 
   function setRememberMe(remember) {
     try {
-      if (remember) {
-        migrateSupabaseAuthStorage(true);
-        global.sessionStorage.removeItem(REMEMBER_SESSION_KEY);
-      } else {
-        global.sessionStorage.setItem(REMEMBER_SESSION_KEY, '0');
-        migrateSupabaseAuthStorage(false);
-      }
+      global.sessionStorage.removeItem(REMEMBER_SESSION_KEY); // legacy flag from older builds
+      global.localStorage.setItem(REMEMBER_SESSION_KEY, remember ? '1' : '0');
+      migrateSupabaseAuthStorage(!!remember);
     } catch (_e) {}
   }
 
   function getRememberMe() {
-    try { return global.sessionStorage.getItem(REMEMBER_SESSION_KEY) !== '0'; }
+    try { return global.localStorage.getItem(REMEMBER_SESSION_KEY) !== '0'; }
     catch (_e) { return true; }
   }
 
