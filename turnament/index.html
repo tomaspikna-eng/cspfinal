@@ -697,7 +697,7 @@ const TM = {
     const N=this.nextPow2(Math.max(4,seeded.length));
     const slots=this.dkoSlots(seeded,N,seedCount,drawKey);
     const total=Math.log2(N);
-    const requestedCutover=[2,4,8,16].includes(Number(cutoverSize))?Number(cutoverSize):8;
+    const requestedCutover=[2,4,8,16,32,64].includes(Number(cutoverSize))?Number(cutoverSize):8;
     const koSize=Math.min(N,requestedCutover);
     const winnerQualifierCount=koSize/2;
     const winnerRoundCount=Math.log2(N/winnerQualifierCount);
@@ -717,7 +717,11 @@ const TM = {
       L.push(Array.from({length:count},()=>this.mkMatch(matchNo++,null,null)));
     }
 
-    const QF=koSize===8?Array.from({length:4},()=>this.mkMatch(matchNo++,null,null)):[];
+    const KO=[];
+    for(let matches=koSize/2;matches>4;matches/=2){
+      KO.push(Array.from({length:matches},()=>this.mkMatch(matchNo++,null,null)));
+    }
+    const QF=koSize>=8?Array.from({length:4},()=>this.mkMatch(matchNo++,null,null)):[];
     const SF=koSize>=4?Array.from({length:2},()=>this.mkMatch(matchNo++,null,null)):[];
     const F=this.mkMatch(matchNo++,null,null);
     const stableDrawKey=drawKey||seeded.map(p=>p.id||p.name).join('|');
@@ -726,12 +730,12 @@ const TM = {
       this.dkoDropMap(W[i+1].length,i+1)
     );
 
-    const dko={type:'dko',schemaVersion:6,seedLayoutVersion:2,N,total,koSize,requestedCutover,winnerRoundCount,W,L,QF,SF,F,koDraw,dropMaps};
+    const dko={type:'dko',schemaVersion:6,seedLayoutVersion:2,N,total,koSize,requestedCutover,winnerRoundCount,W,L,KO,QF,SF,F,koDraw,dropMaps};
     this.recomputeDKO(dko);
     return dko;
   },
   recomputeDKO(dko){
-    const {W,L,QF=[],SF=[],F}=dko;
+    const {W,L,KO=[],QF=[],SF=[],F}=dko;
     const inval=m=>{
       if(!m)return;
       if(m.resultSig && m.resultSig!==this.matchSig(m)){
@@ -816,7 +820,7 @@ const TM = {
     // Do Single KO fázy postupuje polovica hráčov z každej strany.
     const aLast=W[W.length-1]||[];
     const bLast=L[L.length-1]||[];
-    const entryRound=QF.length?QF:(SF.length?SF:[F]);
+    const entryRound=KO.length?KO[0]:(QF.length?QF:(SF.length?SF:[F]));
     const draw=Array.isArray(dko.koDraw)&&dko.koDraw.length===entryRound.length
       ? dko.koDraw
       : Array.from({length:entryRound.length},(_,i)=>i);
@@ -826,7 +830,7 @@ const TM = {
       resolve(m,resolved(a)&&resolved(b));
     });
 
-    const koRounds=[];
+    const koRounds=[...(KO||[])];
     if(QF.length)koRounds.push(QF);
     if(SF.length)koRounds.push(SF);
     koRounds.push([F]);
@@ -888,7 +892,7 @@ const TM = {
     return arr;
   },
   dkoRanking(dko){
-    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.QF||[]),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
+    const allMatches=[...(dko.W||[]).flat(),...(dko.L||[]).flat(),...(dko.KO||[]).flat(),...(dko.QF||[]),...(dko.SF||[]),...(dko.F?[dko.F]:[])];
     const base=this.rankFrom(allMatches.map((m,i)=>({m,phase:i+1})));
     if(!dko?.F?.winner)return base;
 
@@ -915,6 +919,7 @@ const TM = {
     pushBand([lOf(dko.F)]);
     pushBand((dko.SF||[]).map(lOf));
     pushBand((dko.QF||[]).map(lOf));
+    for(let round=(dko.KO?.length||0)-1;round>=0;round--)pushBand((dko.KO[round]||[]).map(lOf));
     for(let level=(dko.L?.length||0)-1;level>=0;level--)pushBand((dko.L[level]||[]).map(lOf));
 
     // Defensive fallback for any player not captured in the completed
@@ -940,6 +945,7 @@ function dkoMatchesInNumberOrder(dko){
     if(dko.L?.[narrowIndex])out.push(...dko.L[narrowIndex]);
     if(dko.L?.[narrowIndex+1])out.push(...dko.L[narrowIndex+1]);
   }
+  (dko.KO||[]).forEach(round=>out.push(...round));
   out.push(...(dko.QF||[]));
   out.push(...(dko.SF||[]));
   if(dko.F)out.push(dko.F);
@@ -1611,9 +1617,9 @@ function ensureBracket(t){
     if(!t.bracket || t.bracket.type!=='sko' || !t.bracket.rounds) t.bracket=TM.buildSKO(players);
     else TM.recomputeSKO(t.bracket);
   } else if(t.format==='dko'){
-    const dkoPlayed=!!t.dko && [...(t.dko.W||[]).flat(),...(t.dko.L||[]).flat(),...(t.dko.QF||[]),...(t.dko.SF||[]),...(t.dko.F?[t.dko.F]:[])].some(m=>m&&!m._walkover&&m.winner&&m.s1!=null&&m.s2!=null);
-    const shortenedEnabled=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16].includes(Number(t.config?.dko_cutover_size)));
-    const configuredCutover=shortenedEnabled ? ([4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
+    const dkoPlayed=!!t.dko && [...(t.dko.W||[]).flat(),...(t.dko.L||[]).flat(),...(t.dko.KO||[]).flat(),...(t.dko.QF||[]),...(t.dko.SF||[]),...(t.dko.F?[t.dko.F]:[])].some(m=>m&&!m._walkover&&m.winner&&m.s1!=null&&m.s2!=null);
+    const shortenedEnabled=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16,32,64].includes(Number(t.config?.dko_cutover_size)));
+    const configuredCutover=shortenedEnabled ? ([4,8,16,32,64].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
     const cutoverChanged=Number(t.dko?.requestedCutover||8)!==configuredCutover;
     const needsDkoBuild=!t.dko || t.dko.type!=='dko' || t.dko.schemaVersion!==6 || !t.dko.W || !t.dko.L || !Array.isArray(t.dko.QF) || !t.dko.SF || !t.dko.F || (t.dko.seedLayoutVersion!==2&&!dkoPlayed) || (cutoverChanged&&!dkoPlayed);
     if(needsDkoBuild) t.dko=TM.buildDKO(players,1,t.id||'',Number(t.config?.seed_count)||0,configuredCutover);
@@ -1888,8 +1894,8 @@ function maybeGenerateComboPhase(t){
     }else if(t.format==='rr_sko'){
       t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
     }else{
-      const phase2Shortened=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16].includes(Number(t.config?.dko_cutover_size)));
-      const phase2Cutover=phase2Shortened ? ([4,8,16].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
+      const phase2Shortened=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16,32,64].includes(Number(t.config?.dko_cutover_size)));
+      const phase2Cutover=phase2Shortened ? ([4,8,16,32,64].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
       t.phase2={kind:'standard-dko',dko:TM.buildDKO(crossSeeded.map(r=>r.player),1,`${t.id||''}:phase2`,crossSeeded.length,phase2Cutover)};
     }
   }
@@ -2364,6 +2370,10 @@ function dkoBracketColumns(dko,phase2=false){
   for(let ri=1;ri<dko.W.length;ri++){
     columns.push(dkoBracketColumn(dko.W[ri],TM.dkoRoundName('W',ri,dko.W.length),p.w,ri,'winner'));
   }
+  (dko.KO||[]).forEach((round,ri)=>{
+    const top=(round.length||0)*2;
+    columns.push(dkoBracketColumn(round,`TOP ${top}`,phase2?'p2dK':'dkoK',ri,'final'));
+  });
   if(dko.QF?.length)columns.push(dkoBracketColumn(dko.QF,'Štvrťfinále',p.q,0,'final'));
   if(dko.SF?.length)columns.push(dkoBracketColumn(dko.SF,'Semifinále',p.s,0,'final'));
   columns.push(dkoBracketColumn([dko.F],'GRAND FINÁLE',p.f,0,'grand-final'));
@@ -2425,6 +2435,7 @@ function renderMatchList(t){
     };
     html+=sect('B','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'dkoA');
     if(dko.L.length)html+=sect('A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'dkoB');
+    if((dko.KO||[]).length)html+=sect('◆ SKRÁTENÉ SKO','conv',dko.KO,(dko.KO||[]).map(r=>`TOP ${r.length*2}`),'dkoK');
     if(dko.QF.length)html+=sect('◆ TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'dkoQ');
     if(dko.SF.length)html+=sect('◆ SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'dkoS');
     html+=sect('◆ GRAND FINÁLE','conv',[[dko.F]],['Grand finále'],'dkoF');
@@ -2500,6 +2511,7 @@ function renderPhaseDKO(dko){
   };
   return sect('Phase 2 · B','win',dko.W,dko.W.map((_,ri)=>TM.dkoRoundName('W',ri,dko.W.length)),'p2dA')+
     (dko.L.length?sect('Phase 2 · A','lose',dko.L,dko.L.map((_,ri)=>TM.dkoRoundName('L',ri,dko.L.length)),'p2dB'):'')+
+    ((dko.KO||[]).length?sect('◆ Phase 2 · SKRÁTENÉ SKO','conv',dko.KO,(dko.KO||[]).map(r=>`TOP ${r.length*2}`),'p2dK'):'')+
     (dko.QF.length?sect('◆ Phase 2 · TOP 8 · ŠTVRŤFINÁLE','conv',[dko.QF],['Štvrťfinále'],'p2dQ'):'')+
     (dko.SF.length?sect('◆ Phase 2 · SEMIFINÁLE','conv',[dko.SF],['Semifinále'],'p2dS'):'')+
     sect('◆ Phase 2 · GRAND FINÁLE','conv',[[dko.F]],['Grand finále'],'p2dF');
@@ -2796,8 +2808,8 @@ function rrTable(players, matches){
 
 function roundRaceKey(prefix,roundIndex=0){
   const map={
-    sko:'SKO',dkoA:'W',dkoB:'L',dkoQ:'QF',dkoS:'SF',dkoF:'F',third:'3RD',
-    p2s:'P2SKO',p2p:'P2PRE',p2m:'P2MAIN',p2dA:'P2W',p2dB:'P2L',p2dQ:'P2QF',p2dS:'P2SF',p2dF:'P2F'
+    sko:'SKO',dkoA:'W',dkoB:'L',dkoK:'KO',dkoQ:'QF',dkoS:'SF',dkoF:'F',third:'3RD',
+    p2s:'P2SKO',p2p:'P2PRE',p2m:'P2MAIN',p2dA:'P2W',p2dB:'P2L',p2dK:'P2KO',p2dQ:'P2QF',p2dS:'P2SF',p2dF:'P2F'
   };
   return `${map[prefix]||String(prefix||'ROUND').toUpperCase()}:${Number(roundIndex||0)+1}`;
 }
@@ -3319,6 +3331,7 @@ function getMatchByLoc(loc){
   if(k==='sko') return curT.bracket.rounds[+a][+b];
   if(k==='dkoA') return curT.dko.W[+a]?.[+b]||null;
   if(k==='dkoB') return curT.dko.L[+a]?.[+b]||null;
+  if(k==='dkoK') return curT.dko.KO?.[+a]?.[+b]||null;
   if(k==='dkoQ') return curT.dko.QF[+b]||null;
   if(k==='dkoS') return curT.dko.SF[+b]||null;
   if(k==='dkoF') return curT.dko.F||null;
@@ -3328,6 +3341,7 @@ function getMatchByLoc(loc){
   if(k==='p2m') return curT.phase2.main.rounds[+a][+b];
   if(k==='p2dA') return curT.phase2.dko.W[+a]?.[+b]||null;
   if(k==='p2dB') return curT.phase2.dko.L[+a]?.[+b]||null;
+  if(k==='p2dK') return curT.phase2.dko.KO?.[+a]?.[+b]||null;
   if(k==='p2dQ') return curT.phase2.dko.QF[+b]||null;
   if(k==='p2dS') return curT.phase2.dko.SF[+b]||null;
   if(k==='p2dF') return curT.phase2.dko.F||null;
@@ -3336,11 +3350,11 @@ function getMatchByLoc(loc){
 function recomputeFor(loc){
   const k=loc.split(':')[0];
   if(k==='sko') TM.recomputeSKO(curT.bracket);
-  else if(['dkoA','dkoB','dkoQ','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
+  else if(['dkoA','dkoB','dkoK','dkoQ','dkoS','dkoF'].includes(k)) TM.recomputeDKO(curT.dko);
   else if(k==='p2s') TM.recomputeSKO(curT.phase2.bracket);
   else if(k==='p2p') TM.recomputeSKO(curT.phase2.prelim);
   else if(k==='p2m') TM.recomputeSKO(curT.phase2.main);
-  else if(['p2dA','p2dB','p2dQ','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
+  else if(['p2dA','p2dB','p2dK','p2dQ','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
   syncThirdPlaceMatch(curT);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
@@ -3772,7 +3786,7 @@ function wizardSnapshot(){
     })):[],
     seedCount:Math.max(0,Number(wiz?.seedCount)||0),
     dkoShortened:!!wiz?.dkoShortened,
-    dkoCutover:[4,8,16].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
+    dkoCutover:[4,8,16,32,64].includes(Number(wiz?.dkoCutover))?Number(wiz.dkoCutover):8,
     groups:Math.max(1,Number(wiz?.groups)||2),
     advance:Math.max(1,Number(wiz?.advance)||1),
     protectedSeeds:Math.max(0,Number(wiz?.protectedSeeds)||0),
@@ -3992,6 +4006,8 @@ function renderWiz(){
             <option value="4" ${Number(wiz.dkoCutover)===4?'selected':''}>TOP 4</option>
             <option value="8" ${Number(wiz.dkoCutover)===8?'selected':''}>TOP 8</option>
             <option value="16" ${Number(wiz.dkoCutover)===16?'selected':''}>TOP 16</option>
+            <option value="32" ${Number(wiz.dkoCutover)===32?'selected':''}>TOP 32</option>
+            <option value="64" ${Number(wiz.dkoCutover)===64?'selected':''}>TOP 64</option>
           </select>
         </div>`:`<div class="field"><label>Režim</label><div class="note-box">Double KO až do finále.</div></div>`}
       </div>`:''}
@@ -4241,7 +4257,7 @@ async function createTournament(){
       groups_count: isCombo() ? wiz.groups : null,
       advance_count: isCombo() ? wiz.advance : null,
       ihs_allowed_categories: Array.isArray(wiz.ihsCategories)&&wiz.ihsCategories.length ? wiz.ihsCategories : [...IHS_ALL],
-      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
+      config: { ...baseConfig, ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}), dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16,32,64].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8, third_place_playoff:!!wiz.thirdPlace, seed_count: Math.max(0,Math.min(wiz.players.length,Number(wiz.seedCount)||0)), present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name) },
     };
 
     let tournamentId, tournamentRow;
@@ -4282,7 +4298,7 @@ async function createTournament(){
           config:{
             ...safeConfig,
             ...(isKarty()?{}:{race_to:Number(wiz.raceTo||5)}),
-            dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
+            dko_shortened_sko:!!wiz.dkoShortened, dko_cutover_size:[4,8,16,32,64].includes(Number(wiz.dkoCutover))?Number(wiz.dkoCutover):8,
             third_place_playoff:!!wiz.thirdPlace,
             present_player_names:wiz.players.filter(p=>p.present).map(p=>p.name),
             draft_wizard:wizardSnapshot()
