@@ -666,19 +666,10 @@ const TM = {
     return {key:this.matchKey(number),number:Number(number),p1:p1||null,p2:p2||null,s1:null,s2:null,winner:null,resultSig:null,_resolvedEmpty:false};
   },
   dkoDrawOrder(count,drawKey){
-    const order=Array.from({length:count},(_,i)=>i);
-    let hash=2166136261;
-    const source=String(drawKey||'csp-dko');
-    for(let i=0;i<source.length;i++){
-      hash^=source.charCodeAt(i);
-      hash=Math.imul(hash,16777619)>>>0;
-    }
-    for(let i=order.length-1;i>0;i--){
-      hash=(Math.imul(hash,1664525)+1013904223)>>>0;
-      const j=hash%(i+1);
-      [order[i],order[j]]=[order[j],order[i]];
-    }
-    return order;
+    // Prechod z DKO do skrátenej SKO fázy musí byť pevne krížový:
+    // W[0] proti poslednému kvalifikantovi z B vetvy, W[1] proti
+    // predposlednému atď. Poradie sa nesmie náhodne losovať podľa turnaja.
+    return Array.from({length:count},(_,i)=>count-1-i);
   },
   // CueScore-style crossing porazených. Pole je vždy mocnina dvoch:
   // 16 → 8, 32 → 8, 64 → 8, 128 → 8 a 256 → 8.
