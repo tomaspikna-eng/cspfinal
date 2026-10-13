@@ -923,15 +923,9 @@ const TM = {
     pushBand((dko.QF||[]).map(lOf));
     for(let round=(dko.KO?.length||0)-1;round>=0;round--)pushBand((dko.KO[round]||[]).map(lOf));
 
-    // Hráč, ktorý po DKO stále nemá dve prehry, nie je vyradený.
-    // Pri staršom/poškodenom snapshot-e môže chýbať jeho nadväzujúce SKO
-    // kolo; takého hráča nesmieme poslať na koniec výsledkovky za hráčov,
-    // ktorí už v loser vetve reálne vypadli. V korektnom novom pavúku je
-    // tento zoznam prázdny, preto nemení štandardné poradie.
-    pushBand(base.filter(r=>!seen.has(r.name)&&Number(r.losses||0)<2)
-      .map(r=>({name:r.name,seed:r.seed})));
-
-    // Vyradení v DKO sa radia podľa kola, v ktorom dostali eliminačnú prehru:
+    // Vyradení v DKO sa radia podľa kola, v ktorom vypadli z DKO vetvy.
+    // Počet prehier NESMIE určovať, či hráč patrí do SKO fázy: hráč môže
+    // vstúpiť do SKO s prehrou z DKO a ďalšiu prehru dostať až v SKO.
     // neskoršie loser kolo = lepšie konečné umiestnenie.
     for(let level=(dko.L?.length||0)-1;level>=0;level--)pushBand((dko.L[level]||[]).map(lOf));
 
@@ -2559,7 +2553,21 @@ function renderRankTable(rank){
 }
 
 /* ── FINÁLNE VYHODNOTENIE TURNAJA ─────────────────────────────────── */
-function dkoFlowFinished(dko){ return !!dko?.F?.winner; }
+function dkoStructureValid(dko){
+  if(!dko?.F)return false;
+  const koSize=Math.max(2,Number(dko.koSize||dko.requestedCutover||2));
+  const expectedKO=[];
+  for(let matches=koSize/2;matches>4;matches/=2)expectedKO.push(matches);
+  const actualKO=Array.isArray(dko.KO)?dko.KO:[];
+  if(actualKO.length!==expectedKO.length)return false;
+  if(expectedKO.some((count,i)=>!Array.isArray(actualKO[i])||actualKO[i].length!==count))return false;
+  const qf=Array.isArray(dko.QF)?dko.QF:[];
+  const sf=Array.isArray(dko.SF)?dko.SF:[];
+  if(qf.length!==(koSize>=8?4:0))return false;
+  if(sf.length!==(koSize>=4?2:0))return false;
+  return true;
+}
+function dkoFlowFinished(dko){ return dkoStructureValid(dko)&&!!dko?.F?.winner; }
 function thirdPlaceFinished(t){return !thirdPlaceRequired(t)||!!syncThirdPlaceMatch(t)?.winner;}
 function comboPhase2Finished(phase){
   if(!phase) return false;
