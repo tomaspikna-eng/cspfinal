@@ -908,23 +908,34 @@ const TM = {
              (Number(A.seed||999)-Number(B.seed||999));
     };
     const enrich=p=>p?({...p,...(byName.get(p.name)||{})}):null;
-    const result=[];
+    const result=[],seen=new Set();
     const pushBand=players=>{
-      players.filter(Boolean).map(enrich).sort(statCmp).forEach(p=>{
+      players.filter(Boolean).map(enrich).filter(p=>p?.name&&!seen.has(p.name)).sort(statCmp).forEach(p=>{
+        seen.add(p.name);
         result.push({...p,place:result.length+1});
       });
     };
 
+    // Konečná SKO fáza určuje najvyššie umiestnenia.
     pushBand([wOf(dko.F)]);
     pushBand([lOf(dko.F)]);
     pushBand((dko.SF||[]).map(lOf));
     pushBand((dko.QF||[]).map(lOf));
     for(let round=(dko.KO?.length||0)-1;round>=0;round--)pushBand((dko.KO[round]||[]).map(lOf));
+
+    // Hráč, ktorý po DKO stále nemá dve prehry, nie je vyradený.
+    // Pri staršom/poškodenom snapshot-e môže chýbať jeho nadväzujúce SKO
+    // kolo; takého hráča nesmieme poslať na koniec výsledkovky za hráčov,
+    // ktorí už v loser vetve reálne vypadli. V korektnom novom pavúku je
+    // tento zoznam prázdny, preto nemení štandardné poradie.
+    pushBand(base.filter(r=>!seen.has(r.name)&&Number(r.losses||0)<2)
+      .map(r=>({name:r.name,seed:r.seed})));
+
+    // Vyradení v DKO sa radia podľa kola, v ktorom dostali eliminačnú prehru:
+    // neskoršie loser kolo = lepšie konečné umiestnenie.
     for(let level=(dko.L?.length||0)-1;level>=0;level--)pushBand((dko.L[level]||[]).map(lOf));
 
-    // Defensive fallback for any player not captured in the completed
-    // elimination bands (e.g. unusual W.O.-heavy small fields).
-    const seen=new Set(result.map(r=>r.name));
+    // Posledná poistka pre neštandardné W.O./legacy dáta.
     pushBand(base.filter(r=>!seen.has(r.name)).map(r=>({name:r.name,seed:r.seed})));
     return result;
   },
