@@ -1552,9 +1552,14 @@ function openTableGen(t){
 
 async function completeTournament(id){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
+  if(!curT||curT.id!==id||!tournamentFlowFinished(curT)){
+    toast('Turnaj ešte nemá korektne dohranú celú štruktúru. Skontroluj všetky kolá pavúka.',true);
+    return;
+  }
   if(!confirm('Ukončiť turnaj a uzamknúť výsledky?')) return;
   try{
-    const results=(curT&&curT.id===id&&tournamentFlowFinished(curT))?finalResultsPayload(curT):[];
+    const results=finalResultsPayload(curT);
+    if(!results.length)throw new Error('Konečné poradie sa nepodarilo vytvoriť.');
     const {error}=await cspAuth.client.rpc('complete_tournament',{p_tournament_id:id,p_results:results});
     if(error)throw error;
     toast('Turnaj ukončený ✓');
@@ -2555,19 +2560,49 @@ function renderRankTable(rank){
 /* ── FINÁLNE VYHODNOTENIE TURNAJA ─────────────────────────────────── */
 function dkoStructureValid(dko){
   if(!dko?.F)return false;
-  const koSize=Math.max(2,Number(dko.koSize||dko.requestedCutover||2));
+  const koSize=Number(dko.koSize||dko.requestedCutover||2);
+  if(![2,4,8,16,32,64].includes(koSize))return false;
+
   const expectedKO=[];
   for(let matches=koSize/2;matches>4;matches/=2)expectedKO.push(matches);
   const actualKO=Array.isArray(dko.KO)?dko.KO:[];
   if(actualKO.length!==expectedKO.length)return false;
   if(expectedKO.some((count,i)=>!Array.isArray(actualKO[i])||actualKO[i].length!==count))return false;
+
   const qf=Array.isArray(dko.QF)?dko.QF:[];
   const sf=Array.isArray(dko.SF)?dko.SF:[];
   if(qf.length!==(koSize>=8?4:0))return false;
   if(sf.length!==(koSize>=4?2:0))return false;
+
+  // Prechod DKO -> SKO je určený výhradne víťazmi posledného kola
+  // víťaznej a prehrávacej vetvy. Počet prehier hráča tu nehrá žiadnu rolu.
+  const wOf=m=>m&&m.winner?(m.winner===1?m.p1:m.p2):null;
+  const aLast=dko.W?.[dko.W.length-1]||[];
+  const bLast=dko.L?.[dko.L.length-1]||[];
+  const expectedPerBranch=koSize/2;
+  if(aLast.length!==expectedPerBranch||bLast.length!==expectedPerBranch)return false;
+
+  const qualifiers=[...aLast.map(wOf),...bLast.map(wOf)].filter(p=>p&&!p.bye);
+  if(qualifiers.length!==koSize)return false;
+
+  const entryRound=actualKO.length?actualKO[0]:(qf.length?qf:(sf.length?sf:[dko.F]));
+  if(entryRound.length!==koSize/2)return false;
+  const entrantKey=p=>String(p?.id||p?.name||'');
+  const expectedEntrants=qualifiers.map(entrantKey).filter(Boolean).sort();
+  const actualEntrants=entryRound.flatMap(m=>[m?.p1,m?.p2]).filter(p=>p&&!p.bye).map(entrantKey).filter(Boolean).sort();
+  if(expectedEntrants.length!==actualEntrants.length)return false;
+  if(expectedEntrants.some((key,i)=>key!==actualEntrants[i]))return false;
+
+  // Turnaj sa smie uzavrieť až po odohraní celej SKO fázy.
+  const koRounds=[...actualKO];
+  if(qf.length)koRounds.push(qf);
+  if(sf.length)koRounds.push(sf);
+  koRounds.push([dko.F]);
+  if(koRounds.some(round=>round.some(m=>!m?.winner||!m?.p1||!m?.p2||m.p1.bye||m.p2.bye)))return false;
+
   return true;
 }
-function dkoFlowFinished(dko){ return dkoStructureValid(dko)&&!!dko?.F?.winner; }
+function dkoFlowFinished(dko){ return dkoStructureValid(dko); }
 function thirdPlaceFinished(t){return !thirdPlaceRequired(t)||!!syncThirdPlaceMatch(t)?.winner;}
 function comboPhase2Finished(phase){
   if(!phase) return false;
