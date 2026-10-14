@@ -207,6 +207,7 @@
 
   function bindInteractions(){
     const sidebar=$("sidebar"),menu=$("menuToggle");if(sidebar&&menu)menu.addEventListener("click",()=>sidebar.classList.toggle("open"));
+    $("mobileLogout")?.addEventListener("click",async()=>{try{await window.cspAuth?.signOut?.()}finally{location.replace("/login/")}});
     document.querySelectorAll(".profile-tabs [data-route]").forEach(button=>button.addEventListener("click",()=>{location.href=button.dataset.route}));
     $("editProfile")?.addEventListener("click",()=>{location.href=currentPlan==="pro_plus"?"/profil-pro-plus/upravit/":"/profil/moj-profil/"});
     $("globalSearch")?.addEventListener("submit",event=>{event.preventDefault();const query=$("globalSearchInput")?.value.trim();if(query)location.href=`/search/?q=${encodeURIComponent(query)}`});
