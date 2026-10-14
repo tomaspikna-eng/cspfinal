@@ -158,13 +158,13 @@
         const planName=card.querySelector('h2')?.textContent||'plán';
         if(state==='ready'){
           cta.disabled=false;
-          cta.textContent='Testovať '+planName+' cez Stripe';
+          cta.textContent='Vybrať '+planName;
         }else if(state==='login'){
           cta.disabled=false;
           cta.textContent='Prihlásiť sa';
         }else{
           cta.disabled=true;
-          cta.textContent='Platby čoskoro';
+          cta.textContent='Platba nedostupná';
         }
       });
     }
