@@ -288,6 +288,8 @@ function escHtml(value){
 let blocks=[];
 const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'},gallery:{label:'Galéria'}};
 
+const MAX_GALLERY_IMAGES=20;
+
 function addBlock(type){
   if(type==='image') blocks.push({type,url:'',caption:''});
   else if(type==='gallery') blocks.push({type,images:[]});
@@ -344,7 +346,7 @@ function renderBlocks(){
           <div class="img-row" style="flex-wrap:wrap">
             <button type="button" class="add-toggle" onclick="document.getElementById('gmulti${i}').click()">＋ Nahrať viac obrázkov</button>
             <input type="file" id="gmulti${i}" accept="image/*" multiple class="hidden" onchange="uploadGalleryFiles(${i},this)"/>
-            <button type="button" class="add-toggle" onclick="blocks[${i}].images.push({url:'',caption:''});renderBlocks()">＋ Pridať URL</button>
+            <button type="button" class="add-toggle" onclick="addGalleryUrl(${i})">＋ Pridať URL</button>
           </div>
         </div>
       </div>`;
@@ -373,12 +375,37 @@ async function uploadGalleryImg(i,gi,input){
   input.value='';
 }
 
-async function uploadGalleryFiles(i,input){
-  const files=Array.from(input.files||[]);
-  if(!files.length)return;
+function addGalleryUrl(i){
   const gallery=blocks[i];
   if(!gallery||gallery.type!=='gallery')return;
-  toast(`Nahrávam ${files.length} obrázkov…`);
+  if((gallery.images||[]).length>=MAX_GALLERY_IMAGES){
+    toast(`Galéria môže obsahovať maximálne ${MAX_GALLERY_IMAGES} obrázkov.`,true);
+    return;
+  }
+  gallery.images.push({url:'',caption:''});
+  renderBlocks();
+}
+
+async function uploadGalleryFiles(i,input){
+  const selected=Array.from(input.files||[]);
+  if(!selected.length)return;
+  const gallery=blocks[i];
+  if(!gallery||gallery.type!=='gallery')return;
+
+  const remaining=Math.max(0,MAX_GALLERY_IMAGES-(gallery.images||[]).length);
+  if(remaining===0){
+    input.value='';
+    toast(`Galéria už obsahuje maximum ${MAX_GALLERY_IMAGES} obrázkov.`,true);
+    return;
+  }
+
+  const files=selected.slice(0,remaining);
+  if(selected.length>remaining){
+    toast(`Vybral si ${selected.length} obrázkov, ale do galérie sa zmestí už len ${remaining}. Nahrajú sa prvé vybrané.`,true);
+  } else {
+    toast(`Nahrávam ${files.length} obrázkov…`);
+  }
+
   let uploaded=0;
   for(const file of files){
     const url=await uploadToStorage(file);
@@ -389,7 +416,7 @@ async function uploadGalleryFiles(i,input){
   }
   input.value='';
   renderBlocks();
-  if(uploaded===files.length) toast(`Nahrané obrázky: ${uploaded} ✓`);
+  if(uploaded===files.length) toast(`Nahrané obrázky: ${uploaded} / ${MAX_GALLERY_IMAGES} ✓`);
   else toast(`Nahrané ${uploaded} z ${files.length} obrázkov.`, uploaded===0);
 }
 
