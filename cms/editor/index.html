@@ -96,6 +96,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 .side-field:last-child{margin-bottom:0}
 .side-field label{display:block;font-size:.74rem;color:var(--muted-2);margin-bottom:6px;font-weight:600}
 .side-field .help{font-size:11px;color:var(--muted);margin-top:5px}
+.block.selected{border-color:var(--gold);background:rgba(212,168,67,.04)}
+.gallery-side-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gallery-side-actions .btn{width:100%;padding:10px 8px}
+.gallery-count{font-family:var(--mono);font-size:.72rem;color:var(--muted-2);margin-bottom:10px}
 .cover-preview{border-radius:10px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px;aspect-ratio:16/10;background:var(--card-2)}
 .cover-preview svg,.cover-preview img{width:100%;height:100%;object-fit:cover;display:block}
 
@@ -181,6 +185,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
         </div>
         <div class="help">Použi CSP náhľad článku, odporúčané rozlíšenie 1200 × 630 px.</div>
       </div>
+    </div>
+
+    <div class="side-card hidden" id="gallerySideCard">
+      <h3>Galéria</h3>
+      <div class="gallery-count" id="gallerySideCount">0 / 20 obrázkov</div>
+      <div class="gallery-side-actions">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('gallerySideFile').click()">Nahrať z PC</button>
+        <button type="button" class="btn btn-ghost" onclick="editSelectedGallery()">Editovať</button>
+      </div>
+      <input type="file" id="gallerySideFile" accept="image/*" multiple class="hidden" onchange="uploadSelectedGalleryFiles(this)"/>
+      <div class="help" style="margin-top:10px">Vyber naraz viac fotografií. Maximum je 20 obrázkov v galérii.</div>
     </div>
   </aside>
 </div>
@@ -286,6 +301,7 @@ function escHtml(value){
    loads back as a single block per line rather than perfectly restoring
    original block types — a real, permanent simplification, not a bug. */
 let blocks=[];
+let selectedBlockIndex=null;
 const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'},gallery:{label:'Galéria'}};
 
 const MAX_GALLERY_IMAGES=20;
@@ -294,6 +310,7 @@ function addBlock(type){
   if(type==='image') blocks.push({type,url:'',caption:''});
   else if(type==='gallery') blocks.push({type,images:[]});
   else blocks.push({type,text:''});
+  selectedBlockIndex=blocks.length-1;
   document.getElementById('addMenu').classList.remove('open');
   renderBlocks();
   const els=document.querySelectorAll('.b-text, .img-row input');
@@ -303,7 +320,39 @@ function moveBlock(i,dir){
   const j=i+dir;if(j<0||j>=blocks.length)return;
   [blocks[i],blocks[j]]=[blocks[j],blocks[i]];renderBlocks();
 }
-function delBlock(i){blocks.splice(i,1);renderBlocks();}
+function delBlock(i){
+  blocks.splice(i,1);
+  if(selectedBlockIndex===i) selectedBlockIndex=null;
+  else if(selectedBlockIndex!==null && selectedBlockIndex>i) selectedBlockIndex--;
+  renderBlocks();
+}
+
+function selectBlock(i){
+  selectedBlockIndex=i;
+  renderBlocks();
+}
+function updateGallerySideCard(){
+  const card=document.getElementById('gallerySideCard');
+  const count=document.getElementById('gallerySideCount');
+  const block=selectedBlockIndex!==null?blocks[selectedBlockIndex]:null;
+  const active=!!block&&block.type==='gallery';
+  card.classList.toggle('hidden',!active);
+  if(active) count.textContent=`${(block.images||[]).length} / ${MAX_GALLERY_IMAGES} obrázkov`;
+}
+function editSelectedGallery(){
+  const i=selectedBlockIndex;
+  if(i===null||!blocks[i]||blocks[i].type!=='gallery')return;
+  const el=document.querySelector(`[data-block-index="${i}"]`);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function uploadSelectedGalleryFiles(input){
+  const i=selectedBlockIndex;
+  if(i===null||!blocks[i]||blocks[i].type!=='gallery'){
+    input.value='';
+    return;
+  }
+  await uploadGalleryFiles(i,input);
+}
 
 function renderBlocks(){
   const wrap=document.getElementById('blocks');
@@ -316,7 +365,7 @@ function renderBlocks(){
     const typeLbl=`<span class="block-type">${BLOCK_META[b.type].label}</span>`;
     if(b.type==='image'){
       const prev=b.url?`<div class="img-preview"><img src="${b.url}" alt=""/></div>`:'';
-      return `<div class="block">${ctrls}${typeLbl}
+      return `<div class="block ${selectedBlockIndex===i?'selected':''}" data-block-index="${i}" onclick="selectBlock(${i})">${ctrls}${typeLbl}
         <div class="img-block">
           ${prev}
           <div class="img-row">
@@ -340,7 +389,7 @@ function renderBlocks(){
           </div>
           <input placeholder="Popis fotky (nepovinné)" value="${escHtml(img.caption||'')}" oninput="blocks[${i}].images[${gi}].caption=this.value"/>
         </div>`).join('');
-      return `<div class="block">${ctrls}${typeLbl}
+      return `<div class="block ${selectedBlockIndex===i?'selected':''}" data-block-index="${i}" onclick="selectBlock(${i})">${ctrls}${typeLbl}
         <div class="img-block">
           ${items}
           <div class="img-row" style="flex-wrap:wrap">
@@ -352,11 +401,12 @@ function renderBlocks(){
       </div>`;
     }
     const cls={paragraph:'b-text',heading:'b-text b-heading',quote:'b-text b-quote',list:'b-text b-list'}[b.type];
-    return `<div class="block">${ctrls}${typeLbl}
+    return `<div class="block ${selectedBlockIndex===i?'selected':''}" data-block-index="${i}" onclick="selectBlock(${i})">${ctrls}${typeLbl}
       <textarea class="${cls}" rows="1" placeholder="${BLOCK_META[b.type].ph}" oninput="blocks[${i}].text=this.value;autoGrow(this)">${escHtml(b.text||'')}</textarea>
     </div>`;
   }).join('');
   wrap.querySelectorAll('textarea').forEach(autoGrow);
+  updateGallerySideCard();
 }
 
 async function uploadImg(i,input){
