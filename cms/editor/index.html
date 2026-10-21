@@ -329,18 +329,23 @@ function renderBlocks(){
     if(b.type==='gallery'){
       const items=(b.images||[]).map((img,gi)=>`
         <div class="img-block" style="border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px">
-          ${img.url?`<div class="img-preview"><img src="${img.url}" alt=""/></div>`:''}
+          ${img.url?`<div class="img-preview"><img src="${escHtml(img.url)}" alt="${escHtml(img.caption||'')}"/></div>`:''}
           <div class="img-row">
             <input placeholder="URL fotky alebo nahraj →" value="${escHtml(img.url||'')}" oninput="blocks[${i}].images[${gi}].url=this.value" onchange="renderBlocks()"/>
-            <button class="img-upload-btn" onclick="document.getElementById('gfile${i}_${gi}').click()">Nahrať</button>
+            <button type="button" class="img-upload-btn" onclick="document.getElementById('gfile${i}_${gi}').click()">Nahrať</button>
             <input type="file" id="gfile${i}_${gi}" accept="image/*" class="hidden" onchange="uploadGalleryImg(${i},${gi},this)"/>
-            <button class="img-upload-btn" onclick="blocks[${i}].images.splice(${gi},1);renderBlocks()">✕</button>
+            <button type="button" class="img-upload-btn" onclick="blocks[${i}].images.splice(${gi},1);renderBlocks()">✕</button>
           </div>
+          <input placeholder="Popis fotky (nepovinné)" value="${escHtml(img.caption||'')}" oninput="blocks[${i}].images[${gi}].caption=this.value"/>
         </div>`).join('');
       return `<div class="block">${ctrls}${typeLbl}
         <div class="img-block">
           ${items}
-          <button type="button" class="add-toggle" onclick="blocks[${i}].images.push({url:'',caption:''});renderBlocks()">＋ Pridať fotku do galérie</button>
+          <div class="img-row" style="flex-wrap:wrap">
+            <button type="button" class="add-toggle" onclick="document.getElementById('gmulti${i}').click()">＋ Nahrať viac obrázkov</button>
+            <input type="file" id="gmulti${i}" accept="image/*" multiple class="hidden" onchange="uploadGalleryFiles(${i},this)"/>
+            <button type="button" class="add-toggle" onclick="blocks[${i}].images.push({url:'',caption:''});renderBlocks()">＋ Pridať URL</button>
+          </div>
         </div>
       </div>`;
     }
@@ -366,6 +371,26 @@ async function uploadGalleryImg(i,gi,input){
   const url = await uploadToStorage(f);
   if(url){ blocks[i].images[gi].url=url; renderBlocks(); toast('Fotka nahraná ✓'); }
   input.value='';
+}
+
+async function uploadGalleryFiles(i,input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  const gallery=blocks[i];
+  if(!gallery||gallery.type!=='gallery')return;
+  toast(`Nahrávam ${files.length} obrázkov…`);
+  let uploaded=0;
+  for(const file of files){
+    const url=await uploadToStorage(file);
+    if(url){
+      gallery.images.push({url,caption:''});
+      uploaded++;
+    }
+  }
+  input.value='';
+  renderBlocks();
+  if(uploaded===files.length) toast(`Nahrané obrázky: ${uploaded} ✓`);
+  else toast(`Nahrané ${uploaded} z ${files.length} obrázkov.`, uploaded===0);
 }
 
 /* Blocks -> plain text, matching the real `content` column's shape.
