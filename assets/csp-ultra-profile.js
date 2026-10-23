@@ -12,7 +12,7 @@ const publicClubId=params.get('club_id');
 const publicMode=params.get('view')==='public' && (!!publicOwnerId || !!publicClubId);
 
 let session=null,profile=null,club=null,venues=[],calendarReservations=[],calendarOffset=0;
-let publicTournaments=[],publicEvents=[],publicLeagues=[],publicRankings=[];
+let publicTournaments=[],publicEvents=[],publicLeagues=[],publicRankings=[],publicBookingSlots=[],selectedPublicBookingSlot=null;
 
 const dayKeys=['mon','tue','wed','thu','fri','sat','sun'];
 const dayLabels=['Po','Ut','St','Št','Pi','So','Ne'];
@@ -342,10 +342,73 @@ document.querySelectorAll('[data-public-tab]').forEach(btn=>btn.addEventListener
   e.preventDefault();
   renderPublicTab(btn.dataset.publicTab);
 }));
+async function openInlineBooking(date){
+  if(!publicMode||!club?.id)return;
+  const panel=$('publicBookingInline'),slotsBox=$('publicBookingSlots'),msg=$('publicBookingMessage'),submit=$('publicBookingSubmit');
+  panel.hidden=false;
+  selectedPublicBookingSlot=null;
+  submit.disabled=true;
+  msg.textContent='';
+  msg.classList.remove('error');
+  $('publicBookingTitle').textContent='Rezervácia · '+new Date(date+'T12:00:00').toLocaleDateString('sk-SK');
+  $('publicBookingSubtitle').textContent='Načítavam voľné časy…';
+  slotsBox.innerHTML='';
+  try{
+    const {data,error}=await auth.client.rpc('get_public_booking_calendar',{p_club_id:club.id,p_day:date});
+    if(error)throw error;
+    publicBookingSlots=(Array.isArray(data)?data:[]).filter(x=>x.state==='available'&&new Date(x.starts_at)>new Date());
+    $('publicBookingSubtitle').textContent=publicBookingSlots.length?publicBookingSlots.length+' voľných termínov':'V tento deň nie sú voľné termíny';
+    slotsBox.innerHTML=publicBookingSlots.map((x,i)=>`<button type="button" class="public-booking-slot" data-public-slot="${i}"><b>${esc(x.station_name)}</b><span>${new Date(x.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})} – ${new Date(x.ends_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}</span></button>`).join('');
+    slotsBox.querySelectorAll('[data-public-slot]').forEach(btn=>btn.addEventListener('click',()=>{
+      slotsBox.querySelectorAll('.public-booking-slot').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPublicBookingSlot=publicBookingSlots[Number(btn.dataset.publicSlot)]||null;
+      submit.disabled=!selectedPublicBookingSlot;
+    }));
+  }catch(err){
+    $('publicBookingSubtitle').textContent='Dostupnosť sa nepodarilo načítať';
+    msg.textContent=err?.message||'Chyba rezervačného systému.';
+    msg.classList.add('error');
+  }
+}
 $('reservationWeek')?.addEventListener('click',e=>{
   if(!publicMode||!club?.id)return;
   const day=e.target.closest('.reservation-day[data-booking-date]');
-  if(day)location.href='/rezervacia/?club_id='+encodeURIComponent(club.id)+'&date='+encodeURIComponent(day.dataset.bookingDate);
+  if(day)openInlineBooking(day.dataset.bookingDate);
+});
+$('publicBookingForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!publicMode||!club?.id||!selectedPublicBookingSlot)return;
+  const name=$('publicBookingName').value.trim(),phone=$('publicBookingPhone').value.trim(),email=$('publicBookingEmail').value.trim();
+  const party=Number($('publicBookingParty').value||2),note=$('publicBookingNote').value.trim();
+  const msg=$('publicBookingMessage'),submit=$('publicBookingSubmit');
+  msg.textContent='';msg.classList.remove('error');
+  if(!name||!phone){msg.textContent='Vyplň meno a telefón.';msg.classList.add('error');return;}
+  submit.disabled=true;submit.textContent='Ukladám…';
+  try{
+    const {data,error}=await auth.client.rpc('create_public_reservation',{
+      p_club_id:club.id,
+      p_station_id:selectedPublicBookingSlot.station_id,
+      p_starts_at:selectedPublicBookingSlot.starts_at,
+      p_ends_at:selectedPublicBookingSlot.ends_at,
+      p_customer_name:name,
+      p_customer_email:email||null,
+      p_customer_phone:phone,
+      p_party_size:party,
+      p_public_note:note||null
+    });
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    msg.textContent=row?.status==='confirmed'?'Rezervácia je potvrdená.':'Rezervácia bola odoslaná a čaká na potvrdenie klubu.';
+    const chosenDate=selectedPublicBookingSlot.starts_at.slice(0,10);
+    await openInlineBooking(chosenDate);
+    renderReservationCalendar();
+  }catch(err){
+    msg.textContent=err?.message||'Rezerváciu sa nepodarilo vytvoriť.';
+    msg.classList.add('error');
+  }finally{
+    submit.textContent='Potvrdiť rezerváciu';
+  }
 });
 
 $('settingsSave')?.addEventListener('click',async()=>{
