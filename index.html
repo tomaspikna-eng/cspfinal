@@ -11,7 +11,7 @@
   function href(row){
     const id=encodeURIComponent(row.entity_id||'');
     const slug=encodeURIComponent(row.public_slug||'');
-    if(row.entity_type==='club') return '/profil-ul/?club_id='+id;
+    if(row.entity_type==='club') return '/profil-ul/?club_id='+id+'&view=public';
     if(row.entity_type==='tournament') return '/turnament/?id='+id;
     if(row.entity_type==='league') return slug?'/liga/?slug='+slug:'/liga/?id='+id;
     if(row.entity_type==='event') return '/kalendar-turnajov/?event_id='+id;
