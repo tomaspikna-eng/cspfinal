@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rezervácia klubu — Connect Sports Pro</title>
+<link rel="icon" href="/assets/csp-logo-mark.png">
+<style>
+:root{--bg:#080b0c;--panel:#0f1416;--line:#293236;--text:#f4f6f7;--muted:#929da3;--gold:#e4bb62;--green:#58df8a;--red:#ff7c84}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(88,223,138,.09),transparent 30%),var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+a{color:inherit;text-decoration:none}.wrap{width:min(920px,calc(100% - 28px));margin:0 auto;padding:28px 0 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}.logo{width:180px}.back{color:var(--gold);font-size:13px}
+.card{border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#101618,#0b0f10);padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.26)}
+.kicker{color:var(--green);font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.card h1{margin:7px 0 6px;font-size:32px}.sub{margin:0;color:var(--muted)}
+.toolbar{display:grid;grid-template-columns:220px 1fr;gap:14px;margin:24px 0 18px}.field{display:grid;gap:6px}.field label{font-size:11px;color:#b6bec2}.field input,.field select,.field textarea{width:100%;min-height:44px;border:1px solid #343e42;border-radius:10px;background:#0d1214;color:#fff;padding:9px 11px;outline:none}.field textarea{min-height:92px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green)}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.slot{min-height:64px;border:1px solid var(--line);border-radius:10px;background:#0d1214;color:#fff;padding:10px;text-align:left;cursor:pointer}.slot:hover,.slot.active{border-color:var(--green);background:rgba(88,223,138,.08)}.slot b,.slot span{display:block}.slot b{font-size:13px}.slot span{margin-top:4px;color:var(--muted);font-size:11px}.slot em{display:block;margin-top:5px;color:var(--gold);font-style:normal;font-size:10px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:24px}.wide{grid-column:1/-1}.submit{grid-column:1/-1;min-height:48px;border:0;border-radius:10px;background:var(--green);color:#06180c;font-weight:900;cursor:pointer}.submit:disabled{opacity:.45;cursor:not-allowed}
+.state{padding:18px;border:1px dashed #344044;border-radius:10px;color:var(--muted);text-align:center}.success{margin-top:18px;padding:16px;border:1px solid #2d7048;border-radius:10px;background:rgba(88,223,138,.08);color:#baf3ce}.error{margin-top:18px;padding:16px;border:1px solid #633238;border-radius:10px;background:rgba(255,124,132,.07);color:#ffb5ba}
+@media(max-width:700px){.toolbar,.form{grid-template-columns:1fr}.wide,.submit{grid-column:auto}.slots{grid-template-columns:1fr 1fr}.card{padding:18px}.card h1{font-size:26px}.logo{width:145px}}
+@media(max-width:460px){.slots{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/"><img class="logo" src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a><a class="back" id="backLink" href="/">← Späť na profil klubu</a></div>
+  <main class="card">
+    <div class="kicker">Verejná rezervácia</div>
+    <h1 id="clubName">Načítavam klub…</h1>
+    <p class="sub">Vyber deň, voľný čas a odošli rezerváciu.</p>
+
+    <div class="toolbar">
+      <div class="field"><label for="bookingDate">Dátum</label><input id="bookingDate" type="date"></div>
+      <div class="field"><label>Stav</label><div class="state" id="bookingState">Načítavam dostupnosť…</div></div>
+    </div>
+
+    <div class="slots" id="slotList"></div>
+
+    <form class="form" id="bookingForm">
+      <div class="field"><label for="customerName">Meno *</label><input id="customerName" required></div>
+      <div class="field"><label for="customerPhone">Telefón *</label><input id="customerPhone" required></div>
+      <div class="field"><label for="customerEmail">E-mail</label><input id="customerEmail" type="email"></div>
+      <div class="field"><label for="partySize">Počet osôb</label><input id="partySize" type="number" min="1" max="20" value="2"></div>
+      <div class="field wide"><label for="publicNote">Poznámka</label><textarea id="publicNote"></textarea></div>
+      <button class="submit" id="submitBtn" type="submit" disabled>Potvrdiť rezerváciu</button>
+    </form>
+    <div id="message"></div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="/assets/csp-auth.js?v=20261012-remember-tabs-1"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const params=new URLSearchParams(location.search);
+const clubId=params.get('club_id');
+let selectedSlot=null,slots=[];
+const today=new Date();today.setMinutes(today.getMinutes()-today.getTimezoneOffset());
+$('bookingDate').min=today.toISOString().slice(0,10);
+$('bookingDate').value=today.toISOString().slice(0,10);
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function time(v){return new Date(v).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'});}
+function showMessage(text,error=false){$('message').innerHTML=text?'<div class="'+(error?'error':'success')+'">'+esc(text)+'</div>':'';}
+function renderSlots(){
+  const available=slots.filter(x=>x.state==='available'&&new Date(x.starts_at)>new Date());
+  $('bookingState').textContent=available.length?available.length+' voľných termínov':'Žiadny voľný termín v tento deň';
+  $('slotList').innerHTML=available.length?available.map((x,i)=>'<button type="button" class="slot" data-slot="'+i+'"><b>'+esc(x.station_name)+'</b><span>'+time(x.starts_at)+' – '+time(x.ends_at)+'</span><em>'+Number(x.base_hourly_rate||0).toLocaleString('sk-SK',{style:'currency',currency:'EUR'})+' / h</em></button>').join(''):'';
+  $('submitBtn').disabled=true;selectedSlot=null;
+  $('slotList').querySelectorAll('[data-slot]').forEach(btn=>btn.addEventListener('click',()=>{
+    $('slotList').querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    const availableNow=slots.filter(x=>x.state==='available'&&new Date(x.starts_at)>new Date());
+    selectedSlot=availableNow[Number(btn.dataset.slot)]||null;
+    $('submitBtn').disabled=!selectedSlot;
+  }));
+}
+async function loadContext(){
+  if(!clubId)throw new Error('Chýba identifikátor klubu.');
+  if(!window.cspAuth?.client)throw new Error('Rezervačný systém sa nenačítal.');
+  const {data,error}=await cspAuth.client.rpc('get_public_club_booking_context',{p_club_id:clubId});
+  if(error)throw error;
+  const row=Array.isArray(data)?data[0]:data;
+  if(!row)throw new Error('Klub sa nenašiel.');
+  $('clubName').textContent=row.club_name||'Klub';
+  $('backLink').href='/profil-ul/?club_id='+encodeURIComponent(clubId)+'&view=public';
+  if(!row.booking_enabled)throw new Error('Tento klub nemá verejné rezervácie zapnuté.');
+}
+async function loadSlots(){
+  showMessage('');
+  $('bookingState').textContent='Načítavam dostupnosť…';
+  $('slotList').innerHTML='';
+  const {data,error}=await cspAuth.client.rpc('get_public_booking_calendar',{p_club_id:clubId,p_day:$('bookingDate').value});
+  if(error)throw error;
+  slots=Array.isArray(data)?data:[];
+  renderSlots();
+}
+$('bookingDate').addEventListener('change',()=>loadSlots().catch(e=>showMessage(e.message||'Dostupnosť sa nepodarilo načítať.',true)));
+$('bookingForm').addEventListener('submit',async e=>{
+  e.preventDefault();showMessage('');
+  if(!selectedSlot)return showMessage('Najprv vyber voľný termín.',true);
+  const name=$('customerName').value.trim(),phone=$('customerPhone').value.trim(),email=$('customerEmail').value.trim();
+  const party=Number($('partySize').value||2),note=$('publicNote').value.trim();
+  if(!name||!phone)return showMessage('Vyplň meno a telefón.',true);
+  const btn=$('submitBtn');btn.disabled=true;btn.textContent='Ukladám…';
+  try{
+    const {data,error}=await cspAuth.client.rpc('create_public_reservation',{
+      p_club_id:clubId,p_station_id:selectedSlot.station_id,p_starts_at:selectedSlot.starts_at,p_ends_at:selectedSlot.ends_at,
+      p_customer_name:name,p_customer_email:email||null,p_customer_phone:phone,p_party_size:party,p_public_note:note||null
+    });
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    showMessage(row?.status==='confirmed'?'Rezervácia je potvrdená.':'Rezervácia bola odoslaná a čaká na potvrdenie klubu.');
+    await loadSlots();
+  }catch(err){showMessage(err?.message||'Rezerváciu sa nepodarilo vytvoriť.',true);}
+  finally{btn.textContent='Potvrdiť rezerváciu';btn.disabled=!selectedSlot;}
+});
+(async()=>{try{await loadContext();await loadSlots();}catch(err){$('bookingState').textContent='Nedostupné';showMessage(err?.message||'Rezervačný systém sa nepodarilo načítať.',true);}})();
+})();
+</script>
+</body>
+</html>
