@@ -112,7 +112,7 @@ function renderOpeningHours(){
   target.innerHTML=dayKeys.map((key,i)=>{
     const value=normalizeOpeningValue(hours[key]);
     const closed=value==='Zatvorené';
-    return `<div class="venue-row"><span class="venue-icon">◷</span><span><b>${labels[i]}</b><span>${esc(value)}</span></span><span class="venue-state">${closed?'ZATVORENÉ':'OTVORENÉ'}</span></div>`;
+    return `<div class="venue-row ${closed?'is-closed':'is-open'}"><span class="venue-icon">◷</span><span><b>${labels[i]}</b><span>${esc(value)}</span></span><span class="venue-state ${closed?'closed':'open'}">${closed?'ZATVORENÉ':'OTVORENÉ'}</span></div>`;
   }).join('');
 }
 
