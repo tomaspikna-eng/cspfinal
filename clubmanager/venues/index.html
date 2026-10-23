@@ -785,7 +785,10 @@
       if (!sport) return showNotice('Vyber šport.', true);
       if (!venueId) return showNotice('Vyber prevádzku.', true);
       if (!Number.isFinite(hourlyRate) || hourlyRate < 0) return showNotice('Cena za hodinu nie je platná.', true);
-      if (!Number.isInteger(sortOrder) || sortOrder < 0) return showNotice('Poradie musí byť celé nezáporné číslo.', true);
+      if (!Number.isInteger(sortOrder) || sortOrder < 1) return showNotice('Poradie musí byť celé číslo od 1 vyššie.', true);
+      if (stations.some(s => s.id !== saveId && Number(s.sort_order) === sortOrder)) {
+        return showNotice('Toto poradie už používa iná stanica. Zvoľ iné číslo.', true);
+      }
 
       const result = await A.db.from('stations').update({
         name,
