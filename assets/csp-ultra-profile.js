@@ -12,7 +12,7 @@ const publicClubId=params.get('club_id');
 const publicMode=params.get('view')==='public' && (!!publicOwnerId || !!publicClubId);
 
 let session=null,profile=null,club=null,venues=[],calendarReservations=[],calendarOffset=0;
-let publicTournaments=[],publicEvents=[];
+let publicTournaments=[],publicEvents=[],publicLeagues=[],publicRankings=[];
 
 const dayKeys=['mon','tue','wed','thu','fri','sat','sun'];
 const dayLabels=['Po','Ut','St','Št','Pi','So','Ne'];
@@ -88,6 +88,45 @@ function renderActivity(tournaments,events){
   $('activityList').innerHTML=items.length?items.slice(0,5).map(x=>`<a class="activity-row" href="${esc(x.href)}"><span class="activity-symbol">${esc(x.icon)}</span><div><b>${esc(x.title)}</b><p>${esc(x.body||'')}</p></div><time>${x.time?new Date(x.time).toLocaleDateString('sk-SK'):'—'}</time></a>`).join(''):'<div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div>';
 }
 
+function renderPublicTab(tab){
+  if(!publicMode)return;
+  document.querySelectorAll('[data-public-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.publicTab===tab));
+  const title=$('activityList')?.closest('.activity-calendar-panel')?.querySelector('.panel-title h2');
+  const sub=$('activityList')?.closest('.activity-calendar-panel')?.querySelector('.panel-subtitle');
+  const link=$('activityList')?.closest('.activity-calendar-panel')?.querySelector('.panel-title a');
+  if(!title||!sub||!link)return;
+
+  if(tab==='overview'){
+    title.textContent='Kalendár aktivít';
+    sub.textContent='Turnaje, ligy a udalosti klubu na jednom mieste';
+    link.hidden=false;
+    link.href='/kalendar-turnajov/';
+    link.textContent='Otvoriť kalendár →';
+    renderActivity(publicTournaments,publicEvents);
+    return;
+  }
+
+  link.hidden=true;
+  if(tab==='tournaments'){
+    title.textContent='Turnaje klubu';
+    sub.textContent='Verejné turnaje organizované klubom';
+    $('activityList').innerHTML=publicTournaments.length?'<div class="public-section-list">'+publicTournaments.map(t=>`<a class="public-section-row" href="/turnament/?id=${encodeURIComponent(t.id)}"><span class="public-section-icon">🏆</span><span><b>${esc(t.name||'Turnaj')}</b><span>${esc([t.sport,t.discipline,t.status].filter(Boolean).join(' · '))}</span></span><em>${t.date?new Date(t.date+'T12:00:00').toLocaleDateString('sk-SK'):'DETAIL'}</em></a>`).join('')+'</div>':'<div class="empty-row">Klub zatiaľ nemá verejné turnaje.</div>';
+    return;
+  }
+  if(tab==='leagues'){
+    title.textContent='Ligy klubu';
+    sub.textContent='Verejné ligové súťaže klubu';
+    $('activityList').innerHTML=publicLeagues.length?'<div class="public-section-list">'+publicLeagues.map(l=>`<a class="public-section-row" href="/ligy/?id=${encodeURIComponent(l.id)}"><span class="public-section-icon">◆</span><span><b>${esc(l.name||'Liga')}</b><span>${esc([l.sport,l.discipline,l.season_name].filter(Boolean).join(' · '))}</span></span><em>DETAIL →</em></a>`).join('')+'</div>':'<div class="empty-row">Klub zatiaľ nemá verejné ligy.</div>';
+    return;
+  }
+  if(tab==='rankings'){
+    title.textContent='Rebríčky klubu';
+    sub.textContent='Verejné rebríčky a série klubu';
+    $('activityList').innerHTML=publicRankings.length?'<div class="public-section-list">'+publicRankings.map(r=>`<a class="public-section-row" href="/rebricky/detail/?id=${encodeURIComponent(r.id)}"><span class="public-section-icon">▤</span><span><b>${esc(r.title||'Rebríček')}</b><span>${esc([r.sport,r.discipline,r.status].filter(Boolean).join(' · '))}</span></span><em>OTVORIŤ →</em></a>`).join('')+'</div>':'<div class="empty-row">Klub zatiaľ nemá verejné rebríčky.</div>';
+  }
+}
+
+
 function normalizeOpeningValue(value){
   const raw=String(value||'').trim();
   if(!raw)return 'Nenastavené';
@@ -132,7 +171,8 @@ function renderReservationCalendar(){
       const x=new Date(r.starts_at);
       return x>=d&&x<next&&r.status!=='cancelled';
     }).length;
-    days.push(`<div class="reservation-day ${d.getTime()===today.getTime()?'today':''}"><span>${dayLabels[i]}</span><b>${d.getDate()}</b><small>${count} rez.</small></div>`);
+    const bookingDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    days.push(`<div class="reservation-day ${d.getTime()===today.getTime()?'today':''}" data-booking-date="${bookingDate}"><span>${dayLabels[i]}</span><b>${d.getDate()}</b><small>${count} rez.</small></div>`);
   }
   $('reservationWeek').innerHTML=days.join('');
 
@@ -166,6 +206,12 @@ async function loadPublic(){
   venues=Array.isArray(data.venues)?data.venues:[];
   publicTournaments=Array.isArray(data.tournaments)?data.tournaments:[];
   publicEvents=Array.isArray(data.events)?data.events:[];
+  const [leagueRes,rankingRes]=await Promise.all([
+    auth.client.from('leagues').select('id,name,sport,discipline,season_name,status,visibility').eq('owner_id',publicOwnerId).neq('status','draft').in('visibility',['public','unlisted']).order('created_at',{ascending:false}),
+    auth.client.from('event_series').select('id,title,sport,discipline,status,visibility,club_id,owner_id').eq('club_id',club.id).eq('visibility','public').in('status',['published','completed']).order('created_at',{ascending:false})
+  ]);
+  publicLeagues=leagueRes.error?[]:(leagueRes.data||[]);
+  publicRankings=rankingRes.error?[]:(rankingRes.data||[]);
 
   const calFrom=weekStart();calFrom.setDate(calFrom.getDate()-7);
   const calTo=new Date(calFrom);calTo.setDate(calTo.getDate()+49);
@@ -176,7 +222,7 @@ async function loadPublic(){
   calendarReservations=Array.isArray(res)?res:[];
 
   renderIdentity();
-  renderActivity(publicTournaments,publicEvents);
+  renderPublicTab('overview');
   renderOpeningHours();
   renderReservationCalendar();
 
@@ -288,6 +334,16 @@ $('settingsCancel')?.addEventListener('click',closeSettings);
 $('settingsOverlay')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSettings()});
 $('calendarPrev')?.addEventListener('click',()=>{calendarOffset=Math.max(-1,calendarOffset-1);renderReservationCalendar()});
 $('calendarNext')?.addEventListener('click',()=>{calendarOffset=Math.min(5,calendarOffset+1);renderReservationCalendar()});
+document.querySelectorAll('[data-public-tab]').forEach(btn=>btn.addEventListener('click',e=>{
+  if(!publicMode)return;
+  e.preventDefault();
+  renderPublicTab(btn.dataset.publicTab);
+}));
+$('reservationWeek')?.addEventListener('click',e=>{
+  if(!publicMode||!club?.id)return;
+  const day=e.target.closest('.reservation-day[data-booking-date]');
+  if(day)location.href='/rezervacia/?club_id='+encodeURIComponent(club.id)+'&date='+encodeURIComponent(day.dataset.bookingDate);
+});
 
 $('settingsSave')?.addEventListener('click',async()=>{
   if(publicMode)return;
