@@ -424,7 +424,7 @@
                     <option value="true" ${s.lock_mode ? 'selected' : ''}>Zapnutý</option>
                   </select>
                 </td>
-                <td><input class="inline-input" id="editStationOrder-${s.id}" type="number" min="0" step="1" value="${Number(s.sort_order || 0)}"></td>
+                <td><input class="inline-input" id="editStationOrder-${s.id}" type="number" min="1" step="1" value="${Math.max(1,Number(s.sort_order || 1))}"></td>
                 <td>
                   <div class="actions">
                     <button class="primary btn-sm" data-save-station="${s.id}">Uložiť</button>
@@ -442,7 +442,7 @@
               <td>${A.money(s.base_hourly_rate || 0)}</td>
               <td class="${s.is_active === false ? 'status-inactive' : 'status-active'}">${s.is_active === false ? 'Nie' : 'Áno'}</td>
               <td>${s.lock_mode ? 'Zapnutý' : 'Vypnutý'}</td>
-              <td>${Number(s.sort_order || 0)}</td>
+              <td>${Math.max(1,Number(s.sort_order || 1))}</td>
               <td>
                 <div class="actions">
                   <button class="primary btn-sm" data-qr-station="${s.id}">QR / Scoreboard</button>
@@ -553,7 +553,7 @@
     const sortOrder = Number($('profileOrder').value || 0);
     if (!name) return showNotice('Zadaj názov cenového profilu.', true);
     if (!Number.isFinite(discount) || discount < 0 || discount > 100) return showNotice('Zľava musí byť od 0 do 100 %.', true);
-    if (!Number.isInteger(sortOrder) || sortOrder < 0) return showNotice('Poradie musí byť celé nezáporné číslo.', true);
+    if (!Number.isInteger(sortOrder) || sortOrder < 1) return showNotice('Poradie musí byť celé číslo od 1 vyššie.', true);
 
     let code = slugifyProfileCode(name);
     if (customerProfiles.some(p => p.code === code)) code = `${code}_${Date.now().toString().slice(-5)}`;
@@ -622,8 +622,8 @@
 
     try {
       const nextOrder = stations.length
-        ? Math.max(...stations.map(s => Number(s.sort_order || 0))) + 1
-        : 0;
+        ? Math.max(...stations.map(s => Math.max(1, Number(s.sort_order || 1)))) + 1
+        : 1;
 
       const result = await A.db.from('stations').insert({
         club_id: ctx.club.id,
@@ -779,7 +779,7 @@
       const hourlyRate = Number($(`editStationRate-${saveId}`).value || 0);
       const isActive = $(`editStationActive-${saveId}`).value === 'true';
       const lockMode = $(`editStationLock-${saveId}`).value === 'true';
-      const sortOrder = Number($(`editStationOrder-${saveId}`).value || 0);
+      const sortOrder = Number($(`editStationOrder-${saveId}`).value || 1);
 
       if (!name) return showNotice('Názov stanice nemôže byť prázdny.', true);
       if (!sport) return showNotice('Vyber šport.', true);
