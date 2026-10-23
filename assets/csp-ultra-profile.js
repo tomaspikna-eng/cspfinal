@@ -122,7 +122,7 @@ function renderPublicTab(tab){
   if(tab==='rankings'){
     title.textContent='Rebríčky klubu';
     sub.textContent='Verejné rebríčky a série klubu';
-    $('activityList').innerHTML=publicRankings.length?'<div class="public-section-list">'+publicRankings.map(r=>`<a class="public-section-row" href="/rebricky/detail/?id=${encodeURIComponent(r.id)}"><span class="public-section-icon">▤</span><span><b>${esc(r.title||'Rebríček')}</b><span>${esc([r.sport,r.discipline,r.status].filter(Boolean).join(' · '))}</span></span><em>OTVORIŤ →</em></a>`).join('')+'</div>':'<div class="empty-row">Klub zatiaľ nemá verejné rebríčky.</div>';
+    $('activityList').innerHTML=publicRankings.length?'<div class="public-section-list">'+publicRankings.map(r=>`<a class="public-section-row" href="/rebricek/?id=${encodeURIComponent(r.id)}"><span class="public-section-icon">▤</span><span><b>${esc(r.title||'Rebríček')}</b><span>${esc([r.sport,r.discipline,r.status].filter(Boolean).join(' · '))}</span></span><em>OTVORIŤ →</em></a>`).join('')+'</div>':'<div class="empty-row">Klub zatiaľ nemá verejné rebríčky.</div>';
   }
 }
 
@@ -324,7 +324,10 @@ async function loadPrivate(){
 }
 
 $('menuToggle')?.addEventListener('click',()=>$('sidebar').classList.toggle('open'));
-document.querySelectorAll('[data-route]').forEach(b=>b.addEventListener('click',()=>{location.href=b.dataset.route}));
+document.querySelectorAll('[data-route]').forEach(b=>b.addEventListener('click',e=>{
+  if(publicMode&&b.dataset.publicTab){e.preventDefault();return;}
+  location.href=b.dataset.route;
+}));
 $('globalSearch')?.addEventListener('submit',e=>{e.preventDefault();const q=$('globalSearchInput').value.trim();if(q)location.href='/search/?q='+encodeURIComponent(q)});
 $('accountToggle')?.addEventListener('click',e=>{if(publicMode||e.target.closest('.notification'))return;e.stopPropagation();$('accountMenu')?.classList.toggle('show')});
 document.addEventListener('click',e=>{if(!e.target.closest('#accountToggle'))$('accountMenu')?.classList.remove('show')});
