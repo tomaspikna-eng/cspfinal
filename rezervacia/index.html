@@ -56,7 +56,8 @@ const clubId=params.get('club_id');
 let selectedSlot=null,slots=[];
 const today=new Date();today.setMinutes(today.getMinutes()-today.getTimezoneOffset());
 $('bookingDate').min=today.toISOString().slice(0,10);
-$('bookingDate').value=today.toISOString().slice(0,10);
+const requestedDate=params.get('date');
+$('bookingDate').value=requestedDate&&/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)?requestedDate:today.toISOString().slice(0,10);
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
 function time(v){return new Date(v).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'});}
