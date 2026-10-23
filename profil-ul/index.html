@@ -103,6 +103,22 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 .reservation-card .reservation-list-panel{margin-top:12px;padding:12px}
 .public-booking-btn{display:flex;align-items:center;justify-content:center;min-height:46px;margin-top:12px;border-radius:8px;background:var(--green);color:#051a0c;font-size:11px;font-weight:900;letter-spacing:.02em}
 .public-booking-btn[hidden]{display:none!important}
+.public-booking-inline{margin-top:12px;padding:12px;border:1px solid #2f5a40;border-radius:9px;background:rgba(88,223,138,.05)}
+.public-booking-inline[hidden]{display:none!important}
+.public-booking-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.public-booking-slot{min-height:48px;padding:8px;border:1px solid #30393d;border-radius:7px;background:#0d1214;color:#fff;text-align:left;cursor:pointer}
+.public-booking-slot:hover,.public-booking-slot.active{border-color:var(--green);background:rgba(88,223,138,.08)}
+.public-booking-slot b,.public-booking-slot span{display:block}
+.public-booking-slot b{font-size:9px}.public-booking-slot span{margin-top:3px;color:#9aa2a5;font-size:8px}
+.public-booking-form{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+.public-booking-form input,.public-booking-form textarea{min-height:38px;border:1px solid #343b3e;border-radius:7px;background:#111617;color:#fff;padding:8px;font-size:9px}
+.public-booking-form textarea{grid-column:1/-1;min-height:64px;resize:vertical}
+.public-booking-form button{grid-column:1/-1;min-height:40px;border:0;border-radius:7px;background:var(--green);color:#05200e;font-size:10px;font-weight:900;cursor:pointer}
+.public-booking-form button:disabled{opacity:.45;cursor:not-allowed}
+.public-booking-message{margin-top:8px;color:#b8c0c3;font-size:9px}
+.public-booking-message.error{color:#ff9ba1}
+@media(max-width:520px){.public-booking-slots,.public-booking-form{grid-template-columns:1fr}.public-booking-form textarea,.public-booking-form button{grid-column:auto}}
+
 .opening-card{border-color:#4a3d22;background:linear-gradient(145deg,rgba(228,187,98,.07),#0a0e0f 55%)}
 .opening-card .panel-title{margin-bottom:12px}
 .opening-card .panel-title h2{color:var(--gold);font-size:16px}
@@ -187,6 +203,19 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
           <button id="calendarNext" type="button">›</button>
         </section>
         <section class="reservation-week" id="reservationWeek"></section>
+        <section class="public-booking-inline" id="publicBookingInline" hidden>
+          <div class="panel-title"><div><h2 id="publicBookingTitle">Vyber termín</h2><p class="panel-subtitle" id="publicBookingSubtitle">Dostupné časy</p></div></div>
+          <div class="public-booking-slots" id="publicBookingSlots"></div>
+          <form class="public-booking-form" id="publicBookingForm">
+            <input id="publicBookingName" placeholder="Meno *" required>
+            <input id="publicBookingPhone" placeholder="Telefón *" required>
+            <input id="publicBookingEmail" type="email" placeholder="E-mail">
+            <input id="publicBookingParty" type="number" min="1" max="20" value="2" placeholder="Počet osôb">
+            <textarea id="publicBookingNote" placeholder="Poznámka"></textarea>
+            <button id="publicBookingSubmit" type="submit" disabled>Potvrdiť rezerváciu</button>
+          </form>
+          <div class="public-booking-message" id="publicBookingMessage"></div>
+        </section>
         <section class="reservation-list-panel">
           <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
           <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
