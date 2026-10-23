@@ -55,6 +55,50 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 .reservation-list-panel{margin-top:16px;padding:15px;border:1px solid #5c4a28;border-radius:9px;background:linear-gradient(145deg,rgba(228,187,98,.06),rgba(10,13,14,.7))}.public-reservation-list{display:grid;gap:7px;margin-top:10px}.public-reservation{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:9px;border:1px solid var(--line);border-radius:7px;background:#0c1011}.public-reservation time{color:var(--gold);font-size:9px;font-weight:800}.public-reservation b,.public-reservation span{display:block}.public-reservation b{font-size:9px}.public-reservation span{margin-top:3px;color:#969da0;font-size:8px}
 .settings-card-wide{width:min(720px,100%);max-height:90vh;overflow:auto}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.settings-span{grid-column:1/-1}.settings-section-title{margin:18px 0 10px;color:var(--gold);font-size:12px}.opening-hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.opening-row{display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:center}.opening-row label{color:var(--gold);font-size:9px;font-weight:800}.opening-row input{height:38px;border:1px solid #343b3e;border-radius:7px;background:#111617;color:#fff;padding:0 10px;outline:none;font-size:9px}
 @media(max-width:620px){.settings-grid,.opening-hours-grid{grid-template-columns:1fr}.settings-span{grid-column:auto}.reservation-week{grid-template-columns:repeat(4,1fr)}}
+/* ULTRA profile layout 2026-10-23 */
+@media(min-width:1301px){
+  .shell{grid-template-columns:197px minmax(760px,1fr) minmax(330px,400px)}
+  .center{border-right:1px solid var(--soft)}
+  .achievements.ultra-reservations{padding:18px;display:flex;flex-direction:column;gap:16px;align-self:start}
+}
+.activity-grid{grid-template-columns:1fr}
+.activity-calendar-panel{height:430px;min-height:430px;padding:20px}
+.activity-calendar-panel .panel-title{margin-bottom:14px}
+.activity-calendar-panel .panel-title h2{font-size:15px;color:#f3f4f4}
+.panel-subtitle{margin:5px 0 0;color:#858e91;font-size:9px;line-height:1.4}
+.activity-calendar-panel .activity-row{height:68px;grid-template-columns:44px minmax(0,1fr) auto}
+.activity-calendar-panel .activity-symbol{width:40px;height:40px}
+.activity-calendar-panel .activity-row b{font-size:11px}
+.activity-calendar-panel .activity-row p{font-size:9px}
+.ultra-reservations{background:linear-gradient(180deg,#0b0f10,#090c0d)}
+.reservation-card,.opening-card{border:1px solid #272e30;border-radius:10px;background:linear-gradient(145deg,#0f1415,#0a0e0f);padding:16px}
+.reservation-card .ach-head{height:auto;min-height:56px}
+.reservation-card .ach-head h2{font-size:20px}
+.reservation-card .reservation-week{gap:5px}
+.reservation-card .reservation-day{min-height:60px;padding:7px 4px}
+.reservation-card .reservation-list-panel{margin-top:12px;padding:12px}
+.opening-card{border-color:#4a3d22;background:linear-gradient(145deg,rgba(228,187,98,.07),#0a0e0f 55%)}
+.opening-card .panel-title{margin-bottom:12px}
+.opening-card .panel-title h2{color:var(--gold);font-size:16px}
+.opening-hours-list{gap:7px;margin-top:0}
+.opening-hours-list .venue-row{min-height:52px;border-color:#333a3d;background:#101516}
+.opening-hours-list .venue-row.is-open{border-color:#28563a;background:linear-gradient(90deg,rgba(88,223,138,.07),#101516 35%)}
+.opening-hours-list .venue-row.is-closed{opacity:.72;background:#0d1112}
+.opening-hours-list .venue-icon{width:34px;height:34px;background:rgba(228,187,98,.12);color:var(--gold)}
+.opening-hours-list .venue-row b{font-size:10px;color:#f1f3f3}
+.opening-hours-list .venue-row span span{font-size:9px;color:#c4c9ca}
+.opening-hours-list .venue-state{font-size:8px;letter-spacing:.06em}
+.opening-hours-list .venue-state.open{color:var(--green)}
+.opening-hours-list .venue-state.closed{color:#8c9497}
+@media(max-width:1300px){
+  .activity-calendar-panel{height:auto;min-height:360px}
+  .achievements.ultra-reservations{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:14px}
+}
+@media(max-width:820px){
+  .achievements.ultra-reservations{display:block}
+  .opening-card{margin-top:12px}
+}
+
 
 </style>
 <script src="/assets/csp-notifications.js" defer></script>
@@ -102,24 +146,30 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
           <article class="metric-card"><span class="metric-icon people">♟♟</span><div class="metric-copy"><span>Personál</span><strong id="employeeCount">0</strong><small id="employeeSummary">Aktívni zamestnanci</small></div></article>
         </section>
 
-        <section class="lower-grid">
-          <article class="content-panel"><div class="panel-title"><h2>Aktivita klubu</h2><a href="/kalendar-turnajov/">Kalendár →</a></div><div id="activityList"><div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div></div></article>
-          <article class="content-panel"><div class="panel-title"><h2>Otváracie hodiny</h2></div><div id="openingHoursList" class="venue-list"><div class="empty-row">Otváracie hodiny nie sú nastavené.</div></div></article>
+        <section class="lower-grid activity-grid">
+          <article class="content-panel activity-calendar-panel"><div class="panel-title"><div><h2>Kalendár aktivít</h2><p class="panel-subtitle">Turnaje, ligy a udalosti klubu na jednom mieste</p></div><a href="/kalendar-turnajov/">Otvoriť kalendár →</a></div><div id="activityList"><div class="empty-row">Zatiaľ bez udalostí alebo turnajov.</div></div></article>
         </section>
       </div>
     </main>
 
     <aside class="achievements ultra-reservations">
-      <header class="ach-head"><span class="trophy">▣</span><div><h2>Rezervačný kalendár</h2><p>Verejný prehľad rezervácií klubu</p></div><a class="how" href="/clubmanager/rezervacnykalendar/">Otvoriť →</a></header>
-      <section class="reservation-calendar-head">
-        <button id="calendarPrev" type="button">‹</button>
-        <strong id="calendarTitle">—</strong>
-        <button id="calendarNext" type="button">›</button>
+      <section class="reservation-card">
+        <header class="ach-head"><span class="trophy">▣</span><div><h2>Rezervačný kalendár</h2><p>Verejný prehľad rezervácií klubu</p></div><a class="how" href="/clubmanager/rezervacnykalendar/">Otvoriť →</a></header>
+        <section class="reservation-calendar-head">
+          <button id="calendarPrev" type="button">‹</button>
+          <strong id="calendarTitle">—</strong>
+          <button id="calendarNext" type="button">›</button>
+        </section>
+        <section class="reservation-week" id="reservationWeek"></section>
+        <section class="reservation-list-panel">
+          <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
+          <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
+        </section>
       </section>
-      <section class="reservation-week" id="reservationWeek"></section>
-      <section class="reservation-list-panel">
-        <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
-        <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
+
+      <section class="opening-card">
+        <div class="panel-title"><div><h2>Otváracie hodiny</h2><p class="panel-subtitle">Aktuálny týždenný režim klubu</p></div></div>
+        <div id="openingHoursList" class="venue-list opening-hours-list"><div class="empty-row">Otváracie hodiny nie sú nastavené.</div></div>
       </section>
     </aside>
   </div>
