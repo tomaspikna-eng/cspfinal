@@ -77,6 +77,8 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 .reservation-card .reservation-week{gap:5px}
 .reservation-card .reservation-day{min-height:60px;padding:7px 4px}
 .reservation-card .reservation-list-panel{margin-top:12px;padding:12px}
+.public-booking-btn{display:flex;align-items:center;justify-content:center;min-height:46px;margin-top:12px;border-radius:8px;background:var(--green);color:#051a0c;font-size:11px;font-weight:900;letter-spacing:.02em}
+.public-booking-btn[hidden]{display:none!important}
 .opening-card{border-color:#4a3d22;background:linear-gradient(145deg,rgba(228,187,98,.07),#0a0e0f 55%)}
 .opening-card .panel-title{margin-bottom:12px}
 .opening-card .panel-title h2{color:var(--gold);font-size:16px}
@@ -165,6 +167,7 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
           <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
           <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
         </section>
+        <a id="publicBookingBtn" class="public-booking-btn" href="#" hidden>Vytvoriť rezerváciu</a>
       </section>
 
       <section class="opening-card">
