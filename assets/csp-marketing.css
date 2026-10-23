@@ -240,3 +240,16 @@ main.section{
 }
 
 @media(max-width:620px){.hero-search{grid-template-columns:36px minmax(0,1fr);padding:6px}.hero-search button{grid-column:1/-1;width:100%}.hero-search input{font-size:13px}}
+
+.hero-grid>div:first-child{position:relative}
+.hero-search-results{display:none;position:absolute;z-index:30;width:min(680px,100%);margin-top:8px;border:1px solid rgba(216,177,90,.28);border-radius:14px;background:rgba(8,11,13,.98);box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.hero-search-results.show{display:block}
+.hero-search-result{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 15px;border-top:1px solid rgba(255,255,255,.055);background:#0b0f11}
+.hero-search-result:first-child{border-top:0}
+.hero-search-result:hover{background:#11171a}
+.hero-search-result span{min-width:0}
+.hero-search-result strong,.hero-search-result small{display:block}
+.hero-search-result strong{font-size:14px;color:#f4f6f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-search-result small{margin-top:3px;color:#8f999f;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-search-result em{flex:0 0 auto;color:var(--gold);font-size:10px;font-style:normal;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+.hero-search-state{padding:14px 15px;color:#8f999f;font-size:12px}
