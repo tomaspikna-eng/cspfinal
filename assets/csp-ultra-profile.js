@@ -7,8 +7,9 @@ if(!auth) return;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const params=new URLSearchParams(location.search);
-const publicOwnerId=params.get('id');
-const publicMode=params.get('view')==='public' && !!publicOwnerId;
+let publicOwnerId=params.get('id');
+const publicClubId=params.get('club_id');
+const publicMode=params.get('view')==='public' && (!!publicOwnerId || !!publicClubId);
 
 let session=null,profile=null,club=null,venues=[],calendarReservations=[],calendarOffset=0;
 let publicTournaments=[],publicEvents=[];
@@ -151,6 +152,12 @@ function renderReservationCalendar(){
 
 async function loadPublic(){
   applyPublicMode();
+  if(!publicOwnerId && publicClubId){
+    const {data:clubOwner,error:clubOwnerError}=await auth.client.from('clubs').select('owner_id').eq('id',publicClubId).maybeSingle();
+    if(clubOwnerError)throw clubOwnerError;
+    publicOwnerId=clubOwner?.owner_id||null;
+  }
+  if(!publicOwnerId)throw new Error('Klub sa nenašiel.');
   const {data,error}=await auth.client.rpc('get_public_club_profile',{p_owner_id:publicOwnerId});
   if(error)throw error;
   if(!data?.club)throw new Error('Klub sa nenašiel.');
@@ -172,6 +179,16 @@ async function loadPublic(){
   renderActivity(publicTournaments,publicEvents);
   renderOpeningHours();
   renderReservationCalendar();
+
+  const bookingBtn=$('publicBookingBtn');
+  if(bookingBtn&&club?.id){
+    const {data:bookingContext}=await auth.client.rpc('get_public_club_booking_context',{p_club_id:club.id});
+    const ctxRow=Array.isArray(bookingContext)?bookingContext[0]:bookingContext;
+    if(ctxRow?.booking_enabled){
+      bookingBtn.hidden=false;
+      bookingBtn.href='/rezervacia/?club_id='+encodeURIComponent(club.id);
+    }
+  }
 
   $('statTournaments').textContent=String(publicTournaments.length);
   $('statReservations').textContent='—';
