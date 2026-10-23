@@ -276,13 +276,25 @@ $('settingsSave')?.addEventListener('click',async()=>{
   if(publicMode)return;
   const btn=$('settingsSave');btn.disabled=true;btn.textContent='Ukladám…';
   try{
+    if(!session?.user?.id)throw new Error('Prihlásenie nie je aktívne. Obnov stránku a prihlás sa znova.');
+
+    if(!club?.id){
+      const clubRes=await auth.client.from('clubs')
+        .select('id,name,created_at,address_line1,postal_code,city,country,opening_hours')
+        .eq('owner_id',session.user.id)
+        .maybeSingle();
+      if(clubRes.error)throw clubRes.error;
+      club=clubRes.data||null;
+    }
+    if(!club?.id)throw new Error('Klubový profil nie je priradený k tomuto účtu.');
+
     const name=$('settingsName').value.trim(),bio=$('settingsBio').value.trim();
     const opening_hours={};
     dayKeys.forEach((key,i)=>{const v=$(dayInputIds[i]).value.trim();if(v)opening_hours[key]=v;});
     const {error}=await auth.client.from('profiles').update({full_name:name||null,bio:bio||null}).eq('id',session.user.id);
     if(error)throw error;
     const clubPatch={
-      name:name||club.name,
+      name:name||club.name||'Klub',
       address_line1:$('settingsAddress').value.trim()||null,
       postal_code:$('settingsPostalCode').value.trim()||null,
       city:$('settingsCity').value.trim()||null,
@@ -291,8 +303,14 @@ $('settingsSave')?.addEventListener('click',async()=>{
     };
     const {data:updated,error:clubError}=await auth.client.from('clubs').update(clubPatch).eq('id',club.id).select('id,name,created_at,address_line1,postal_code,city,country,opening_hours').single();
     if(clubError)throw clubError;
-    profile.full_name=name||profile.full_name;profile.bio=bio||null;club=updated;renderIdentity();renderOpeningHours();closeSettings();
-  }catch(err){alert(err.message||'Profil sa nepodarilo uložiť.')}
+    profile=profile||{};
+    profile.full_name=name||profile.full_name;
+    profile.bio=bio||null;
+    club=updated;
+    renderIdentity();
+    renderOpeningHours();
+    closeSettings();
+  }catch(err){alert(err?.message||'Profil sa nepodarilo uložiť.')}
   finally{btn.disabled=false;btn.textContent='Uložiť'}
 });
 
