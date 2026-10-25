@@ -328,8 +328,11 @@ function delBlock(i){
 }
 
 function selectBlock(i){
+  // Do not recreate focused textareas: that drops focus/caret and blocks multiline editing.
   selectedBlockIndex=i;
-  renderBlocks();
+  document.querySelectorAll('#blocks .block').forEach((node,index)=>{
+    node.classList.toggle('selected',index===i);
+  });
 }
 function updateGallerySideCard(){
   const card=document.getElementById('gallerySideCard');
