@@ -52,8 +52,20 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 .content-img img{width:100%;border-radius:12px;display:block}
 .content-img figcaption{font-size:.82rem;color:var(--muted);margin-top:8px;text-align:center}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:1.6em 0}
-.gallery-item img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
+.gallery-item img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in}
+.content-img img,.cover{cursor:zoom-in}
 .gallery-item figcaption{font-size:.72rem;color:var(--muted);margin-top:5px;text-align:center}
+.lightbox{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.94);touch-action:pan-y}
+.lightbox.open{display:flex}
+.lightbox-stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:56px 70px 78px}
+.lightbox-img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.lightbox-close,.lightbox-prev,.lightbox-next{position:absolute;z-index:2;border:1px solid rgba(255,255,255,.22);background:rgba(10,12,13,.72);color:#fff;cursor:pointer}
+.lightbox-close{top:18px;right:18px;width:44px;height:44px;border-radius:50%;font-size:25px}
+.lightbox-prev,.lightbox-next{top:50%;transform:translateY(-50%);width:48px;height:64px;border-radius:10px;font-size:34px}
+.lightbox-prev{left:16px}.lightbox-next{right:16px}
+.lightbox-caption{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(760px,80vw);color:#d8dcde;font-size:.84rem;text-align:center}
+.lightbox-count{position:absolute;top:25px;left:50%;transform:translateX(-50%);color:#afb5b8;font:700 .72rem var(--mono)}
+@media(max-width:680px){.lightbox-stage{padding:54px 12px 76px}.lightbox-prev,.lightbox-next{width:42px;height:58px;background:rgba(10,12,13,.5)}.lightbox-prev{left:6px}.lightbox-next{right:6px}.lightbox-caption{max-width:88vw}}
 
 .article-foot{margin-top:50px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
 .article-foot a{font-size:.88rem;font-weight:600;color:var(--gold)}
@@ -71,6 +83,16 @@ h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
+<div class="lightbox" id="articleLightbox" aria-hidden="true">
+  <div class="lightbox-stage" id="lightboxStage">
+    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Zavrieť">×</button>
+    <button class="lightbox-prev" id="lightboxPrev" type="button" aria-label="Predchádzajúca fotka">‹</button>
+    <img class="lightbox-img" id="lightboxImg" alt="">
+    <button class="lightbox-next" id="lightboxNext" type="button" aria-label="Nasledujúca fotka">›</button>
+    <div class="lightbox-count" id="lightboxCount"></div>
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+  </div>
+</div>
 
 <header class="header">
   <div class="header-in">
@@ -130,6 +152,66 @@ function renderError(){
       <p>Skús to prosím znova o chvíľu.</p>
       <p style="margin-top:16px"><a href="/magazin/">← Späť do magazínu</a></p>
     </div>`;
+}
+
+let lightboxImages=[];
+let lightboxIndex=0;
+let lightboxTouchStartX=0;
+
+function closeArticleLightbox(){
+  const box=document.getElementById('articleLightbox');
+  if(!box)return;
+  box.classList.remove('open');
+  box.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+
+function showArticleLightbox(index){
+  if(!lightboxImages.length)return;
+  lightboxIndex=(index+lightboxImages.length)%lightboxImages.length;
+  const item=lightboxImages[lightboxIndex];
+  document.getElementById('lightboxImg').src=item.src;
+  document.getElementById('lightboxImg').alt=item.alt||'';
+  document.getElementById('lightboxCaption').textContent=item.caption||item.alt||'';
+  document.getElementById('lightboxCount').textContent=(lightboxIndex+1)+' / '+lightboxImages.length;
+  const box=document.getElementById('articleLightbox');
+  box.classList.add('open');
+  box.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+}
+
+function initArticleLightbox(){
+  const imgs=[...document.querySelectorAll('#wrap .gallery-item img,#wrap .content-img img,#wrap .cover')];
+  lightboxImages=imgs.map(img=>({
+    src:img.currentSrc||img.src,
+    alt:img.alt||'',
+    caption:img.closest('figure')?.querySelector('figcaption')?.textContent?.trim()||''
+  }));
+  imgs.forEach((img,index)=>{
+    img.tabIndex=0;
+    img.setAttribute('role','button');
+    img.setAttribute('aria-label','Otvoriť fotografiu');
+    img.addEventListener('click',()=>showArticleLightbox(index));
+    img.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showArticleLightbox(index);}});
+  });
+  const box=document.getElementById('articleLightbox');
+  const stage=document.getElementById('lightboxStage');
+  document.getElementById('lightboxClose').onclick=closeArticleLightbox;
+  document.getElementById('lightboxPrev').onclick=e=>{e.stopPropagation();showArticleLightbox(lightboxIndex-1);};
+  document.getElementById('lightboxNext').onclick=e=>{e.stopPropagation();showArticleLightbox(lightboxIndex+1);};
+  box.addEventListener('click',e=>{if(e.target===box||e.target===stage)closeArticleLightbox();});
+  box.addEventListener('touchstart',e=>{lightboxTouchStartX=e.changedTouches?.[0]?.clientX||0;},{passive:true});
+  box.addEventListener('touchend',e=>{
+    const endX=e.changedTouches?.[0]?.clientX||0;
+    const delta=endX-lightboxTouchStartX;
+    if(Math.abs(delta)>45)showArticleLightbox(lightboxIndex+(delta<0?1:-1));
+  },{passive:true});
+  document.addEventListener('keydown',e=>{
+    if(!box.classList.contains('open'))return;
+    if(e.key==='Escape')closeArticleLightbox();
+    if(e.key==='ArrowLeft')showArticleLightbox(lightboxIndex-1);
+    if(e.key==='ArrowRight')showArticleLightbox(lightboxIndex+1);
+  });
 }
 
 function renderArticle(article){
@@ -195,6 +277,7 @@ function renderArticle(article){
       </div>
     </div>
   `;
+  initArticleLightbox();
   cspSocial.bind({
     entityType:'article',entityId:article.id,
     likeButton:'articleLikeBtn',likeCount:'articleLikeCount',shareButton:'articleShareBtn',
