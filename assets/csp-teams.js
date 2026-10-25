@@ -199,13 +199,32 @@ function renderDuelRows(){
   $('duelList').innerHTML=gamesFor(m.id).map(function(g){
     var ho=hm.map(function(x){return '<option value="'+x.id+'" '+(x.id===g.home_member_id?'selected':'')+'>'+esc(x.display_name)+'</option>'}).join('');
     var ao=am.map(function(x){return '<option value="'+x.id+'" '+(x.id===g.away_member_id?'selected':'')+'>'+esc(x.display_name)+'</option>'}).join('');
-    return '<div class="duel-row" data-game="'+g.id+'"><div class="duel-no">#'+g.slot_no+'</div><select data-field="home_member_id"><option value="">Domáci hráč</option>'+ho+'</select><input data-field="home_score" type="number" min="0" value="'+g.home_score+'"><div class="duel-mid"><input data-field="discipline" value="'+esc(g.discipline)+'"><small>Race to</small><input data-field="race_to" type="number" min="1" value="'+g.race_to+'"></div><input data-field="away_score" type="number" min="0" value="'+g.away_score+'"><select data-field="away_member_id"><option value="">Hosťujúci hráč</option>'+ao+'</select><button class="btn small '+(g.status==='completed'?'done':'')+'" data-save-game="'+g.id+'">'+(g.status==='completed'?'Uložiť ✓':'Uložiť výsledok')+'</button></div>';
+    return '<div class="duel-row" data-game="'+g.id+'"><div class="duel-no">#'+g.slot_no+'</div><select data-field="home_member_id"><option value="">Domáci hráč</option>'+ho+'</select><input data-field="home_score" type="number" min="0" value="'+g.home_score+'"><div class="duel-mid"><input data-field="discipline" value="'+esc(g.discipline)+'"><small>Race to</small><input data-field="race_to" type="number" min="1" value="'+g.race_to+'"></div><input data-field="away_score" type="number" min="0" value="'+g.away_score+'"><select data-field="away_member_id"><option value="">Hosťujúci hráč</option>'+ao+'</select><div class="duel-actions"><button class="btn small ghost" data-open-team-scoreboard="'+g.id+'">Scoreboard</button><button class="btn small '+(g.status==='completed'?'done':'')+'" data-save-game="'+g.id+'">'+(g.status==='completed'?'Uložiť ✓':'Uložiť výsledok')+'</button></div></div>';
   }).join('');
 }
 async function handleDuelAction(e){
-  var b=e.target.closest('[data-save-game]');if(!b)return;var id=b.dataset.saveGame,row=e.target.closest('[data-game]');
+  var scoreboardBtn=e.target.closest('[data-open-team-scoreboard]');
+  var saveBtn=e.target.closest('[data-save-game]');
+  var trigger=scoreboardBtn||saveBtn;
+  if(!trigger)return;
+  var id=scoreboardBtn?scoreboardBtn.dataset.openTeamScoreboard:saveBtn.dataset.saveGame;
+  var row=e.target.closest('[data-game]');
   var field=function(name){return row.querySelector('[data-field="'+name+'"]').value};
-  var payload={home_member_id:field('home_member_id')||null,away_member_id:field('away_member_id')||null,home_score:Number(field('home_score')||0),away_score:Number(field('away_score')||0),discipline:field('discipline').trim()||'9-ball',race_to:Number(field('race_to')||1),status:'completed'};
+  var common={
+    home_member_id:field('home_member_id')||null,
+    away_member_id:field('away_member_id')||null,
+    discipline:field('discipline').trim()||'9-ball',
+    race_to:Number(field('race_to')||1)
+  };
+  if(scoreboardBtn){
+    if(!common.home_member_id||!common.away_member_id){toast('Najprv vyber oboch hráčov.',true);return}
+    scoreboardBtn.disabled=true;scoreboardBtn.textContent='Otváram…';
+    var setup=await cspAuth.client.from('team_match_games').update(common).eq('id',id);
+    if(setup.error){scoreboardBtn.disabled=false;scoreboardBtn.textContent='Scoreboard';toast(setup.error.message,true);return}
+    location.href='/scoreboard-te/?team_game_id='+encodeURIComponent(id)+'&smart=1';
+    return;
+  }
+  var payload=Object.assign({},common,{home_score:Number(field('home_score')||0),away_score:Number(field('away_score')||0),status:'completed'});
   var r=await cspAuth.client.from('team_match_games').update(payload).eq('id',id);if(r.error){toast(r.error.message,true);return}
   toast('Výsledok duelu uložený.');await loadAll();if(state.editingMeeting)renderDuelRows();
 }
