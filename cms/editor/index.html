@@ -189,13 +189,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 
     <div class="side-card hidden" id="gallerySideCard">
       <h3>Galéria</h3>
-      <div class="gallery-count" id="gallerySideCount">0 / 20 obrázkov</div>
+      <div class="gallery-count" id="gallerySideCount">0 / 50 obrázkov</div>
       <div class="gallery-side-actions">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('gallerySideFile').click()">Nahrať z PC</button>
         <button type="button" class="btn btn-ghost" onclick="editSelectedGallery()">Editovať</button>
       </div>
       <input type="file" id="gallerySideFile" accept="image/*" multiple class="hidden" onchange="uploadSelectedGalleryFiles(this)"/>
-      <div class="help" style="margin-top:10px">Vyber naraz viac fotografií. Maximum je 20 obrázkov v galérii.</div>
+      <div class="help" style="margin-top:10px">Vyber naraz viac fotografií. Maximum je 50 obrázkov v galérii.</div>
     </div>
   </aside>
 </div>
@@ -304,7 +304,7 @@ let blocks=[];
 let selectedBlockIndex=null;
 const BLOCK_META={paragraph:{label:'Odstavec',ph:'Píš text odstavca…'},heading:{label:'Nadpis',ph:'Nadpis sekcie'},quote:{label:'Citát',ph:'Text citátu…'},list:{label:'Zoznam',ph:'Každý riadok = jedna položka'},image:{label:'Obrázok'},gallery:{label:'Galéria'}};
 
-const MAX_GALLERY_IMAGES=20;
+const MAX_GALLERY_IMAGES=50;
 
 function addBlock(type){
   if(type==='image') blocks.push({type,url:'',caption:''});
