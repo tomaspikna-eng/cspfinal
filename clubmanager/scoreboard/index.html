@@ -787,6 +787,9 @@ function frameAdd(i){
     saveTrainingSession({mode:'frame',players:activePlayers().map(pl=>({name:pl.name,score:pl.score}))},p.name,elapsedSeconds());
     render();showMatchWonDialog(i,"frame");return;
   }
+  state.period++;
+  state.currentIndex=breakerIndex();
+  addLog(`▶ Frame ${state.period} — rozstrel ${activePlayers()[state.currentIndex].name}`);
   render();
 }
 function frameSub(i){const p=activePlayers()[i];if(p.score>0)p.score--;render();}
