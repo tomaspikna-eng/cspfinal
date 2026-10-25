@@ -1173,10 +1173,12 @@ const URL_PARAMS=new URLSearchParams(location.search);
 const STATION_NAME=URL_PARAMS.get("station")||"";
 let MATCH_ID=URL_PARAMS.get("match_id")||"";
 let MATCH_TOKEN=URL_PARAMS.get("match_token")||"";
+const TEAM_GAME_ID=URL_PARAMS.get("team_game_id")||"";
 const DEVICE_TOKEN=URL_PARAMS.get("device_token")||"";
 const STATION_SLUG=STATION_NAME?"_"+STATION_NAME.replace(/\W+/g,"_"):"";
 const STORAGE_KEY="csp_scoreboard_v1"+STATION_SLUG;
 let tournamentMatch=null;
+let teamGame=null;
 let tournamentResultSubmitting=false;
 const SMART_MODE=URL_PARAMS.get("smart")!=="0";
 const RESULT_RETRY_DELAYS=[0,1200,3000];
@@ -1401,7 +1403,7 @@ const SCORE_EVENT_FALLBACK={
   tabletennis:[{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10}],
   racket:[{event_key:"standard_point",label:"+1",score_delta:1,metric_key:null,value_required:false,button_style:"primary",sort_order:10}],
 };
-const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN?"tournament":"training";
+const scoreEventContext=()=>MATCH_ID&&MATCH_TOKEN||TEAM_GAME_ID?"tournament":"training";
 const scoreActions=()=>{
   if(scoreActionDefinitions.length)return scoreActionDefinitions;
   const fallback=SCORE_EVENT_FALLBACK[mode()];
@@ -1668,7 +1670,7 @@ function showMatchWonDialog(winnerIndex,mode){
   $("nextSetRaceLabel").textContent = mode==="darts" ? "Race to (legy) pre ďalší set" : "Race to (frames) pre ďalší set";
   $("nextSetRaceTo").value=state.raceTo;
   $("matchWonOverlay").classList.remove("hidden");
-  if(SMART_MODE && MATCH_ID && MATCH_TOKEN){
+  if(SMART_MODE && ((MATCH_ID && MATCH_TOKEN)||TEAM_GAME_ID)){
     $("endMatchBtn").textContent="Smart: odosielam výsledok…";
     setTimeout(()=>endMatchDialog(true),150);
   }
@@ -1684,15 +1686,24 @@ function finalTournamentScore(){
 
 let lastTournamentLiveScore="";
 async function syncTournamentLiveScore(){
-  if(!MATCH_ID||!MATCH_TOKEN||!teMatchStarted||tournamentResultSubmitting)return;
+  if((!TEAM_GAME_ID&&!MATCH_ID)||(!TEAM_GAME_ID&&!MATCH_TOKEN)||!teMatchStarted||tournamentResultSubmitting)return;
   const scores=finalTournamentScore();
   if(scores.length<2)return;
   const key=`${scores[0]}:${scores[1]}`;
   if(key===lastTournamentLiveScore)return;
   try{
-    const {error}=await cspAuth.client.rpc("update_scoreboard_match_live",{
-      p_match_id:MATCH_ID,p_match_token:MATCH_TOKEN,p_score1:scores[0],p_score2:scores[1]
-    });
+    let error=null;
+    if(TEAM_GAME_ID){
+      const result=await cspAuth.client.rpc("update_team_scoreboard_live",{
+        p_game_id:TEAM_GAME_ID,p_home_score:scores[0],p_away_score:scores[1]
+      });
+      error=result.error;
+    }else{
+      const result=await cspAuth.client.rpc("update_scoreboard_match_live",{
+        p_match_id:MATCH_ID,p_match_token:MATCH_TOKEN,p_score1:scores[0],p_score2:scores[1]
+      });
+      error=result.error;
+    }
     if(error)throw error;
     lastTournamentLiveScore=key;
   }catch(err){
@@ -1703,6 +1714,42 @@ async function syncTournamentLiveScore(){
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function endMatchDialog(automatic=false){
   if(tournamentResultSubmitting)return;
+
+  if(TEAM_GAME_ID){
+    const scores=finalTournamentScore();
+    if(scores.length<2){
+      alert("Výsledok zápasu nie je kompletný.");
+      return;
+    }
+    const button=$("endMatchBtn");
+    tournamentResultSubmitting=true;
+    button.disabled=true;
+    button.textContent="Odosielam výsledok…";
+    try{
+      const {data,error}=await cspAuth.client.rpc("complete_team_scoreboard_game",{
+        p_game_id:TEAM_GAME_ID,
+        p_home_score:scores[0],
+        p_away_score:scores[1]
+      });
+      if(error)throw error;
+      teamGame=Array.isArray(data)?data[0]:data;
+      $("matchWonOverlay").classList.add("hidden");
+      addLog(`✓ Výsledok ${scores[0]}:${scores[1]} bol odoslaný do Teams`);
+      stopTimer();
+      button.textContent="Výsledok odoslaný";
+      render();
+      setTimeout(()=>{location.href="/teams/";},900);
+    }catch(err){
+      console.error("[scoreboard-te] Team result submission failed:",err);
+      if(!automatic) alert(err?.message||"Výsledok sa nepodarilo odoslať.");
+      else addLog(`⚠ Smart odoslanie zlyhalo: ${err?.message||"skontrolujte pripojenie"}`);
+      button.disabled=false;
+      button.textContent="Odoslať výsledok znova";
+      tournamentResultSubmitting=false;
+      render();
+    }
+    return;
+  }
 
   // Standalone/training scoreboard keeps its original behaviour.
   if(!MATCH_ID || !MATCH_TOKEN){
@@ -1812,6 +1859,7 @@ $("timerStopBtn").onclick=stopTimer;
    scoreboard itself. No loading state, no toast (a "História" viewing
    page is a separate future task — this stays invisible for now). */
 async function saveTrainingSession(finalScore, winnerName, durationSeconds){
+  if(TEAM_GAME_ID) return;
   if(!currentUserId) return;
   try {
     if(TRAINING_SESSION_ID){
@@ -2550,6 +2598,62 @@ async function loadTournamentMatch(){
   }
 }
 
+async function loadTeamGame(){
+  if(!TEAM_GAME_ID)return;
+  try{
+    const {data,error}=await cspAuth.client.rpc("get_team_scoreboard_game",{p_game_id:TEAM_GAME_ID});
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    if(!row)throw new Error("Tímový duel sa nenašiel.");
+    if(!row.home_member_id||!row.away_member_id)throw new Error("Najprv priraď oboch hráčov k duelu.");
+
+    teamGame=row;
+    teMatchStarted=row.game_status!=="completed"&&row.game_status!=="cancelled";
+    state.playerCount=2;
+    state.players[0].name=row.home_player_name||"Hráč 1";
+    state.players[1].name=row.away_player_name||"Hráč 2";
+    if(row.home_user_id)await loadProfileAvatarIntoPlayer(0,row.home_user_id);
+    if(row.away_user_id)await loadProfileAvatarIntoPlayer(1,row.away_user_id);
+
+    applyTournamentSport({sport:row.sport,discipline:row.discipline});
+    resetScoresForMode();
+    state.raceTo=Math.max(1,Math.min(100,Number(row.race_to||5)));
+
+    const loadedScore1=Number(row.home_score||0),loadedScore2=Number(row.away_score||0);
+    if(mode()==="frame"){
+      state.players[0].score=loadedScore1;state.players[1].score=loadedScore2;
+    }else if(mode()==="points"){
+      state.players[0].frames=loadedScore1;state.players[1].frames=loadedScore2;
+    }else if(mode()==="darts"){
+      state.players[0].legs=loadedScore1;state.players[1].legs=loadedScore2;
+    }else{
+      state.players[0].sets=loadedScore1;state.players[1].sets=loadedScore2;
+    }
+    lastTournamentLiveScore=`${loadedScore1}:${loadedScore2}`;
+
+    $("pageTitle").textContent=`Teams · ${row.home_team_name} vs ${row.away_team_name} · Duel #${row.slot_no}`;
+    $("smartPill").textContent=SMART_MODE?"TEAMS SMART AUTO":"TEAMS";
+    document.querySelector(".sport-picker")?.classList.add("hidden");
+    document.querySelector(".settings")?.classList.add("hidden");
+    syncSettingsUI();
+    render();
+    await loadScoreActionDefinitions();
+
+    if(["completed","cancelled"].includes(row.game_status)){
+      addLog(`Duel je už uzavretý: ${loadedScore1}:${loadedScore2}`);
+      $("endMatchBtn").disabled=true;
+      $("endMatchBtn").textContent="Výsledok už odoslaný";
+      teMatchStarted=false;
+    }else{
+      addLog(`Teams duel načítaný: ${row.home_player_name} vs ${row.away_player_name}`);
+    }
+    render();
+  }catch(err){
+    console.error("[scoreboard-te] Team game load failed:",err);
+    alert(err?.message||"Tímový duel sa nepodarilo načítať.");
+  }
+}
+
 
 /* ════════════════════ FIXED TOURNAMENT TABLET ════════════════════ */
 let stationState=null;
@@ -2730,7 +2834,8 @@ if(DEVICE_TOKEN){
   applyUrlParams();
   syncSettingsUI();
   render();
-  loadTournamentMatch();
+  if(TEAM_GAME_ID)loadTeamGame();
+  else loadTournamentMatch();
   loadScoreActionDefinitions();
   if(!state.log.length){addLog("Scoreboard pripravený");render();}
 }
