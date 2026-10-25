@@ -3005,6 +3005,7 @@ async function loadTournamentMatch(){
 let stationState=null;
 let stationPollTimer=null;
 let stationBusy=false;
+const stationPresenceBusy=new Set();
 let stationActiveMatchId=null;
 
 function stationRow(data){
@@ -3050,8 +3051,8 @@ function renderStationState(row){
   $("stationP2Btn").classList.toggle("ready",!!row.player2_present);
   $("stationP1Btn").textContent=row.player1_present?"PRÍTOMNOSŤ POTVRDENÁ ✓":"SOM PRÍTOMNÝ";
   $("stationP2Btn").textContent=row.player2_present?"PRÍTOMNOSŤ POTVRDENÁ ✓":"SOM PRÍTOMNÝ";
-  $("stationP1Btn").disabled=!!row.player1_present||stationBusy;
-  $("stationP2Btn").disabled=!!row.player2_present||stationBusy;
+  $("stationP1Btn").disabled=!!row.player1_present||stationPresenceBusy.has(String(row.player1_id||""));
+  $("stationP2Btn").disabled=!!row.player2_present||stationPresenceBusy.has(String(row.player2_id||""));
 
   const running=row.match_status==="in_progress"||row.match_status==="live";
   $("stationStartBtn").disabled=!row.can_start||stationBusy;
@@ -3079,17 +3080,28 @@ async function fetchStationState(){
   }
 }
 async function confirmStationPresence(playerId){
-  if(!DEVICE_TOKEN||!playerId||stationBusy)return;
-  stationBusy=true;
+  const key=String(playerId||"");
+  if(!DEVICE_TOKEN||!key||stationPresenceBusy.has(key))return;
+  stationPresenceBusy.add(key);
+
+  if(stationState){
+    if(String(stationState.player1_id||"")===key)stationState={...stationState,player1_present:true};
+    if(String(stationState.player2_id||"")===key)stationState={...stationState,player2_present:true};
+    stationState.both_players_present=!!stationState.player1_present&&!!stationState.player2_present;
+    renderStationState(stationState);
+  }
+
   try{
     const {error}=await cspAuth.client.rpc("confirm_station_player_presence",{
       p_device_token:DEVICE_TOKEN,p_player_id:playerId
     });
     if(error)throw error;
-    await fetchStationState();
   }catch(err){
     alert(err?.message||"Prítomnosť sa nepodarilo potvrdiť.");
-  }finally{stationBusy=false}
+  }finally{
+    stationPresenceBusy.delete(key);
+    await fetchStationState();
+  }
 }
 async function openAssignedStationMatch(row){
   stationActiveMatchId=row.match_id;
