@@ -1227,6 +1227,10 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
             <label class="switch"><input type="checkbox" id="altBreakSwitch" checked/><span class="slider"></span></label>
           </div>
         </div>
+        <div class="field hidden" id="starterWrap">
+          <label>Prvý rozstrel</label>
+          <select id="starterSelect"></select>
+        </div>
         <div class="field"><label>Hráč 1</label><input id="p1" value="Hráč 1"/></div>
         <div class="field"><label>Hráč 2</label><input id="p2" value="Hráč 2"/></div>
         <div class="field hidden" id="p3Wrap"><label>Hráč 3</label><input id="p3" value="Hráč 3"/></div>
@@ -2833,11 +2837,20 @@ function applySettings(){
   state.players[0].name=$("p1").value.trim()||"Hráč 1";
   state.players[1].name=$("p2").value.trim()||"Hráč 2";
   state.players[2].name=$("p3").value.trim()||"Hráč 3";
-  state.currentIndex=0;state.starter=0;state.runInput="";
+  state.starter=Math.max(0,Math.min(state.playerCount-1,Number($("starterSelect").value||0)));state.currentIndex=breakerIndex();state.runInput="";
   state.checkoutResults=[];state.checkoutAttemptStartTurns=0;
   resetScoresForMode();
   addLog("Nastavenie uložené");
   syncSettingsUI();render();loadScoreActionDefinitions();
+}
+function syncStarterOptionsFromInputs(){
+  const select=$("starterSelect");
+  if(!select)return;
+  const count=Math.max(1,Number($("playerCount")?.value||state.playerCount||2));
+  const names=[1,2,3].slice(0,count).map((n,i)=>($("p"+n)?.value||state.players[i]?.name||("Hráč "+n)).trim()||("Hráč "+n));
+  const current=Math.max(0,Math.min(count-1,Number(select.value||state.starter||0)));
+  select.innerHTML=names.map((name,i)=>`<option value="${i}">${i+1}. ${escapeScoreText(name)}</option>`).join("");
+  select.value=String(current);
 }
 function syncSettingsUI(){
   if(state.sport==="tennis")state.raceTo=3;
@@ -2855,6 +2868,8 @@ function syncSettingsUI(){
   $("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";
   $("altBreakSwitch").checked=state.alternateBreak;
   $("altBreakText").textContent=state.alternateBreak?"Zapnutý":"Vypnutý";
+  syncStarterOptionsFromInputs();
+  $("starterSelect").value=String(Math.max(0,Math.min(state.playerCount-1,state.starter||0)));
   $("p1").value=state.players[0].name;$("p2").value=state.players[1].name;$("p3").value=state.players[2].name;
   $("p3Wrap").classList.toggle("hidden",state.playerCount!==3);
   // podmienené polia podľa športu/režimu
@@ -2869,6 +2884,7 @@ function syncSettingsUI(){
   $("checkoutStartWrap").classList.toggle("hidden",state.sport!=="darts"||state.discipline!=="Tréning zatvárania");
   $("playerCount").disabled=state.soloTraining||["tabletennis","racket"].includes(m);
   $("altBreakWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
+  $("starterWrap").classList.toggle("hidden",m!=="frame"&&m!=="points");
   $("raceTo").disabled=state.sport==="tennis"||m==="darts_variant";
   $("raceLabel").textContent = m==="darts"?"Race to (legy)" : m==="darts_variant"?"Formát disciplíny" : ["universal","tabletennis","racket"].includes(m)?"Sety na výhru" : "Race to (frames)";
 }
@@ -2895,7 +2911,7 @@ $("discipline").onchange=()=>{
   resetScoresForMode();
   syncSettingsUI();render();loadScoreActionDefinitions();
 };
-$("playerCount").onchange=()=>$("p3Wrap").classList.toggle("hidden",$("playerCount").value!=="3");
+$("playerCount").onchange=()=>{$("p3Wrap").classList.toggle("hidden",$("playerCount").value!=="3");syncStarterOptionsFromInputs();};
 $("soloTrainingSwitch").onchange=()=>{
   state.soloTraining=$("soloTrainingSwitch").checked;
   state.playerCount=state.soloTraining?1:Math.max(2,Number($("playerCount").value||2));
@@ -2925,6 +2941,7 @@ $("checkoutStart").onchange=()=>{
 };
 $("doubleOutSwitch").onchange=()=>{state.doubleOut=$("doubleOutSwitch").checked;$("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";};
 $("altBreakSwitch").onchange=()=>{state.alternateBreak=$("altBreakSwitch").checked;$("altBreakText").textContent=state.alternateBreak?"Zapnutý":"Vypnutý";};
+["p1","p2","p3"].forEach(id=>$(id)?.addEventListener("input",syncStarterOptionsFromInputs));
 $("applyBtn").onclick=applySettings;
 $("newPeriodBtn").onclick=newPeriod;
 $("resetBtn").onclick=resetAll;
