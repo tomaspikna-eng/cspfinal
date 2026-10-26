@@ -95,8 +95,8 @@ function renderTeams(){
   if(!state.teams.length){el.innerHTML='<div class="empty">Zatiaľ nemáš vytvorený žiadny tím.</div>';return}
   el.innerHTML=state.teams.map(function(t){
     var ms=membersFor(t.id),cap=ms.find(function(m){return m.member_role==='captain'});
-    var roster=ms.length?ms.map(function(m){return '<div class="roster-row"><span>'+esc(m.display_name)+'</span><em>'+(m.member_role==='captain'?'Kapitán':m.member_role==='substitute'?'Náhradník':'Hráč')+'</em></div>'}).join(''):'<div class="muted">Súpiska je prázdna.</div>';
-    return '<article class="team-card"><div class="team-card-head"><div class="team-mark">'+esc((t.short_name||t.name).slice(0,3).toUpperCase())+'</div><div><h3>'+esc(t.name)+'</h3><p>'+esc(t.sport)+(t.city?' · '+esc(t.city):'')+(t.country?' · '+esc(t.country):'')+'</p></div><span class="status '+esc(t.status)+'">'+esc(t.status)+'</span></div><div class="team-meta"><span><b>'+ms.length+'</b> hráčov</span><span>Kapitán: <b>'+esc(cap?cap.display_name:'—')+'</b></span></div><div class="roster">'+roster+'</div><button class="btn small" data-add-member="'+t.id+'">+ Pridať hráča</button></article>';
+    var roster=ms.length?ms.map(function(m){return '<div class="roster-row"><span>'+esc(m.display_name)+'</span><div class="roster-actions"><em>'+(m.member_role==='captain'?'Kapitán':m.member_role==='substitute'?'Náhradník':'Hráč')+'</em><button class="btn small ghost danger" type="button" data-delete-member="'+m.id+'">Odstrániť</button></div></div>'}).join(''):'<div class="muted">Súpiska je prázdna.</div>';
+    return '<article class="team-card"><div class="team-card-head"><div class="team-mark">'+esc((t.short_name||t.name).slice(0,3).toUpperCase())+'</div><div><h3>'+esc(t.name)+'</h3><p>'+esc(t.sport)+(t.city?' · '+esc(t.city):'')+(t.country?' · '+esc(t.country):'')+'</p></div><span class="status '+esc(t.status)+'">'+esc(t.status)+'</span></div><div class="team-meta"><span><b>'+ms.length+'</b> hráčov</span><span>Kapitán: <b>'+esc(cap?cap.display_name:'—')+'</b></span></div><div class="roster">'+roster+'</div><div class="team-actions"><button class="btn small" data-add-member="'+t.id+'">+ Pridať hráča</button><button class="btn small ghost danger" type="button" data-delete-team="'+t.id+'">Odstrániť tím</button></div></article>';
   }).join('');
 }
 
@@ -149,9 +149,40 @@ function renderRankings(){
   $('playersBody').innerHTML=players.length?players.map(function(r,i){var t=teamById(r.member.team_id);return '<tr><td>'+(i+1)+'</td><td>'+esc(r.member.display_name)+'</td><td>'+esc(t&&(t.short_name||t.name)||'—')+'</td><td>'+r.played+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.for+':'+r.against+'</td><td><b>'+(r.played?Math.round(r.w/r.played*100):0)+'%</b></td></tr>'}).join(''):'<tr><td colspan="8">Zatiaľ nie sú odohrané individuálne duely.</td></tr>';
 }
 
-function handleTeamAction(e){
-  var b=e.target.closest('[data-add-member]');if(!b)return;var id=b.dataset.addMember,t=teamById(id);
-  $('memberForm').reset();$('memberTeamId').value=id;$('memberModalTitle').textContent='Pridať hráča · '+(t?t.name:'Tím');openModal('memberModal');
+async function handleTeamAction(e){
+  var add=e.target.closest('[data-add-member]');
+  if(add){
+    var id=add.dataset.addMember,t=teamById(id);
+    $('memberForm').reset();$('memberTeamId').value=id;$('memberModalTitle').textContent='Pridať hráča · '+(t?t.name:'Tím');openModal('memberModal');
+    return;
+  }
+
+  var delMember=e.target.closest('[data-delete-member]');
+  if(delMember){
+    var member=state.members.find(function(x){return x.id===delMember.dataset.deleteMember});
+    if(!member)return;
+    if(!confirm('Odstrániť hráča "'+member.display_name+'" zo súpisky?'))return;
+    delMember.disabled=true;
+    var mr=await cspAuth.client.from('team_members').delete().eq('id',member.id);
+    if(mr.error){delMember.disabled=false;toast(mr.error.message,true);return}
+    toast('Hráč odstránený zo súpisky.');await loadAll();return;
+  }
+
+  var delTeam=e.target.closest('[data-delete-team]');
+  if(delTeam){
+    var team=teamById(delTeam.dataset.deleteTeam);if(!team)return;
+    var linkedCompetition=state.competitionTeams.some(function(x){return x.team_id===team.id});
+    var linkedMeeting=state.meetings.some(function(x){return x.home_team_id===team.id||x.away_team_id===team.id});
+    if(linkedCompetition||linkedMeeting){
+      toast('Tím je už použitý v súťaži alebo stretnutí. Najprv odstráň jeho väzby.',true);
+      return;
+    }
+    if(!confirm('Naozaj odstrániť celý tím "'+team.name+'"? Odstránia sa aj hráči v jeho súpiske.'))return;
+    delTeam.disabled=true;
+    var tr=await cspAuth.client.from('teams').delete().eq('id',team.id);
+    if(tr.error){delTeam.disabled=false;toast(tr.error.message,true);return}
+    toast('Tím odstránený.');await loadAll();
+  }
 }
 function handleCompetitionAction(e){var b=e.target.closest('[data-comp-meeting]');if(b)openMeetingModal(b.dataset.compMeeting)}
 function handleMeetingAction(e){var b=e.target.closest('[data-manage-meeting]');if(b)openDuelModal(b.dataset.manageMeeting)}
