@@ -11,7 +11,10 @@ as $$
   select exists (
     select 1 from public.profiles p
     where p.id = auth.uid()
-      and p.plan in ('pro_plus'::profile_plan,'ultra'::profile_plan)
+      and (
+        p.is_admin is true
+        or p.plan in ('pro_plus'::profile_plan,'ultra'::profile_plan)
+      )
   );
 $$;
 revoke all on function public.can_use_teams() from public, anon;
