@@ -30,8 +30,9 @@ async function init(){
     if(pr.error)throw pr.error;
     state.profile=pr.data;
     $('accountName').textContent=(pr.data&&pr.data.full_name)||session.user.email||'CSP';
-    $('planBadge').textContent=planLabel(pr.data&&pr.data.plan);
-    if(!allowedPlans.has(pr.data&&pr.data.plan)){$('app').hidden=true;$('locked').hidden=false;return}
+    $('planBadge').textContent=(pr.data&&pr.data.is_admin)?'ADMIN':planLabel(pr.data&&pr.data.plan);
+    var canUseTeams=!!(pr.data&&pr.data.is_admin)||allowedPlans.has(pr.data&&pr.data.plan);
+    if(!canUseTeams){$('app').hidden=true;$('locked').hidden=false;return}
     $('locked').hidden=true;
     $('app').hidden=false;
     bind();
