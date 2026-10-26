@@ -5,6 +5,7 @@ var $=function(id){return document.getElementById(id)};
 var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var allowedPlans=new Set(['pro_plus','ultra']);
 var state={session:null,profile:null,teams:[],members:[],competitions:[],competitionTeams:[],meetings:[],games:[],selectedCompetition:null,editingMeeting:null};
+var uiBound=false;
 
 function toast(message,error){
   var el=$('toast');el.textContent=message;el.classList.toggle('error',!!error);el.classList.add('show');
@@ -25,17 +26,20 @@ async function init(){
     var sr=await cspAuth.getSession(),session=sr.data&&sr.data.session;
     if(!session){location.href='/login/';return}
     state.session=session;
+    bind();
     var pr=await cspAuth.getCurrentProfile(session.user);
     if(pr.error)throw pr.error;
     state.profile=pr.data;
     $('accountName').textContent=(pr.data&&pr.data.full_name)||session.user.email||'CSP';
     $('planBadge').textContent=planLabel(pr.data&&pr.data.plan);
     if(!allowedPlans.has(pr.data&&pr.data.plan)){$('app').hidden=true;$('locked').hidden=false;return}
-    bind();await loadAll();
+    await loadAll();
   }catch(err){console.error('[teams] init failed',err);toast((err&&err.message)||'Teams sa nepodarilo načítať.',true)}
 }
 
 function bind(){
+  if(uiBound)return;
+  uiBound=true;
   $('newTeamBtn').onclick=function(){$('teamForm').reset();openModal('teamModal')};
   $('newCompetitionBtn').onclick=openCompetitionModal;
   $('newMeetingBtn').onclick=function(){openMeetingModal()};
