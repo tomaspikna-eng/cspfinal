@@ -26,13 +26,15 @@ async function init(){
     var sr=await cspAuth.getSession(),session=sr.data&&sr.data.session;
     if(!session){location.href='/login/';return}
     state.session=session;
-    bind();
     var pr=await cspAuth.getCurrentProfile(session.user);
     if(pr.error)throw pr.error;
     state.profile=pr.data;
     $('accountName').textContent=(pr.data&&pr.data.full_name)||session.user.email||'CSP';
     $('planBadge').textContent=planLabel(pr.data&&pr.data.plan);
     if(!allowedPlans.has(pr.data&&pr.data.plan)){$('app').hidden=true;$('locked').hidden=false;return}
+    $('locked').hidden=true;
+    $('app').hidden=false;
+    bind();
     await loadAll();
   }catch(err){console.error('[teams] init failed',err);toast((err&&err.message)||'Teams sa nepodarilo načítať.',true)}
 }
