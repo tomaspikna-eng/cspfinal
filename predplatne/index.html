@@ -41,6 +41,7 @@ a{color:inherit;text-decoration:none}.wrap{width:min(820px,calc(100% - 28px));ma
 <script>
 'use strict';
 const ENDPOINT='https://lcmoykaqvvfybtobhtqg.supabase.co/functions/v1/stripe-billing';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA';
 const $=id=>document.getElementById(id);
 let session=null;
 let subscription=null;
@@ -49,7 +50,7 @@ function billingLabel(v){return v==='annual'?'Ročne':v==='monthly'?'Mesačne':'
 function statusLabel(v){return ({active:'Aktívne',trialing:'Skúšobné obdobie',past_due:'Platba po splatnosti',canceled:'Zrušené',pending:'Čaká na platbu'})[v]||String(v||'—')}
 function dateLabel(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('sk-SK',{day:'numeric',month:'long',year:'numeric'}).format(d)}
 async function request(action){
-  const res=await fetch(ENDPOINT,{method:'POST',headers:{'content-type':'application/json','apikey':cspAuth.client.supabaseKey||'','authorization':'Bearer '+session.access_token},body:JSON.stringify({action})});
+  const res=await fetch(ENDPOINT,{method:'POST',headers:{'content-type':'application/json','apikey':SUPABASE_ANON_KEY,'authorization':'Bearer '+session.access_token},body:JSON.stringify({action})});
   const data=await res.json().catch(()=>({}));
   if(!res.ok)throw new Error(data.error||'Operácia sa nepodarila.');
   return data;
