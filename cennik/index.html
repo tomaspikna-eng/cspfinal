@@ -15,6 +15,13 @@
     *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;min-width:320px;background:radial-gradient(900px 520px at 12% -10%,rgba(212,168,67,.13),transparent 60%),radial-gradient(800px 540px at 100% 30%,rgba(24,201,100,.06),transparent 65%),var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button{font:inherit}.page{width:min(1420px,calc(100% - 28px));margin:16px auto 34px;display:grid;gap:16px}.panel{border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012))}
     .topbar{min-height:74px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand-logo{display:block;width:min(250px,44vw);height:48px;object-fit:contain;object-position:left center}.nav{display:flex;align-items:center;gap:8px}.nav a{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);display:inline-flex;align-items:center;justify-content:center;font-weight:800}.nav a.primary{background:var(--green);border-color:var(--green);color:#051d0d}.menu-toggle{display:none;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#101110;color:#fff;cursor:pointer}.menu-toggle span,.menu-toggle::before,.menu-toggle::after{content:"";display:block;width:18px;height:2px;margin:4px auto;border-radius:2px;background:currentColor}
     .intro{padding:clamp(26px,4vw,52px);display:flex;align-items:flex-end;justify-content:space-between;gap:24px}.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.18em;color:var(--gold);font-weight:700}.intro h1{margin:10px 0 0;font-size:clamp(2.2rem,4.8vw,4.8rem);line-height:1;letter-spacing:-.055em}.intro h1 span{color:var(--green)}.intro p{max-width:690px;margin:18px 0 0;color:#abb0b6;font-size:1.03rem;line-height:1.65}.annual-message{flex:0 0 270px;padding:18px;border:1px solid rgba(212,168,67,.3);border-radius:17px;background:rgba(212,168,67,.07)}.annual-message strong{display:block;color:var(--gold2);font-size:1.08rem}.annual-message span{display:block;margin-top:7px;color:#babec3;font-size:.84rem;line-height:1.5}
+    .currency-control{flex:0 0 270px;padding:16px;border:1px solid rgba(212,168,67,.3);border-radius:17px;background:rgba(212,168,67,.055)}
+    .currency-label{display:block;margin-bottom:9px;color:#aeb3b8;font-size:.72rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+    .currency-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#070807}
+    .currency-switch button{min-height:38px;border:0;border-radius:8px;background:transparent;color:#858b91;font-size:.78rem;font-weight:900;cursor:pointer}
+    .currency-switch button.active{background:#1b1d1b;color:#fff;box-shadow:0 0 0 1px rgba(212,168,67,.42)}
+    .currency-switch button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+    .currency-note{display:block;margin-top:9px;color:#777d83;font-size:.7rem;line-height:1.45}
     .plans{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.plan{position:relative;min-width:0;padding:22px;border:1px solid var(--line);border-radius:21px;background:#0a0a0a;display:flex;flex-direction:column;gap:15px;overflow:hidden}.plan.pro-plus{border-color:rgba(212,168,67,.44);background:linear-gradient(180deg,rgba(212,168,67,.13),#0a0d0a 55%);box-shadow:inset 0 1px 0 rgba(24,201,100,.22)}.plan.ultra{border-color:rgba(24,201,100,.34);background:linear-gradient(180deg,rgba(24,201,100,.12),#0a0d0a 55%)}.plan-tag{position:absolute;right:15px;top:15px;padding:5px 8px;border:1px solid rgba(212,168,67,.38);border-radius:999px;color:var(--gold2);font-family:var(--mono);font-size:.61rem;letter-spacing:.06em}.plan-tag.promo{border-color:rgba(24,201,100,.45);background:rgba(24,201,100,.09);color:var(--green)}.old-price{color:#747a80;font-size:.9rem;font-weight:800;text-decoration:line-through;text-decoration-thickness:1px}.promo-note{color:#d8ddd9}.promo-note strong{color:var(--green)}.plan h2{margin:0;color:var(--gold);font-size:1.35rem}.plan-target{min-height:64px;margin:0;color:var(--muted);font-size:.88rem;line-height:1.55}.billing-switch{display:grid;grid-template-columns:1fr 1fr;padding:4px;border:1px solid var(--line);border-radius:12px;background:#070807}.billing-switch button{min-height:38px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:#858b91;font-size:.76rem;font-weight:850;cursor:pointer}.billing-switch button.active{background:#1b1d1b;color:#fff;box-shadow:0 0 0 1px rgba(212,168,67,.38)}.billing-switch button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}.forever{min-height:48px;display:flex;align-items:center;color:#8f949a;font-size:.79rem;font-weight:750}
     .price-block{min-height:94px}.price-line{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}.price{font-size:clamp(2.15rem,3.2vw,3rem);font-weight:900;letter-spacing:-.055em}.period{color:var(--muted);font-size:.76rem}.price-note{min-height:34px;margin-top:7px;color:#a5aab0;font-size:.76rem;line-height:1.4}.saving{display:inline-flex;margin-top:8px;padding:5px 8px;border-radius:999px;background:rgba(24,201,100,.12);color:var(--green);font-family:var(--mono);font-size:.63rem;font-weight:700}.feature-list{display:grid;gap:0;margin:0;padding:0;list-style:none}.feature-list li{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--line2);color:#d4d6d4;font-size:.81rem;line-height:1.35}.feature-list li:last-child{border:0}.check{color:var(--green);font-weight:900}.feature-list .no{color:#686d72}.plan-cta{min-height:48px;margin-top:auto;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900}.plan-cta.green{background:var(--green);border-color:var(--green);color:#051d0d}.plan-cta.gold{background:var(--gold);border-color:var(--gold);color:#161005}.plan-cta.dark{background:#121312}.plan-meta{text-align:center;color:#777c82;font-size:.7rem;line-height:1.45}
     .billing-notice{padding:17px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;color:#a8adb2;font-size:.83rem;line-height:1.55}.billing-notice strong{color:#fff}.billing-notice a{color:var(--gold2);font-weight:800;white-space:nowrap}
@@ -47,12 +54,21 @@
 
     <section class="panel intro">
       <div><div class="eyebrow">CENNÍK · JEDEN ÚČET, ŠTYRI ÚROVNE</div><h1>Vyber si len to, čo <span>používaš.</span></h1><p>Hráč začína zadarmo. PRO odomyká tréning a štatistiky, PRO+ nástroje externého organizátora a ULTRA kompletnú prevádzku klubu.</p></div>
+      <div class="currency-control">
+        <span class="currency-label">Mena</span>
+        <div class="currency-switch" id="currencySwitch" role="group" aria-label="Mena cenníka">
+          <button class="active" type="button" data-currency="EUR" aria-pressed="true" translate="no" data-no-translate="true">EUR</button>
+          <button type="button" data-currency="CZK" aria-pressed="false" translate="no" data-no-translate="true">CZK</button>
+          <button type="button" data-currency="USD" aria-pressed="false" translate="no" data-no-translate="true">USD</button>
+        </div>
+        <span class="currency-note" id="currencyNote">Platba je spracovaná v EUR.</span>
+      </div>
     </section>
 
     <main class="plans" aria-label="Plány Connect Sports Pro">
       <article class="plan" id="free">
         <h2>Free</h2><p class="plan-target">Pre hráča, ktorý chce profil, registrácie a základné komunitné funkcie.</p><div class="forever">Bez platby a bez časového obmedzenia</div>
-        <div class="price-block"><div class="price-line"><strong class="price">0 €</strong><span class="period">/ navždy</span></div><div class="price-note">Základný účet zostáva bezplatný.</div></div>
+        <div class="price-block"><div class="price-line"><strong class="price" data-free-price>0 €</strong><span class="period">/ navždy</span></div><div class="price-note">Základný účet zostáva bezplatný.</div></div>
         <ul class="feature-list"><li><span class="check">✓</span>Profil hráča</li><li><span class="check">✓</span>Kalendár turnajov a klubov</li><li><span class="check">✓</span>Registrácia na turnaje</li><li><span class="check">✓</span>Základné komunitné funkcie</li><li class="no"><span>—</span>Bez tréningových a organizačných nástrojov</li></ul>
         <a class="plan-cta dark" href="/registracia/">Začať zadarmo</a><div class="plan-meta">Nevyžaduje platobnú kartu</div>
       </article>
@@ -108,6 +124,42 @@
   </div>
 
   <script>
+    const CURRENCY_STORAGE_KEY='csp_currency';
+    const CURRENCY_RATES={EUR:1,CZK:24.357,USD:1.11266};
+    let selectedCurrency=(localStorage.getItem(CURRENCY_STORAGE_KEY)||'EUR').toUpperCase();
+    if(!CURRENCY_RATES[selectedCurrency])selectedCurrency='EUR';
+
+    function euroValue(value){
+      return Number(String(value||'0').replace(/[^0-9,.-]/g,'').replace(',','.'))||0;
+    }
+    function formatCurrencyFromEur(value,currency=selectedCurrency){
+      const amount=euroValue(value)*CURRENCY_RATES[currency];
+      if(currency==='CZK')return new Intl.NumberFormat('cs-CZ',{style:'currency',currency:'CZK',maximumFractionDigits:0}).format(amount);
+      if(currency==='USD')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(amount);
+      return new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(amount);
+    }
+    function updateCurrencyControls(){
+      document.querySelectorAll('[data-currency]').forEach(button=>{
+        const active=button.dataset.currency===selectedCurrency;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',String(active));
+      });
+      const note=document.getElementById('currencyNote');
+      if(note)note.textContent=selectedCurrency==='EUR'
+        ?'Platba je spracovaná v EUR.'
+        :'Orientačný prepočet. Platba v Stripe je aktuálne spracovaná v EUR.';
+      const free=document.querySelector('[data-free-price]');
+      if(free)free.textContent=formatCurrencyFromEur(0);
+    }
+    function setCurrency(currency){
+      if(!CURRENCY_RATES[currency])return;
+      selectedCurrency=currency;
+      localStorage.setItem(CURRENCY_STORAGE_KEY,currency);
+      updateCurrencyControls();
+      document.querySelectorAll('[data-plan]').forEach(card=>card.__renderPricing?.());
+    }
+    document.querySelectorAll('[data-currency]').forEach(button=>button.addEventListener('click',()=>setCurrency(button.dataset.currency)));
+
     document.querySelectorAll('[data-plan]').forEach(card=>{
       const buttons=[...card.querySelectorAll('[data-billing]')];
       const price=card.querySelector('[data-price]');
@@ -120,27 +172,31 @@
       const render=billing=>{
         card.dataset.selectedBilling=billing;
         const annual=billing==='annual';
-        price.textContent=annual?card.dataset.yearly:card.dataset.monthly;
+        const currentBase=annual?card.dataset.yearly:card.dataset.monthly;
+        price.textContent=formatCurrencyFromEur(currentBase);
         period.textContent=annual?'/ rok':'/ mesiac';
         const promo=card.dataset.promo==='true';
         if(oldPrice){
           oldPrice.hidden=false;
-          oldPrice.textContent=annual?card.dataset.standardYearly:card.dataset.standardMonthly;
+          oldPrice.textContent=formatCurrencyFromEur(annual?card.dataset.standardYearly:card.dataset.standardMonthly);
         }
         note.innerHTML=promo
           ?(annual
-            ?`<strong>Launch promo:</strong> −50 % na prvú ročnú platbu. V prepočte ${card.dataset.effective} / mesiac.`
+            ?`<strong>Launch promo:</strong> −50 % na prvú ročnú platbu. V prepočte ${formatCurrencyFromEur(card.dataset.effective)} / mesiac.`
             :'<strong>Launch promo:</strong> −50 % počas prvých 12 mesiacov.')
           :(annual?`V prepočte ${card.dataset.effective} / mesiac. Ročná platba naraz.`:'Platba každý mesiac.');
         saving.hidden=!promo;
         saving.textContent=promo
-          ?(annual?`Ušetríš ${card.dataset.saving} na prvej ročnej platbe`:'50 % zľava počas prvých 12 mesiacov')
+          ?(annual?`Ušetríš ${formatCurrencyFromEur(card.dataset.saving)} na prvej ročnej platbe`:'50 % zľava počas prvých 12 mesiacov')
           :'';
         meta.textContent=annual?'Ročná platba naraz':'Mesačná platba';
         buttons.forEach(button=>{const active=button.dataset.billing===billing;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active))});
       };
+      card.__renderPricing=()=>render(card.dataset.selectedBilling||'monthly');
       buttons.forEach(button=>button.addEventListener('click',()=>render(button.dataset.billing)));
+      render(card.dataset.selectedBilling||'monthly');
     });
+    updateCurrencyControls();
 
     const STRIPE_BILLING_URL='https://lcmoykaqvvfybtobhtqg.supabase.co/functions/v1/stripe-billing';
     let stripeConfigured=false;
