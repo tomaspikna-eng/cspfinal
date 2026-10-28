@@ -1,6 +1,16 @@
 (function(){
   'use strict';
 
+  function ensureCspTranslationLayer(){
+    if (window.CSPTranslate || document.querySelector('script[data-csp-translate-loader]')) return;
+    const script=document.createElement('script');
+    script.src='/assets/csp-translate.js?v=20261028-global-2';
+    script.defer=true;
+    script.dataset.cspTranslateLoader='1';
+    document.head.appendChild(script);
+  }
+  ensureCspTranslationLayer();
+
   const $=id=>document.getElementById(id);
   const playerNamesEl=$('playerNames');
   const playersPerTableEl=$('playersPerTable');
