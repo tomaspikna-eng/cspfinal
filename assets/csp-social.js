@@ -1,6 +1,16 @@
 /* Connect Sports Pro — social pack: Like · Share · Follow */
 (function(global){
   "use strict";
+  function ensureCspTranslationLayer(){
+    if (global.CSPTranslate || document.querySelector('script[data-csp-translate-loader]')) return;
+    var script=document.createElement('script');
+    script.src='/assets/csp-translate.js?v=20261028-global-2';
+    script.defer=true;
+    script.setAttribute('data-csp-translate-loader','1');
+    document.head.appendChild(script);
+  }
+  ensureCspTranslationLayer();
+
 
   function el(value){ return typeof value==="string" ? document.getElementById(value) : value; }
   function dbFrom(options){ return options?.client || global.cspAuth?.client || null; }
