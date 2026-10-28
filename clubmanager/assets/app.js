@@ -13,45 +13,34 @@ const rootPath='/'+(parts.length?parts.join('/')+'/':'');
 const route=(name='')=>rootPath+String(name).replace(/^\/+/,'');
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
-const CM_LANGUAGES={sk:'SK',cs:'CZ',en:'EN',de:'DE',pl:'PL'};
-const CM_LANG_KEY='csp_cm_language';
-function currentLanguage(){
-  const saved=localStorage.getItem(CM_LANG_KEY);
-  if(saved&&CM_LANGUAGES[saved])return saved;
-  const cookie=document.cookie.match(/(?:^|;\s*)googtrans=\/sk\/([^;]+)/);
-  return cookie&&CM_LANGUAGES[cookie[1]]?cookie[1]:'sk';
+const CM_LANGUAGES={sk:'SK',cs:'CZ',en:'EN',de:'DE',pl:'PL',ru:'RU',hu:'HU'};
+const CM_LANG_KEY='csp_language';
+function ensureCspTranslationLayer(){
+  if(window.CSPTranslate||document.querySelector('script[data-csp-translate-loader]'))return;
+  const script=document.createElement('script');
+  script.src='/assets/csp-translate.js?v=20261028-global-2';
+  script.defer=true;
+  script.dataset.cspTranslateLoader='1';
+  document.head.appendChild(script);
 }
-function setTranslateCookie(lang){
-  const value=lang==='sk'?'':`/sk/${lang}`;
-  const expires=lang==='sk'?'; expires=Thu, 01 Jan 1970 00:00:00 GMT':'; max-age=31536000';
-  document.cookie=`googtrans=${value}; path=/${expires}; SameSite=Lax`;
-  document.cookie=`googtrans=${value}; path=/; domain=.${location.hostname}${expires}; SameSite=Lax`;
+function currentLanguage(){
+  const saved=String(localStorage.getItem(CM_LANG_KEY)||'sk').toLowerCase();
+  return CM_LANGUAGES[saved]?saved:'sk';
 }
 function changeLanguage(lang){
   if(!CM_LANGUAGES[lang])lang='sk';
   localStorage.setItem(CM_LANG_KEY,lang);
-  setTranslateCookie(lang);
-  location.reload();
+  if(window.CSPTranslate?.applyLanguage) window.CSPTranslate.applyLanguage(lang);
+  else location.reload();
 }
-function googleTranslateElementInit(){
-  if(!window.google?.translate?.TranslateElement)return;
-  new google.translate.TranslateElement({
-    pageLanguage:'sk',
-    includedLanguages:'cs,en,de,pl,sk',
-    autoDisplay:false
-  },'google_translate_element');
-}
-window.googleTranslateElementInit=googleTranslateElementInit;
 function injectLanguageControl(){
+  ensureCspTranslationLayer();
   if(document.getElementById('cspLanguageSelect'))return;
   const style=document.createElement('style');
   style.textContent=`
     .csp-lang-wrap{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
     .csp-lang-wrap::before{content:'🌐';font-size:15px}
     .csp-lang-select{min-height:38px;padding:0 30px 0 10px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#171717;color:#fff;font-weight:800;cursor:pointer}
-    #google_translate_element,.goog-te-banner-frame,.skiptranslate iframe{display:none!important}
-    body{top:0!important}
-    .goog-logo-link,.goog-te-gadget{display:none!important}
     .notranslate{translate:no}
     @media(max-width:760px){.csp-lang-wrap{margin-left:0}.csp-lang-select{min-height:36px}}
   `;
@@ -59,7 +48,7 @@ function injectLanguageControl(){
   const wrap=document.createElement('div');
   wrap.className='csp-lang-wrap notranslate';
   wrap.setAttribute('translate','no');
-  wrap.innerHTML=`<select id="cspLanguageSelect" class="csp-lang-select" aria-label="Jazyk">${Object.entries(CM_LANGUAGES).map(([code,label])=>`<option value="${code}">${label}</option>`).join('')}</select><div id="google_translate_element" aria-hidden="true"></div>`;
+  wrap.innerHTML=`<select id="cspLanguageSelect" class="csp-lang-select" aria-label="Jazyk" data-csp-language-select translate="no" data-no-translate="true">${Object.entries(CM_LANGUAGES).map(([code,label])=>`<option value="${code}" translate="no" data-no-translate="true">${label}</option>`).join('')}</select>`;
   const topbar=document.querySelector('.topbar');
   const logout=topbar?.querySelector('#logout');
   if(topbar){
@@ -73,11 +62,6 @@ function injectLanguageControl(){
   select.value=currentLanguage();
   select.addEventListener('change',()=>changeLanguage(select.value));
   document.querySelectorAll('.brand,.brand-name,.brand-sub,#clubName').forEach(el=>{el.classList.add('notranslate');el.setAttribute('translate','no')});
-  const script=document.createElement('script');
-  script.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-  script.async=true;
-  script.dataset.cspGoogleTranslate='1';
-  document.head.appendChild(script);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',injectLanguageControl,{once:true});
 else injectLanguageControl();
