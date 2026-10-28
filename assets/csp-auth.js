@@ -8,6 +8,16 @@
  */
 (function (global) {
   'use strict';
+  function ensureCspTranslationLayer(){
+    if (global.CSPTranslate || document.querySelector('script[data-csp-translate-loader]')) return;
+    var script=document.createElement('script');
+    script.src='/assets/csp-translate.js?v=20261028-global-2';
+    script.defer=true;
+    script.setAttribute('data-csp-translate-loader','1');
+    document.head.appendChild(script);
+  }
+  ensureCspTranslationLayer();
+
 
   var SUPABASE_URL = 'https://lcmoykaqvvfybtobhtqg.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbW95a2FxdnZmeWJ0b2JodHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjc0ODUsImV4cCI6MjA5ODc0MzQ4NX0.l4-t_EgXOQh_3PjfracM-ECvrky58CP44LGwBgI9TDA';
