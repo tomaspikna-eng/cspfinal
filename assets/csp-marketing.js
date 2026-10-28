@@ -1,6 +1,18 @@
 
 (function(){
   'use strict';
+
+  function ensureTranslationLayer(){
+    if(window.CSPTranslate) return;
+    if(document.querySelector('script[data-csp-translate-loader]')) return;
+    const script=document.createElement('script');
+    script.src='/assets/csp-translate.js?v=20261028-global-1';
+    script.defer=true;
+    script.dataset.cspTranslateLoader='1';
+    document.head.appendChild(script);
+  }
+  ensureTranslationLayer();
+
   const nav=document.querySelector('.nav');
   const toggle=document.querySelector('.nav-toggle');
   if(toggle&&nav){toggle.addEventListener('click',()=>nav.classList.toggle('open'));}
