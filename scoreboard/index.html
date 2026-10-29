@@ -231,10 +231,11 @@ summary b{color:var(--gold)}
 .keypad-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap}
 .run-display{font-family:var(--mono);font-size:clamp(40px,9vw,60px);font-weight:700;color:var(--gold);line-height:1;min-height:.9em}
 .keypad-submit{min-height:64px;padding:0 28px;font-size:18px}
-.quick-scores{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.quick{flex:1;min-width:58px;min-height:42px;font-family:var(--mono);font-weight:700;background:var(--panel2)}
+.quick-scores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.quick{min-width:0;min-height:38px;padding:7px 6px;font-family:var(--mono);font-weight:700;background:var(--panel2)}
 .quick:hover{border-color:var(--gold);color:var(--gold)}
 .quick.miss{color:var(--muted)}
+.quick-scores .wide{grid-column:span 2}
 .keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:420px}
 .keypad-grid .key{min-height:60px;font-size:24px;font-weight:700;background:var(--panel2);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 
@@ -1273,15 +1274,6 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
         <div class="run-display" id="runDisplay"></div>
       </div>
       <button class="goldbtn keypad-submit" id="submitRunBtn">Zapísať ✓</button>
-    </div>
-    <div class="quick-scores hidden" id="quickScores">
-      <button class="quick" data-q="180">180</button>
-      <button class="quick" data-q="140">140</button>
-      <button class="quick" data-q="100">100</button>
-      <button class="quick" data-q="60">60</button>
-      <button class="quick" data-q="45">45</button>
-      <button class="quick" data-q="26">26</button>
-      <button class="quick miss" data-q="0">Mimo (0)</button>
     </div>
     <div class="keypad-grid">
       <button class="key" data-d="7">7</button><button class="key" data-d="8">8</button><button class="key" data-d="9">9</button>
@@ -2337,7 +2329,6 @@ function render(){
   // keypad visibility
   const keypad = (m==="points"||m==="darts");
   $("keypadPanel").classList.toggle("hidden",!keypad);
-  $("quickScores").classList.toggle("hidden",m!=="darts");
   // Centered-keypad layout only for biliard "points" mode (landscape
   // tablets/monitors) — darts (portrait, stacked) and universal mode
   // (no keypad at all) are untouched.
@@ -2397,6 +2388,9 @@ function playerCard(p,i,m){
     const avg=p.turns?(p.scored/p.turns).toFixed(1):"0.0";
     const fin=canCheckout(p.remaining)&&p.remaining>0?"možný finiš":"";
     bigSub=`<span class="checkout-hint">${fin}</span>`;
+    controls=`<div class="quick-scores">
+      ${[180,171,150,140,100,60,50,45,26,25,0].map(v=>`<button class="quick${v===0?' miss':''}" data-player-quick="${i}" data-quick-value="${v}">${v===0?'Mimo (0)':v}</button>`).join("")}
+    </div>`;
     stats=`<div class="stat-grid">
       <div class="stat"><span>Legy</span><strong>${p.legs}</strong></div>
       <div class="stat"><span>3-dart priemer</span><strong>${avg}</strong></div>
@@ -2487,6 +2481,12 @@ function wireCardButtons(m){
       else if(m==="racket"){ if(act==="plus")racketAdd(i); if(act==="minus")racketSub(i); }
       else if(m==="universal"){ if(act==="plus")uniAdd(i); if(act==="minus")uniSub(i); if(act==="set")uniWinSet(i); }
     };
+  });
+  document.querySelectorAll("[data-player-quick]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.playerQuick),value=Number(b.dataset.quickValue);
+    if(mode()!=="darts"||i!==state.currentIndex)return;
+    state.runInput=String(value);
+    submitRunDarts();
   });
   document.querySelectorAll("[data-starting-player]").forEach(b=>b.onchange=()=>selectStartingPlayer(+b.dataset.startingPlayer));
   document.querySelectorAll("[data-score-event]").forEach(b=>b.onclick=()=>handleScoreEvent(+b.dataset.i,b.dataset.scoreEvent));
