@@ -499,7 +499,7 @@ async function refreshPublicReservationData(){
 $('reservationWeek')?.addEventListener('click',e=>{
   if(!club?.id)return;
   const day=e.target.closest('.reservation-day[data-booking-date]');
-  if(day)openInlineBooking(day.dataset.bookingDate);
+  if(day)location.href='/rezervacia/?club_id='+encodeURIComponent(club.id)+'&date='+encodeURIComponent(day.dataset.bookingDate);
 });
 $('publicBookingWeek')?.addEventListener('click',e=>{
   const day=e.target.closest('[data-booking-day]');
