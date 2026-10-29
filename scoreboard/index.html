@@ -1231,9 +1231,9 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
           <label>Prvý rozstrel</label>
           <select id="starterSelect"></select>
         </div>
-        <div class="field"><label>Hráč 1</label><input id="p1" value="Hráč 1"/></div>
-        <div class="field"><label>Hráč 2</label><input id="p2" value="Hráč 2"/></div>
-        <div class="field hidden" id="p3Wrap"><label>Hráč 3</label><input id="p3" value="Hráč 3"/></div>
+        <div class="field"><label>Hráč 1</label><input id="p1" placeholder="Zadaj meno alebo názov"/></div>
+        <div class="field"><label>Hráč 2</label><input id="p2" placeholder="Zadaj meno alebo názov"/></div>
+        <div class="field hidden" id="p3Wrap"><label>Hráč 3</label><input id="p3" placeholder="Zadaj meno alebo názov"/></div>
         <div class="field"><label>Akcie</label><button class="goldbtn" id="applyBtn" style="width:100%">Použiť nastavenie</button></div>
       </div>
     </details>
@@ -2837,9 +2837,18 @@ function applySettings(){
   state.setTarget=Math.max(0,Number($("setTarget").value||0));
   state.doubleOut=$("doubleOutSwitch").checked;
   state.alternateBreak=$("altBreakSwitch").checked;
-  state.players[0].name=$("p1").value.trim()||"Hráč 1";
-  state.players[1].name=$("p2").value.trim()||"Hráč 2";
-  state.players[2].name=$("p3").value.trim()||"Hráč 3";
+  const enteredNames=[$("p1").value.trim(),$("p2").value.trim(),$("p3").value.trim()];
+  const requiredPlayers=state.playerCount;
+  for(let i=0;i<requiredPlayers;i++){
+    if(!enteredNames[i]){
+      alert("Zadaj meno alebo názov pre všetkých aktívnych hráčov.");
+      $("p"+(i+1))?.focus();
+      return;
+    }
+  }
+  state.players[0].name=enteredNames[0];
+  state.players[1].name=enteredNames[1];
+  state.players[2].name=enteredNames[2]||state.players[2].name||"Hráč 3";
   state.starter=Math.max(0,Math.min(state.playerCount-1,Number($("starterSelect").value||0)));state.currentIndex=breakerIndex();state.runInput="";
   state.checkoutResults=[];state.checkoutAttemptStartTurns=0;
   resetScoresForMode();
@@ -2871,7 +2880,9 @@ function syncSettingsUI(){
   $("doubleOutText").textContent=state.doubleOut?"Zapnutý":"Vypnutý";
   $("altBreakSwitch").checked=state.alternateBreak;
   $("altBreakText").textContent=state.alternateBreak?"Zapnutý":"Vypnutý";
-  $("p1").value=state.players[0].name;$("p2").value=state.players[1].name;$("p3").value=state.players[2].name;
+  $("p1").value=state.players[0].name==="Hráč 1"?"":state.players[0].name;
+  $("p2").value=state.players[1].name==="Hráč 2"?"":state.players[1].name;
+  $("p3").value=state.players[2].name==="Hráč 3"?"":state.players[2].name;
   syncStarterOptionsFromInputs();
   $("starterSelect").value=String(Math.max(0,Math.min(state.playerCount-1,state.starter||0)));
   $("p3Wrap").classList.toggle("hidden",state.playerCount!==3);
