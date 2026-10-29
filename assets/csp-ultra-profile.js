@@ -12,7 +12,7 @@ const publicClubId=params.get('club_id');
 const publicMode=params.get('view')==='public' && (!!publicOwnerId || !!publicClubId);
 
 let session=null,profile=null,club=null,venues=[],calendarReservations=[],calendarOffset=0;
-let publicTournaments=[],publicEvents=[],publicLeagues=[],publicRankings=[],publicBookingSlots=[],selectedPublicBookingSlot=null,publicBookingDate=null,publicBookingWeekAnchor=null;
+let publicTournaments=[],publicEvents=[],publicLeagues=[],publicRankings=[],publicBookingSlots=[],selectedPublicBookingSlot=null,publicBookingDate=null,publicBookingWeekAnchor=null,selectedPublicBookingSport=null;
 
 const dayKeys=['mon','tue','wed','thu','fri','sat','sun'];
 const dayLabels=['Po','Ut','St','Št','Pi','So','Ne'];
@@ -346,6 +346,12 @@ function bookingDateKey(date){
   const d=new Date(date);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function sportLabel(value){
+  const raw=String(value||'').trim();
+  const key=raw.toLowerCase();
+  const map={billiard:'Biliard',biliard:'Biliard',pool:'Biliard',darts:'Šípky','šípky':'Šípky',sipky:'Šípky',bowling:'Bowling',squash:'Squash','table tennis':'Stolný tenis','stolny tenis':'Stolný tenis','stolný tenis':'Stolný tenis',cards:'Karty',karty:'Karty'};
+  return map[key]||raw.charAt(0).toUpperCase()+raw.slice(1);
+}
 function renderPublicBookingWeek(){
   if(!publicBookingWeekAnchor)return;
   const start=new Date(publicBookingWeekAnchor);
@@ -362,28 +368,60 @@ function renderPublicBookingWeek(){
   }
   $('publicBookingWeek').innerHTML=days.join('');
 }
-function resetBookingSlotControls(){
-  selectedPublicBookingSlot=null;
-  $('publicBookingStation').innerHTML='<option value="">Vyber športovisko</option>';
-  $('publicBookingTime').innerHTML='<option value="">Vyber čas</option>';
-  $('publicBookingTime').disabled=true;
-  syncBookingSubmit();
+function renderBookingSports(){
+  const sports=[...new Set(publicBookingSlots.map(x=>String(x.sport||'').trim()).filter(Boolean))];
+  if(!sports.length){
+    selectedPublicBookingSport=null;
+    $('publicBookingSports').innerHTML='';
+    return;
+  }
+  if(!selectedPublicBookingSport||!sports.includes(selectedPublicBookingSport)) selectedPublicBookingSport=sports[0];
+  $('publicBookingSports').innerHTML=sports.map(s=>`<button type="button" class="public-booking-sport ${s===selectedPublicBookingSport?'active':''}" data-booking-sport="${esc(s)}">${esc(sportLabel(s))}</button>`).join('');
 }
-function syncBookingTimes(){
-  const stationId=$('publicBookingStation').value;
-  const time=$('publicBookingTime');
+function slotKey(slot){return String(slot.station_id)+'|'+String(slot.starts_at)}
+function timeLabel(iso){return new Date(iso).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}
+function renderBookingMatrix(){
+  const grid=$('publicBookingGrid');
+  const rows=publicBookingSlots.filter(x=>String(x.sport||'')===String(selectedPublicBookingSport||''));
+  if(!rows.length){
+    grid.innerHTML='<div class="empty-row">Pre tento šport nie sú v daný deň dostupné športoviská.</div>';
+    return;
+  }
+  const times=[...new Map(rows.map(x=>[String(x.starts_at),x])).values()].sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  const stations=[...new Map(rows.map(x=>[String(x.station_id),x])).values()];
+  const selectedKey=selectedPublicBookingSlot?slotKey(selectedPublicBookingSlot):'';
+  const head=times.map(x=>`<th>${timeLabel(x.starts_at)}</th>`).join('');
+  const body=stations.map(st=>{
+    const cells=times.map(t=>{
+      const slot=rows.find(x=>String(x.station_id)===String(st.station_id)&&String(x.starts_at)===String(t.starts_at));
+      if(!slot)return '<td class="booking-slot-cell blocked">—</td>';
+      const state=slot.state==='available'?'available':slot.state==='occupied'?'occupied':'blocked';
+      const text=state==='available'?'Voľné':state==='occupied'?'Obsadené':'—';
+      const selected=selectedKey&&slotKey(slot)===selectedKey?' selected':'';
+      const attrs=state==='available'?` data-booking-slot-key="${esc(slotKey(slot))}"`:'';
+      return `<td class="booking-slot-cell ${state}${selected}"${attrs}>${text}</td>`;
+    }).join('');
+    const price=Number(st.base_hourly_rate||0);
+    const priceText=price>0?price.toLocaleString('sk-SK',{minimumFractionDigits:0,maximumFractionDigits:2})+' € / h':'';
+    return `<tr><th>${esc(st.station_name||'Športovisko')}<small>${esc(priceText)}</small></th>${cells}</tr>`;
+  }).join('');
+  grid.innerHTML=`<table class="booking-grid-table"><thead><tr><th>${esc(sportLabel(selectedPublicBookingSport))}</th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+function clearBookingSelection(){
   selectedPublicBookingSlot=null;
-  time.innerHTML='<option value="">Vyber čas</option>';
-  if(!stationId){time.disabled=true;syncBookingSubmit();return;}
-  const options=publicBookingSlots.filter(x=>String(x.station_id)===stationId);
-  options.forEach((slot,index)=>{
-    const option=document.createElement('option');
-    option.value=String(publicBookingSlots.indexOf(slot));
-    option.textContent=new Date(slot.starts_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})+' – '+new Date(slot.ends_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'});
-    time.appendChild(option);
-  });
-  time.disabled=false;
+  $('publicBookingDetails').hidden=true;
+  $('publicBookingSelection').textContent='';
   syncBookingSubmit();
+  renderBookingMatrix();
+}
+function selectBookingSlot(slot){
+  selectedPublicBookingSlot=slot;
+  const date=new Date(slot.starts_at);
+  $('publicBookingSelection').innerHTML=`Vybrané: <strong>${esc(slot.station_name||'Športovisko')}</strong> · ${date.toLocaleDateString('sk-SK',{day:'numeric',month:'long'})} · ${timeLabel(slot.starts_at)} – ${timeLabel(slot.ends_at)}`;
+  $('publicBookingDetails').hidden=false;
+  syncBookingSubmit();
+  renderBookingMatrix();
+  $('publicBookingDetails').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function syncBookingSubmit(){
   const submit=$('publicBookingSubmit');
@@ -402,40 +440,34 @@ async function loadPublicBookingDay(date){
   publicBookingDate=date;
   selectedPublicBookingSlot=null;
   renderPublicBookingWeek();
-  resetBookingSlotControls();
+  $('publicBookingDetails').hidden=true;
   const msg=$('publicBookingMessage');
   msg.textContent='';
   msg.classList.remove('error');
-  $('publicBookingTitle').textContent='Rezervácia · '+new Date(date+'T12:00:00').toLocaleDateString('sk-SK',{weekday:'long',day:'numeric',month:'long'});
-  $('publicBookingSubtitle').textContent='Načítavam voľné športoviská a časy…';
+  $('publicBookingTitle').textContent='Rezervácie · '+new Date(date+'T12:00:00').toLocaleDateString('sk-SK',{weekday:'long',day:'numeric',month:'long'});
+  $('publicBookingSubtitle').textContent='Načítavam dostupnosť…';
+  $('publicBookingSports').innerHTML='';
+  $('publicBookingGrid').innerHTML='<div class="empty-row">Načítavam…</div>';
   try{
     const {data,error}=await auth.client.rpc('get_public_booking_calendar',{p_club_id:club.id,p_day:date});
     if(error)throw error;
-    publicBookingSlots=(Array.isArray(data)?data:[]).filter(x=>x.state==='available'&&new Date(x.starts_at)>new Date());
-    const stations=[...new Map(publicBookingSlots.map(x=>[String(x.station_id),x])).values()];
-    stations.forEach(slot=>{
-      const option=document.createElement('option');
-      option.value=String(slot.station_id);
-      option.textContent=slot.station_name||'Športovisko';
-      $('publicBookingStation').appendChild(option);
-    });
+    publicBookingSlots=(Array.isArray(data)?data:[]).filter(x=>new Date(x.ends_at)>new Date());
+    renderBookingSports();
+    renderBookingMatrix();
     $('publicBookingSubtitle').textContent=publicBookingSlots.length
-      ?'Vyber športovisko a dostupný čas.'
-      :'V tento deň nie sú voľné termíny.';
-    if(stations.length===1){
-      $('publicBookingStation').value=String(stations[0].station_id);
-      syncBookingTimes();
-    }
+      ?'Klikni na voľný čas v tabuľke.'
+      :'V tento deň nie sú k dispozícii žiadne rezervačné časy.';
   }catch(err){
     $('publicBookingSubtitle').textContent='Dostupnosť sa nepodarilo načítať.';
+    $('publicBookingGrid').innerHTML='';
     msg.textContent=err?.message||'Chyba rezervačného systému.';
     msg.classList.add('error');
   }
 }
 async function openInlineBooking(date){
   if(!publicMode||!club?.id)return;
-  const anchor=weekStart(new Date(date+'T12:00:00'));
-  publicBookingWeekAnchor=anchor;
+  publicBookingWeekAnchor=weekStart(new Date(date+'T12:00:00'));
+  selectedPublicBookingSport=null;
   $('publicBookingInline').hidden=false;
   document.body.style.overflow='hidden';
   await loadPublicBookingDay(date);
@@ -445,7 +477,9 @@ function closeInlineBooking(){
   if(panel)panel.hidden=true;
   document.body.style.overflow='';
   selectedPublicBookingSlot=null;
+  selectedPublicBookingSport=null;
   publicBookingSlots=[];
+  $('publicBookingDetails') && ($('publicBookingDetails').hidden=true);
 }
 async function refreshPublicReservationData(){
   if(!publicMode||!publicOwnerId)return;
@@ -465,29 +499,37 @@ $('reservationWeek')?.addEventListener('click',e=>{
 $('publicBookingWeek')?.addEventListener('click',e=>{
   const day=e.target.closest('[data-booking-day]');
   if(!day||day.disabled)return;
+  selectedPublicBookingSport=null;
   loadPublicBookingDay(day.dataset.bookingDay);
 });
 $('publicBookingWeekPrev')?.addEventListener('click',()=>{
   if(!publicBookingWeekAnchor)return;
   publicBookingWeekAnchor.setDate(publicBookingWeekAnchor.getDate()-7);
-  const d=new Date(publicBookingWeekAnchor);
-  loadPublicBookingDay(bookingDateKey(d));
+  selectedPublicBookingSport=null;
+  loadPublicBookingDay(bookingDateKey(publicBookingWeekAnchor));
 });
 $('publicBookingWeekNext')?.addEventListener('click',()=>{
   if(!publicBookingWeekAnchor)return;
   publicBookingWeekAnchor.setDate(publicBookingWeekAnchor.getDate()+7);
-  const d=new Date(publicBookingWeekAnchor);
-  loadPublicBookingDay(bookingDateKey(d));
+  selectedPublicBookingSport=null;
+  loadPublicBookingDay(bookingDateKey(publicBookingWeekAnchor));
+});
+$('publicBookingSports')?.addEventListener('click',e=>{
+  const button=e.target.closest('[data-booking-sport]');
+  if(!button)return;
+  selectedPublicBookingSport=button.dataset.bookingSport;
+  clearBookingSelection();
+  renderBookingSports();
+});
+$('publicBookingGrid')?.addEventListener('click',e=>{
+  const cell=e.target.closest('[data-booking-slot-key]');
+  if(!cell)return;
+  const slot=publicBookingSlots.find(x=>slotKey(x)===cell.dataset.bookingSlotKey);
+  if(slot&&slot.state==='available')selectBookingSlot(slot);
 });
 $('publicBookingClose')?.addEventListener('click',closeInlineBooking);
 $('publicBookingInline')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeInlineBooking()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('publicBookingInline')?.hidden)closeInlineBooking()});
-$('publicBookingStation')?.addEventListener('change',syncBookingTimes);
-$('publicBookingTime')?.addEventListener('change',()=>{
-  const index=Number($('publicBookingTime').value);
-  selectedPublicBookingSlot=Number.isInteger(index)?publicBookingSlots[index]||null:null;
-  syncBookingSubmit();
-});
 ['publicBookingFirstName','publicBookingLastName','publicBookingEmail','publicBookingPhone'].forEach(id=>{
   $(id)?.addEventListener('input',syncBookingSubmit);
 });
@@ -520,7 +562,6 @@ $('publicBookingForm')?.addEventListener('submit',async e=>{
     });
     if(error)throw error;
     $('publicBookingForm').reset();
-    resetBookingSlotControls();
     closeInlineBooking();
     await refreshPublicReservationData();
   }catch(err){
