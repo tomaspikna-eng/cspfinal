@@ -436,7 +436,7 @@ function syncBookingSubmit(){
   submit.disabled=!valid;
 }
 async function loadPublicBookingDay(date){
-  if(!publicMode||!club?.id)return;
+  if(!club?.id)return;
   publicBookingDate=date;
   selectedPublicBookingSlot=null;
   renderPublicBookingWeek();
@@ -465,7 +465,7 @@ async function loadPublicBookingDay(date){
   }
 }
 async function openInlineBooking(date){
-  if(!publicMode||!club?.id)return;
+  if(!club?.id)return;
   publicBookingWeekAnchor=weekStart(new Date(date+'T12:00:00'));
   selectedPublicBookingSport=null;
   $('publicBookingInline').hidden=false;
@@ -482,17 +482,22 @@ function closeInlineBooking(){
   $('publicBookingDetails') && ($('publicBookingDetails').hidden=true);
 }
 async function refreshPublicReservationData(){
-  if(!publicMode||!publicOwnerId)return;
+  if(!club?.id)return;
   const calFrom=weekStart();calFrom.setDate(calFrom.getDate()-7);
   const calTo=new Date(calFrom);calTo.setDate(calTo.getDate()+49);
-  const {data,error}=await auth.client.rpc('get_public_club_reservations',{
-    p_owner_id:publicOwnerId,p_from:calFrom.toISOString(),p_to:calTo.toISOString()
-  });
+  let data,error;
+  if(publicMode){
+    const result=await auth.client.rpc('get_public_club_reservations',{p_owner_id:publicOwnerId,p_from:calFrom.toISOString(),p_to:calTo.toISOString()});
+    data=result.data;error=result.error;
+  }else{
+    const result=await auth.client.from('reservations').select('starts_at,ends_at,station_name_snapshot,status').eq('club_id',club.id).gte('starts_at',calFrom.toISOString()).lt('starts_at',calTo.toISOString()).neq('status','cancelled').order('starts_at',{ascending:true});
+    data=(result.data||[]).map(r=>({starts_at:r.starts_at,ends_at:r.ends_at,station_name:r.station_name_snapshot,status:r.status}));error=result.error;
+  }
   if(!error)calendarReservations=Array.isArray(data)?data:[];
   renderReservationCalendar();
 }
 $('reservationWeek')?.addEventListener('click',e=>{
-  if(!publicMode||!club?.id)return;
+  if(!club?.id)return;
   const day=e.target.closest('.reservation-day[data-booking-date]');
   if(day)openInlineBooking(day.dataset.bookingDate);
 });
@@ -535,7 +540,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('publicBookingIn
 });
 $('publicBookingForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
-  if(!publicMode||!club?.id||!selectedPublicBookingSlot)return;
+  if(!club?.id||!selectedPublicBookingSlot)return;
   const firstName=$('publicBookingFirstName').value.trim();
   const lastName=$('publicBookingLastName').value.trim();
   const email=$('publicBookingEmail').value.trim();
