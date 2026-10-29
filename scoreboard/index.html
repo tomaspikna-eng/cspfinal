@@ -1352,9 +1352,9 @@ const defaultState={
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   checkoutResults:[],checkoutAttemptStartTurns:0,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
   ],
   log:[],
 };
@@ -2361,8 +2361,12 @@ function playerCard(p,i,m){
     bigSub=`<span class="checkout-hint">${fin}</span>`;
     stats=`<div class="stat-grid">
       <div class="stat"><span>Legy</span><strong>${p.legs}</strong></div>
-      <div class="stat"><span>Priemer</span><strong>${avg}</strong></div>
-      <div class="stat"><span>Najviac</span><strong>${p.high}</strong></div>
+      <div class="stat"><span>3-dart priemer</span><strong>${avg}</strong></div>
+      <div class="stat"><span>Najvyšší hod</span><strong>${p.high}</strong></div>
+      <div class="stat"><span>100+</span><strong>${p.visits100||0}</strong></div>
+      <div class="stat"><span>140+</span><strong>${p.visits140||0}</strong></div>
+      <div class="stat"><span>180</span><strong>${p.visits180||0}</strong></div>
+      <div class="stat"><span>Bust</span><strong>${p.busts||0}</strong></div>
     </div>`;
   } else if(m==="darts_variant"){
     bigVal="—";
@@ -2423,7 +2427,7 @@ function playerCard(p,i,m){
     </div>
     <div class="${bigClass}">${bigVal}</div>
     ${bigSub?`<div class="big-sub">${bigSub}</div>`:""}
-    ${controls}${stats}${["tabletennis","racket"].includes(m)?"":scoreEventPanel(i)}`;
+    ${controls}${stats}${["tabletennis","racket","darts","darts_variant"].includes(m)?"":scoreEventPanel(i)}`;
   return card;
 }
 
@@ -2548,12 +2552,16 @@ function submitRunDarts(){
   if(left<0)bust=true; else if(state.doubleOut&&left===1)bust=true;
   if(bust){
     p.turns++;
+    p.busts=(p.busts||0)+1;
     addLog(`${p.name} — ${score} BUST (zostáva ${p.remaining})`);
     state.runInput="";
     dartsNext();
     return;
   }
   p.remaining=left;p.scored+=score;p.turns++;p.last=score;if(score>p.high)p.high=score;
+  if(score===180)p.visits180=(p.visits180||0)+1;
+  if(score>=140)p.visits140=(p.visits140||0)+1;
+  if(score>=100)p.visits100=(p.visits100||0)+1;
   addLog(`${p.name} — ${score} (zostáva ${left})`);state.runInput="";
   if(left===0){
     if(state.soloTraining&&state.discipline==="Tréning zatvárania"){requestCheckoutDarts(state.currentIndex);render();return;}
