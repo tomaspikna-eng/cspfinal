@@ -103,21 +103,32 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 .reservation-card .reservation-list-panel{margin-top:12px;padding:12px}
 .public-booking-btn{display:flex;align-items:center;justify-content:center;min-height:46px;margin-top:12px;border-radius:8px;background:var(--green);color:#051a0c;font-size:11px;font-weight:900;letter-spacing:.02em}
 .public-booking-btn[hidden]{display:none!important}
-.public-booking-inline{margin-top:12px;padding:12px;border:1px solid #2f5a40;border-radius:9px;background:rgba(88,223,138,.05)}
-.public-booking-inline[hidden]{display:none!important}
-.public-booking-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
-.public-booking-slot{min-height:48px;padding:8px;border:1px solid #30393d;border-radius:7px;background:#0d1214;color:#fff;text-align:left;cursor:pointer}
-.public-booking-slot:hover,.public-booking-slot.active{border-color:var(--green);background:rgba(88,223,138,.08)}
-.public-booking-slot b,.public-booking-slot span{display:block}
-.public-booking-slot b{font-size:9px}.public-booking-slot span{margin-top:3px;color:#9aa2a5;font-size:8px}
-.public-booking-form{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
-.public-booking-form input,.public-booking-form textarea{min-height:38px;border:1px solid #343b3e;border-radius:7px;background:#111617;color:#fff;padding:8px;font-size:9px}
-.public-booking-form textarea{grid-column:1/-1;min-height:64px;resize:vertical}
-.public-booking-form button{grid-column:1/-1;min-height:40px;border:0;border-radius:7px;background:var(--green);color:#05200e;font-size:10px;font-weight:900;cursor:pointer}
-.public-booking-form button:disabled{opacity:.45;cursor:not-allowed}
-.public-booking-message{margin-top:8px;color:#b8c0c3;font-size:9px}
+.public-booking-overlay{position:fixed;inset:0;z-index:3500;display:grid;place-items:center;padding:22px;background:rgba(0,0,0,.78);backdrop-filter:blur(5px)}
+.public-booking-overlay[hidden]{display:none!important}
+.public-booking-dialog{width:min(760px,100%);max-height:92vh;overflow:auto;border:1px solid #334039;border-radius:16px;background:linear-gradient(145deg,#111718,#090d0e);box-shadow:0 30px 90px rgba(0,0,0,.72);padding:22px}
+.public-booking-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
+.public-booking-kicker{display:block;color:var(--green);font-size:8px;font-weight:900;letter-spacing:.18em}
+.public-booking-dialog-head h2{margin:5px 0 0;color:var(--gold);font-size:21px}
+.public-booking-dialog-head p{margin:6px 0 0;color:#929a9d;font-size:10px}
+.public-booking-close{width:38px;height:38px;border:1px solid #343c3f;border-radius:9px;background:#0d1213;color:#fff;font-size:23px;line-height:1;cursor:pointer}
+.public-booking-week-wrap{padding:13px;border:1px solid #293235;border-radius:11px;background:#0b1011}
+.public-booking-week-head{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:8px;margin-bottom:10px}
+.public-booking-week-head button{height:34px;border:1px solid #5c4a28;border-radius:7px;background:#11120f;color:var(--gold);cursor:pointer}
+.public-booking-week-head strong{text-align:center;color:#d9dcdd;font-size:11px}
+.public-booking-week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.public-booking-day{min-height:68px;padding:8px 5px;border:1px solid #2d3538;border-radius:8px;background:#101516;color:#fff;text-align:center;cursor:pointer}
+.public-booking-day:hover{border-color:#48745a}.public-booking-day.active{border-color:var(--green);background:rgba(88,223,138,.09)}
+.public-booking-day.past{opacity:.35;cursor:not-allowed}.public-booking-day span,.public-booking-day b,.public-booking-day small{display:block}
+.public-booking-day span{color:#8f9698;font-size:7px;text-transform:uppercase}.public-booking-day b{margin-top:4px;font-size:16px}.public-booking-day small{margin-top:5px;color:var(--green);font-size:8px}
+.public-booking-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.public-booking-field{display:grid;gap:6px}.public-booking-field label{color:#aeb5b7;font-size:9px;font-weight:700}
+.public-booking-field input,.public-booking-field select{width:100%;height:44px;border:1px solid #343b3e;border-radius:8px;background:#111617;color:#fff;padding:0 11px;font-size:10px;outline:none}
+.public-booking-field input:focus,.public-booking-field select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(88,223,138,.08)}
+.public-booking-form button{grid-column:1/-1;min-height:48px;margin-top:4px;border:0;border-radius:9px;background:var(--green);color:#05200e;font-size:11px;font-weight:900;cursor:pointer}
+.public-booking-form button:disabled{opacity:.42;cursor:not-allowed}
+.public-booking-message{min-height:16px;margin-top:10px;color:#b8c0c3;font-size:9px}
 .public-booking-message.error{color:#ff9ba1}
-@media(max-width:520px){.public-booking-slots,.public-booking-form{grid-template-columns:1fr}.public-booking-form textarea,.public-booking-form button{grid-column:auto}}
+@media(max-width:620px){.public-booking-overlay{padding:10px}.public-booking-dialog{padding:16px}.public-booking-week{grid-template-columns:repeat(4,1fr)}.public-booking-form{grid-template-columns:1fr}.public-booking-form button{grid-column:auto}}
 
 .opening-card{border-color:#4a3d22;background:linear-gradient(145deg,rgba(228,187,98,.07),#0a0e0f 55%)}
 .opening-card .panel-title{margin-bottom:12px}
@@ -144,7 +155,7 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
 
 </style>
 <script src="/assets/csp-notifications.js" defer></script>
-<script src="/assets/csp-ultra-profile.js?v=20260920-2" defer></script>
+<script src="/assets/csp-ultra-profile.js?v=20261029-booking-1" defer></script>
 </head>
 <body>
   <div class="page-state" id="pageState">Načítavam klubový profil…</div>
@@ -203,19 +214,7 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
           <button id="calendarNext" type="button">›</button>
         </section>
         <section class="reservation-week" id="reservationWeek"></section>
-        <section class="public-booking-inline" id="publicBookingInline" hidden>
-          <div class="panel-title"><div><h2 id="publicBookingTitle">Vyber termín</h2><p class="panel-subtitle" id="publicBookingSubtitle">Dostupné časy</p></div></div>
-          <div class="public-booking-slots" id="publicBookingSlots"></div>
-          <form class="public-booking-form" id="publicBookingForm">
-            <input id="publicBookingName" placeholder="Meno *" required>
-            <input id="publicBookingPhone" placeholder="Telefón *" required>
-            <input id="publicBookingEmail" type="email" placeholder="E-mail">
-            <input id="publicBookingParty" type="number" min="1" max="20" value="2" placeholder="Počet osôb">
-            <textarea id="publicBookingNote" placeholder="Poznámka"></textarea>
-            <button id="publicBookingSubmit" type="submit" disabled>Potvrdiť rezerváciu</button>
-          </form>
-          <div class="public-booking-message" id="publicBookingMessage"></div>
-        </section>
+
         <section class="reservation-list-panel">
           <div class="panel-title"><h2>Najbližšie rezervácie</h2><span id="calendarReservationCount">0</span></div>
           <div id="publicReservationList" class="public-reservation-list"><div class="empty-row">Žiadne rezervácie.</div></div>
@@ -228,6 +227,39 @@ body .sidebar .nav .plan-create:hover{background:rgba(88,223,138,.07)}
         <div id="openingHoursList" class="venue-list opening-hours-list"><div class="empty-row">Otváracie hodiny nie sú nastavené.</div></div>
       </section>
     </aside>
+  </div>
+
+  <div class="public-booking-overlay" id="publicBookingInline" hidden>
+    <div class="public-booking-dialog" role="dialog" aria-modal="true" aria-labelledby="publicBookingTitle">
+      <div class="public-booking-dialog-head">
+        <div>
+          <span class="public-booking-kicker">REZERVÁCIA</span>
+          <h2 id="publicBookingTitle">Vyber termín</h2>
+          <p id="publicBookingSubtitle">Vyber deň, športovisko a čas.</p>
+        </div>
+        <button class="public-booking-close" id="publicBookingClose" type="button" aria-label="Zavrieť">×</button>
+      </div>
+
+      <section class="public-booking-week-wrap">
+        <div class="public-booking-week-head">
+          <button id="publicBookingWeekPrev" type="button" aria-label="Predchádzajúci týždeň">‹</button>
+          <strong id="publicBookingWeekTitle">—</strong>
+          <button id="publicBookingWeekNext" type="button" aria-label="Nasledujúci týždeň">›</button>
+        </div>
+        <div class="public-booking-week" id="publicBookingWeek"></div>
+      </section>
+
+      <form class="public-booking-form" id="publicBookingForm">
+        <div class="public-booking-field"><label for="publicBookingFirstName">Meno</label><input id="publicBookingFirstName" autocomplete="given-name" required></div>
+        <div class="public-booking-field"><label for="publicBookingLastName">Priezvisko</label><input id="publicBookingLastName" autocomplete="family-name" required></div>
+        <div class="public-booking-field"><label for="publicBookingEmail">E-mail</label><input id="publicBookingEmail" type="email" autocomplete="email" required></div>
+        <div class="public-booking-field"><label for="publicBookingPhone">Telefón</label><input id="publicBookingPhone" type="tel" autocomplete="tel" required></div>
+        <div class="public-booking-field"><label for="publicBookingStation">Športovisko</label><select id="publicBookingStation" required><option value="">Vyber športovisko</option></select></div>
+        <div class="public-booking-field"><label for="publicBookingTime">Čas</label><select id="publicBookingTime" required><option value="">Vyber čas</option></select></div>
+        <button id="publicBookingSubmit" type="submit" disabled>Potvrdiť rezerváciu</button>
+      </form>
+      <div class="public-booking-message" id="publicBookingMessage"></div>
+    </div>
   </div>
 
   <div class="settings-overlay" id="settingsOverlay"><div class="settings-card settings-card-wide">
