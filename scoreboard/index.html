@@ -1164,6 +1164,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
       </div>
     </div>
     <div class="actions">
+      <button class="fullscreen-btn" id="backToProfileBtn" type="button">← Späť na profil</button>
       <button class="fullscreen-btn" id="fullscreenBtn" type="button">Celá obrazovka</button>
       <button class="primary" id="newPeriodBtn">Nový frame</button>
       <button class="danger" id="resetBtn">Reset</button>
@@ -3219,6 +3220,18 @@ async function toggleScoreboardFullscreen(){
     console.warn("[scoreboard] fullscreen unavailable",err);
   }
 }
+$("backToProfileBtn").addEventListener("click",()=>{
+  const clubId=URL_PARAMS.get("club_id");
+  if(clubId){
+    location.href="/profil-ul/?club_id="+encodeURIComponent(clubId);
+    return;
+  }
+  if(document.referrer && new URL(document.referrer).origin===location.origin){
+    history.back();
+    return;
+  }
+  location.href="/profil/";
+});
 $("fullscreenBtn").addEventListener("click",toggleScoreboardFullscreen);
 document.addEventListener("fullscreenchange",()=>{
   $("fullscreenBtn").textContent=document.fullscreenElement?"Ukončiť fullscreen":"Celá obrazovka";
