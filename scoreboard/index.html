@@ -181,6 +181,22 @@ summary b{color:var(--gold)}
   .training-summary-actions .wide{grid-column:auto}
 }
 
+.match-stats-card{max-width:760px!important;padding:22px!important;text-align:center!important;border-color:rgba(212,168,67,.35)!important;background:linear-gradient(145deg,#151515,#090909)!important}
+.match-stats-kicker{font-family:var(--mono);font-size:.68rem;letter-spacing:.15em;color:var(--green);font-weight:800;text-transform:uppercase}
+.match-stats-title{font-size:1.7rem;font-weight:900;margin:5px 0 2px}.match-stats-sub{color:var(--muted);font-size:.78rem;margin-bottom:16px}
+.match-stats-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:16px;margin-bottom:14px}
+.match-stats-player{min-width:0}.match-stats-player.right{text-align:right}.match-stats-player.left{text-align:left}
+.match-stats-name{font-size:1.2rem;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match-stats-result{font-family:var(--mono);font-size:2.4rem;font-weight:900;color:var(--gold);line-height:1}
+.match-stats-vs{font-family:var(--mono);font-size:1.2rem;color:var(--muted);padding-bottom:7px}
+.match-stats-table{width:100%;border-collapse:collapse;margin-top:8px}.match-stats-table tr{border-top:1px solid rgba(255,255,255,.09)}
+.match-stats-table td{padding:9px 8px;font-family:var(--mono);font-size:.86rem}.match-stats-table td:first-child,.match-stats-table td:last-child{width:30%;font-weight:800;color:#fff}
+.match-stats-table td:nth-child(2){width:40%;color:#8fbfc7;font-size:.76rem;letter-spacing:.04em}
+.match-stats-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px;color:var(--muted);font-size:.72rem;text-align:left}
+.match-stats-footer strong{color:var(--green)}.match-stats-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.match-stats-actions .wide{grid-column:1/-1}
+@media(max-width:560px){.match-stats-card{padding:16px!important}.match-stats-score{grid-template-columns:1fr auto 1fr;gap:8px}.match-stats-name{font-size:.92rem}.match-stats-result{font-size:1.8rem}.match-stats-table td{padding:8px 4px;font-size:.72rem}.match-stats-table td:nth-child(2){font-size:.65rem}.match-stats-actions{grid-template-columns:1fr}.match-stats-actions .wide{grid-column:auto}}
+
 .player.active .big{color:var(--gold)}
 .big.finish{color:var(--green)}
 .big-sub{text-align:center;color:var(--muted);font-size:12px;margin-top:-4px}
@@ -1061,51 +1077,43 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 </div>
 
 <div class="modal-overlay hidden" id="trainingSummaryOverlay">
-  <div class="modal-card training-summary-card">
-    <div class="training-summary-kicker">SÚHRN TRÉNINGU</div>
-    <div class="training-summary-title" id="trainingSummaryTitle">Tréning dokončený</div>
-    <div class="training-summary-meta" id="trainingSummaryMeta"></div>
+  <div class="modal-card match-stats-card">
+    <div class="match-stats-kicker">CONNECT SPORTS PRO</div>
+    <div class="match-stats-title">Match Stats</div>
+    <div class="match-stats-sub" id="trainingSummaryMeta"></div>
 
-    <div class="training-summary-score">
-      <div class="training-summary-player">
-        <div class="training-summary-name" id="trainingSummaryP1Name">Hráč 1</div>
-        <div class="training-summary-result" id="trainingSummaryP1Score">0</div>
+    <div class="match-stats-score">
+      <div class="match-stats-player left">
+        <div class="match-stats-name" id="trainingSummaryP1Name">Hráč 1</div>
+        <div class="match-stats-result" id="trainingSummaryP1Score">0</div>
       </div>
-      <div class="training-summary-vs">:</div>
-      <div class="training-summary-player right">
-        <div class="training-summary-name" id="trainingSummaryP2Name">Hráč 2</div>
-        <div class="training-summary-result" id="trainingSummaryP2Score">0</div>
+      <div class="match-stats-vs">:</div>
+      <div class="match-stats-player right">
+        <div class="match-stats-name" id="trainingSummaryP2Name">Hráč 2</div>
+        <div class="match-stats-result" id="trainingSummaryP2Score">0</div>
       </div>
     </div>
 
-    <div class="training-summary-winner" id="trainingSummaryWinner"></div>
-
-    <div class="training-summary-metrics">
-      <div class="training-summary-metric">
-        <span>Trvanie</span>
-        <strong id="trainingSummaryDuration">00:00</strong>
-      </div>
-      <div class="training-summary-metric">
-        <span id="trainingSummaryUnitsLabel">Odohrané</span>
-        <strong id="trainingSummaryUnits">0</strong>
-      </div>
-      <div class="training-summary-metric">
-        <span>Séria</span>
-        <strong id="trainingSummarySets">1</strong>
-      </div>
+    <table class="match-stats-table" id="matchStatsTable"></table>
+    <div class="match-stats-footer">
+      <span id="trainingSummaryTitle"></span>
+      <span id="trainingSummaryWinner"></span>
     </div>
 
     <div class="training-summary-status" id="trainingSummaryStatus"></div>
-
-    <div class="training-summary-actions">
-      <button class="modal-btn primary wide" id="saveTrainingSummaryBtn">Uložiť tréning</button>
+    <div class="match-stats-actions">
+      <button class="modal-btn primary wide" id="saveTrainingSummaryBtn">Uložiť štatistiky</button>
       <button class="modal-btn" id="shareTrainingSummaryBtn">Zdieľať</button>
-      <button class="modal-btn" id="trainingSummaryDetailBtn">Moje tréningy</button>
+      <button class="modal-btn" id="trainingSummaryDetailBtn">Moje štatistiky</button>
       <button class="modal-btn wide" id="closeTrainingSummaryBtn">Späť na scoreboard</button>
+    </div>
+
+    <div class="hidden">
+      <span id="trainingSummaryDuration"></span><span id="trainingSummaryUnitsLabel"></span>
+      <span id="trainingSummaryUnits"></span><span id="trainingSummarySets"></span>
     </div>
   </div>
 </div>
-
 
 <div class="modal-overlay hidden" id="tableTennisSetOverlay">
   <div class="modal-card">
@@ -1352,9 +1360,9 @@ const defaultState={
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
   checkoutResults:[],checkoutAttemptStartTurns:0,
   players:[
-    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
-    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,highCheckout:0,finishes100:0,checkouts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,highCheckout:0,finishes100:0,checkouts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
+    {name:"Hráč 3",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,visits100:0,visits140:0,visits180:0,busts:0,highCheckout:0,finishes100:0,checkouts:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
   ],
   log:[],
 };
@@ -1948,7 +1956,7 @@ async function startNextSet(){
       activePlayers().forEach(p=>{p.frames=0;p.framePoints=0;p.highBreak=0;p.innings=0;});
       state.currentIndex=breakerIndex();
     } else if(pendingSetMode==="darts"){
-      activePlayers().forEach(p=>{p.legs=0;p.remaining=startScore();p.scored=0;p.turns=0;p.high=0;p.last=0;});
+      activePlayers().forEach(p=>{p.legs=0;p.remaining=startScore();p.scored=0;p.turns=0;p.high=0;p.last=0;p.visits100=0;p.visits140=0;p.visits180=0;p.busts=0;p.highCheckout=0;p.finishes100=0;p.checkouts=0;});
       state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;
     } else if(pendingSetMode==="tabletennis"){
       activePlayers().forEach(p=>{p.points=0;p.sets=0;});
@@ -2127,7 +2135,12 @@ function currentTrainingFinalScore(){
   return {mode:m,players:activePlayers().map(p=>{
     if(m==="frame")return {name:p.name,score:p.score};
     if(m==="points")return {name:p.name,frames:p.frames,framePoints:p.framePoints};
-    if(m==="darts")return {name:p.name,legs:p.legs,remaining:p.remaining,turns:p.turns};
+    if(m==="darts")return {
+      name:p.name,legs:p.legs,remaining:p.remaining,turns:p.turns,scored:p.scored,
+      average:p.turns?Number((p.scored/p.turns).toFixed(2)):0,high:p.high,
+      visits100:p.visits100||0,visits140:p.visits140||0,visits180:p.visits180||0,
+      busts:p.busts||0,highCheckout:p.highCheckout||0,finishes100:p.finishes100||0,checkouts:p.checkouts||0
+    };
 
     if(["tabletennis","racket","universal"].includes(m))return {name:p.name,sets:p.sets,points:p.points||0};
     return {name:p.name,points:p.points};
@@ -2140,6 +2153,29 @@ function endTrainingManually(){
   trainingSummarySaved=false;
   prepareTrainingSummary(currentTrainingFinalScore(),"",elapsedSeconds());
   showTrainingSummary();
+}
+
+function matchStatsRows(summary,p1,p2){
+  if(summary.mode==="darts"){
+    const fmt=v=>Number(v||0).toLocaleString("sk-SK",{minimumFractionDigits:0,maximumFractionDigits:2});
+    return [
+      ["3-dart priemer",fmt(p1.average),fmt(p2.average)],
+      ["100+",p1.visits100||0,p2.visits100||0],
+      ["140+",p1.visits140||0,p2.visits140||0],
+      ["180s",p1.visits180||0,p2.visits180||0],
+      ["Najvyšší hod",p1.high||0,p2.high||0],
+      ["Najvyšší checkout",p1.highCheckout||0,p2.highCheckout||0],
+      ["100+ checkouty",p1.finishes100||0,p2.finishes100||0],
+      ["BUST",p1.busts||0,p2.busts||0]
+    ];
+  }
+  if(summary.mode==="frame"){
+    return [["Framy",p1.score||0,p2.score||0]];
+  }
+  if(summary.mode==="points"){
+    return [["Framy",p1.frames||0,p2.frames||0],["Body",p1.framePoints||0,p2.framePoints||0]];
+  }
+  return [["Sety",p1.sets||0,p2.sets||0]];
 }
 
 function showTrainingSummary(){
@@ -2165,7 +2201,9 @@ function showTrainingSummary(){
   $("trainingSummaryP2Name").textContent=p2.name||"Hráč 2";
   $("trainingSummaryP1Score").textContent=summarySeriesValue(s,0);
   $("trainingSummaryP2Score").textContent=summarySeriesValue(s,1);
-  $("trainingSummaryWinner").textContent=s.winnerName?`🏆 Víťaz: ${s.winnerName}`:"Tréning ukončený";
+  $("trainingSummaryWinner").textContent=s.winnerName?`🏆 ${s.winnerName}`:"Zápas ukončený";
+  const rows=matchStatsRows(s,p1,p2);
+  $("matchStatsTable").innerHTML=rows.map(([label,left,right])=>`<tr><td>${escapeScoreText(left)}</td><td>${escapeScoreText(label)}</td><td>${escapeScoreText(right)}</td></tr>`).join("");
   $("trainingSummaryDuration").textContent=formatDuration(s.durationSeconds);
   $("trainingSummaryUnitsLabel").textContent=summaryUnitLabel(s.mode);
   $("trainingSummaryUnits").textContent=summaryTotalUnits(s);
@@ -2174,7 +2212,7 @@ function showTrainingSummary(){
   const saveBtn=$("saveTrainingSummaryBtn");
   const status=$("trainingSummaryStatus");
   saveBtn.disabled=false;
-  saveBtn.textContent="Uložiť tréning";
+  saveBtn.textContent="Uložiť štatistiky";
   status.textContent="";
   status.className="training-summary-status";
   if(!currentUserId){
@@ -2206,10 +2244,10 @@ async function savePendingTrainingSummary(){
   if(result?.ok){
     trainingSummarySaved=true;
     btn.textContent="✓ Uložené";
-    status.textContent="Tréning je uložený v tvojom profile.";
+    status.textContent="Match Stats boli uložené do tvojho CSP profilu.";
     status.className="training-summary-status ok";
   }else{
-    btn.disabled=false;btn.textContent="Uložiť tréning";
+    btn.disabled=false;btn.textContent="Uložiť štatistiky";
     status.textContent=result?.reason==="not_authenticated"?"Pre uloženie sa prihlás.":"Tréning sa nepodarilo uložiť. Skús to znova.";
     status.className="training-summary-status error";
   }
@@ -2558,10 +2596,16 @@ function submitRunDarts(){
     dartsNext();
     return;
   }
+  const checkoutValue=p.remaining;
   p.remaining=left;p.scored+=score;p.turns++;p.last=score;if(score>p.high)p.high=score;
   if(score===180)p.visits180=(p.visits180||0)+1;
   if(score>=140)p.visits140=(p.visits140||0)+1;
   if(score>=100)p.visits100=(p.visits100||0)+1;
+  if(left===0){
+    p.checkouts=(p.checkouts||0)+1;
+    p.highCheckout=Math.max(Number(p.highCheckout||0),Number(checkoutValue||0));
+    if(Number(checkoutValue||0)>=100)p.finishes100=(p.finishes100||0)+1;
+  }
   addLog(`${p.name} — ${score} (zostáva ${left})`);state.runInput="";
   if(left===0){
     if(state.soloTraining&&state.discipline==="Tréning zatvárania"){requestCheckoutDarts(state.currentIndex);render();return;}
