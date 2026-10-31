@@ -950,6 +950,21 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
   font-weight:800;margin:14px 0 4px
 }
 
+
+/* RACKET SPORTS — TV-style compact match strip */
+body.sport-racket .top{grid-template-columns:minmax(0,.75fr) minmax(360px,1.5fr) minmax(0,.75fr)}
+body.sport-racket #matchStatePanel{padding:7px 9px;min-width:0}
+body.sport-racket #matchStatePanel .label2{font-size:.56rem;letter-spacing:.08em;margin-bottom:4px}
+.racket-match-strip{display:grid;gap:3px;margin-top:0!important;color:var(--white)!important;font-family:var(--mono);font-size:inherit!important;min-width:0}
+.racket-strip-row{display:grid;grid-template-columns:minmax(86px,1fr) auto;align-items:center;gap:8px;min-width:0;background:rgba(255,255,255,.035);border-radius:7px;padding:3px 4px 3px 8px}
+.racket-strip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-family:var(--font);font-size:.78rem;font-weight:800;color:var(--white)}
+.racket-strip-scores{display:flex;align-items:stretch;justify-content:flex-end;gap:2px}
+.racket-set-cell,.racket-game-cell,.racket-point-cell{display:grid;place-items:center;min-width:28px;height:29px;padding:0 5px;border-radius:5px;font-size:.92rem;font-weight:900;line-height:1}
+.racket-set-cell{background:rgba(255,255,255,.055);color:#d7dde5}
+.racket-game-cell{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.28)}
+.racket-point-cell{min-width:38px;background:var(--white);color:#0b0b0b;font-size:1rem}
+@media(max-width:680px){body.sport-racket .top{grid-template-columns:1fr}.racket-strip-row{grid-template-columns:minmax(74px,1fr) auto}.racket-set-cell,.racket-game-cell{min-width:25px}.racket-point-cell{min-width:35px}}
+
 </style>
 <link rel="icon" type="image/png" href="/assets/csp-logo-mark.png">
 <meta name="description" content="Connect Sports Pro — šport, turnaje, výsledky a komunita v jednom systéme.">
@@ -1106,7 +1121,7 @@ body.sport-darts .keypad-grid .key{min-height:56px;font-size:22px}
 
   <div class="top">
     <div class="status"><div class="label2">Na rade</div><div class="current" id="currentPlayer">Hráč 1</div></div>
-    <div class="status"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
+    <div class="status" id="matchStatePanel"><div class="label2" id="periodLabel">Frame</div><div class="period" id="periodText">Frame 1</div></div>
     <div class="status">
       <div class="label2">Čas zápasu</div>
       <div class="period" id="matchTimer">00:00</div>
@@ -1218,6 +1233,7 @@ const defaultState={
   sport:"billiard",discipline:"8-ball",customLabel:"Univerzál",
   playerCount:2,raceTo:5,pointsTarget:0,setTarget:11,doubleOut:true,alternateBreak:true,
   currentIndex:0,period:1,starter:0,runInput:"",setsWon:[0,0,0],setNumber:1,
+  racketSetHistory:[],
   players:[
     {name:"Hráč 1",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
     {name:"Hráč 2",score:0,innings:0,runs:0,breakRuns:0,runouts:0,goldenBreaks:0,comboWins:0,threeFoulWins:0,eightOnBreaks:0,errors:0,framePoints:0,frames:0,highBreak:0,remaining:501,legs:0,scored:0,turns:0,high:0,last:0,points:0,sets:0,games:0,tiePoints:0,metrics:{},avatarUrl:""},
@@ -1280,6 +1296,7 @@ function resetScoresForMode(){
     if(mode()==="tabletennis"){p.points=0;p.sets=0;}
     if(mode()==="racket"){p.points=0;p.games=0;p.sets=0;p.tiePoints=0;}
   });
+  if(mode()==="racket")state.racketSetHistory=[];
 }
 
 /* Rule already used by the discipline pill in render() below — pulled
@@ -1327,8 +1344,10 @@ function playerIdentityMarkup(p){
   return `<div class="player-id"><div class="player-avatar"><span>${escapeScoreText(playerInitials(p.name))}</span>${img}</div><div class="name">${escapeScoreText(p.name)}</div></div>`;
 }
 function syncScoreboardLayoutMode(){
-  const darts=mode()==="darts";
+  const currentMode=mode();
+  const darts=currentMode==="darts";
   document.body.classList.toggle("sport-darts",darts);
+  document.body.classList.toggle("sport-racket",currentMode==="racket");
   document.body.classList.toggle("orientation-portrait",window.matchMedia("(orientation: portrait)").matches);
   document.body.classList.toggle("orientation-landscape",window.matchMedia("(orientation: landscape)").matches);
 }
@@ -1914,12 +1933,37 @@ function render(){
   }
   else if(m==="points"){fmt = state.pointsTarget>0?`Cieľ ${state.pointsTarget} b. · Race to ${state.raceTo}`:`Race to ${state.raceTo}`;}
   $("formatPill").textContent=fmt;
+  const matchStatePanel=$("matchStatePanel");
+  matchStatePanel.classList.toggle("racket-match-panel",m==="racket");
   if(m==="racket"){
-    const setScorePlayers=activePlayers();
-    $("periodLabel").textContent=`Stav setov · Set ${state.period}`;
-    $("periodText").textContent=`${setScorePlayers[0]?.sets||0} : ${setScorePlayers[1]?.sets||0}`;
+    const players=activePlayers();
+    const history=Array.isArray(state.racketSetHistory)?state.racketSetHistory:[];
+    const pointLabel=(idx)=>{
+      const p=players[idx],o=players[idx===0?1:0];
+      if(!p||!o)return "0";
+      if(p.games===6&&o.games===6)return String(p.tiePoints||0);
+      const a=p.points||0,b=o.points||0;
+      if(a>=3&&b>=3){
+        if(a===b)return "40";
+        if(a===b+1)return "AD";
+        return "40";
+      }
+      return ["0","15","30","40"][Math.min(a,3)]||"40";
+    };
+    const row=(idx)=>{
+      const p=players[idx];
+      const completed=history.map(set=>`<span class="racket-set-cell">${Number(set?.[idx]??0)}</span>`).join("");
+      return `<div class="racket-strip-row">
+        <span class="racket-strip-name">${escapeScoreText(p?.name||`Hráč ${idx+1}`)}</span>
+        <span class="racket-strip-scores">${completed}<span class="racket-game-cell">${Number(p?.games||0)}</span><span class="racket-point-cell">${pointLabel(idx)}</span></span>
+      </div>`;
+    };
+    $("periodLabel").textContent=`SETY · SET ${state.period} · GAME · BODY`;
+    $("periodText").classList.add("racket-match-strip");
+    $("periodText").innerHTML=row(0)+row(1);
   }else{
     $("periodLabel").textContent=periodWord;
+    $("periodText").classList.remove("racket-match-strip");
     $("periodText").textContent=`${periodWord} ${state.period}`;
   }
   $("newPeriodBtn").textContent="Ukončiť zápas";
@@ -2256,6 +2300,9 @@ function racketResetGame(){
 }
 function racketWinSet(i){
   const players=activePlayers(),w=players[i],o=players[i===0?1:0];
+  const completedSet=[Number(players[0]?.games||0),Number(players[1]?.games||0)];
+  if(!Array.isArray(state.racketSetHistory))state.racketSetHistory=[];
+  state.racketSetHistory.push(completedSet);
   w.sets++;
   addLog(`🎾 ${w.name} vyhral set ${state.period} (${w.games}:${o.games})`);
   state.period++;
