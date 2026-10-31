@@ -2323,8 +2323,14 @@ function render(){
   }
   else if(m==="points"){fmt = state.pointsTarget>0?`Cieľ ${state.pointsTarget} b. · Race to ${state.raceTo}`:`Race to ${state.raceTo}`;}
   $("formatPill").textContent=fmt;
-  $("periodLabel").textContent=periodWord;
-  $("periodText").textContent=`${periodWord} ${state.period}`;
+  if(m==="racket"){
+    const setScorePlayers=activePlayers();
+    $("periodLabel").textContent=`Stav setov · Set ${state.period}`;
+    $("periodText").textContent=`${setScorePlayers[0]?.sets||0} : ${setScorePlayers[1]?.sets||0}`;
+  }else{
+    $("periodLabel").textContent=periodWord;
+    $("periodText").textContent=`${periodWord} ${state.period}`;
+  }
   $("newPeriodBtn").textContent=newBtn;
 
   // keypad visibility
