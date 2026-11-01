@@ -202,7 +202,7 @@ async function handleTeamAction(e){
   }
 }
 function handleCompetitionAction(e){var b=e.target.closest('[data-comp-meeting]');if(b)openMeetingModal(b.dataset.compMeeting)}
-function handleMeetingAction(e){var b=e.target.closest('[data-manage-meeting]');if(b)openDuelModal(b.dataset.manageMeeting)}
+function handleMeetingAction(e){var b=e.target.closest('[data-manage-meeting]');if(b)location.href='/teams/priebeh/?meeting_id='+encodeURIComponent(b.dataset.manageMeeting)}
 
 async function saveTeam(e){
   e.preventDefault();
