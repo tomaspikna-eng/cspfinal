@@ -68,7 +68,7 @@ function bind(){
 async function loadAll(){
   var c=cspAuth.client;
   var rr=await Promise.all([
-    c.from('teams').select('id,owner_id,name,short_name,sport,city,country,logo_url,status,created_at,updated_at').order('created_at',{ascending:false}),
+    c.from('teams').select('id,owner_id,name,short_name,sport,city,country,logo_url,status,is_present,created_at,updated_at').order('created_at',{ascending:false}),
     c.from('team_members').select('id,team_id,user_id,display_name,member_role,sort_order,active,created_at,updated_at').order('sort_order'),
     c.from('team_competitions').select('id,owner_id,name,sport,season_name,status,default_best_of,default_discipline,default_race_to,win_points,loss_points,created_at,updated_at').order('created_at',{ascending:false}),
     c.from('team_competition_teams').select('competition_id,team_id,seed,created_at'),
@@ -96,7 +96,7 @@ function renderTeams(){
   el.innerHTML=state.teams.map(function(t){
     var ms=membersFor(t.id),cap=ms.find(function(m){return m.member_role==='captain'});
     var roster=ms.length?ms.map(function(m){return '<div class="roster-row"><span>'+esc(m.display_name)+'</span><div class="roster-actions"><em>'+(m.member_role==='captain'?'Kapitán':m.member_role==='substitute'?'Náhradník':'Hráč')+'</em><button class="btn small ghost danger" type="button" data-delete-member="'+m.id+'">Odstrániť</button></div></div>'}).join(''):'<div class="muted">Súpiska je prázdna.</div>';
-    return '<article class="team-card"><div class="team-card-head"><div class="team-mark">'+esc((t.short_name||t.name).slice(0,3).toUpperCase())+'</div><div><h3>'+esc(t.name)+'</h3><p>'+esc(t.sport)+(t.city?' · '+esc(t.city):'')+(t.country?' · '+esc(t.country):'')+'</p></div><span class="status '+esc(t.status)+'">'+esc(t.status)+'</span></div><div class="team-meta"><span><b>'+ms.length+'</b> hráčov</span><span>Kapitán: <b>'+esc(cap?cap.display_name:'—')+'</b></span></div><div class="roster">'+roster+'</div><div class="team-actions"><button class="btn small" data-add-member="'+t.id+'">+ Pridať hráča</button><button class="btn small ghost danger" type="button" data-delete-team="'+t.id+'">Odstrániť tím</button></div></article>';
+    return '<article class="team-card"><div class="team-card-head"><div class="team-mark">'+esc((t.short_name||t.name).slice(0,3).toUpperCase())+'</div><div><h3>'+esc(t.name)+'</h3><p>'+esc(t.sport)+(t.city?' · '+esc(t.city):'')+(t.country?' · '+esc(t.country):'')+'</p></div><span class="status '+esc(t.status)+'">'+esc(t.status)+'</span></div><div class="team-meta"><span><b>'+ms.length+'</b> hráčov</span><span>Kapitán: <b>'+esc(cap?cap.display_name:'—')+'</b></span></div><div class="roster">'+roster+'</div><div class="team-actions"><button class="btn small '+(t.is_present?'done':'ghost')+'" type="button" data-toggle-present="'+t.id+'">'+(t.is_present?'Prítomný ✓':'Neprítomný')+'</button><button class="btn small" data-add-member="'+t.id+'">+ Pridať hráča</button><button class="btn small ghost danger" type="button" data-delete-team="'+t.id+'">Odstrániť tím</button></div></article>';
   }).join('');
 }
 
@@ -150,6 +150,17 @@ function renderRankings(){
 }
 
 async function handleTeamAction(e){
+  var presence=e.target.closest('[data-toggle-present]');
+  if(presence){
+    var presenceTeam=teamById(presence.dataset.togglePresent);if(!presenceTeam)return;
+    presence.disabled=true;
+    var nextPresence=!presenceTeam.is_present;
+    var pr=await cspAuth.client.from('teams').update({is_present:nextPresence}).eq('id',presenceTeam.id);
+    if(pr.error){presence.disabled=false;toast(pr.error.message,true);return}
+    toast(nextPresence?'Tím označený ako prítomný.':'Tím označený ako neprítomný.');
+    await loadAll();return;
+  }
+
   var add=e.target.closest('[data-add-member]');
   if(add){
     var id=add.dataset.addMember,t=teamById(id);
@@ -200,11 +211,14 @@ async function saveMember(e){
   closeModal('memberModal');toast('Hráč pridaný do súpisky.');await loadAll();
 }
 function openCompetitionModal(){
-  $('competitionForm').reset();$('competitionTeams').innerHTML=state.teams.map(function(t){return '<option value="'+t.id+'">'+esc(t.name)+'</option>'}).join('');openModal('competitionModal');
+  $('competitionForm').reset();
+  var present=state.teams.filter(function(t){return t.is_present});
+  $('competitionPresentTeams').innerHTML=present.length?present.map(function(t){return '<span>'+esc(t.name)+'</span>'}).join(''):'<span class="muted">Žiadny tím nie je označený ako prítomný.</span>';
+  openModal('competitionModal');
 }
 async function saveCompetition(e){
-  e.preventDefault();var selected=Array.from($('competitionTeams').selectedOptions).map(function(o){return o.value});
-  if(selected.length<2){toast('Vyber minimálne dva tímy.',true);return}
+  e.preventDefault();var selected=state.teams.filter(function(t){return t.is_present}).map(function(t){return t.id});
+  if(selected.length<2){toast('Označ minimálne dva tímy ako prítomné.',true);return}
   var payload={owner_id:state.session.user.id,name:$('competitionName').value.trim(),sport:$('competitionSport').value.trim()||'Biliard',season_name:$('competitionSeason').value.trim()||null,default_best_of:Number($('competitionBestOf').value||5),default_discipline:$('competitionDiscipline').value.trim()||'9-ball',default_race_to:Number($('competitionRaceTo').value||5),status:'active'};
   var r=await cspAuth.client.from('team_competitions').insert(payload).select('id').single();if(r.error){toast(r.error.message,true);return}
   var links=selected.map(function(team_id){return {competition_id:r.data.id,team_id:team_id}});
