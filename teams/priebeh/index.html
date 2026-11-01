@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Priebeh turnaja · Connect Sports Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#080b0c;--panel:#101516;--panel2:#151b1d;--line:#263033;--text:#f3f5f5;--muted:#9aa3a6;--gold:#d4a843;--green:#26d07d;--red:#e25c5c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+button,input,select{font:inherit}.top{height:64px;border-bottom:1px solid #1d2527;background:#080b0c;display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:20}.brand img{width:220px}.top-actions{margin-left:auto;display:flex;gap:8px}.btn{border:0;border-radius:9px;padding:10px 14px;background:var(--green);color:#06210f;font-weight:800;cursor:pointer;text-decoration:none}.btn.ghost{background:#111718;color:#fff;border:1px solid var(--line)}.btn.small{padding:8px 10px;font-size:12px}.btn.done{background:#173326;color:#8df0b8}.wrap{max-width:1500px;margin:0 auto;padding:28px}.eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:800}.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:22px}.head h1{margin:6px 0 4px;font-size:32px}.head p{margin:0;color:var(--muted)}.scorebar{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#111718,#0d1213);padding:18px;margin-bottom:18px}.team{font-size:22px;font-weight:800}.team.away{text-align:right}.score{font-size:38px;font-weight:900;color:var(--gold)}.meta{color:var(--muted);font-size:12px;margin-top:4px}.duels{display:flex;flex-direction:column;gap:10px}.duel{display:grid;grid-template-columns:44px 94px minmax(190px,1fr) 70px 160px 70px minmax(190px,1fr) 132px;gap:8px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0d1213}.duel.is-doubles{border-color:rgba(212,168,67,.38)}.duel-no{font-weight:900;color:var(--gold)}.duel select,.duel input{width:100%;min-width:0;background:#121819;border:1px solid #2a3437;color:#fff;border-radius:8px;padding:9px}.duel-type{color:var(--gold)!important;font-weight:800}.side{display:grid;gap:6px}.middle{display:grid;grid-template-columns:1fr auto 58px;gap:5px;align-items:center}.middle small{font-size:9px;color:var(--muted)}.actions{display:flex;flex-direction:column;gap:6px}.hidden{display:none!important}.empty{padding:36px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--green);color:#06210f;padding:11px 16px;border-radius:999px;font-weight:800;opacity:0;transition:.2s;z-index:40}.toast.show{opacity:1}.toast.error{background:var(--red);color:#fff}
+@media(max-width:1050px){.duel{grid-template-columns:40px 90px 1fr 60px 1fr 60px 1fr}.actions{grid-column:1/-1;flex-direction:row}.middle{grid-template-columns:1fr auto 54px}}
+@media(max-width:700px){.wrap{padding:16px}.head{align-items:flex-start;flex-direction:column}.scorebar{grid-template-columns:1fr auto 1fr}.team{font-size:16px}.score{font-size:28px}.duel{grid-template-columns:1fr}.duel-no{display:none}.actions{grid-column:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/teams/"><img src="/assets/csp-logo-full.png" alt="Connect Sports Pro"></a>
+  <div class="top-actions">
+    <a class="btn ghost" href="/teams/">← Teams</a>
+    <a class="btn" id="projectorBtn" href="#" target="_blank" rel="noopener">Projektor</a>
+  </div>
+</header>
+<main class="wrap">
+  <div class="head">
+    <div><div class="eyebrow">PRIEBEH TURNAJA</div><h1 id="title">Načítavam…</h1><p id="subtitle"></p></div>
+  </div>
+  <section class="scorebar">
+    <div><div class="team" id="homeTeam">—</div><div class="meta" id="homeMeta"></div></div>
+    <div class="score" id="teamScore">0 : 0</div>
+    <div><div class="team away" id="awayTeam">—</div><div class="meta" id="awayMeta" style="text-align:right"></div></div>
+  </section>
+  <section class="duels" id="duels"><div class="empty">Načítavam duely…</div></section>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+'use strict';
+var $=id=>document.getElementById(id);
+var esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+var state={session:null,meeting:null,competition:null,home:null,away:null,members:[],games:[]};
+function toast(msg,error){var el=$('toast');el.textContent=msg;el.classList.toggle('error',!!error);el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
+function meetingId(){return new URLSearchParams(location.search).get('meeting_id')}
+function membersFor(teamId){return state.members.filter(x=>x.team_id===teamId&&x.active).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||a.display_name.localeCompare(b.display_name))}
+function opts(list,selected,label){return '<option value="">'+label+'</option>'+list.map(x=>'<option value="'+x.id+'" '+(x.id===selected?'selected':'')+'>'+esc(x.display_name)+'</option>').join('')}
+async function init(){
+  var id=meetingId();if(!id){location.href='/teams/';return}
+  var sr=await cspAuth.getSession(),session=sr.data&&sr.data.session;if(!session){location.href='/login/';return}state.session=session;
+  $('projectorBtn').href='/teams/projector/?meeting_id='+encodeURIComponent(id);
+  await load();
+  $('duels').addEventListener('change',onChange);
+  $('duels').addEventListener('click',onClick);
+}
+async function load(){
+  var c=cspAuth.client,id=meetingId();
+  var mr=await c.from('team_meetings').select('id,competition_id,round_label,scheduled_at,home_team_id,away_team_id,best_of,status,home_score,away_score').eq('id',id).single();
+  if(mr.error){toast(mr.error.message,true);return}
+  state.meeting=mr.data;
+  var rr=await Promise.all([
+    c.from('team_competitions').select('id,name,sport,season_name,default_discipline,default_race_to').eq('id',mr.data.competition_id).single(),
+    c.from('teams').select('id,name,short_name').in('id',[mr.data.home_team_id,mr.data.away_team_id]),
+    c.from('team_members').select('id,team_id,display_name,sort_order,active').in('team_id',[mr.data.home_team_id,mr.data.away_team_id]).eq('active',true).order('sort_order'),
+    c.from('team_match_games').select('id,meeting_id,slot_no,discipline,race_to,game_type,home_member_id,home_member2_id,away_member_id,away_member2_id,home_score,away_score,status').eq('meeting_id',id).order('slot_no')
+  ]);
+  rr.forEach(r=>{if(r.error)throw r.error});
+  state.competition=rr[0].data;state.home=rr[1].data.find(x=>x.id===mr.data.home_team_id);state.away=rr[1].data.find(x=>x.id===mr.data.away_team_id);state.members=rr[2].data||[];state.games=rr[3].data||[];
+  render();
+}
+function render(){
+  $('title').textContent=(state.competition?.name||'Tímová súťaž')+' · '+(state.home?.name||'Domáci')+' vs '+(state.away?.name||'Hostia');
+  $('subtitle').textContent=[state.meeting.round_label,state.competition?.season_name,state.competition?.sport].filter(Boolean).join(' · ');
+  $('homeTeam').textContent=state.home?.name||'Domáci';$('awayTeam').textContent=state.away?.name||'Hostia';$('teamScore').textContent=state.meeting.home_score+' : '+state.meeting.away_score;
+  $('homeMeta').textContent=state.home?.short_name||'';$('awayMeta').textContent=state.away?.short_name||'';
+  var hm=membersFor(state.meeting.home_team_id),am=membersFor(state.meeting.away_team_id);
+  $('duels').innerHTML=state.games.map(g=>{
+    var d=g.game_type==='doubles';
+    return '<article class="duel '+(d?'is-doubles':'')+'" data-game="'+g.id+'">'+
+      '<div class="duel-no">#'+g.slot_no+'</div>'+
+      '<select class="duel-type" data-field="game_type"><option value="singles" '+(!d?'selected':'')+'>Singles</option><option value="doubles" '+(d?'selected':'')+'>Doubles</option></select>'+
+      '<div class="side"><select data-field="home_member_id">'+opts(hm,g.home_member_id,'Domáci hráč 1')+'</select><select data-field="home_member2_id" class="partner '+(d?'':'hidden')+'">'+opts(hm,g.home_member2_id,'Domáci hráč 2')+'</select></div>'+
+      '<input data-field="home_score" type="number" min="0" value="'+g.home_score+'">'+
+      '<div class="middle"><input data-field="discipline" value="'+esc(g.discipline)+'"><small>Race to</small><input data-field="race_to" type="number" min="1" value="'+g.race_to+'"></div>'+
+      '<input data-field="away_score" type="number" min="0" value="'+g.away_score+'">'+
+      '<div class="side"><select data-field="away_member_id">'+opts(am,g.away_member_id,'Hostia hráč 1')+'</select><select data-field="away_member2_id" class="partner '+(d?'':'hidden')+'">'+opts(am,g.away_member2_id,'Hostia hráč 2')+'</select></div>'+
+      '<div class="actions"><button class="btn small ghost" data-scoreboard="'+g.id+'">Scoreboard</button><button class="btn small '+(g.status==='completed'?'done':'')+'" data-save="'+g.id+'">'+(g.status==='completed'?'Uložiť ✓':'Uložiť výsledok')+'</button></div>'+
+    '</article>';
+  }).join('')||'<div class="empty">Žiadne duely.</div>';
+}
+function rowData(row){
+  var val=n=>{var e=row.querySelector('[data-field="'+n+'"]');return e?e.value:''};
+  var type=val('game_type')||'singles';
+  return {game_type:type,home_member_id:val('home_member_id')||null,home_member2_id:type==='doubles'?(val('home_member2_id')||null):null,away_member_id:val('away_member_id')||null,away_member2_id:type==='doubles'?(val('away_member2_id')||null):null,home_score:Number(val('home_score')||0),away_score:Number(val('away_score')||0),discipline:val('discipline').trim()||'9-ball',race_to:Number(val('race_to')||1)};
+}
+function validate(p){
+  if(!p.home_member_id||!p.away_member_id)return 'Vyber hráča na oboch stranách.';
+  if(p.game_type==='doubles'&&(!p.home_member2_id||!p.away_member2_id))return 'Pri Doubles vyber dvoch hráčov na každej strane.';
+  if(p.game_type==='doubles'&&(p.home_member_id===p.home_member2_id||p.away_member_id===p.away_member2_id))return 'V Doubles musia byť dvaja rozdielni hráči na každej strane.';
+  return null;
+}
+function onChange(e){
+  if(!e.target.matches('[data-field="game_type"]'))return;
+  var row=e.target.closest('[data-game]'),show=e.target.value==='doubles';row.classList.toggle('is-doubles',show);row.querySelectorAll('.partner').forEach(x=>x.classList.toggle('hidden',!show));
+}
+async function onClick(e){
+  var sb=e.target.closest('[data-scoreboard]'),save=e.target.closest('[data-save]');if(!sb&&!save)return;
+  var row=e.target.closest('[data-game]'),p=rowData(row),err=validate(p);if(err){toast(err,true);return}
+  var id=(sb||save).dataset[sb?'scoreboard':'save'];
+  if(sb){
+    var setup=await cspAuth.client.from('team_match_games').update({game_type:p.game_type,home_member_id:p.home_member_id,home_member2_id:p.home_member2_id,away_member_id:p.away_member_id,away_member2_id:p.away_member2_id,discipline:p.discipline,race_to:p.race_to}).eq('id',id);
+    if(setup.error){toast(setup.error.message,true);return}
+    location.href='/scoreboard-te/?team_game_id='+encodeURIComponent(id)+'&smart=1';return;
+  }
+  var r=await cspAuth.client.from('team_match_games').update({...p,status:'completed'}).eq('id',id);
+  if(r.error){toast(r.error.message,true);return}
+  toast('Výsledok uložený.');await load();
+}
+init().catch(err=>{console.error(err);toast(err.message||String(err),true)});
+})();
+</script>
+</body>
+</html>
