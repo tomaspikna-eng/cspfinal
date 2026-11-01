@@ -118,21 +118,21 @@ summary b{color:var(--gold)}
 .pm button{flex:1;max-width:120px;min-height:48px;font-size:18px;font-weight:700}
 .pm .plus{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.4);color:var(--green)}
 .pm .set-btn{background:rgba(212,168,67,.12);border-color:var(--gold);color:var(--gold);max-width:none}
-.score-event-panel{margin-top:14px;padding-top:13px;border-top:1px solid var(--border)}
-.score-event-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.score-event-panel{margin-top:8px;padding-top:7px;border-top:1px solid var(--border)}
+.score-event-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .score-event-title{font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .score-event-state{font-size:.62rem;color:var(--muted)}
-.score-event-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.score-event-btn{min-height:24px;padding:4px 7px;font-size:.58rem;font-weight:800;line-height:1.05;letter-spacing:.01em;touch-action:manipulation}
+.score-event-actions{display:flex;flex-wrap:wrap;gap:4px}
+.score-event-btn{flex:1 1 calc(25% - 4px);min-width:0;min-height:20px;padding:2px 4px;font-size:.48rem;font-weight:800;line-height:1;letter-spacing:0;touch-action:manipulation;border-radius:7px}
 .score-event-btn[data-score-event="standard_point"],
-.score-event-btn[data-score-event="standard_minus"]{min-height:45px;padding:8px 9px;font-size:.72rem;line-height:1.15}
+.score-event-btn[data-score-event="standard_minus"]{flex:1 1 calc(50% - 4px);min-height:42px;padding:7px 8px;font-size:.72rem;line-height:1.1}
 .score-event-btn[data-style="primary"]{background:rgba(24,201,100,.14);border-color:rgba(24,201,100,.5);color:var(--green)}
 .score-event-btn[data-score-event="standard_point"]{background:var(--green);border-color:var(--green);color:#031108}
 .score-event-btn[data-style="positive"]{background:rgba(212,168,67,.14);border-color:var(--gold);color:var(--gold)}
 .score-event-btn[data-style="warning"]{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.45);color:#f87171}
 .score-event-btn[data-style="danger"]{background:rgba(239,68,68,.14);border-color:var(--danger);color:var(--danger)}
 .score-event-btn:disabled{opacity:.42;cursor:wait}
-.score-event-undo{grid-column:1/-1;min-height:24px;color:var(--muted);border-style:dashed;background:transparent}
+.score-event-undo{flex:1 1 100%;min-height:20px;padding:2px 4px;color:var(--muted);border-style:dashed;background:transparent;font-size:.46rem}
 .score-event-empty{grid-column:1/-1;padding:10px;border-radius:10px;background:var(--panel2);font-size:.72rem;color:var(--muted);text-align:center}
 .player.event-busy{opacity:.72}
 .te-player-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -150,14 +150,20 @@ summary b{color:var(--gold)}
 .stat.warn strong{color:var(--danger)}
 
 
-/* BILLIARD BONUS CTA — compact secondary actions. */
-body.sport-billiard .score-event-btn:not([data-score-event="standard_point"]):not([data-score-event="standard_minus"]){
-  min-height:24px!important;
-  padding:4px 7px!important;
-  font-size:.56rem!important;
+/* BILLIARD BONUS CTA — one compact horizontal strip below +1 / -1. */
+body.sport-billiard .score-event-btn:not([data-score-event="standard_point"]):not([data-score-event="standard_minus"]):not(.score-event-undo){
+  flex:1 1 calc(25% - 4px)!important;
+  min-height:20px!important;
+  padding:2px 4px!important;
+  font-size:.48rem!important;
   line-height:1!important;
 }
-body.sport-billiard .score-event-undo{min-height:24px!important;padding:4px 7px!important;font-size:.54rem!important}
+body.sport-billiard .score-event-undo{
+  flex-basis:100%!important;
+  min-height:20px!important;
+  padding:2px 4px!important;
+  font-size:.46rem!important;
+}
 
 /* KEYPAD */
 .keypad-panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px}
@@ -193,7 +199,7 @@ body.sport-billiard .score-event-undo{min-height:24px!important;padding:4px 7px!
 
 @media(max-width:480px){
   .keypad-grid{max-width:none}.keypad-head{justify-content:center;text-align:center}.keypad-submit{width:100%}
-  .score-event-actions{grid-template-columns:1fr 1fr}
+  .score-event-actions{display:flex;flex-wrap:wrap}
   .top{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
