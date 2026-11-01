@@ -1705,6 +1705,7 @@ function finalTournamentScore(){
 
 let lastTournamentLiveScore="";
 async function syncTournamentLiveScore(){
+  if(TEAM_GAME_ID&&teamGame?.game_status==="scheduled")teMatchStarted=true;
   if((!TEAM_GAME_ID&&!MATCH_ID)||(!TEAM_GAME_ID&&!MATCH_TOKEN)||!teMatchStarted||tournamentResultSubmitting)return;
   const scores=finalTournamentScore();
   if(scores.length<2)return;
@@ -2661,7 +2662,7 @@ async function loadTeamGame(){
     if(!row.home_member_id||!row.away_member_id)throw new Error("Najprv priraď oboch hráčov k duelu.");
 
     teamGame=row;
-    teMatchStarted=row.game_status!=="completed"&&row.game_status!=="cancelled";
+    teMatchStarted=row.game_status==="active";
     state.playerCount=2;
     state.players[0].name=row.home_player_name||"Hráč 1";
     state.players[1].name=row.away_player_name||"Hráč 2";
@@ -2672,7 +2673,8 @@ async function loadTeamGame(){
     resetScoresForMode();
     state.raceTo=Math.max(1,Math.min(100,Number(row.race_to||5)));
 
-    const loadedScore1=Number(row.home_score||0),loadedScore2=Number(row.away_score||0);
+    const isFreshTeamGame=row.game_status==="scheduled";
+    const loadedScore1=isFreshTeamGame?0:Number(row.home_score||0),loadedScore2=isFreshTeamGame?0:Number(row.away_score||0);
     if(mode()==="frame"){
       state.players[0].score=loadedScore1;state.players[1].score=loadedScore2;
     }else if(mode()==="points"){
@@ -2698,7 +2700,8 @@ async function loadTeamGame(){
       $("endMatchBtn").textContent="Výsledok už odoslaný";
       teMatchStarted=false;
     }else{
-      addLog(`Teams duel načítaný: ${row.home_player_name} vs ${row.away_player_name}`);
+      if(row.game_status==="scheduled") addLog(`Teams duel pripravený: ${row.home_player_name} vs ${row.away_player_name} · 0:0`);
+      else addLog(`Teams duel načítaný: ${row.home_player_name} vs ${row.away_player_name}`);
     }
     render();
   }catch(err){
