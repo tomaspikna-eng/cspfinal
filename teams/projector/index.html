@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Projektor · Connect Sports Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/csp-auth.js"></script>
+<style>
+:root{--bg:#050607;--panel:#0d1112;--line:#263033;--text:#fff;--muted:#9aa3a6;--gold:#d4a843;--green:#26d07d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}.wrap{padding:28px 36px}.head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:24px;margin-bottom:28px}.team{font-size:clamp(28px,4vw,58px);font-weight:900}.team.away{text-align:right}.score{font-size:clamp(44px,7vw,96px);font-weight:900;color:var(--gold);white-space:nowrap}.sub{color:var(--muted);font-size:clamp(14px,1.4vw,22px);margin-top:6px}.duels{display:grid;gap:12px}.duel{display:grid;grid-template-columns:70px 120px 1fr 100px 1fr;align-items:center;gap:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px 20px}.no{font-size:24px;font-weight:900;color:var(--gold)}.type{font-size:16px;font-weight:800;color:var(--muted)}.players{font-size:clamp(20px,2.4vw,34px);font-weight:800}.players.away{text-align:right}.dscore{font-size:clamp(30px,3.8vw,54px);font-weight:900;text-align:center}.completed .dscore{color:var(--green)}.meta{text-align:center;color:var(--muted);font-size:13px;margin-top:4px}
+</style>
+</head>
+<body><main class="wrap"><section class="head"><div><div class="team" id="home">—</div><div class="sub" id="title"></div></div><div class="score" id="score">0 : 0</div><div><div class="team away" id="away">—</div><div class="sub" id="round" style="text-align:right"></div></div></section><section class="duels" id="duels"></section></main>
+<script>
+(function(){
+'use strict';
+var $=id=>document.getElementById(id),esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+var state={meeting:null,competition:null,teams:[],members:[],games:[]};var channel=null;
+function id(){return new URLSearchParams(location.search).get('meeting_id')}
+function member(mid){return state.members.find(x=>x.id===mid)}
+function names(g,home){
+  var a=member(home?g.home_member_id:g.away_member_id),b=member(home?g.home_member2_id:g.away_member2_id);
+  return g.game_type==='doubles'?[a&&a.display_name,b&&b.display_name].filter(Boolean).join(' / '):(a&&a.display_name)||'—';
+}
+async function init(){
+  var mid=id();if(!mid){location.href='/teams/';return}
+  var sr=await cspAuth.getSession(),session=sr.data&&sr.data.session;if(!session){location.href='/login/';return}
+  await load();subscribe(mid);
+}
+async function load(){
+  var c=cspAuth.client,mid=id();
+  var mr=await c.from('team_meetings').select('id,competition_id,round_label,home_team_id,away_team_id,home_score,away_score').eq('id',mid).single();if(mr.error)throw mr.error;state.meeting=mr.data;
+  var rr=await Promise.all([
+    c.from('team_competitions').select('id,name,season_name').eq('id',mr.data.competition_id).single(),
+    c.from('teams').select('id,name').in('id',[mr.data.home_team_id,mr.data.away_team_id]),
+    c.from('team_members').select('id,display_name').in('team_id',[mr.data.home_team_id,mr.data.away_team_id]),
+    c.from('team_match_games').select('id,slot_no,game_type,home_member_id,home_member2_id,away_member_id,away_member2_id,home_score,away_score,status,discipline,race_to').eq('meeting_id',mid).order('slot_no')
+  ]);rr.forEach(r=>{if(r.error)throw r.error});state.competition=rr[0].data;state.teams=rr[1].data||[];state.members=rr[2].data||[];state.games=rr[3].data||[];render();
+}
+function render(){
+  var h=state.teams.find(x=>x.id===state.meeting.home_team_id),a=state.teams.find(x=>x.id===state.meeting.away_team_id);
+  $('home').textContent=h?.name||'Domáci';$('away').textContent=a?.name||'Hostia';$('score').textContent=state.meeting.home_score+' : '+state.meeting.away_score;$('title').textContent=state.competition?.name||'';$('round').textContent=state.meeting.round_label||'';
+  $('duels').innerHTML=state.games.map(g=>'<article class="duel '+(g.status==='completed'?'completed':'')+'"><div class="no">#'+g.slot_no+'</div><div class="type">'+(g.game_type==='doubles'?'DOUBLES':'SINGLES')+'</div><div class="players">'+esc(names(g,true))+'</div><div><div class="dscore">'+g.home_score+' : '+g.away_score+'</div><div class="meta">'+esc(g.discipline)+' · Race to '+g.race_to+'</div></div><div class="players away">'+esc(names(g,false))+'</div></article>').join('');
+}
+function subscribe(mid){
+  channel=cspAuth.client.channel('team-projector-'+mid).on('postgres_changes',{event:'*',schema:'public',table:'team_match_games',filter:'meeting_id=eq.'+mid},()=>load()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'team_meetings',filter:'id=eq.'+mid},()=>load()).subscribe();
+}
+init().catch(console.error);
+})();
+</script></body></html>
