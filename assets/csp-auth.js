@@ -11,7 +11,7 @@
   function ensureCspTranslationLayer(){
     if (global.CSPTranslate || document.querySelector('script[data-csp-translate-loader]')) return;
     var script=document.createElement('script');
-    script.src='/assets/csp-translate.js?v=20261028-global-2';
+    script.src='/assets/csp-translate.js?v=20261102-i18n-1';
     script.defer=true;
     script.setAttribute('data-csp-translate-loader','1');
     document.head.appendChild(script);
