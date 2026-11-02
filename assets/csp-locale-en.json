@@ -1269,7 +1269,19 @@
     "Stolný tenis | Connect Sports Pro": "Table tennis | Connect Sports Pro",
     "Profil, zápasy, turnaje a klubové rezervácie pre stolný tenis.": "Profile, matches, tournaments and club reservations for table tennis.",
     "Hráči a stolnotenisové kluby": "Players and table tennis clubs",
-    "Spoločná infraštruktúra, vlastné pravidlá športu.": "Shared infrastructure with sport-specific rules."
+    "Spoločná infraštruktúra, vlastné pravidlá športu.": "Shared infrastructure with sport-specific rules.",
+    "CONNECT SPORTS PRO": "CONNECT SPORTS PRO",
+    "Connect Sports Pro": "Connect Sports Pro",
+    "Menu": "Menu",
+    "ProjectorTV": "ProjectorTV",
+    "Achievements": "Achievements",
+    "Bowling": "Bowling",
+    "Squash": "Squash",
+    "MultiScreen": "MultiScreen",
+    "Drag & drop": "Drag & drop",
+    "RR": "RR",
+    "SKO": "Single elimination",
+    "DKO": "Double elimination"
   },
   "patterns": [
     {
