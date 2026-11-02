@@ -1317,7 +1317,19 @@
     "pavúkom": "bracket",
     "Pavúkom": "Bracket",
     "pavúky": "brackets",
-    "Pavúky": "Brackets"
+    "Pavúky": "Brackets",
+    "Nenašli sa žiadne výsledky.": "No results found.",
+    "Vyhľadávanie sa načítava…": "Loading search…",
+    "Hľadám…": "Searching…",
+    "Vyhľadávanie sa nepodarilo načítať.": "Could not load search.",
+    "registrácia e-mailom": "email registration",
+    "Potvrď, že registráciu vypĺňa človek.": "Confirm that a human is completing this registration.",
+    "Prihlás sa →": "Sign in →",
+    "✓ Účet vytvorený!": "✓ Account created!",
+    "prihlásenie e-mailom": "email sign-in",
+    "Zostať prihlásený": "Stay signed in",
+    "Mesačne": "Monthly",
+    "Ročne": "Yearly"
   },
   "patterns": [
     {
