@@ -6,7 +6,7 @@
   const SOURCE_LANGUAGE='sk';
   const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl','ru','hu']);
   const LANGUAGE_STORAGE_KEY='csp_language';
-  const CACHE_STORAGE_KEY='csp_translation_cache_v3';
+  const CACHE_STORAGE_KEY='csp_translation_cache_v4';
   const API_ENDPOINT='/api/translate';
   const NATIVE_LOCALE_ENDPOINTS={
     cs:'/assets/csp-locale-cs.json',
@@ -25,7 +25,6 @@
   let currentLanguage=SOURCE_LANGUAGE;
   let translating=false;
   let queuedLanguage=null;
-  let translationEpoch=0;
   let mutationObserver=null;
   let mutationTimer=null;
   const nativeLocalePromises=new Map();
@@ -317,6 +316,7 @@
       translating=false;
       document.body?.removeAttribute('aria-busy');
       startObserver();
+      if(currentLanguage!==SOURCE_LANGUAGE) void translateNewContent(document.body);
       // Apply the latest choice made while the previous language was loading.
       const next=queuedLanguage;
       queuedLanguage=null;
