@@ -1350,7 +1350,14 @@
     "po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.": "nach dem Speichern wird die bestehende, noch nicht gespielte Matchstruktur entfernt und nach dem neuen Format neu erstellt.",
     "Skupinová fáza:": "Gruppenphase:",
     "Karty:": "Karten:",
-    "turnaj pokračuje do Generátora stolov.": "das Turnier wird im Tischgenerator fortgesetzt."
+    "turnaj pokračuje do Generátora stolov.": "das Turnier wird im Tischgenerator fortgesetzt.",
+    "Live scoring": "Live-Scoring",
+    "© 2026 Connect Sports Pro · Autor: IronCode ·": "© 2026 Connect Sports Pro · Autor: IronCode ·",
+    "FAQ": "FAQ",
+    "Cookies": "Cookies",
+    "Hľadať hráča, klub, turnaj alebo udalosť…": "Spieler, Club, Turnier oder Veranstaltung suchen…",
+    "Hľadať v Connect Sports Pro": "Connect Sports Pro durchsuchen",
+    "Článok": "Artikel"
   },
   "patterns": [
     {
