@@ -28,6 +28,8 @@
   let mutationObserver=null;
   let mutationTimer=null;
   const nativeLocalePromises=new Map();
+  let fallbackDisabled=false;
+  let fallbackWarningShown=false;
   const originalDocumentTitle=document.title;
   const descriptionMeta=document.querySelector('meta[name="description"]');
   const originalDocumentDescription=descriptionMeta?.getAttribute('content')||'';
@@ -184,12 +186,17 @@
   }
 
   async function requestTranslations(texts,targetLanguage){
+    if(fallbackDisabled) throw new Error('Translation fallback disabled for this page load.');
     const sessionResult=window.cspAuth?.getSession?await window.cspAuth.getSession():null;
     const accessToken=sessionResult?.data?.session?.access_token;
     if(!accessToken) throw new Error('Translation fallback requires sign-in.');
     const response=await fetch(API_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${accessToken}`},body:JSON.stringify({texts,source:SOURCE_LANGUAGE,target:targetLanguage})});
     const payload=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(payload.error||`Translation request failed with status ${response.status}.`);
+    if(!response.ok){
+      const message=payload.error||`Translation request failed with status ${response.status}.`;
+      if(response.status===429 || /limit|quota|too many requests/i.test(String(message))) fallbackDisabled=true;
+      throw new Error(message);
+    }
     if(!Array.isArray(payload.translations)||payload.translations.length!==texts.length) throw new Error('Invalid translation response.');
     return payload.translations;
   }
@@ -236,7 +243,10 @@
           }
           saveCache(cache);
         }catch(error){
-          console.warn(`[CSP translate] API fallback failed for ${targetLanguage.toUpperCase()}; keeping source text for missing strings.`,error);
+          if(!fallbackWarningShown){
+            fallbackWarningShown=true;
+            console.warn(`[CSP translate] API fallback failed for ${targetLanguage.toUpperCase()}; keeping source text for missing strings.`,error);
+          }
         }
       }
 
@@ -315,6 +325,8 @@
     }finally{
       translating=false;
       document.body?.removeAttribute('aria-busy');
+      bindLanguageSelectors();
+      setSelectorValue(currentLanguage);
       startObserver();
       if(currentLanguage!==SOURCE_LANGUAGE) void translateNewContent(document.body);
       // Apply the latest choice made while the previous language was loading.
@@ -422,12 +434,26 @@
     currentLanguage=saved;
     setSelectorValue(saved);
     applyLanguage(saved,{silent:true}).finally(()=>{
+      setSelectorValue(getSavedLanguage());
+      setTimeout(()=>setSelectorValue(getSavedLanguage()),0);
+      setTimeout(()=>setSelectorValue(getSavedLanguage()),250);
+      setTimeout(()=>setSelectorValue(getSavedLanguage()),1000);
       if(saved!==SOURCE_LANGUAGE){
         setTimeout(()=>translateNewContent(document.body),500);
         setTimeout(()=>translateNewContent(document.body),1500);
       }
     });
   }
+
+  window.addEventListener('pageshow',()=>{
+    const saved=getSavedLanguage();
+    if(saved!==currentLanguage) void applyLanguage(saved,{silent:true});
+    else{
+      bindLanguageSelectors();
+      setSelectorValue(saved);
+      setTimeout(()=>setSelectorValue(saved),100);
+    }
+  });
 
   window.CSPTranslate={
     applyLanguage,
