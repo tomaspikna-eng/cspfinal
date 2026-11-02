@@ -168,11 +168,34 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[char]));
 
+  const LANGUAGE_LOCALES={
+    sk:'sk-SK',cs:'cs-CZ',en:'en-GB',de:'de-DE',pl:'pl-PL',ru:'ru-RU',hu:'hu-HU'
+  };
+
+  function currentLanguage(){
+    try{
+      const value=String(localStorage.getItem('csp_language')||'sk').toLowerCase();
+      return value==='cz'?'cs':(LANGUAGE_LOCALES[value]?value:'sk');
+    }catch{return 'sk';}
+  }
+
+  const currentLocale = () => LANGUAGE_LOCALES[currentLanguage()] || 'sk-SK';
+
   const formatDate = value => value
-    ? new Date(value).toLocaleString('sk-SK',{
+    ? new Date(value).toLocaleString(currentLocale(),{
         day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'
       })
     : '—';
+
+  const DELETE_CONFIRM={
+    sk:'Naozaj chceš túto predregistráciu zmazať?',
+    cs:'Opravdu chceš tuto předregistraci smazat?',
+    en:'Do you really want to delete this preregistration?',
+    de:'Möchtest du diese Vorregistrierung wirklich löschen?',
+    pl:'Czy na pewno chcesz usunąć tę rejestrację wstępną?',
+    ru:'Вы действительно хотите удалить эту предварительную регистрацию?',
+    hu:'Biztosan törölni szeretnéd ezt az előregisztrációt?'
+  };
 
   function show(message, error=false){
     $('notice').innerHTML = message
@@ -306,7 +329,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
     $('publicList').innerHTML = (result.data || []).map((row,index)=>`
       <div class="row">
         <div class="nick">${index + 1}. ${esc(row.nickname)}</div>
-        <div class="time">${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</div>
+        <div class="time">${esc(new Date(row.created_at).toLocaleDateString(currentLocale()))}</div>
       </div>
     `).join('') || '<div class="empty">Zatiaľ nie je predregistrovaný žiadny hráč.</div>';
   }
@@ -358,7 +381,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
                 <td>${esc(row.full_name)}</td>
                 <td>${esc(row.nickname)}</td>
                 <td>${state}</td>
-                <td>${esc(new Date(row.created_at).toLocaleDateString('sk-SK'))}</td>
+                <td>${esc(new Date(row.created_at).toLocaleDateString(currentLocale()))}</td>
                 <td><button class="btn btn-red" data-delete-id="${esc(row.id)}" style="padding:7px 10px">Zmazať</button></td>
               </tr>
             `}).join('')}
@@ -400,7 +423,7 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   async function deleteRegistration(id){
     if(!currentSession) return;
 
-    const confirmed = window.confirm('Naozaj chceš túto predregistráciu zmazať?');
+    const confirmed = window.confirm(DELETE_CONFIRM[currentLanguage()] || DELETE_CONFIRM.sk);
     if(!confirmed) return;
 
     const result = await db
@@ -502,6 +525,6 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);ba
   })();
 })();
 </script>
-  <script src="/assets/csp-translate.js?v=20260814-3" defer></script>
+  <script src="/assets/csp-translate.js?v=20261102-prereg-1" defer></script>
 </body>
 </html>
