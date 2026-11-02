@@ -1325,7 +1325,38 @@
     "Prihlás sa →": "Bejelentkezés →",
     "✓ Účet vytvorený!": "✓ Fiók létrehozva!",
     "prihlásenie e-mailom": "e-mailes bejelentkezés",
-    "Zostať prihlásený": "Maradjak bejelentkezve"
+    "Zostať prihlásený": "Maradjak bejelentkezve",
+    "Formát": "Formátum",
+    "Formát súťaže": "Versenyformátum",
+    "Jedna fáza": "Egy szakasz",
+    "Kombinácia — skupiny → vyraďovák": "Kombináció — csoportok → kieséses szakasz",
+    "Round Robin": "Körmérkőzés",
+    "Single KO": "Single KO",
+    "Double KO": "Double KO",
+    "Skupiny → Single KO": "Csoportok → Single KO",
+    "Skupiny → Double KO": "Csoportok → Double KO",
+    "Každý s každým. Konečné poradie podľa tabuľky.": "Mindenki játszik mindenkivel. A végső sorrendet a tabella határozza meg.",
+    "Vyraďovací pavúk — jedna prehra a koniec.": "Kieséses ágrajz — egy vereség és vége.",
+    "Dynamický pavúk 16–256 s vetvou porazených a W.O.": "Dinamikus, 16–256 fős ágrajz vesztes ággal és W.O.-val.",
+    "Najprv skupiny (RR), postupujúci do Single KO pavúka.": "Először csoportok (RR), majd a továbbjutók a Single KO ágrajzra kerülnek.",
+    "Najprv skupiny (RR), postupujúci do Double KO pavúka.": "Először csoportok (RR), majd a továbbjutók a Double KO ágrajzra kerülnek.",
+    "Skupina / liga": "Csoport / liga",
+    "Pavúk A+B": "Győztes + vesztes ág",
+    "Skrátené SKO": "Rövidített Single KO",
+    "Nastavenie skupín": "Csoportbeállítások",
+    "Počet skupín": "Csoportok száma",
+    "Postupuje z každej": "Továbbjutók csoportonként",
+    "Chránené nasadenie (K)": "Védett kiemelés (K)",
+    "Hra o tretie miesto": "Mérkőzés a 3. helyért",
+    "Po semifinále sa automaticky vytvorí zápas porazených o 3. miesto.": "Az elődöntők után automatikusan létrejön a vesztesek mérkőzése a 3. helyért.",
+    "Formát je uzamknutý, pretože už začal aspoň jeden zápas.": "A formátum zárolva van, mert legalább egy mérkőzés már elkezdődött.",
+    "Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.": "A formátum az első mérkőzés kezdetéig módosítható. Módosításkor a mérkőzések újragenerálódnak.",
+    "Nastav formát až po kontrole prezenčnej listiny.": "A formátumot a jelenléti lista ellenőrzése után állítsd be.",
+    "Zmena formátu:": "Formátumváltás:",
+    "po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.": "mentés után a meglévő, még le nem játszott mérkőzésstruktúra törlődik, és az új formátum szerint újragenerálódik.",
+    "Skupinová fáza:": "Csoportkör:",
+    "Karty:": "Kártyák:",
+    "turnaj pokračuje do Generátora stolov.": "a verseny az Asztalgenerátorban folytatódik."
   },
   "patterns": [
     {
@@ -1471,6 +1502,26 @@
     {
       "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
       "target": "A verseny elkészült. Átvitt játékosok: $1."
+    },
+    {
+      "source": "^≈ (.+) hráčov na skupinu$",
+      "target": "≈ $1 játékos csoportonként"
+    },
+    {
+      "source": "^(.+) zápasov pri (.+) hráčoch\\.$",
+      "target": "$1 mérkőzés $2 játékossal."
+    },
+    {
+      "source": "^(.+) zápasov spolu vo všetkých skupinách\\.$",
+      "target": "Összesen $1 mérkőzés az összes csoportban."
+    },
+    {
+      "source": "^(.+) × postup (.+)$",
+      "target": "$1 × $2 továbbjutó"
+    },
+    {
+      "source": "^(.+) × postup (.+) = (.+) do KO$",
+      "target": "$1 × $2 továbbjutó = $3 a KO-szakaszba"
     }
   ]
 }
