@@ -6,7 +6,7 @@
   const SOURCE_LANGUAGE='sk';
   const SUPPORTED_LANGUAGES=new Set(['sk','cs','en','de','pl','ru','hu']);
   const LANGUAGE_STORAGE_KEY='csp_language';
-  const CACHE_STORAGE_KEY='csp_translation_cache_v2';
+  const CACHE_STORAGE_KEY='csp_translation_cache_v3';
   const API_ENDPOINT='/api/translate';
   const NATIVE_LOCALE_ENDPOINTS={
     cs:'/assets/csp-locale-cs.json',
@@ -57,6 +57,21 @@
       }
     }
     return null;
+  }
+
+  function applyTerminologyGuard(source,translated,targetLanguage){
+    let result=String(translated??'');
+    const original=String(source??'');
+
+    // Tournament terminology: Slovak "pavúk" means a tournament bracket,
+    // never the animal "spider".
+    if(targetLanguage==='en' && /\bpavú(?:k|ka|ku|kom|ky|kov)\b/i.test(original)){
+      result=result
+        .replace(/\bspiders\b/gi,'brackets')
+        .replace(/\bspider\b/gi,'bracket');
+    }
+
+    return result;
   }
 
   function normalizeLanguage(value){
@@ -185,13 +200,13 @@
       const unresolved=[];
       const translated=values.map(value=>{
         const exact=locale.translations[value];
-        if(typeof exact==='string') return exact;
+        if(typeof exact==='string') return applyTerminologyGuard(value,exact,targetLanguage);
 
         const patterned=applyNativePattern(value,locale.patterns);
-        if(typeof patterned==='string') return patterned;
+        if(typeof patterned==='string') return applyTerminologyGuard(value,patterned,targetLanguage);
 
         const cached=cache[targetLanguage][value];
-        if(typeof cached==='string'&&cached) return cached;
+        if(typeof cached==='string'&&cached) return applyTerminologyGuard(value,cached,targetLanguage);
 
         unresolved.push(value);
         return null;
@@ -210,7 +225,7 @@
             const batch=uniqueMissing.slice(i,i+MAX_BATCH_SIZE);
             const batchTranslations=await requestTranslations(batch,targetLanguage);
             batch.forEach((source,index)=>{
-              cache[targetLanguage][source]=batchTranslations[index]||source;
+              cache[targetLanguage][source]=applyTerminologyGuard(source,batchTranslations[index]||source,targetLanguage);
             });
           }
           saveCache(cache);
@@ -220,7 +235,7 @@
       }
 
       return values.map((value,index)=>
-        translated[index] || cache[targetLanguage][value] || value
+        applyTerminologyGuard(value,translated[index] || cache[targetLanguage][value] || value,targetLanguage)
       );
     }
 
