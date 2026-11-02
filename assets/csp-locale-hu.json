@@ -1273,7 +1273,22 @@
     "Connect Sports Pro": "Connect Sports Pro",
     "Menu": "Menu",
     "MultiScreen": "MultiScreen",
-    "Drag & drop": "Drag & drop"
+    "Drag & drop": "Drag & drop",
+    "Achievements | Connect Sports Pro": "Eredmények | Connect Sports Pro",
+    "Ligy | Connect Sports Pro": "Ligák | Connect Sports Pro",
+    "Profil hráča | Connect Sports Pro": "Játékosprofil | Connect Sports Pro",
+    "ProjectorTV | Connect Sports Pro": "ProjectorTV | Connect Sports Pro",
+    "Rezervácie | Connect Sports Pro": "Foglalások | Connect Sports Pro",
+    "Scoreboard | Connect Sports Pro": "Eredményjelző | Connect Sports Pro",
+    "Tréning | Connect Sports Pro": "Edzés | Connect Sports Pro",
+    "Turnaje | Connect Sports Pro": "Versenyek | Connect Sports Pro",
+    "Výzvy | Connect Sports Pro": "Kihívások | Connect Sports Pro",
+    "Club Manager | Connect Sports Pro": "Club Manager | Connect Sports Pro",
+    "Ligy a série | Connect Sports Pro": "Ligák és sorozatok | Connect Sports Pro",
+    "Bowling | Connect Sports Pro": "Bowling | Connect Sports Pro",
+    "Šípky | Connect Sports Pro": "Darts | Connect Sports Pro",
+    "Squash | Connect Sports Pro": "Squash | Connect Sports Pro",
+    "Stolný tenis | Connect Sports Pro": "Asztalitenisz | Connect Sports Pro"
   },
   "patterns": [
     {
