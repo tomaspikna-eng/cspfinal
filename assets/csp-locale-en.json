@@ -1329,7 +1329,39 @@
     "prihlásenie e-mailom": "email sign-in",
     "Zostať prihlásený": "Stay signed in",
     "Mesačne": "Monthly",
-    "Ročne": "Yearly"
+    "Ročne": "Yearly",
+    "Formát": "Format",
+    "Formát súťaže": "Competition format",
+    "Jedna fáza": "Single stage",
+    "Kombinácia — skupiny → vyraďovák": "Combination — groups → knockout",
+    "Round Robin": "Round Robin",
+    "Single KO": "Single KO",
+    "Double KO": "Double KO",
+    "Skupiny → Single KO": "Groups → Single KO",
+    "Skupiny → Double KO": "Groups → Double KO",
+    "Každý s každým. Konečné poradie podľa tabuľky.": "Everyone plays everyone. Final standings are based on the table.",
+    "Vyraďovací pavúk — jedna prehra a koniec.": "Elimination bracket — one loss and you're out.",
+    "Dynamický pavúk 16–256 s vetvou porazených a W.O.": "Dynamic 16–256 player bracket with a losers' bracket and W.O.",
+    "Najprv skupiny (RR), postupujúci do Single KO pavúka.": "Groups first (RR), then qualifiers advance to the Single KO bracket.",
+    "Najprv skupiny (RR), postupujúci do Double KO pavúka.": "Groups first (RR), then qualifiers advance to the Double KO bracket.",
+    "Skupina / liga": "Group / league",
+    "Pavúk A+B": "Winner + loser brackets",
+    "Skrátené SKO": "Shortened Single KO",
+    "Skupiny": "Groups",
+    "Nastavenie skupín": "Group settings",
+    "Počet skupín": "Number of groups",
+    "Postupuje z každej": "Qualifiers from each group",
+    "Chránené nasadenie (K)": "Protected seeding (K)",
+    "Hra o tretie miesto": "Third-place match",
+    "Po semifinále sa automaticky vytvorí zápas porazených o 3. miesto.": "After the semifinals, a third-place match between the losing semifinalists is created automatically.",
+    "Formát je uzamknutý, pretože už začal aspoň jeden zápas.": "The format is locked because at least one match has already started.",
+    "Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.": "You can change the format until the first match starts. Changing it will regenerate the matches.",
+    "Nastav formát až po kontrole prezenčnej listiny.": "Set the format after checking the attendance list.",
+    "Zmena formátu:": "Format change:",
+    "po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.": "after saving, the existing unplayed match structure will be removed and regenerated using the new format.",
+    "Skupinová fáza:": "Group stage:",
+    "Karty:": "Cards:",
+    "turnaj pokračuje do Generátora stolov.": "the tournament continues in the Table Generator."
   },
   "patterns": [
     {
@@ -1475,6 +1507,26 @@
     {
       "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
       "target": "The tournament is ready. Players transferred: $1."
+    },
+    {
+      "source": "^≈ (.+) hráčov na skupinu$",
+      "target": "≈ $1 players per group"
+    },
+    {
+      "source": "^(.+) zápasov pri (.+) hráčoch\\.$",
+      "target": "$1 matches with $2 players."
+    },
+    {
+      "source": "^(.+) zápasov spolu vo všetkých skupinách\\.$",
+      "target": "$1 matches across all groups."
+    },
+    {
+      "source": "^(.+) × postup (.+)$",
+      "target": "$1 × $2 qualifiers"
+    },
+    {
+      "source": "^(.+) × postup (.+) = (.+) do KO$",
+      "target": "$1 × $2 qualifiers = $3 to KO"
     }
   ]
 }
