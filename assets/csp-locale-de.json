@@ -1306,7 +1306,19 @@
     "Mená boli skopírované.": "Die Namen wurden kopiert.",
     "Zoznam bol skopírovaný.": "Die Liste wurde kopiert.",
     "Supabase klient nie je dostupný.": "Der Supabase-Client ist nicht verfügbar.",
-    "Predregistráciu sa nepodarilo načítať.": "Die Voranmeldung konnte nicht geladen werden."
+    "Predregistráciu sa nepodarilo načítať.": "Die Voranmeldung konnte nicht geladen werden.",
+    "Nenašli sa žiadne výsledky.": "Keine Ergebnisse gefunden.",
+    "Vyhľadávanie sa načítava…": "Suche wird geladen…",
+    "Hľadám…": "Suche läuft…",
+    "Vyhľadávanie sa nepodarilo načítať.": "Die Suche konnte nicht geladen werden.",
+    "registrácia e-mailom": "Registrierung per E-Mail",
+    "Potvrď, že registráciu vypĺňa človek.": "Bestätige, dass die Registrierung von einem Menschen ausgefüllt wird.",
+    "Prihlás sa →": "Anmelden →",
+    "✓ Účet vytvorený!": "✓ Konto erstellt!",
+    "prihlásenie e-mailom": "Anmeldung per E-Mail",
+    "Zostať prihlásený": "Angemeldet bleiben",
+    "Mesačne": "Monatlich",
+    "Ročne": "Jährlich"
   },
   "patterns": [
     {
