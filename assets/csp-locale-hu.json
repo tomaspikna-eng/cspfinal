@@ -1315,7 +1315,17 @@
     "Mená boli skopírované.": "A nevek másolva.",
     "Zoznam bol skopírovaný.": "A lista másolva.",
     "Supabase klient nie je dostupný.": "A Supabase kliens nem érhető el.",
-    "Predregistráciu sa nepodarilo načítať.": "Az előregisztráció betöltése nem sikerült."
+    "Predregistráciu sa nepodarilo načítať.": "Az előregisztráció betöltése nem sikerült.",
+    "Nenašli sa žiadne výsledky.": "Nincs találat.",
+    "Vyhľadávanie sa načítava…": "Keresés betöltése…",
+    "Hľadám…": "Keresés…",
+    "Vyhľadávanie sa nepodarilo načítať.": "Nem sikerült betölteni a keresést.",
+    "registrácia e-mailom": "e-mailes regisztráció",
+    "Potvrď, že registráciu vypĺňa človek.": "Erősítsd meg, hogy ember tölti ki a regisztrációt.",
+    "Prihlás sa →": "Bejelentkezés →",
+    "✓ Účet vytvorený!": "✓ Fiók létrehozva!",
+    "prihlásenie e-mailom": "e-mailes bejelentkezés",
+    "Zostať prihlásený": "Maradjak bejelentkezve"
   },
   "patterns": [
     {
