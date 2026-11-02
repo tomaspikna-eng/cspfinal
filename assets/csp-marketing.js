@@ -6,7 +6,7 @@
     if(window.CSPTranslate) return;
     if(document.querySelector('script[data-csp-translate-loader]')) return;
     const script=document.createElement('script');
-    script.src='/assets/csp-translate.js?v=20261102-i18n-1';
+    script.src='/assets/csp-translate.js?v=20261102-i18n-2';
     script.defer=true;
     script.dataset.cspTranslateLoader='1';
     document.head.appendChild(script);
