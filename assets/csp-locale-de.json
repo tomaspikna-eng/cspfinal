@@ -1279,7 +1279,34 @@
     "Bowling | Connect Sports Pro": "Bowling | Connect Sports Pro",
     "Šípky | Connect Sports Pro": "Darts | Connect Sports Pro",
     "Squash | Connect Sports Pro": "Squash | Connect Sports Pro",
-    "Stolný tenis | Connect Sports Pro": "Tischtennis | Connect Sports Pro"
+    "Stolný tenis | Connect Sports Pro": "Tischtennis | Connect Sports Pro",
+    "Predregistrácia hráča na športový turnaj.": "Spieler-Voranmeldung für ein Sportturnier.",
+    "Zatiaľ nie je predregistrovaný žiadny hráč.": "Noch ist kein Spieler vorregistriert.",
+    "CSP ? zhoda mena": "CSP ? Namensübereinstimmung",
+    "Zmazať": "Löschen",
+    "Údaje sa nepodarilo načítať.": "Die Daten konnten nicht geladen werden.",
+    "Prihlásený hráč · predregistrácia sa prepojí s tvojím profilom.": "Angemeldeter Spieler · die Voranmeldung wird mit deinem Profil verknüpft.",
+    "Meno existuje v CSP, ale táto registrácia nie je overene prepojená s účtom": "Der Name existiert in CSP, diese Registrierung ist jedoch nicht verifiziert mit dem Konto verknüpft",
+    "V odkaze chýba identifikátor udalosti.": "Die Veranstaltungs-ID fehlt im Link.",
+    "Udalosť sa nenašla.": "Die Veranstaltung wurde nicht gefunden.",
+    "Predregistrácia pre túto udalosť nie je aktívna.": "Die Voranmeldung ist für diese Veranstaltung nicht aktiv.",
+    "Otvoriť nastavenia turnaja": "Turniereinstellungen öffnen",
+    "Turnaj už existuje. Otvoria sa jeho nastavenia a aktuálny zoznam hráčov.": "Das Turnier existiert bereits. Die Einstellungen und die aktuelle Spielerliste werden geöffnet.",
+    "Odosielam…": "Wird gesendet…",
+    "Predregistrácia bola úspešne odoslaná.": "Die Voranmeldung wurde erfolgreich gesendet.",
+    "Predregistráciu sa nepodarilo odoslať.": "Die Voranmeldung konnte nicht gesendet werden.",
+    "Naozaj chceš túto predregistráciu zmazať?": "Möchtest du diese Voranmeldung wirklich löschen?",
+    "Predregistrácia bola zmazaná.": "Die Voranmeldung wurde gelöscht.",
+    "Pred exportom doplň v udalosti šport a disciplínu.": "Ergänze vor dem Export Sportart und Disziplin in der Veranstaltung.",
+    "Otváram…": "Wird geöffnet…",
+    "Vytváram turnaj…": "Turnier wird erstellt…",
+    "Backend nevrátil ID turnaja.": "Das Backend hat keine Turnier-ID zurückgegeben.",
+    "Turnaj sa nepodarilo vytvoriť z udalosti.": "Das Turnier konnte nicht aus der Veranstaltung erstellt werden.",
+    "Text sa nepodarilo skopírovať.": "Der Text konnte nicht kopiert werden.",
+    "Mená boli skopírované.": "Die Namen wurden kopiert.",
+    "Zoznam bol skopírovaný.": "Die Liste wurde kopiert.",
+    "Supabase klient nie je dostupný.": "Der Supabase-Client ist nicht verfügbar.",
+    "Predregistráciu sa nepodarilo načítať.": "Die Voranmeldung konnte nicht geladen werden."
   },
   "patterns": [
     {
@@ -1413,6 +1440,18 @@
     {
       "source": "^Skupinová fáza ukončená — (.+) pavúk je pripravený ✓$",
       "target": "Gruppenphase abgeschlossen — der $1-Turnierbaum ist bereit ✓"
+    },
+    {
+      "source": "^Kapacita (.+)$",
+      "target": "Kapazität $1"
+    },
+    {
+      "source": "^Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči \\((.+)\\)\\.$",
+      "target": "Die Grunddaten der Veranstaltung und alle vorregistrierten Spieler ($1) werden übertragen."
+    },
+    {
+      "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
+      "target": "Das Turnier ist bereit. Übertragene Spieler: $1."
     }
   ]
 }
