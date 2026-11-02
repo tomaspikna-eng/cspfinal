@@ -1350,7 +1350,14 @@
     "po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.": "после сохранения существующая несыгранная структура матчей будет удалена и создана заново по новому формату.",
     "Skupinová fáza:": "Групповой этап:",
     "Karty:": "Карты:",
-    "turnaj pokračuje do Generátora stolov.": "турнир продолжается в Генераторе столов."
+    "turnaj pokračuje do Generátora stolov.": "турнир продолжается в Генераторе столов.",
+    "Live scoring": "Онлайн-счёт",
+    "© 2026 Connect Sports Pro · Autor: IronCode ·": "© 2026 Connect Sports Pro · Автор: IronCode ·",
+    "FAQ": "FAQ",
+    "Cookies": "Файлы cookie",
+    "Hľadať hráča, klub, turnaj alebo udalosť…": "Найти игрока, клуб, турнир или событие…",
+    "Hľadať v Connect Sports Pro": "Поиск в Connect Sports Pro",
+    "Článok": "Статья"
   },
   "patterns": [
     {
