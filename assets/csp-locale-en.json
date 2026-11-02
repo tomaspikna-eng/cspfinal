@@ -1281,7 +1281,34 @@
     "Drag & drop": "Drag & drop",
     "RR": "RR",
     "SKO": "Single elimination",
-    "DKO": "Double elimination"
+    "DKO": "Double elimination",
+    "Predregistrácia hráča na športový turnaj.": "Player pre-registration for a sports tournament.",
+    "Zatiaľ nie je predregistrovaný žiadny hráč.": "No players have pre-registered yet.",
+    "CSP ? zhoda mena": "CSP ? name match",
+    "Zmazať": "Delete",
+    "Údaje sa nepodarilo načítať.": "The data could not be loaded.",
+    "Prihlásený hráč · predregistrácia sa prepojí s tvojím profilom.": "Signed-in player · the pre-registration will be linked to your profile.",
+    "Meno existuje v CSP, ale táto registrácia nie je overene prepojená s účtom": "The name exists in CSP, but this registration is not verified as linked to the account",
+    "V odkaze chýba identifikátor udalosti.": "The event identifier is missing from the link.",
+    "Udalosť sa nenašla.": "The event was not found.",
+    "Predregistrácia pre túto udalosť nie je aktívna.": "Pre-registration is not active for this event.",
+    "Otvoriť nastavenia turnaja": "Open tournament settings",
+    "Turnaj už existuje. Otvoria sa jeho nastavenia a aktuálny zoznam hráčov.": "The tournament already exists. Its settings and current player list will open.",
+    "Odosielam…": "Submitting…",
+    "Predregistrácia bola úspešne odoslaná.": "Pre-registration was submitted successfully.",
+    "Predregistráciu sa nepodarilo odoslať.": "The pre-registration could not be submitted.",
+    "Naozaj chceš túto predregistráciu zmazať?": "Do you really want to delete this pre-registration?",
+    "Predregistrácia bola zmazaná.": "The pre-registration was deleted.",
+    "Pred exportom doplň v udalosti šport a disciplínu.": "Add a sport and discipline to the event before exporting.",
+    "Otváram…": "Opening…",
+    "Vytváram turnaj…": "Creating tournament…",
+    "Backend nevrátil ID turnaja.": "The backend did not return a tournament ID.",
+    "Turnaj sa nepodarilo vytvoriť z udalosti.": "The tournament could not be created from the event.",
+    "Text sa nepodarilo skopírovať.": "The text could not be copied.",
+    "Mená boli skopírované.": "The names were copied.",
+    "Zoznam bol skopírovaný.": "The list was copied.",
+    "Supabase klient nie je dostupný.": "The Supabase client is unavailable.",
+    "Predregistráciu sa nepodarilo načítať.": "The pre-registration could not be loaded."
   },
   "patterns": [
     {
@@ -1415,6 +1442,18 @@
     {
       "source": "^Skupinová fáza ukončená — (.+) pavúk je pripravený ✓$",
       "target": "Group stage completed — the $1 bracket is ready ✓"
+    },
+    {
+      "source": "^Kapacita (.+)$",
+      "target": "Capacity $1"
+    },
+    {
+      "source": "^Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči \\((.+)\\)\\.$",
+      "target": "The event's basic details and all pre-registered players ($1) will be transferred."
+    },
+    {
+      "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
+      "target": "The tournament is ready. Players transferred: $1."
     }
   ]
 }
