@@ -24,6 +24,8 @@
   const originalAttributes=new WeakMap();
   let currentLanguage=SOURCE_LANGUAGE;
   let translating=false;
+  let queuedLanguage=null;
+  let translationEpoch=0;
   let mutationObserver=null;
   let mutationTimer=null;
   const nativeLocalePromises=new Map();
@@ -42,8 +44,10 @@
         if(!payload||typeof payload.translations!=='object') throw new Error(`Invalid ${language.toUpperCase()} locale.`);
         return payload;
       });
-    nativeLocalePromises.set(language,localePromise);
-    return localePromise;
+    // A failed request must be retryable after a temporary network outage.
+    const retryable=localePromise.catch(error=>{nativeLocalePromises.delete(language);throw error;});
+    nativeLocalePromises.set(language,retryable);
+    return retryable;
   }
 
   function applyNativePattern(value,patterns=[]){
@@ -220,7 +224,10 @@
           window[missingKey]=[...new Set([...(window[missingKey]||[]),...missingSlovak])];
         }
 
+        // Public pages must not depend on authenticated AI translation requests.
+        // Exact locale entries and reviewed patterns remain authoritative.
         try{
+          if(!window.cspAuth?.getSession) throw new Error('No authenticated translation client.');
           for(let i=0;i<uniqueMissing.length;i+=MAX_BATCH_SIZE){
             const batch=uniqueMissing.slice(i,i+MAX_BATCH_SIZE);
             const batchTranslations=await requestTranslations(batch,targetLanguage);
@@ -260,7 +267,7 @@
 
   async function applyLanguage(language,options={}){
     const target=normalizeLanguage(language);
-    if(translating) return;
+    if(translating){queuedLanguage=target;return;}
     translating=true;
     currentLanguage=target;
     document.body?.setAttribute('aria-busy','true');
@@ -310,6 +317,10 @@
       translating=false;
       document.body?.removeAttribute('aria-busy');
       startObserver();
+      // Apply the latest choice made while the previous language was loading.
+      const next=queuedLanguage;
+      queuedLanguage=null;
+      if(next&&next!==currentLanguage) void applyLanguage(next,options);
     }
   }
 
@@ -376,7 +387,7 @@
     if(!document.body) return;
     stopObserver();
     mutationObserver=new MutationObserver(mutations=>{
-      if(translating||currentLanguage===SOURCE_LANGUAGE) return;
+      if(currentLanguage===SOURCE_LANGUAGE) return;
       const roots=[];
       mutations.forEach(mutation=>{
         if(mutation.type==='attributes'&&mutation.target?.nodeType===Node.ELEMENT_NODE) roots.push(mutation.target);
@@ -393,6 +404,7 @@
       mutationTimer=setTimeout(async()=>{
         bindLanguageSelectors();
         for(const root of [...new Set(roots)]) await translateNewContent(root);
+        if(!translating && currentLanguage!==SOURCE_LANGUAGE) await translateNewContent(document.body);
       },150);
     });
     mutationObserver.observe(document.body,{
