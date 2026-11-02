@@ -1318,7 +1318,39 @@
     "prihlásenie e-mailom": "вход по электронной почте",
     "Zostať prihlásený": "Оставаться в системе",
     "Mesačne": "Ежемесячно",
-    "Ročne": "Ежегодно"
+    "Ročne": "Ежегодно",
+    "Formát": "Формат",
+    "Formát súťaže": "Формат соревнования",
+    "Jedna fáza": "Один этап",
+    "Kombinácia — skupiny → vyraďovák": "Комбинация — группы → плей-офф",
+    "Round Robin": "Круговая система",
+    "Single KO": "Single KO",
+    "Double KO": "Double KO",
+    "Skupiny → Single KO": "Группы → Single KO",
+    "Skupiny → Double KO": "Группы → Double KO",
+    "Každý s každým. Konečné poradie podľa tabuľky.": "Каждый играет с каждым. Итоговое место определяется по таблице.",
+    "Vyraďovací pavúk — jedna prehra a koniec.": "Турнирная сетка на выбывание — одно поражение и выбывание.",
+    "Dynamický pavúk 16–256 s vetvou porazených a W.O.": "Динамическая сетка на 16–256 игроков с сеткой проигравших и W.O.",
+    "Najprv skupiny (RR), postupujúci do Single KO pavúka.": "Сначала группы (RR), затем прошедшие игроки переходят в сетку Single KO.",
+    "Najprv skupiny (RR), postupujúci do Double KO pavúka.": "Сначала группы (RR), затем прошедшие игроки переходят в сетку Double KO.",
+    "Skupina / liga": "Группа / лига",
+    "Pavúk A+B": "Сетка победителей + проигравших",
+    "Skrátené SKO": "Сокращённый Single KO",
+    "Skupiny": "Группы",
+    "Nastavenie skupín": "Настройка групп",
+    "Počet skupín": "Количество групп",
+    "Postupuje z každej": "Выходит из каждой",
+    "Chránené nasadenie (K)": "Защищённый посев (K)",
+    "Hra o tretie miesto": "Матч за третье место",
+    "Po semifinále sa automaticky vytvorí zápas porazených o 3. miesto.": "После полуфиналов автоматически создаётся матч проигравших за 3-е место.",
+    "Formát je uzamknutý, pretože už začal aspoň jeden zápas.": "Формат заблокирован, потому что хотя бы один матч уже начался.",
+    "Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.": "Формат можно изменить до начала первого матча. При изменении матчи будут созданы заново.",
+    "Nastav formát až po kontrole prezenčnej listiny.": "Установите формат после проверки списка присутствующих.",
+    "Zmena formátu:": "Изменение формата:",
+    "po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.": "после сохранения существующая несыгранная структура матчей будет удалена и создана заново по новому формату.",
+    "Skupinová fáza:": "Групповой этап:",
+    "Karty:": "Карты:",
+    "turnaj pokračuje do Generátora stolov.": "турнир продолжается в Генераторе столов."
   },
   "patterns": [
     {
@@ -1464,6 +1496,26 @@
     {
       "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
       "target": "Турнир готов. Перенесено игроков: $1."
+    },
+    {
+      "source": "^≈ (.+) hráčov na skupinu$",
+      "target": "≈ $1 игроков в группе"
+    },
+    {
+      "source": "^(.+) zápasov pri (.+) hráčoch\\.$",
+      "target": "$1 матчей при $2 игроках."
+    },
+    {
+      "source": "^(.+) zápasov spolu vo všetkých skupinách\\.$",
+      "target": "$1 матчей всего во всех группах."
+    },
+    {
+      "source": "^(.+) × postup (.+)$",
+      "target": "$1 × по $2 выходят"
+    },
+    {
+      "source": "^(.+) × postup (.+) = (.+) do KO$",
+      "target": "$1 × по $2 выходят = $3 в KO"
     }
   ]
 }
