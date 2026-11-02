@@ -1288,7 +1288,34 @@
     "Bowling | Connect Sports Pro": "Bowling | Connect Sports Pro",
     "Šípky | Connect Sports Pro": "Darts | Connect Sports Pro",
     "Squash | Connect Sports Pro": "Squash | Connect Sports Pro",
-    "Stolný tenis | Connect Sports Pro": "Asztalitenisz | Connect Sports Pro"
+    "Stolný tenis | Connect Sports Pro": "Asztalitenisz | Connect Sports Pro",
+    "Predregistrácia hráča na športový turnaj.": "Játékos előregisztráció sportversenyre.",
+    "Zatiaľ nie je predregistrovaný žiadny hráč.": "Még nincs előregisztrált játékos.",
+    "CSP ? zhoda mena": "CSP ? névegyezés",
+    "Zmazať": "Törlés",
+    "Údaje sa nepodarilo načítať.": "Az adatok betöltése nem sikerült.",
+    "Prihlásený hráč · predregistrácia sa prepojí s tvojím profilom.": "Bejelentkezett játékos · az előregisztráció összekapcsolódik a profiloddal.",
+    "Meno existuje v CSP, ale táto registrácia nie je overene prepojená s účtom": "A név szerepel a CSP-ben, de ez a regisztráció nincs igazoltan összekapcsolva a fiókkal",
+    "V odkaze chýba identifikátor udalosti.": "Az esemény azonosítója hiányzik a hivatkozásból.",
+    "Udalosť sa nenašla.": "Az esemény nem található.",
+    "Predregistrácia pre túto udalosť nie je aktívna.": "Az előregisztráció ehhez az eseményhez nem aktív.",
+    "Otvoriť nastavenia turnaja": "Versenybeállítások megnyitása",
+    "Turnaj už existuje. Otvoria sa jeho nastavenia a aktuálny zoznam hráčov.": "A verseny már létezik. Megnyílnak a beállításai és az aktuális játékoslista.",
+    "Odosielam…": "Küldés…",
+    "Predregistrácia bola úspešne odoslaná.": "Az előregisztráció sikeresen elküldve.",
+    "Predregistráciu sa nepodarilo odoslať.": "Az előregisztráció elküldése nem sikerült.",
+    "Naozaj chceš túto predregistráciu zmazať?": "Biztosan törölni szeretnéd ezt az előregisztrációt?",
+    "Predregistrácia bola zmazaná.": "Az előregisztráció törölve.",
+    "Pred exportom doplň v udalosti šport a disciplínu.": "Exportálás előtt add meg az esemény sportágát és szakágát.",
+    "Otváram…": "Megnyitás…",
+    "Vytváram turnaj…": "Verseny létrehozása…",
+    "Backend nevrátil ID turnaja.": "A backend nem adott vissza versenyazonosítót.",
+    "Turnaj sa nepodarilo vytvoriť z udalosti.": "Nem sikerült versenyt létrehozni az eseményből.",
+    "Text sa nepodarilo skopírovať.": "A szöveg másolása nem sikerült.",
+    "Mená boli skopírované.": "A nevek másolva.",
+    "Zoznam bol skopírovaný.": "A lista másolva.",
+    "Supabase klient nie je dostupný.": "A Supabase kliens nem érhető el.",
+    "Predregistráciu sa nepodarilo načítať.": "Az előregisztráció betöltése nem sikerült."
   },
   "patterns": [
     {
@@ -1422,6 +1449,18 @@
     {
       "source": "^Skupinová fáza ukončená — (.+) pavúk je pripravený ✓$",
       "target": "A csoportkör befejeződött — a(z) $1 ág készen áll ✓"
+    },
+    {
+      "source": "^Kapacita (.+)$",
+      "target": "Kapacitás $1"
+    },
+    {
+      "source": "^Prenesú sa základné údaje udalosti aj všetci predregistrovaní hráči \\((.+)\\)\\.$",
+      "target": "Az esemény alapadatai és az összes előregisztrált játékos ($1) átkerül."
+    },
+    {
+      "source": "^Turnaj je pripravený\\. Prenesených hráčov: (.+)\\.$",
+      "target": "A verseny elkészült. Átvitt játékosok: $1."
     }
   ]
 }
