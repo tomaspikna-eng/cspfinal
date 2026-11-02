@@ -1308,7 +1308,16 @@
     "Mená boli skopírované.": "The names were copied.",
     "Zoznam bol skopírovaný.": "The list was copied.",
     "Supabase klient nie je dostupný.": "The Supabase client is unavailable.",
-    "Predregistráciu sa nepodarilo načítať.": "The pre-registration could not be loaded."
+    "Predregistráciu sa nepodarilo načítať.": "The pre-registration could not be loaded.",
+    "pavúk": "bracket",
+    "pavúka": "bracket",
+    "Pavúka": "Bracket",
+    "pavúku": "bracket",
+    "Pavúku": "Bracket",
+    "pavúkom": "bracket",
+    "Pavúkom": "Bracket",
+    "pavúky": "brackets",
+    "Pavúky": "Brackets"
   },
   "patterns": [
     {
