@@ -2174,7 +2174,7 @@ async function viewDetail(id){
         ${curT.status==='ready'?`<button class="btn btn-green" onclick="setTournamentWorkflowStatus('${curT.id}','active')">▶ Spustiť turnaj</button>`:''}
         ${curT.status==='active'?`<button class="btn btn-primary" id="completeTournamentBtn" onclick="completeTournament('${curT.id}')">✓ Ukončiť turnaj</button>`:''}
         ${curT.status==='completed'?`<button class="btn btn-primary" onclick="archiveTournament('${curT.id}')">Archivovať</button>`:''}
-        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayCenter('${curT.id}')">▣ ProjektorTV</button>${(String(currentProfile?.plan||'').toLowerCase()==='ultra'||currentProfile?.is_admin===true)?`<a class="btn btn-ghost" href="/broadcast/?tournament_id=${encodeURIComponent(curT.id)}">◉ Broadcast</a>`:''}`:''}
+        ${curT.status!=='draft'?`<button class="btn btn-ghost" onclick="openDisplayCenter('${curT.id}')">▣ ProjektorTV</button>${(String(currentProfile?.plan||'').toLowerCase()==='ultra'||currentProfile?.is_admin===true)?`<a class="btn btn-ghost" href="/broadcast/?tournament_id=${encodeURIComponent(curT.id)}">◉ Vysielanie</a>`:''}`:''}
         ${['draft','ready','active'].includes(curT.status)?`<button class="btn btn-ghost" onclick="editTournament('${curT.id}')">✎ Upraviť</button>`:''}
         <button class="btn btn-ghost btn-danger" onclick="deleteTournament('${curT.id}')">🗑 Zmazať</button>
       </div>`}
