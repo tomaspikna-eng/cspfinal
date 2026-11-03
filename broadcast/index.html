@@ -36,7 +36,7 @@
     <section class="panel">
       <h2>Náhľad</h2><div class="panel-sub">Orientačný vzhľad. Grafický výstup pre OBS má transparentné pozadie.</div>
       <div class="preview">
-        <div class="lower-third"><div class="lt-top"></div><div class="lt-event" id="previewEvent">CONNECT SPORTS PRO · LIVE</div><div class="lt-main"><div class="lt-side"><div class="lt-name" id="previewHome">DOMÁCI</div><div class="lt-sub" id="previewHomeSub">HRÁČ / TÍM</div></div><div class="lt-score" id="previewScore">0 : 0</div><div class="lt-side away"><div class="lt-name" id="previewAway">HOSTIA</div><div class="lt-sub" id="previewAwaySub">HRÁČ / TÍM</div></div></div></div>
+        <div class="lower-third"><div class="lt-top"></div><div class="lt-event" id="previewEvent">CONNECT SPORTS PRO · NAŽIVO</div><div class="lt-main"><div class="lt-side"><div class="lt-name" id="previewHome">DOMÁCI</div><div class="lt-sub" id="previewHomeSub">HRÁČ / TÍM</div></div><div class="lt-score" id="previewScore">0 : 0</div><div class="lt-side away"><div class="lt-name" id="previewAway">HOSTIA</div><div class="lt-sub" id="previewAwaySub">HRÁČ / TÍM</div></div></div></div>
       </div>
       <h2 style="margin-top:22px">Moje streamy</h2>
       <div class="outputs" id="outputs"><div class="empty">Načítavam streamy…</div></div>
@@ -134,7 +134,7 @@ function renderPreview(){
     if(m){home=m.player1_name||m.player1?.name||'HRÁČ 1';away=m.player2_name||m.player2?.name||'HRÁČ 2';score=Number(m.score1||0)+' : '+Number(m.score2||0);hs=as=[t?.discipline,m.race_to?'Do '+m.race_to:null].filter(Boolean).join(' · ')||'ZÁPAS'}
   }else{
     const m=meetings.find(x=>x.id===$('meetingSelect').value);
-    if(m){home=m.home?.short_name||m.home?.name||'HOME';away=m.away?.short_name||m.away?.name||'AWAY';score=m.home_score+' : '+m.away_score;if($('showCompetition').checked)event=m.competition?.name||'TÍMOVÁ SÚŤAŽ';hs=m.home?.name||'HOME';as=m.away?.name||'AWAY'}
+    if(m){home=m.home?.short_name||m.home?.name||'DOMÁCI';away=m.away?.short_name||m.away?.name||'HOSTIA';score=m.home_score+' : '+m.away_score;if($('showCompetition').checked)event=m.competition?.name||'TÍMOVÁ SÚŤAŽ';hs=m.home?.name||'DOMÁCI';as=m.away?.name||'HOSTIA'}
   }
   $('previewEvent').textContent=event;$('previewHome').textContent=home;$('previewAway').textContent=away;$('previewScore').textContent=score;$('previewHomeSub').textContent=hs;$('previewAwaySub').textContent=as;
 }
@@ -177,7 +177,7 @@ async function onOutputClick(e){
   const copy=e.target.closest('[data-copy]'),toggle=e.target.closest('[data-toggle]'),del=e.target.closest('[data-delete]');
   if(copy){await navigator.clipboard.writeText(copy.dataset.copy);toast('URL pre OBS bola skopírovaná.');return}
   if(toggle){const o=outputs.find(x=>x.id===toggle.dataset.toggle);if(!o)return;const r=await cspAuth.client.from('broadcast_outputs').update({is_active:!o.is_active,updated_at:new Date().toISOString()}).eq('id',o.id);if(r.error)return toast(r.error.message,true);await loadOutputs();return}
-  if(del){if(!confirm('Zmazať tento broadcast výstup?'))return;const r=await cspAuth.client.from('broadcast_outputs').delete().eq('id',del.dataset.delete);if(r.error)return toast(r.error.message,true);await loadOutputs()}
+  if(del){if(!confirm('Zmazať tento stream?'))return;const r=await cspAuth.client.from('broadcast_outputs').delete().eq('id',del.dataset.delete);if(r.error)return toast(r.error.message,true);await loadOutputs()}
 }
 init().catch(e=>{console.error(e);toast(e.message||String(e),true)});
 })();
