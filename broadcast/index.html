@@ -55,6 +55,11 @@ function overlayUrl(token){return location.origin+'/broadcast/overlay/?token='+e
 function formatMatch(m){const no=m.match_number?'#'+m.match_number+' · ':'';const round=m.round_key||('Kolo '+(m.round_number||''));return no+(round||'Zápas')+' · '+(m.player1?.name||m.player1_name||'—')+' vs '+(m.player2?.name||m.player2_name||'—')}
 async function init(){
   const sr=await cspAuth.getSession();session=sr.data?.session;if(!session){location.href='/login/';return}
+  const access=await cspAuth.client.rpc('can_use_broadcast_center',{p_user_id:session.user.id});
+  if(access.error||access.data!==true){
+    document.querySelector('main.wrap').innerHTML='<div class="panel" style="max-width:720px;margin:40px auto"><div class="eyebrow">ULTRA</div><h1 style="font-size:34px;margin:8px 0 10px">Broadcast Center</h1><p style="color:var(--muted);line-height:1.6">Broadcast Center je dostupný iba v pláne ULTRA.</p><a class="btn primary" href="/profil/">Späť na profil</a></div>';
+    return;
+  }
   bind();await Promise.all([loadTournaments(),loadMeetings(),loadOutputs()]);await applyContext();renderPreview();
 }
 async function applyContext(){
