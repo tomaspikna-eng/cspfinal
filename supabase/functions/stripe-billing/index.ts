@@ -41,19 +41,6 @@ async function stripePost(path:string, params:URLSearchParams) {
   return data;
 }
 
-async function stripeGet(path:string) {
-  const res = await fetch("https://api.stripe.com/v1/" + path, {
-    headers:{"authorization":"Bearer " + STRIPE_SECRET_KEY}
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    const err = new Error(data?.error?.message || "Stripe request failed");
-    (err as any).status = res.status;
-    throw err;
-  }
-  return data;
-}
-
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -72,64 +59,19 @@ Deno.serve(async (req) => {
   if (userError || !user) return json({error:"UNAUTHORIZED"},401);
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const {data:profile} = await admin.from("profiles").select("is_admin,email").eq("id",user.id).maybeSingle();
 
   const body = await req.json().catch(()=>({}));
   const action = body?.action || "status";
 
   if (action === "status") return json({configured:true,liveMode:STRIPE_SECRET_KEY.startsWith("sk_live_")});
 
+  if (action !== "checkout") return json({error:"UNKNOWN_ACTION"},400);
+
   const { data:sub } = await admin
     .from("stripe_subscriptions")
-    .select("*")
+    .select("stripe_customer_id")
     .eq("user_id",user.id)
     .maybeSingle();
-
-  if (action === "subscription_status") {
-    return json({
-      subscription: sub ? {
-        plan: sub.plan || "free",
-        billingInterval: sub.billing_interval || null,
-        status: sub.status || null,
-        currentPeriodEnd: sub.current_period_end || null,
-        cancelAtPeriodEnd: !!sub.cancel_at_period_end
-      } : null
-    });
-  }
-
-  if (action === "cancel" || action === "resume") {
-    if (!sub?.stripe_subscription_id) return json({error:"NO_ACTIVE_SUBSCRIPTION"},400);
-    const p = new URLSearchParams();
-    p.set("cancel_at_period_end", action === "cancel" ? "true" : "false");
-    const updated = await stripePost("subscriptions/" + encodeURIComponent(sub.stripe_subscription_id), p);
-    await admin.from("stripe_subscriptions").update({
-      status: updated?.status || sub.status,
-      current_period_end: updated?.current_period_end ? new Date(updated.current_period_end*1000).toISOString() : sub.current_period_end,
-      cancel_at_period_end: !!updated?.cancel_at_period_end,
-      updated_at: new Date().toISOString()
-    }).eq("user_id",user.id);
-    return json({
-      ok:true,
-      subscription:{
-        plan: sub.plan || "free",
-        billingInterval: sub.billing_interval || null,
-        status: updated?.status || sub.status || null,
-        currentPeriodEnd: updated?.current_period_end ? new Date(updated.current_period_end*1000).toISOString() : sub.current_period_end || null,
-        cancelAtPeriodEnd: !!updated?.cancel_at_period_end
-      }
-    });
-  }
-
-  if (action === "portal") {
-    if (!sub?.stripe_customer_id) return json({error:"NO_STRIPE_CUSTOMER"},400);
-    const p = new URLSearchParams();
-    p.set("customer", sub.stripe_customer_id);
-    p.set("return_url","https://connectsportspro.com/predplatne/");
-    const session = await stripePost("billing_portal/sessions",p);
-    return json({url:session.url});
-  }
-
-  if (action !== "checkout") return json({error:"UNKNOWN_ACTION"},400);
 
   const productCode = String(body?.productCode || "");
   const def = CATALOG[productCode];
