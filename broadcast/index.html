@@ -55,7 +55,25 @@ function overlayUrl(token){return location.origin+'/broadcast/overlay/?token='+e
 function formatMatch(m){const no=m.match_number?'#'+m.match_number+' · ':'';const round=m.round_key||('Kolo '+(m.round_number||''));return no+(round||'Zápas')+' · '+(m.player1?.name||m.player1_name||'—')+' vs '+(m.player2?.name||m.player2_name||'—')}
 async function init(){
   const sr=await cspAuth.getSession();session=sr.data?.session;if(!session){location.href='/login/';return}
-  bind();await Promise.all([loadTournaments(),loadMeetings(),loadOutputs()]);renderPreview();
+  bind();await Promise.all([loadTournaments(),loadMeetings(),loadOutputs()]);await applyContext();renderPreview();
+}
+async function applyContext(){
+  const p=new URLSearchParams(location.search);
+  const tid=p.get('tournament_id'),mid=p.get('meeting_id');
+  if(mid){
+    type='team_meeting';
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.type===type));
+    $('tournamentField').hidden=true;$('matchField').hidden=true;$('meetingField').hidden=false;
+    if(meetings.some(x=>x.id===mid))$('meetingSelect').value=mid;
+  }else if(tid){
+    type='tournament_match';
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.type===type));
+    $('tournamentField').hidden=false;$('matchField').hidden=false;$('meetingField').hidden=true;
+    if(tournaments.some(x=>x.id===tid)){
+      $('tournamentSelect').value=tid;
+      await loadMatches();
+    }
+  }
 }
 function bind(){
   document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{type=b.dataset.type;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));$('tournamentField').hidden=type!=='tournament_match';$('matchField').hidden=type!=='tournament_match';$('meetingField').hidden=type!=='team_meeting';renderPreview()}));
