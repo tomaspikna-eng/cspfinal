@@ -5,10 +5,12 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select case
-    when p_user_id is null then false
-    else public.current_plan(p_user_id) in ('ultra','elite')
-  end;
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = p_user_id
+      and (p.is_admin = true or p.plan::text = 'ultra')
+  );
 $$;
 
 revoke all on function public.can_use_broadcast_center(uuid) from public, anon;
