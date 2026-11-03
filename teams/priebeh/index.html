@@ -20,7 +20,7 @@ button,input,select{font:inherit}.top{height:64px;border-bottom:1px solid #1d252
   <div class="top-actions">
     <a class="btn ghost" href="/profil/">← Profil</a>
     <a class="btn ghost" href="/teams/">Teams</a>
-    <a class="btn" id="projectorBtn" href="#" target="_blank" rel="noopener">Projektor</a><a class="btn ghost" id="broadcastBtn" href="#">Broadcast</a>
+    <a class="btn" id="projectorBtn" href="#" target="_blank" rel="noopener">Projektor</a><a class="btn ghost hidden" id="broadcastBtn" href="#">Broadcast</a>
   </div>
 </header>
 <main class="wrap">
@@ -48,7 +48,7 @@ function opts(list,selected,label){return '<option value="">'+label+'</option>'+
 async function init(){
   var id=meetingId();if(!id){location.href='/teams/';return}
   var sr=await cspAuth.getSession(),session=sr.data&&sr.data.session;if(!session){location.href='/login/';return}state.session=session;
-  $('projectorBtn').href='/teams/projector/?meeting_id='+encodeURIComponent(id);$('broadcastBtn').href='/broadcast/?meeting_id='+encodeURIComponent(id);
+  $('projectorBtn').href='/teams/projector/?meeting_id='+encodeURIComponent(id);var br=await cspAuth.client.rpc('can_use_broadcast_center',{p_user_id:session.user.id});if(!br.error&&br.data===true){$('broadcastBtn').href='/broadcast/?meeting_id='+encodeURIComponent(id);$('broadcastBtn').classList.remove('hidden');}
   await load();
   $('duels').addEventListener('change',onChange);
   $('duels').addEventListener('click',onClick);
