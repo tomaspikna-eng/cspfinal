@@ -35,7 +35,7 @@
     'shot_clock_operator_id','shot_clock_started_at','shot_clock_paused_at','shot_clock_remaining_seconds',
     'shot_clock_current_player_id','match_clock_elapsed_seconds','match_clock_started_at',
     'match_clock_paused_at','match_clock_stopped_at','station_label','tournament_resource_id',
-    'tournament_resource_label','result_source','result_submitted_at','player1_timeout_active',
+    'tournament_resource_label','result_source','result_submitted_at','pairing_manual_override','player1_timeout_active',
     'player2_timeout_active','player1_timeout_at','player2_timeout_at','group_index','race_to','race_to_key'
   ].join(',');
   var SAFE_RESOURCE_COLUMNS = [
