@@ -2216,7 +2216,7 @@ async function viewDetail(id){
     </div>
     <div class="detail-grid">
       <div class="detail-card matches-wide">
-        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · hráča v pavúku presuň myšou</span>`}</div>
+        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · hráča v pavúku presuň potiahnutím</span>`}</div>
           <div class="match-view-switch" role="group" aria-label="Zobrazenie zápasov">
             <button class="match-view-btn ${matchViewMode==='list'?'active':''}" id="matchListViewBtn" onclick="setMatchView('list')">☷ Zoznam</button>
             <button class="match-view-btn ${matchViewMode==='bracket'?'active':''}" id="matchBracketViewBtn" onclick="setMatchView('bracket')">⑂ Pavúk</button>
@@ -2330,7 +2330,7 @@ function bracketPlayerLine(player,score,isWinner,isWalkoverSlot=false,loc='',sid
   const label=player?(player.bye?'W.O.':esc(player.name)):(isWalkoverSlot?'W.O.':'Čaká na postup');
   const playerId=player&&!player.bye?resolvePlayerId(player):null;
   const dragAttrs=draggable&&playerId
-    ? ` draggable="true" data-pair-loc="${esc(loc)}" data-pair-side="${side}" data-player-id="${playerId}"
+    ? ` draggable="true" title="Potiahni hráča na iného hráča v tomto kole" data-pair-loc="${esc(loc)}" data-pair-side="${side}" data-player-id="${playerId}"
         ondragstart="pairingDragStart(event,'${loc}',${side})"
         ondragend="pairingDragEnd(event)"
         ondragover="pairingDragOver(event,'${loc}',${side})"
