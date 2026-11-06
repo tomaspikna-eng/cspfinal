@@ -1,6 +1,8 @@
 alter table public.matches
   add column if not exists pairing_manual_override boolean not null default false;
 
+grant select (pairing_manual_override) on table public.matches to anon, authenticated;
+
 create or replace function public.override_tournament_match_pairings(
   p_tournament_id uuid,
   p_assignments jsonb
