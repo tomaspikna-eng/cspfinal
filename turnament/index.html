@@ -184,12 +184,14 @@ input:focus,select:focus{border-color:var(--gold)}
 .bracket-match-key{padding:5px 9px;background:rgba(255,255,255,.025);font-family:var(--mono);font-size:.58rem;color:var(--muted)}
 .bracket-player{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 9px;font-size:.78rem;font-weight:700;border-top:1px solid var(--line-2)}
 .bracket-player.win{color:var(--green)}.bracket-score{font-family:var(--mono);color:var(--gold)}
-.bracket-player.pair-draggable{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;transition:background .12s,border-color .12s,opacity .12s}
-.bracket-player.pair-draggable::before{content:'⋮⋮';margin-right:5px;color:var(--gold);font-size:.65rem;letter-spacing:-.14em;opacity:.72}
-.bracket-player.pair-draggable:hover{background:rgba(212,168,67,.08)}
-.bracket-player.pair-dragging{opacity:.38;background:rgba(212,168,67,.12)}
-.bracket-player.pair-drop-target{background:rgba(38,208,125,.13);outline:1px solid rgba(38,208,125,.55);outline-offset:-1px}
-.bracket-player.pair-drop-invalid{background:rgba(227,81,73,.10);outline:1px solid rgba(227,81,73,.42);outline-offset:-1px}
+.pair-draggable{cursor:grab!important;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;transition:background .12s,border-color .12s,opacity .12s}
+.pair-draggable::before{content:'⋮⋮';margin-right:5px;color:var(--gold);font-size:.65rem;letter-spacing:-.14em;opacity:.72}
+.pair-draggable:hover{background:rgba(212,168,67,.08)}
+.pair-dragging{opacity:.38;background:rgba(212,168,67,.12)!important}
+.pair-drop-target{background:rgba(38,208,125,.13)!important;outline:1px solid rgba(38,208,125,.55);outline-offset:-1px}
+.pair-drop-invalid{background:rgba(227,81,73,.10)!important;outline:1px solid rgba(227,81,73,.42);outline-offset:-1px}
+.match-row .mt-side.pair-draggable{padding:6px 8px;border-radius:7px}
+.match-row .mt-side.right.pair-draggable::before{display:inline-block}
 .bracket-match.manual-pairing{border-color:rgba(212,168,67,.48)}
 .bracket-manual-tag{display:inline-flex;margin-left:6px;padding:2px 5px;border:1px solid rgba(212,168,67,.32);border-radius:4px;color:var(--gold);font-size:.48rem;font-weight:800;letter-spacing:.06em;vertical-align:1px}
 .bracket-branch{font-size:.76rem;font-weight:900;color:var(--muted-2);margin:16px 0 9px;text-transform:uppercase;letter-spacing:.06em}
@@ -2355,6 +2357,19 @@ function pairingPlayerObject(playerId){
 }
 function pairingRoundEntries(loc){
   const parts=String(loc||'').split(':'),prefix=parts[0],ri=Number(parts[1]||0);
+  if(prefix==='rr'){
+    const match=curT?.rr?.matches?.[ri];
+    const roundNumber=Number(match?.round);
+    if(!Number.isFinite(roundNumber))return [];
+    return (curT.rr.matches||[]).map((m,mi)=>({m,loc:`rr:${mi}`})).filter(x=>Number(x.m?.round)===roundNumber);
+  }
+  if(prefix==='grp'){
+    const gi=Number(parts[1]),mi=Number(parts[2]);
+    const group=curT?.grp?.groups?.[gi],match=group?.matches?.[mi];
+    const roundNumber=Number(match?.round);
+    if(!group||!Number.isFinite(roundNumber))return [];
+    return (group.matches||[]).map((m,index)=>({m,loc:`grp:${gi}:${index}`})).filter(x=>Number(x.m?.round)===roundNumber);
+  }
   let round=null;
   if(prefix==='sko')round=curT?.bracket?.rounds?.[ri];
   else if(prefix==='dkoA')round=curT?.dko?.W?.[ri];
@@ -2373,11 +2388,19 @@ function pairingRoundEntries(loc){
   else if(prefix==='p2dS')round=curT?.phase2?.dko?.SF;
   else if(prefix==='p2dF')round=curT?.phase2?.dko?.F?[curT.phase2.dko.F]:null;
   if(!Array.isArray(round))return [];
-  return round.map((m,mi)=>({m,loc:`${prefix}:${ri}:${mi}`}));
+  return round.map((m,index)=>({m,loc:`${prefix}:${ri}:${index}`}));
 }
 function pairingRoundToken(loc){
-  const parts=String(loc||'').split(':');
-  return `${parts[0]||''}:${parts[1]||'0'}`;
+  const parts=String(loc||'').split(':'),prefix=parts[0];
+  if(prefix==='rr'){
+    const m=getMatchByLoc(loc);
+    return `rr:${Number(m?.round)||0}`;
+  }
+  if(prefix==='grp'){
+    const m=getMatchByLoc(loc);
+    return `grp:${parts[1]||'0'}:${Number(m?.round)||0}`;
+  }
+  return `${prefix||''}:${parts[1]||'0'}`;
 }
 function pairingMatchEditable(m,loc){
   if(isPublicReadOnly||!m||!m.p1||!m.p2||m.p1.bye||m.p2.bye||m.winner!=null||m.s1!=null||m.s2!=null)return false;
@@ -2427,14 +2450,14 @@ function pairingSlot(loc,side){
   return id?{entry,side:Number(side),id}:null;
 }
 function pairingClearDragClasses(){
-  document.querySelectorAll('.bracket-player.pair-dragging,.bracket-player.pair-drop-target,.bracket-player.pair-drop-invalid')
+  document.querySelectorAll('.pair-dragging,.pair-drop-target,.pair-drop-invalid')
     .forEach(el=>el.classList.remove('pair-dragging','pair-drop-target','pair-drop-invalid'));
 }
 async function persistPairingSwap(source,target){
   if(!source||!target)return;
   if(source.entry.loc===target.entry.loc&&source.side===target.side)return;
   if(pairingRoundToken(source.entry.loc)!==pairingRoundToken(target.entry.loc)){
-    toast('Hráčov možno presúvať iba v rámci rovnakého kola.',true);return;
+    toast('Hráčov možno presúvať iba v rámci rovnakého kola a skupiny.',true);return;
   }
   if(!pairingMatchEditable(source.entry.m,source.entry.loc)||!pairingMatchEditable(target.entry.m,target.entry.loc)){
     toast('Rozbehnutý alebo odohraný zápas už nemožno meniť.',true);return;
@@ -2481,7 +2504,7 @@ async function persistPairingSwap(source,target){
     }
     applyPairingOverrides(curT);
     const saved=await cspAuth.withTimeout(persistT(),8000,'save pairing override');
-    if(!saved)throw new Error('Úpravu dvojice sa nepodarilo uložiť do pavúka.');
+    if(!saved)throw new Error('Úpravu dvojice sa nepodarilo uložiť.');
     const rows=await reloadRealMatches();
     applyMatchRowsToBracket(rows);
     document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
@@ -2549,9 +2572,9 @@ function pairingPointerMove(event){
   state.active=true;
   event.preventDefault();
   state.sourceEl?.classList.add('pair-dragging');
-  document.querySelectorAll('.bracket-player.pair-drop-target,.bracket-player.pair-drop-invalid')
+  document.querySelectorAll('.pair-drop-target,.pair-drop-invalid')
     .forEach(el=>el.classList.remove('pair-drop-target','pair-drop-invalid'));
-  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.bracket-player[data-pair-loc]');
+  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('[data-pair-loc][data-pair-side]');
   if(!el)return;
   const loc=el.dataset.pairLoc,side=Number(el.dataset.pairSide);
   const valid=pairingRoundToken(state.entry.loc)===pairingRoundToken(loc)&&!!pairingSlot(loc,side);
@@ -2564,7 +2587,7 @@ async function pairingPointerEnd(event){
   if(!state.active){pairingClearDragClasses();return;}
   event.preventDefault();
   event.stopPropagation();
-  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.bracket-player[data-pair-loc]');
+  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('[data-pair-loc][data-pair-side]');
   const target=el?pairingSlot(el.dataset.pairLoc,Number(el.dataset.pairSide)):null;
   pairingClearDragClasses();
   if(target)await persistPairingSwap(state,target);
@@ -2717,7 +2740,7 @@ function renderMatchList(t){
       <div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
     standings.forEach((s,i)=>html+=`<div class="st-row2"><span class="mono">${i+1}</span><span>${esc(s.name)}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`);
     html+=`</div>`;
-    html+=`<div class="branch-label win" style="margin-top:18px">Zoznam zápasov</div>`;
+    html+=`<div class="branch-label win" style="margin-top:18px">Zoznam zápasov · hráčov v kole môžeš prehodiť potiahnutím</div>`;
     let lastRound=0;
     rr.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`rr:${mi}`); });
     return html;
@@ -2734,7 +2757,7 @@ function renderMatchList(t){
       html+=`<div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
       st.forEach((s,i)=>html+=`<div class="st-row2 ${i<adv?'adv':''}"><span class="mono">${i+1}</span><span>${esc(s.name)}${i<adv?' <span class="adv-tag">postup</span>':''}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`);
       html+=`</div>`;
-      html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)}</div>`;
+      html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)} · potiahni hráča na iného hráča v rovnakom kole</div>`;
       let lastRound=0;
       g.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`); });
     });
@@ -3601,6 +3624,19 @@ function liveMatchControls(m,loc){
   </div>`;
 }
 
+function pairingDragAttrs(loc,side){
+  return ` draggable="true" title="Potiahni hráča na iného hráča v tomto kole"
+    data-pair-loc="${esc(loc)}" data-pair-side="${Number(side)}"
+    ondragstart="pairingDragStart(event,'${loc}',${Number(side)})"
+    ondragend="pairingDragEnd(event)"
+    ondragover="pairingDragOver(event,'${loc}',${Number(side)})"
+    ondragleave="pairingDragLeave(event)"
+    ondrop="pairingDrop(event,'${loc}',${Number(side)})"
+    onpointerdown="pairingPointerStart(event,'${loc}',${Number(side)})"
+    onpointermove="pairingPointerMove(event)"
+    onpointerup="pairingPointerEnd(event)"
+    onpointercancel="pairingPointerCancel(event)"`;
+}
 function matchRow(m, loc){
   const walkover=TM.isWalkover(m)||(m.p1&&m.p1.bye)||(m.p2&&m.p2.bye);
   const name=(p)=> p? (p.bye?'<span class="mt-bye">W.O.</span>':`${esc(p.name)}${isLinkedCspPlayer(p)?'<span class="csp-player-badge linked">CSP ✓</span>':''}`) : (walkover?'<span class="mt-bye">W.O.</span>':'<span class="mt-wait">čaká na postup</span>');
@@ -3611,20 +3647,23 @@ function matchRow(m, loc){
   const assignedResource=row?.tournament_resource_id?tournamentOperations.find(r=>r.resource_id===row.tournament_resource_id):null;
   const smartAssigned=assignedResource?.operating_mode==='smart';
   const hasDbScore=row&&(row.score1!=null||row.score2!=null);
-  // SMART matches always expose their score in the organizer list, even at
-  // 0:0. Manual/unassigned matches keep the old "vs" until a score exists.
   const showLiveScore=!walkover&&(running||smartAssigned||hasDbScore);
   const score = done ? `<span class="mt-score mono">${m.s1??'–'}:${m.s2??'–'}</span>` : showLiveScore ? `<span class="mt-score mono">${row?.score1??0}:${row?.score2??0}</span>` : (walkover?`<span class="mt-bye">postup</span>`:`<span class="mt-vs">vs</span>`);
   const clickable = !isPublicReadOnly && !walkover && m.p1 && m.p2 && !(m.p1.bye)&&!(m.p2.bye);
   const isRunning=(row?.status==='live'||row?.status==='in_progress')&&!row?.match_clock_paused_at;
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
+  const prefix=String(loc||'').split(':')[0];
+  const rrPairEditable=(prefix==='rr'||prefix==='grp')&&canEditPairing(m,loc);
+  const pair1=rrPairEditable?` pair-draggable"${pairingDragAttrs(loc,1)} onclick="event.stopPropagation()`:'"';
+  const pair2=rrPairEditable?` pair-draggable"${pairingDragAttrs(loc,2)} onclick="event.stopPropagation()`:'"';
+  const manual=!!row?.pairing_manual_override||!!curT?.pairingOverrides?.[canonicalRoundKey(m)];
   return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}" data-match-number="${Number(m.number)||''}">
     ${isRunning?'<div class="match-live-banner"><span class="pulse"></span>Prebiehajúci zápas</div>':''}
-    <div class="match-row ${done?'done':''} ${clickable?'clickable':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
-      <span class="mt-key mono">${esc(matchDisplayKey(m))}</span>
-      <span class="mt-side ${w1?'win':''}">${name(m.p1)}</span>
+    <div class="match-row ${done?'done':''} ${clickable?'clickable':''} ${manual?'manual-pairing':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
+      <span class="mt-key mono">${esc(matchDisplayKey(m))}${manual?'<span class="bracket-manual-tag">MANUÁLNE</span>':''}</span>
+      <span class="mt-side ${w1?'win':''}${pair1}">${name(m.p1)}</span>
       ${score}
-      <span class="mt-side right ${w2?'win':''}">${name(m.p2)}</span>
+      <span class="mt-side right ${w2?'win':''}${pair2}">${name(m.p2)}</span>
       ${done?'<span class="mt-check">✓</span>':(clickable?'<span class="mt-edit">›</span>':'')}
     </div>
     ${clickable && !isPublicReadOnly?liveMatchControls(m,loc):''}
