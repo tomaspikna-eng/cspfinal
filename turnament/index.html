@@ -3654,16 +3654,19 @@ function matchRow(m, loc){
   const liveClass=(row?.status==='live'||row?.status==='in_progress')?(row?.match_clock_paused_at?'live-paused':'live-running'):(row?.match_clock_stopped_at?'live-stopped':'');
   const prefix=String(loc||'').split(':')[0];
   const rrPairEditable=(prefix==='rr'||prefix==='grp')&&canEditPairing(m,loc);
-  const pair1=rrPairEditable?` pair-draggable"${pairingDragAttrs(loc,1)} onclick="event.stopPropagation()`:'"';
-  const pair2=rrPairEditable?` pair-draggable"${pairingDragAttrs(loc,2)} onclick="event.stopPropagation()`:'"';
+  const pair1Class=rrPairEditable?' pair-draggable':'';
+  const pair2Class=rrPairEditable?' pair-draggable':'';
+  const pair1Attrs=rrPairEditable?pairingDragAttrs(loc,1):'';
+  const pair2Attrs=rrPairEditable?pairingDragAttrs(loc,2):'';
+  const stopPairClick=rrPairEditable?' onclick="event.stopPropagation()"':'';
   const manual=!!row?.pairing_manual_override||!!curT?.pairingOverrides?.[canonicalRoundKey(m)];
   return `<div class="match-wrap ${liveClass}" data-match-loc="${esc(loc)}" data-match-number="${Number(m.number)||''}">
     ${isRunning?'<div class="match-live-banner"><span class="pulse"></span>Prebiehajúci zápas</div>':''}
     <div class="match-row ${done?'done':''} ${clickable?'clickable':''} ${manual?'manual-pairing':''}" ${clickable?`onclick="openMatch('${loc}')"`:''}>
       <span class="mt-key mono">${esc(matchDisplayKey(m))}${manual?'<span class="bracket-manual-tag">MANUÁLNE</span>':''}</span>
-      <span class="mt-side ${w1?'win':''}${pair1}">${name(m.p1)}</span>
+      <span class="mt-side ${w1?'win':''}${pair1Class}"${pair1Attrs}${stopPairClick}>${name(m.p1)}</span>
       ${score}
-      <span class="mt-side right ${w2?'win':''}${pair2}">${name(m.p2)}</span>
+      <span class="mt-side right ${w2?'win':''}${pair2Class}"${pair2Attrs}${stopPairClick}>${name(m.p2)}</span>
       ${done?'<span class="mt-check">✓</span>':(clickable?'<span class="mt-edit">›</span>':'')}
     </div>
     ${clickable && !isPublicReadOnly?liveMatchControls(m,loc):''}
