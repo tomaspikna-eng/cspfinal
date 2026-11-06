@@ -2330,18 +2330,18 @@ function bracketPlayerLine(player,score,isWinner,isWalkoverSlot=false,loc='',sid
   const label=player?(player.bye?'W.O.':esc(player.name)):(isWalkoverSlot?'W.O.':'Čaká na postup');
   const playerId=player&&!player.bye?resolvePlayerId(player):null;
   const dragAttrs=draggable&&playerId
-    ? \` draggable="true" data-pair-loc="\${esc(loc)}" data-pair-side="\${side}" data-player-id="\${playerId}"
-        ondragstart="pairingDragStart(event,'\${loc}',\${side})"
+    ? ` draggable="true" data-pair-loc="${esc(loc)}" data-pair-side="${side}" data-player-id="${playerId}"
+        ondragstart="pairingDragStart(event,'${loc}',${side})"
         ondragend="pairingDragEnd(event)"
-        ondragover="pairingDragOver(event,'\${loc}',\${side})"
+        ondragover="pairingDragOver(event,'${loc}',${side})"
         ondragleave="pairingDragLeave(event)"
-        ondrop="pairingDrop(event,'\${loc}',\${side})"
-        onpointerdown="pairingPointerStart(event,'\${loc}',\${side})"
+        ondrop="pairingDrop(event,'${loc}',${side})"
+        onpointerdown="pairingPointerStart(event,'${loc}',${side})"
         onpointermove="pairingPointerMove(event)"
         onpointerup="pairingPointerEnd(event)"
-        onpointercancel="pairingPointerCancel(event)"\`
+        onpointercancel="pairingPointerCancel(event)"`
     : '';
-  return \`<div class="bracket-player \${isWinner?'win':''} \${draggable&&playerId?'pair-draggable':''}"\${dragAttrs}><span>\${label}</span><span class="bracket-score">\${score??'–'}</span></div>\`;
+  return `<div class="bracket-player ${isWinner?'win':''} ${draggable&&playerId?'pair-draggable':''}"${dragAttrs}><span>${label}</span><span class="bracket-score">${score??'–'}</span></div>`;
 }
 function matchDisplayKey(m){
   if(!m)return '—';
@@ -2373,11 +2373,11 @@ function pairingRoundEntries(loc){
   else if(prefix==='p2dS')round=curT?.phase2?.dko?.SF;
   else if(prefix==='p2dF')round=curT?.phase2?.dko?.F?[curT.phase2.dko.F]:null;
   if(!Array.isArray(round))return [];
-  return round.map((m,mi)=>({m,loc:\`\${prefix}:\${ri}:\${mi}\`}));
+  return round.map((m,mi)=>({m,loc:`${prefix}:${ri}:${mi}`}));
 }
 function pairingRoundToken(loc){
   const parts=String(loc||'').split(':');
-  return \`\${parts[0]||''}:\${parts[1]||'0'}\`;
+  return `${parts[0]||''}:${parts[1]||'0'}`;
 }
 function pairingMatchEditable(m,loc){
   if(isPublicReadOnly||!m||!m.p1||!m.p2||m.p1.bye||m.p2.bye||m.winner!=null||m.s1!=null||m.s2!=null)return false;
@@ -2503,7 +2503,7 @@ function pairingDragStart(event,loc,side){
   pairingDragState={...slot,mode:'mouse'};
   event.stopPropagation();
   event.dataTransfer.effectAllowed='move';
-  event.dataTransfer.setData('text/plain',\`\${loc}|\${side}\`);
+  event.dataTransfer.setData('text/plain',`${loc}|${side}`);
   requestAnimationFrame(()=>event.currentTarget?.classList.add('pair-dragging'));
 }
 function pairingDragOver(event,loc,side){
@@ -2580,11 +2580,11 @@ function bracketMatchCard(m,loc){
   const row=rowForMatch(m,loc);
   const pairEditable=canEditPairing(m,loc);
   const manual=!!row?.pairing_manual_override||!!curT?.pairingOverrides?.[canonicalRoundKey(m)];
-  return \`<article class="bracket-match \${playable?'':'disabled'} \${manual?'manual-pairing':''}" \${playable?\`onclick="openMatch('\${loc}')"\`:''}>
-    <div class="bracket-match-key">\${esc(matchDisplayKey(m))}\${manual?'<span class="bracket-manual-tag">MANUÁLNE</span>':''}</div>
-    \${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1,walkover&&!m?.p1,loc,1,pairEditable)}
-    \${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2,walkover&&!m?.p2,loc,2,pairEditable)}
-  </article>\`;
+  return `<article class="bracket-match ${playable?'':'disabled'} ${manual?'manual-pairing':''}" ${playable?`onclick="openMatch('${loc}')"`:''}>
+    <div class="bracket-match-key">${esc(matchDisplayKey(m))}${manual?'<span class="bracket-manual-tag">MANUÁLNE</span>':''}</div>
+    ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1,walkover&&!m?.p1,loc,1,pairEditable)}
+    ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2,walkover&&!m?.p2,loc,2,pairEditable)}
+  </article>`;
 }
 function bracketColumns(rounds,names,prefix){
   return `<div class="bracket-scroll"><div class="bracket-grid">${(rounds||[]).map((round,ri)=>`
