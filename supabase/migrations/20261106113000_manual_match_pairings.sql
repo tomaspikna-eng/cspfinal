@@ -130,7 +130,7 @@ begin
         penalty_3_at = null,
         forfeit_at = null,
         late_player_id = null,
-        penalty_score_awarded = null,
+        penalty_score_awarded = 0,
         forfeit_reason = null,
         match_call_status = 'not_called',
         result_source = null,
