@@ -4224,7 +4224,7 @@ function rrGroupMatchCount(totalPlayers,groups=1){
   return matches;
 }
 function isKarty(){ return wiz.sport==='Karty'; }
-function activeSteps(){ return [0,1,2,3]; }
+function activeSteps(){ return [0,2,1,3]; }
 
 function viewWizard(){
   return `<div class="wrap"><div class="wiz">
@@ -4288,7 +4288,7 @@ function renderWiz(){
     const N=TM.nextPow2(Math.max(2,wiz.players.length));
     const presentCount=wiz.players.filter(pl=>pl.present).length;
     p.innerHTML=`
-      <h2>Hráči · prezenčná listina</h2><div class="sub">${wiz.structureLocked?'Zloženie turnaja je po spustení uzamknuté. Prítomnosť hráčov môžeš ďalej upravovať.':'Pridaj hráčov a pri príchode potvrď ich fyzickú prítomnosť prepínačom Prítomný.'}</div>
+      <h2>Hráči · prezenčná listina</h2><div class="sub">${wiz.structureLocked?'Zloženie turnaja je po spustení uzamknuté. Prítomnosť hráčov môžeš ďalej upravovať.':'Pridaj hráčov, nastav seedovanie a parametre formátu. Pri príchode potvrď ich fyzickú prítomnosť prepínačom Prítomný.'}</div>
       ${wiz.structureLocked?'':`<div class="player-add">
         <input id="wPlayerName" placeholder="Meno a priezvisko hráča" onkeydown="if(event.key==='Enter')addPlayer()"/>
         <button class="btn btn-primary" onclick="addPlayer()">＋ Pridať</button></div>
@@ -4342,7 +4342,7 @@ function renderWiz(){
     const rrMatches=rrGroupMatchCount(wiz.players.length,1);
     const comboGroupMatches=rrGroupMatchCount(wiz.players.length,wiz.groups);
     const formatChanged=!!wiz.editId && !!wiz.originalFormat && wiz.format!==wiz.originalFormat;
-    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">${wiz.formatLocked?'Formát je uzamknutý, pretože už začal aspoň jeden zápas.':(wiz.editId?'Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.':'Nastav formát až po kontrole prezenčnej listiny.')}</div>
+    p.innerHTML=`<h2>Formát súťaže</h2><div class="sub">${wiz.formatLocked?'Formát je uzamknutý, pretože už začal aspoň jeden zápas.':(wiz.editId?'Formát môžeš zmeniť až do začiatku prvého zápasu. Pri zmene sa zápasy vygenerujú nanovo.':'Najprv vyber formát. V ďalšom kroku Hráči sa podľa neho zobrazí seedovanie aj nastavenie skrátenej hry.')}</div>
       ${wiz.formatLocked?`<div class="sumbox"><div class="sumrow"><span class="k">Formát</span><span class="v">${FORMATS[wiz.format]?.t||wiz.format}</span></div>${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance}</span></div>`:''}</div>`:(isKarty()?`<div class="note-box"><b>Karty:</b> turnaj pokračuje do Generátora stolov.</div>`:`
       ${formatChanged?`<div class="note-box"><b>Zmena formátu:</b> po uložení sa existujúca neodohraná štruktúra zápasov zruší a vygeneruje podľa nového formátu.</div>`:''}
       <div class="fmt-section">Jedna fáza</div><div class="fmt-list">${card('rr')}${card('sko')}${card('dko')}</div>
