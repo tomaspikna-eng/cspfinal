@@ -184,6 +184,10 @@ input:focus,select:focus{border-color:var(--gold)}
 .bracket-match-key{padding:5px 9px;background:rgba(255,255,255,.025);font-family:var(--mono);font-size:.58rem;color:var(--muted)}
 .bracket-player{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 9px;font-size:.78rem;font-weight:700;border-top:1px solid var(--line-2)}
 .bracket-player.win{color:var(--green)}.bracket-score{font-family:var(--mono);color:var(--gold)}
+.bracket-pair-edit{position:absolute;right:5px;top:3px;z-index:3;width:25px;height:25px;display:grid;place-items:center;border:1px solid var(--gold-b);border-radius:6px;background:#15120a;color:var(--gold);font-size:.72rem;font-weight:900}
+.bracket-pair-edit:hover{background:var(--gold);color:#171000}
+.bracket-match.manual-pairing{border-color:rgba(212,168,67,.48)}
+.bracket-manual-tag{display:inline-flex;margin-left:6px;padding:2px 5px;border:1px solid rgba(212,168,67,.32);border-radius:4px;color:var(--gold);font-size:.48rem;font-weight:800;letter-spacing:.06em;vertical-align:1px}
 .bracket-branch{font-size:.76rem;font-weight:900;color:var(--muted-2);margin:16px 0 9px;text-transform:uppercase;letter-spacing:.06em}
 @media(max-width:620px){.dc-head.match-head{align-items:flex-start;gap:10px;flex-direction:column}.match-view-switch{width:100%}.match-view-btn{flex:1}}
 
@@ -239,6 +243,13 @@ input:focus,select:focus{border-color:var(--gold)}
 .mm-quick button{flex:1;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:.78rem;font-weight:600;color:var(--muted-2)}
 .mm-quick button:hover{border-color:var(--gold);color:var(--gold)}
 .mm-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px}
+.pairing-modal{max-width:520px}
+.pairing-lead{margin:-7px 0 17px;color:var(--muted-2);font-size:.78rem;line-height:1.5;text-align:center}
+.pairing-grid{display:grid;grid-template-columns:1fr 34px 1fr;gap:10px;align-items:end}
+.pairing-field label{display:block;margin-bottom:7px;color:var(--muted);font-family:var(--mono);font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.pairing-vs{padding-bottom:12px;text-align:center;color:var(--gold);font-weight:900}
+.pairing-modal select{font-weight:700}
+.pairing-note{margin-top:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg-2);color:var(--muted);font-size:.7rem;line-height:1.45}
 
 /* DKO branches + final standings */
 .branch-label{font-weight:800;font-size:.82rem;padding:8px 12px;border-radius:9px;margin:16px 0 12px}
@@ -1311,14 +1322,20 @@ function patchVisibleMatchFromRow(row){
   if(legacyKey&&!legacyKey.startsWith('#'))patchVisibleMatch(legacyKey);
 }
 function applyMatchRowsToBracket(matchRows){
+  applyManualPairingRows(matchRows);
+  applyPairingOverrides(curT);
   applyRealMatches(matchRows);
   if(curT.format==='sko') TM.recomputeSKO(curT.bracket);
   else if(curT.format==='dko') TM.recomputeDKO(curT.dko);
   else if(curT.format==='rr_sko'||curT.format==='rr_dko'){
     maybeGenerateComboPhase(curT);
+    applyManualPairingRows(matchRows);
+    applyPairingOverrides(curT);
     applyRealMatches(matchRows);
     maybeGenerateComboPhase(curT);
   }
+  applyManualPairingRows(matchRows);
+  applyPairingOverrides(curT);
   syncThirdPlaceMatch(curT);
   normalizeTournamentMatchIdentity(curT);
   finalizeAppliedMatches(matchRows);
@@ -2004,6 +2021,7 @@ function persistT(){
   return saveBracketState(curT.id, {
     bracket: curT.bracket, dko: curT.dko, rr: curT.rr, grp: curT.grp,
     phase2:curT.phase2, thirdPlaceMatch:curT.thirdPlaceMatch, protectedSeeds:curT.protectedSeeds,
+    pairingOverrides:curT.pairingOverrides||{},
     groupPhaseId:curT.groupPhaseId, knockoutPhaseId:curT.knockoutPhaseId
   });
 }
@@ -2116,6 +2134,10 @@ async function viewDetail(id){
   maybeGenerateComboPhase(curT);
   syncThirdPlaceMatch(curT);
   normalizeTournamentMatchIdentity(curT);
+  if(matchRows.length){
+    applyManualPairingRows(matchRows);
+    applyPairingOverrides(curT);
+  }
   if(!isPublicReadOnly && matchRows.length){
     try{
       const changed=await canonicalizeLoadedMatchRows(matchRows);
@@ -2148,6 +2170,8 @@ async function viewDetail(id){
     // rr: no separate advancement step, same as recomputeFor()'s existing
     // behavior for that format.
     finalizeAppliedMatches(matchRows);
+    applyManualPairingRows(matchRows);
+    applyPairingOverrides(curT);
   }
   persistT();
   if(!isPublicReadOnly){
@@ -2298,6 +2322,7 @@ function setMatchView(view){
   document.getElementById('matchBracketViewBtn')?.classList.toggle('active',matchViewMode==='bracket');
 }
 function renderMatchArea(t){
+  applyPairingOverrides(t);
   const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
   if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
   return body + renderTournamentEvaluation(t);
@@ -2313,11 +2338,187 @@ function matchDisplayKey(m){
   return key||'—';
 }
 
+function pairingPlayerObject(playerId){
+  const p=(Array.isArray(curT?.players)?curT.players:[]).find(x=>x.id===playerId);
+  return p?{id:p.id,name:p.name,seed:p.seed,user_id:p.user_id||null}:null;
+}
+function pairingRoundEntries(loc){
+  const parts=String(loc||'').split(':'),prefix=parts[0],ri=Number(parts[1]||0);
+  let round=null;
+  if(prefix==='sko')round=curT?.bracket?.rounds?.[ri];
+  else if(prefix==='dkoA')round=curT?.dko?.W?.[ri];
+  else if(prefix==='dkoB')round=curT?.dko?.L?.[ri];
+  else if(prefix==='dkoK')round=curT?.dko?.KO?.[ri];
+  else if(prefix==='dkoQ')round=curT?.dko?.QF;
+  else if(prefix==='dkoS')round=curT?.dko?.SF;
+  else if(prefix==='dkoF')round=curT?.dko?.F?[curT.dko.F]:null;
+  else if(prefix==='p2s')round=curT?.phase2?.bracket?.rounds?.[ri];
+  else if(prefix==='p2p')round=curT?.phase2?.prelim?.rounds?.[ri];
+  else if(prefix==='p2m')round=curT?.phase2?.main?.rounds?.[ri];
+  else if(prefix==='p2dA')round=curT?.phase2?.dko?.W?.[ri];
+  else if(prefix==='p2dB')round=curT?.phase2?.dko?.L?.[ri];
+  else if(prefix==='p2dK')round=curT?.phase2?.dko?.KO?.[ri];
+  else if(prefix==='p2dQ')round=curT?.phase2?.dko?.QF;
+  else if(prefix==='p2dS')round=curT?.phase2?.dko?.SF;
+  else if(prefix==='p2dF')round=curT?.phase2?.dko?.F?[curT.phase2.dko.F]:null;
+  if(!Array.isArray(round))return [];
+  return round.map((m,mi)=>({m,loc:`${prefix}:${ri}:${mi}`}));
+}
+function pairingMatchEditable(m,loc){
+  if(isPublicReadOnly||!m||!m.p1||!m.p2||m.p1.bye||m.p2.bye||m.winner!=null||m.s1!=null||m.s2!=null)return false;
+  const row=rowForMatch(m,loc);
+  if(!row)return true;
+  return !row.started_at&&!row.completed_at&&!row.winner_id&&
+    Number(row.score1||0)===0&&Number(row.score2||0)===0&&
+    !['live','in_progress','completed','forfeited','disputed'].includes(String(row.status||''));
+}
+function pairingRoundPool(loc){
+  const seen=new Set(),players=[];
+  pairingRoundEntries(loc).filter(x=>pairingMatchEditable(x.m,x.loc)).forEach(({m})=>{
+    [m.p1,m.p2].forEach(p=>{
+      const id=resolvePlayerId(p);
+      if(id&&!p?.bye&&!seen.has(id)){seen.add(id);const real=pairingPlayerObject(id);if(real)players.push(real);}
+    });
+  });
+  return players;
+}
+function canEditPairing(m,loc){
+  return pairingMatchEditable(m,loc)&&pairingRoundPool(loc).length>=2;
+}
+function applyPairingOverrides(t){
+  if(!t||!t.pairingOverrides||typeof t.pairingOverrides!=='object')return;
+  Object.entries(t.pairingOverrides).forEach(([key,override])=>{
+    const n=Number(String(key).replace(/^#/,''));
+    const m=findMatchByNumber(t,n);
+    const p1=pairingPlayerObject(override?.player1_id),p2=pairingPlayerObject(override?.player2_id);
+    if(m&&p1&&p2&&p1.id!==p2.id){m.p1=p1;m.p2=p2;}
+  });
+}
+function applyManualPairingRows(matchRows){
+  if(!curT||!Array.isArray(matchRows))return;
+  if(!curT.pairingOverrides||typeof curT.pairingOverrides!=='object')curT.pairingOverrides={};
+  matchRows.filter(row=>row?.pairing_manual_override).forEach(row=>{
+    const m=matchFromDbRow(row),p1=pairingPlayerObject(row.player1_id),p2=pairingPlayerObject(row.player2_id);
+    if(!m||!p1||!p2||p1.id===p2.id)return;
+    m.p1=p1;m.p2=p2;
+    curT.pairingOverrides[canonicalRoundKey(m)]={player1_id:p1.id,player2_id:p2.id};
+  });
+}
+let pairingEditLoc=null;
+function openPairEditor(loc){
+  if(isPublicReadOnly)return;
+  const m=getMatchByLoc(loc);
+  if(!canEditPairing(m,loc)){toast('Dvojicu možno upraviť iba pred začiatkom zápasu.',true);return;}
+  pairingEditLoc=loc;
+  const pool=pairingRoundPool(loc);
+  const p1Id=resolvePlayerId(m.p1),p2Id=resolvePlayerId(m.p2);
+  const options=selected=>pool.map(p=>`<option value="${p.id}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('');
+  document.getElementById('matchModalArea').innerHTML=`
+    <div class="overlay" onclick="closePairEditor(event)">
+      <div class="match-modal pairing-modal" onclick="event.stopPropagation()">
+        <div class="mm-key mono">${esc(matchDisplayKey(m))} · ÚPRAVA DVOJICE</div>
+        <div class="pairing-lead">Manuálne uprav hráčov tohto zápasu. CSP zachová každého hráča v danom kole iba raz.</div>
+        <div class="pairing-grid">
+          <div class="pairing-field"><label>Hráč 1</label><select id="pairPlayer1">${options(p1Id)}</select></div>
+          <div class="pairing-vs">vs</div>
+          <div class="pairing-field"><label>Hráč 2</label><select id="pairPlayer2">${options(p2Id)}</select></div>
+        </div>
+        <div class="pairing-note">Ak zvolíš hráča z iného neodohraného zápasu tohto kola, CSP hráčov automaticky vymení medzi zápasmi.</div>
+        <div class="mm-actions">
+          <button class="btn btn-ghost" onclick="closePairEditor()">Zrušiť</button>
+          <button class="btn btn-green" onclick="savePairEditor()">Uložiť dvojicu</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closePairEditor(e){
+  if(e&&e.target&&!e.target.classList.contains('overlay'))return;
+  document.getElementById('matchModalArea').innerHTML='';
+  pairingEditLoc=null;
+}
+async function savePairEditor(){
+  const loc=pairingEditLoc,m=getMatchByLoc(loc);
+  if(!m||!canEditPairing(m,loc)){toast('Dvojicu už nie je možné upraviť.',true);return;}
+  const p1Id=document.getElementById('pairPlayer1')?.value||'',p2Id=document.getElementById('pairPlayer2')?.value||'';
+  if(!p1Id||!p2Id||p1Id===p2Id){toast('Vyber dvoch rôznych hráčov.',true);return;}
+
+  const entries=pairingRoundEntries(loc).filter(x=>pairingMatchEditable(x.m,x.loc));
+  const slots=[];
+  entries.forEach(entry=>{
+    [1,2].forEach(side=>{
+      const player=side===1?entry.m.p1:entry.m.p2,id=resolvePlayerId(player);
+      if(id)slots.push({entry,side,id});
+    });
+  });
+  const current1=slots.find(s=>s.entry.loc===loc&&s.side===1),current2=slots.find(s=>s.entry.loc===loc&&s.side===2);
+  const source1=slots.find(s=>s.id===p1Id),source2=slots.find(s=>s.id===p2Id);
+  if(!current1||!current2||!source1||!source2){toast('Vybraný hráč už nie je dostupný v tomto kole.',true);return;}
+
+  const affected=[];
+  [current1,current2,source1,source2].forEach(slot=>{if(!affected.some(x=>x.entry.loc===slot.entry.loc&&x.side===slot.side))affected.push(slot);});
+  const selected=new Set([p1Id,p2Id]);
+  const remainingPlayers=affected.map(s=>s.id).filter(id=>!selected.has(id));
+  const remainingSlots=affected.filter(s=>!(s.entry.loc===loc&&(s.side===1||s.side===2)));
+  if(remainingPlayers.length!==remainingSlots.length){toast('Dvojicu sa nepodarilo bezpečne prehodiť.',true);return;}
+
+  const plan=new Map();
+  affected.forEach(s=>{
+    if(!plan.has(s.entry.loc))plan.set(s.entry.loc,{entry:s.entry,p1:resolvePlayerId(s.entry.m.p1),p2:resolvePlayerId(s.entry.m.p2)});
+  });
+  plan.get(loc).p1=p1Id;plan.get(loc).p2=p2Id;
+  remainingSlots.forEach((slot,i)=>{
+    const target=plan.get(slot.entry.loc);
+    if(slot.side===1)target.p1=remainingPlayers[i];else target.p2=remainingPlayers[i];
+  });
+  for(const item of plan.values()){
+    if(!item.p1||!item.p2||item.p1===item.p2){toast('Neplatná dvojica.',true);return;}
+    if(!pairingMatchEditable(item.entry.m,item.entry.loc)){toast('Jeden z dotknutých zápasov sa už začal.',true);return;}
+  }
+
+  pendingTournamentWrite=true;
+  try{
+    const assignments=[];
+    for(const item of plan.values()){
+      const row=await cspAuth.withTimeout(ensureRealMatch(item.entry.loc,item.entry.m),8000,'prepare pairing match');
+      assignments.push({match_id:row.id,player1_id:item.p1,player2_id:item.p2});
+    }
+    const {data,error}=await tournamentRpc('override_tournament_match_pairings',{
+      p_tournament_id:curT.id,p_assignments:assignments
+    });
+    if(error)throw error;
+    (data||[]).forEach(row=>{if(row?.round_key)realMatchesByKey.set(row.round_key,row);});
+
+    if(!curT.pairingOverrides||typeof curT.pairingOverrides!=='object')curT.pairingOverrides={};
+    for(const item of plan.values()){
+      item.entry.m.p1=pairingPlayerObject(item.p1);
+      item.entry.m.p2=pairingPlayerObject(item.p2);
+      item.entry.m.s1=null;item.entry.m.s2=null;item.entry.m.winner=null;item.entry.m.resultSig=null;
+      curT.pairingOverrides[canonicalRoundKey(item.entry.m)]={player1_id:item.p1,player2_id:item.p2};
+    }
+    applyPairingOverrides(curT);
+    const saved=await cspAuth.withTimeout(persistT(),8000,'save pairing override');
+    if(!saved)throw new Error('Úpravu dvojice sa nepodarilo uložiť do pavúka.');
+    const rows=await reloadRealMatches();
+    applyMatchRowsToBracket(rows);
+    closePairEditor();
+    document.getElementById('matchArea').innerHTML=renderMatchArea(curT);
+    toast('Dvojica upravená ✓');
+  }catch(err){
+    console.error('[turnament] pairing override:',err);
+    await silentSyncMatches(curT.id);
+    toast('Dvojicu sa nepodarilo upraviť: '+cspErrorMessage(err),true);
+  }finally{pendingTournamentWrite=false;}
+}
+
 function bracketMatchCard(m,loc){
   const playable=!isPublicReadOnly&&m?.p1&&m?.p2&&!m.p1.bye&&!m.p2.bye;
   const walkover=TM.isWalkover(m);
-  return `<article class="bracket-match ${playable?'':'disabled'}" ${playable?`onclick="openMatch('${loc}')"`:''}>
-    <div class="bracket-match-key">${esc(matchDisplayKey(m))}</div>
+  const row=rowForMatch(m,loc);
+  const pairEditable=canEditPairing(m,loc);
+  const manual=!!row?.pairing_manual_override||!!curT?.pairingOverrides?.[canonicalRoundKey(m)];
+  return `<article class="bracket-match ${playable?'':'disabled'} ${manual?'manual-pairing':''}" ${playable?`onclick="openMatch('${loc}')"`:''}>
+    ${pairEditable?`<button class="bracket-pair-edit" type="button" title="Upraviť dvojicu" aria-label="Upraviť dvojicu" onclick="event.stopPropagation();openPairEditor('${loc}')">✎</button>`:''}
+    <div class="bracket-match-key">${esc(matchDisplayKey(m))}${manual?'<span class="bracket-manual-tag">MANUÁLNE</span>':''}</div>
     ${bracketPlayerLine(m?.p1,m?.s1,m?.winner===1,walkover&&!m?.p1)}
     ${bracketPlayerLine(m?.p2,m?.s2,m?.winner===2,walkover&&!m?.p2)}
   </article>`;
@@ -3400,6 +3601,7 @@ function recomputeFor(loc){
   else if(k==='p2p') TM.recomputeSKO(curT.phase2.prelim);
   else if(k==='p2m') TM.recomputeSKO(curT.phase2.main);
   else if(['p2dA','p2dB','p2dK','p2dQ','p2dS','p2dF'].includes(k)) TM.recomputeDKO(curT.phase2.dko);
+  applyPairingOverrides(curT);
   syncThirdPlaceMatch(curT);
   // rr, grp: bez posunu (tabuľka sa prepočíta pri renderi)
 }
@@ -3617,6 +3819,7 @@ async function saveMatch(){
 
     recomputeFor(savedLoc);
     maybeGenerateComboPhase(curT);
+    applyPairingOverrides(curT);
     syncThirdPlaceMatch(curT);
     normalizeTournamentMatchIdentity(curT);
 
