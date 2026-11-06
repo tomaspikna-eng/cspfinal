@@ -2218,7 +2218,7 @@ async function viewDetail(id){
     </div>
     <div class="detail-grid">
       <div class="detail-card matches-wide">
-        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · hráča v pavúku presuň potiahnutím</span>`}</div>
+        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · dvojice v pavúku aj RR upravíš potiahnutím</span>`}</div>
           <div class="match-view-switch" role="group" aria-label="Zobrazenie zápasov">
             <button class="match-view-btn ${matchViewMode==='list'?'active':''}" id="matchListViewBtn" onclick="setMatchView('list')">☷ Zoznam</button>
             <button class="match-view-btn ${matchViewMode==='bracket'?'active':''}" id="matchBracketViewBtn" onclick="setMatchView('bracket')">⑂ Pavúk</button>
