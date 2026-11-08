@@ -1,8 +1,8 @@
--- Allow historical round results to be displayed without double-counting
--- points that were already included in the imported series total.
+-- Normalize Kaniansky pohar series standings after restoring round 8 results.
+-- Every completed round is counted exactly once from event_series_round_results.
 
 update public.tournament_results
-set metadata = coalesce(metadata,'{}'::jsonb) || '{"series_points_precounted":true}'::jsonb,
+set metadata = coalesce(metadata,'{}'::jsonb) - 'series_points_precounted',
     updated_at = now()
 where tournament_id = '4d6f89ad-9e22-4495-9543-c983d1185f09'::uuid;
 
@@ -21,15 +21,7 @@ with aggregated as (
     (array_agg(r.player_name order by r.series_round_number desc))[1] as player_name,
     count(*)::integer as rounds_played,
     count(*) filter (where r.is_counted)::integer as counted_rounds,
-    coalesce(
-      sum(
-        case
-          when coalesce((tr.metadata->>'series_points_precounted')::boolean,false) then 0
-          else r.points
-        end
-      ) filter (where r.is_counted),
-      0
-    )::integer as total_points,
+    coalesce(sum(r.points) filter (where r.is_counted),0)::integer as total_points,
     count(*) filter (where r.is_counted and r.final_position=1)::integer as victories,
     count(*) filter (where r.is_counted and r.final_position=2)::integer as runner_up_finishes,
     count(*) filter (where r.is_counted and r.final_position=3)::integer as third_places,
@@ -39,7 +31,6 @@ with aggregated as (
     (array_agg(r.points order by r.series_round_number desc))[1] as latest_round_points
   from public.event_series_round_results r
   join public.event_series s on s.id=r.series_id
-  left join public.tournament_results tr on tr.id=r.tournament_result_id
   group by
     r.series_id,r.series_title,r.total_rounds,r.best_results_count,
     s.ranking_config,r.player_identity_id
