@@ -234,6 +234,12 @@ input:focus,select:focus{border-color:var(--gold)}
 .st-row2{border-top:1px solid var(--line-2)}
 .st-row2 span:nth-child(2){font-weight:600}
 .st-row2.adv{background:rgba(38,208,125,.06)}
+.st-row2.group-player-draggable{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .12s,outline-color .12s,opacity .12s}
+.st-row2.group-player-draggable span:nth-child(2)::before{content:'⋮⋮';display:inline-block;margin-right:7px;color:var(--gold);font-size:.65rem;letter-spacing:-.14em;opacity:.78}
+.st-row2.group-player-draggable:hover{background:rgba(212,168,67,.08)}
+.st-row2.group-player-dragging{opacity:.38;background:rgba(212,168,67,.12)!important}
+.st-row2.group-player-drop-target{background:rgba(38,208,125,.13)!important;outline:1px solid rgba(38,208,125,.55);outline-offset:-1px}
+.st-row2.group-player-drop-invalid{background:rgba(227,81,73,.10)!important;outline:1px solid rgba(227,81,73,.42);outline-offset:-1px}
 .adv-tag{font-family:var(--mono);font-size:.56rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--green-dim);color:var(--green);padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle}
 
 /* result modal */
@@ -1629,6 +1635,55 @@ async function deleteTournament(id){
 let curT=null; // aktuálne otvorený turnaj (objekt v store)
 let matchViewMode='list';
 
+function buildComboGroupState(t,membershipRows=null){
+  const players=Array.isArray(t?.players)?t.players:[];
+  const G=Math.max(1,Number(t?.groups)||2);
+  const groups=Array.from({length:G},(_,gi)=>({name:String.fromCharCode(65+gi),players:[],matches:[]}));
+  const byId=new Map(players.map((p,i)=>[p.id,{...p,seed:p.seed||i+1}]));
+  const assigned=new Set();
+
+  if(Array.isArray(membershipRows)&&membershipRows.length){
+    [...membershipRows]
+      .sort((a,b)=>Number(a.group_index)-Number(b.group_index))
+      .forEach(row=>{
+        const gi=Number(row.group_index)-1,p=byId.get(row.player_id);
+        if(gi>=0&&gi<groups.length&&p&&!assigned.has(p.id)){groups[gi].players.push(p);assigned.add(p.id);}
+      });
+  }
+
+  players.forEach((p,i)=>{
+    if(assigned.has(p.id))return;
+    const player={...p,seed:p.seed||i+1};
+    const gi=Math.max(0,((Number(player.seed)||i+1)-1)%G);
+    groups[gi].players.push(player);
+    assigned.add(player.id);
+  });
+
+  groups.forEach(g=>{
+    g.players.sort((a,b)=>(Number(a.seed)||9999)-(Number(b.seed)||9999));
+    const rounds=TM.roundRobin(g.players);
+    rounds.forEach((round,ri)=>round.forEach(game=>{
+      g.matches.push({key:null,number:null,round:ri+1,p1:game[0],p2:game[1],s1:null,s2:null,winner:null});
+    }));
+  });
+  return {groups,advance:t?.advance};
+}
+
+function rebuildComboGroupMatches(t){
+  if(!t?.grp?.groups)return;
+  t.grp.groups.forEach(g=>{
+    g.matches=[];
+    const rounds=TM.roundRobin(g.players);
+    rounds.forEach((round,ri)=>round.forEach(game=>{
+      g.matches.push({key:null,number:null,round:ri+1,p1:game[0],p2:game[1],s1:null,s2:null,winner:null});
+    }));
+  });
+  t.phase2=null;
+  t.thirdPlaceMatch=null;
+  t.knockoutPhaseId=null;
+  normalizeTournamentMatchIdentity(t);
+}
+
 function ensureBracket(t){
   const players=Array.isArray(t.players)?t.players:[];
   if(t.format==='sko'){
@@ -1653,17 +1708,7 @@ function ensureBracket(t){
     }
   } else if(t.format==='rr_sko' || t.format==='rr_dko'){
     if(!t.grp || !t.grp.groups || !t.grp.groups.length){
-      const G=Math.max(1, t.groups||2);
-      const seeded=players.map((p,i)=>({name:p.name,seed:i+1,id:p.id}));
-      const groups=Array.from({length:G},(_,gi)=>({name:String.fromCharCode(65+gi), players:[], matches:[]}));
-      seeded.forEach((p,i)=>groups[i%G].players.push(p)); // rozdelenie: seedy krížom do skupín
-      groups.forEach(g=>{
-        const rounds=TM.roundRobin(g.players);
-        rounds.forEach((round,ri)=>round.forEach((game,mi)=>{
-          g.matches.push({ key:null, number:null, round:ri+1, p1:game[0], p2:game[1], s1:null,s2:null,winner:null });
-        }));
-      });
-      t.grp={ groups, advance:t.advance };
+      t.grp=buildComboGroupState(t);
     }
   }
   syncThirdPlaceMatch(t);
@@ -2042,7 +2087,7 @@ function closeDisplayCenter(){
   document.getElementById('displayCenterOverlay')?.classList.add('hidden');
 }
 async function viewDetail(id){
-  let t, matchRows=[], resultRows=[], eventSeries=null;
+  let t, matchRows=[], resultRows=[], groupRows=[], eventSeries=null;
   try {
     const { data: tournament, error: tErr } = await cspAuth.withTimeout(
       cspAuth.client.from('tournaments').select('*').eq('id', id).single(),
@@ -2079,6 +2124,16 @@ async function viewDetail(id){
           series_ranking_config:eventSeries?.ranking_config||null,
           groups: tournament.groups_count, advance: tournament.advance_count,
           players: (players||[]).map(p=>({ id: p.id, name: p.name, user_id:p.user_id||null, seed: p.seed })) };
+
+    if(t.format==='rr_sko'||t.format==='rr_dko'){
+      const {data:dbGroups,error:gErr}=await cspAuth.withTimeout(
+        cspAuth.client.from('tournament_groups').select('group_index,player_id').eq('tournament_id',id),
+        8000,'load tournament groups'
+      );
+      if(gErr)throw gErr;
+      groupRows=dbGroups||[];
+      if(groupRows.length)t.grp=buildComboGroupState(t,groupRows);
+    }
 
     const { data: matches, error: mErr } = await cspAuth.withTimeout(
       cspAuth.client.from('matches').select('*').eq('tournament_id', id),
@@ -2597,6 +2652,181 @@ function pairingPointerCancel(){
   pairingClearDragClasses();
 }
 
+function groupAssignmentsEditable(){
+  if(isPublicReadOnly||!curT||!['rr_sko','rr_dko'].includes(curT.format)||curT.phase2||curT.knockoutPhaseId)return false;
+  const groups=curT.grp?.groups||[];
+  for(let gi=0;gi<groups.length;gi++){
+    for(let mi=0;mi<(groups[gi].matches||[]).length;mi++){
+      const m=groups[gi].matches[mi];
+      if(m?.winner!=null||m?.s1!=null||m?.s2!=null)return false;
+      const row=rowForMatch(m,`grp:${gi}:${mi}`);
+      if(!row)continue;
+      if(row.started_at||row.completed_at||row.winner_id||
+         Number(row.score1||0)!==0||Number(row.score2||0)!==0||
+         ['live','in_progress','completed','forfeited','disputed'].includes(String(row.status||'')))return false;
+    }
+  }
+  return true;
+}
+function groupPlayerById(groupIndex,playerId){
+  return curT?.grp?.groups?.[Number(groupIndex)]?.players?.find(p=>String(p?.id)===String(playerId))||null;
+}
+function groupAssignmentAttrs(groupIndex,playerId){
+  return ` draggable="true" title="Potiahni hráča na hráča v inej skupine"
+    data-group-index="${Number(groupIndex)}" data-group-player-id="${esc(playerId)}"
+    ondragstart="groupAssignmentDragStart(event,${Number(groupIndex)},'${esc(playerId)}')"
+    ondragend="groupAssignmentDragEnd(event)"
+    ondragover="groupAssignmentDragOver(event,${Number(groupIndex)},'${esc(playerId)}')"
+    ondragleave="groupAssignmentDragLeave(event)"
+    ondrop="groupAssignmentDrop(event,${Number(groupIndex)},'${esc(playerId)}')"
+    onpointerdown="groupAssignmentPointerStart(event,${Number(groupIndex)},'${esc(playerId)}')"
+    onpointermove="groupAssignmentPointerMove(event)"
+    onpointerup="groupAssignmentPointerEnd(event)"
+    onpointercancel="groupAssignmentPointerCancel(event)"`;
+}
+function clearGroupAssignmentDragClasses(){
+  document.querySelectorAll('.group-player-dragging,.group-player-drop-target,.group-player-drop-invalid')
+    .forEach(el=>el.classList.remove('group-player-dragging','group-player-drop-target','group-player-drop-invalid'));
+}
+async function syncPendingGroupMatchPlayers(){
+  normalizeTournamentMatchIdentity(curT);
+  const updates=[];
+  (curT.grp?.groups||[]).forEach((g,gi)=>(g.matches||[]).forEach((m,mi)=>{
+    if(!m?.p1||!m?.p2||m.p1.bye||m.p2.bye)return;
+    const row=rowForMatch(m,`grp:${gi}:${mi}`);
+    if(!row?.id)return;
+    updates.push(
+      cspAuth.client.from('matches').update({
+        player1_id:resolvePlayerId(m.p1),
+        player2_id:resolvePlayerId(m.p2),
+        score1:null,score2:null,winner_id:null,status:'pending',
+        pairing_manual_override:false
+      }).eq('id',row.id).eq('tournament_id',curT.id)
+    );
+  }));
+  if(updates.length){
+    const results=await Promise.all(updates);
+    const failed=results.find(r=>r.error);
+    if(failed?.error)throw failed.error;
+    const rows=await reloadRealMatches();
+    realMatchesByKey=new Map(rows.map(row=>[row.round_key,row]));
+  }
+}
+async function swapGroupAssignments(sourceGroup,sourcePlayerId,targetGroup,targetPlayerId){
+  sourceGroup=Number(sourceGroup);targetGroup=Number(targetGroup);
+  if(sourceGroup===targetGroup||String(sourcePlayerId)===String(targetPlayerId))return;
+  if(!groupAssignmentsEditable()){toast('Skupiny možno manuálne meniť iba pred začiatkom prvého zápasu.',true);return;}
+
+  const a=groupPlayerById(sourceGroup,sourcePlayerId),b=groupPlayerById(targetGroup,targetPlayerId);
+  const ga=curT.grp?.groups?.[sourceGroup],gb=curT.grp?.groups?.[targetGroup];
+  if(!a||!b||!ga||!gb)return;
+  const ai=ga.players.findIndex(p=>String(p.id)===String(a.id));
+  const bi=gb.players.findIndex(p=>String(p.id)===String(b.id));
+  if(ai<0||bi<0)return;
+
+  pendingTournamentWrite=true;
+  try{
+    const [ra,rb]=await Promise.all([
+      cspAuth.client.from('tournament_groups').update({group_index:targetGroup+1}).eq('tournament_id',curT.id).eq('player_id',a.id),
+      cspAuth.client.from('tournament_groups').update({group_index:sourceGroup+1}).eq('tournament_id',curT.id).eq('player_id',b.id)
+    ]);
+    if(ra.error||rb.error){
+      await Promise.allSettled([
+        cspAuth.client.from('tournament_groups').update({group_index:sourceGroup+1}).eq('tournament_id',curT.id).eq('player_id',a.id),
+        cspAuth.client.from('tournament_groups').update({group_index:targetGroup+1}).eq('tournament_id',curT.id).eq('player_id',b.id)
+      ]);
+      throw ra.error||rb.error;
+    }
+
+    ga.players[ai]=b;gb.players[bi]=a;
+    ga.players.sort((x,y)=>(Number(x.seed)||9999)-(Number(y.seed)||9999));
+    gb.players.sort((x,y)=>(Number(x.seed)||9999)-(Number(y.seed)||9999));
+    curT.pairingOverrides={};
+    rebuildComboGroupMatches(curT);
+    await syncPendingGroupMatchPlayers();
+
+    const saved=await cspAuth.withTimeout(persistT(),8000,'save manual group assignment');
+    if(!saved)throw new Error('Nové rozdelenie skupín sa nepodarilo uložiť.');
+    const area=document.getElementById('matchArea');
+    if(area)area.innerHTML=renderMatchArea(curT);
+    toast(`${a.name} ↔ ${b.name} · skupiny prehodené ✓`);
+  }catch(err){
+    console.error('[turnament] group assignment swap:',err);
+    toast('Hráčov medzi skupinami sa nepodarilo prehodiť: '+cspErrorMessage(err),true);
+  }finally{
+    pendingTournamentWrite=false;
+    clearGroupAssignmentDragClasses();
+  }
+}
+
+let groupAssignmentDragState=null;
+function groupAssignmentDragStart(event,groupIndex,playerId){
+  if(!groupAssignmentsEditable()){event.preventDefault();return;}
+  const player=groupPlayerById(groupIndex,playerId);
+  if(!player){event.preventDefault();return;}
+  groupAssignmentDragState={groupIndex:Number(groupIndex),playerId:String(playerId),mode:'mouse'};
+  event.stopPropagation();
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain',`${groupIndex}|${playerId}`);
+  requestAnimationFrame(()=>event.currentTarget?.classList.add('group-player-dragging'));
+}
+function groupAssignmentDragOver(event,groupIndex,playerId){
+  if(!groupAssignmentDragState)return;
+  event.preventDefault();event.stopPropagation();
+  const valid=Number(groupIndex)!==groupAssignmentDragState.groupIndex;
+  event.dataTransfer.dropEffect=valid?'move':'none';
+  event.currentTarget.classList.toggle('group-player-drop-target',valid);
+  event.currentTarget.classList.toggle('group-player-drop-invalid',!valid);
+}
+function groupAssignmentDragLeave(event){
+  event.currentTarget.classList.remove('group-player-drop-target','group-player-drop-invalid');
+}
+async function groupAssignmentDrop(event,groupIndex,playerId){
+  event.preventDefault();event.stopPropagation();
+  const source=groupAssignmentDragState;
+  groupAssignmentDragState=null;clearGroupAssignmentDragClasses();
+  if(!source)return;
+  await swapGroupAssignments(source.groupIndex,source.playerId,groupIndex,playerId);
+}
+function groupAssignmentDragEnd(){
+  groupAssignmentDragState=null;clearGroupAssignmentDragClasses();
+}
+
+let groupAssignmentPointerState=null;
+function groupAssignmentPointerStart(event,groupIndex,playerId){
+  if(event.pointerType==='mouse'||!groupAssignmentsEditable())return;
+  const player=groupPlayerById(groupIndex,playerId);if(!player)return;
+  groupAssignmentPointerState={groupIndex:Number(groupIndex),playerId:String(playerId),startX:event.clientX,startY:event.clientY,active:false,pointerId:event.pointerId,sourceEl:event.currentTarget};
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+}
+function groupAssignmentPointerMove(event){
+  const state=groupAssignmentPointerState;
+  if(!state||state.pointerId!==event.pointerId)return;
+  const dist=Math.hypot(event.clientX-state.startX,event.clientY-state.startY);
+  if(!state.active&&dist<8)return;
+  state.active=true;event.preventDefault();
+  state.sourceEl?.classList.add('group-player-dragging');
+  document.querySelectorAll('.group-player-drop-target,.group-player-drop-invalid').forEach(el=>el.classList.remove('group-player-drop-target','group-player-drop-invalid'));
+  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('[data-group-player-id][data-group-index]');
+  if(!el)return;
+  const valid=Number(el.dataset.groupIndex)!==state.groupIndex;
+  el.classList.add(valid?'group-player-drop-target':'group-player-drop-invalid');
+}
+async function groupAssignmentPointerEnd(event){
+  const state=groupAssignmentPointerState;
+  if(!state||state.pointerId!==event.pointerId)return;
+  groupAssignmentPointerState=null;
+  if(!state.active){clearGroupAssignmentDragClasses();return;}
+  event.preventDefault();event.stopPropagation();
+  const el=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('[data-group-player-id][data-group-index]');
+  const target=el?{groupIndex:Number(el.dataset.groupIndex),playerId:el.dataset.groupPlayerId}:null;
+  clearGroupAssignmentDragClasses();
+  if(target)await swapGroupAssignments(state.groupIndex,state.playerId,target.groupIndex,target.playerId);
+}
+function groupAssignmentPointerCancel(){
+  groupAssignmentPointerState=null;clearGroupAssignmentDragClasses();
+}
+
 function bracketMatchCard(m,loc){
   const playable=!isPublicReadOnly&&m?.p1&&m?.p2&&!m.p1.bye&&!m.p2.bye;
   const walkover=TM.isWalkover(m);
@@ -2749,13 +2979,18 @@ function renderMatchList(t){
     // rr_sko / rr_dko — skupinová fáza
     const grp=t.grp; if(!grp||!grp.groups) return `<div class="note-box">Skupiny sa nepodarilo vytvoriť.</div>`;
     const koType=t.format==='rr_dko'?'Double KO':'Single KO';
-    let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. Najprv dohraj skupiny.</div>`;
+    const canMoveGroups=groupAssignmentsEditable();
+    let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. ${canMoveGroups?'Pred prvým zápasom môžeš hráčov medzi skupinami manuálne prehodiť potiahnutím.':'Rozdelenie skupín je po začiatku hry uzamknuté.'}</div>`;
     grp.groups.forEach((g,gi)=>{
       const st=rrTable(g.players, g.matches);
       const adv=Math.min(grp.advance, g.players.length);
       html+=`<div class="group-head-row"><div class="branch-label conv" style="margin-top:0">Skupina ${esc(g.name)} · ${g.players.length} hráčov</div>${renderGroupResourceControl(gi)}</div>`;
       html+=`<div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
-      st.forEach((s,i)=>html+=`<div class="st-row2 ${i<adv?'adv':''}"><span class="mono">${i+1}</span><span>${esc(s.name)}${i<adv?' <span class="adv-tag">postup</span>':''}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`);
+      st.forEach((s,i)=>{
+        const gp=g.players.find(p=>p.name===s.name&&Number(p.seed||0)===Number(s.seed||0))||g.players.find(p=>p.name===s.name);
+        const movable=canMoveGroups&&gp?.id;
+        html+=`<div class="st-row2 ${i<adv?'adv':''}${movable?' group-player-draggable':''}"${movable?groupAssignmentAttrs(gi,gp.id):''}><span class="mono">${i+1}</span><span>${esc(s.name)}${i<adv?' <span class="adv-tag">postup</span>':''}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`;
+      });
       html+=`</div>`;
       html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)} · potiahni hráča na iného hráča v rovnakom kole</div>`;
       let lastRound=0;
