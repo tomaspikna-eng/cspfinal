@@ -964,9 +964,16 @@ function dkoMatchesInNumberOrder(dko){
   if(dko.F)out.push(dko.F);
   return out;
 }
+function isStructuralSkoWalkover(m){
+  if(!m?.p1||!m?.p2)return false;
+  return !!((m.p1.bye&&!m.p2.bye)||(m.p2.bye&&!m.p1.bye));
+}
+function visibleSkoRound(round){
+  return (round||[]).filter(m=>!isStructuralSkoWalkover(m));
+}
 function phaseMatchesInNumberOrder(phase){
   if(!phase)return [];
-  if(phase.kind==='standard-sko')return (phase.bracket?.rounds||[]).flat();
+  if(phase.kind==='standard-sko')return (phase.bracket?.rounds||[]).flat().filter(m=>!isStructuralSkoWalkover(m));
   if(phase.kind==='standard-dko')return dkoMatchesInNumberOrder(phase.dko);
   if(phase.kind==='protected-sko'){
     return [
@@ -978,7 +985,7 @@ function phaseMatchesInNumberOrder(phase){
 }
 function tournamentMatchesInNumberOrder(t){
   if(!t)return [];
-  if(t.format==='sko')return [...(t.bracket?.rounds||[]).flat(),...(t.thirdPlaceMatch?[t.thirdPlaceMatch]:[])];
+  if(t.format==='sko')return [...(t.bracket?.rounds||[]).flat().filter(m=>!isStructuralSkoWalkover(m)),...(t.thirdPlaceMatch?[t.thirdPlaceMatch]:[])];
   if(t.format==='dko')return [...dkoMatchesInNumberOrder(t.dko),...(t.thirdPlaceMatch?[t.thirdPlaceMatch]:[])];
   if(t.format==='rr')return t.rr?.matches||[];
   if(t.format==='rr_sko'||t.format==='rr_dko'){
@@ -2843,7 +2850,7 @@ function bracketColumns(rounds,names,prefix){
   return `<div class="bracket-scroll"><div class="bracket-grid">${(rounds||[]).map((round,ri)=>`
     <section class="bracket-column">
       <div class="bracket-column-title">${esc(names?.[ri]||`Kolo ${ri+1}`)}${roundRaceControl(prefix,ri)}</div>
-      <div class="bracket-column-matches">${round.map((m,mi)=>bracketMatchCard(m,`${prefix}:${ri}:${mi}`)).join('')}</div>
+      <div class="bracket-column-matches">${(round||[]).map((m,mi)=>isStructuralSkoWalkover(m)?'':bracketMatchCard(m,`${prefix}:${ri}:${mi}`)).join('')}</div>
   </section>`).join('')}</div></div>`;
 }
 let dkoBracketScrollLeft=null;
@@ -2928,8 +2935,10 @@ function renderMatchList(t){
     let html='';
     if(champ) html+=`<div class="champ-banner">🏆 Víťaz turnaja: <b>${esc(champ.name)}</b></div>`;
     br.rounds.forEach((round,ri)=>{
+      const visible=visibleSkoRound(round);
+      if(!visible.length)return;
       html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,br.total)}</span>${roundRaceControl('sko',ri)}</div>`;
-      round.forEach((m,mi)=>{ html+=matchRow(m,`sko:${ri}:${mi}`); });
+      round.forEach((m,mi)=>{ if(!isStructuralSkoWalkover(m))html+=matchRow(m,`sko:${ri}:${mi}`); });
       html+=`</div>`;
     });
     html+=renderThirdPlaceMatch(t);
@@ -2998,7 +3007,7 @@ function renderMatchList(t){
     });
     const allDone=grp.groups.every(g=>g.matches.every(m=>m.winner!=null));
     if(!allDone){
-      html+=`<div class="note-box" style="margin-top:16px">${grp.groups.length===2&&grp.advance===3?`Víťazi skupín idú priamo do semifinále. Predkolo: A2 – B3 a B2 – A3; víťaz A2 – B3 ide na B1 a víťaz B2 – A3 na A1.`:`Po dohraní skupín sa vytvoria seed pásma. Víťazi skupín sa v 1. kole nestretnú; druhé miesta sú v ďalšom pásme a ostatní sa rozlosujú s ochranou proti opakovaniu zápasu z rovnakej skupiny, pokiaľ je to matematicky možné.`}</div>`;
+      html+=`<div class="note-box" style="margin-top:16px">${grp.groups.length===2&&grp.advance===3?`Po dohraní skupín ide 6 postupujúcich do Single KO. A2 hrá s B3, B2 s A3 a víťazi skupín A1/B1 sú nasadení priamo do ďalšieho kola. Voľné pozície sa nezobrazujú ani nepočítajú ako zápasy.`:`Po dohraní skupín sa vytvoria seed pásma. Víťazi skupín sa v 1. kole nestretnú; druhé miesta sú v ďalšom pásme a ostatní sa rozlosujú s ochranou proti opakovaniu zápasu z rovnakej skupiny, pokiaľ je to matematicky možné.`}</div>`;
     }else if(!t.phase2){
       // Defensive loading state only: maybeGenerateComboPhase() normally
       // creates phase2 before this render call.
@@ -3016,8 +3025,10 @@ function renderPhaseSKO(bracket,prefix,title,maxRound){
   let html=`<div class="branch-label win" style="margin-top:22px">${title}</div>`;
   if(champ&&maxRound===undefined) html+=`<div class="champ-banner">🏆 Víťaz fázy: <b>${esc(champ.name)}</b></div>`;
   bracket.rounds.slice(0,maxRound===undefined?undefined:maxRound+1).forEach((round,ri)=>{
+    const visible=visibleSkoRound(round);
+    if(!visible.length)return;
     html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,bracket.total)}</span>${roundRaceControl(prefix,ri)}</div>`;
-    round.forEach((m,mi)=>{ html+=matchRow(m,`${prefix}:${ri}:${mi}`); });
+    round.forEach((m,mi)=>{ if(!isStructuralSkoWalkover(m))html+=matchRow(m,`${prefix}:${ri}:${mi}`); });
     html+=`</div>`;
   });
   return html;
