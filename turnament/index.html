@@ -1890,56 +1890,97 @@ function comboSeedBandName(rank){
   if(rank===2)return 'runner_up';
   return 'random_lower';
 }
-function comboCrossSeed(rows,groupCount,advance,drawKey=''){
-  // RR určuje iba to, KTO postúpi. Samotná SKO fáza je bez seedov:
-  // všetci postupujúci majú rovnakú šancu na ktorúkoľvek pozíciu vrátane
-  // voľného slotu pri neúplnom pavúku. Los je deterministický podľa ID
-  // turnaja, aby sa po reloade nemenil.
-  const shuffled=[...rows].sort((a,b)=>{
-    const ah=comboDrawHash(`${drawKey}|sko-random|${a.player.id||a.player.name}|${a.groupIndex}|${a.rank}`);
-    const bh=comboDrawHash(`${drawKey}|sko-random|${b.player.id||b.player.name}|${b.groupIndex}|${b.rank}`);
+function comboCrossSeed(rows,groupCount,advance,drawKey='',randomDraw=false){
+  if(randomDraw){
+    // RR určuje iba to, KTO postúpi. Samotná SKO fáza je bez seedov:
+    // všetci postupujúci majú rovnakú šancu na ktorúkoľvek pozíciu vrátane
+    // voľného slotu pri neúplnom pavúku. Los je deterministický podľa ID
+    // turnaja, aby sa po reloade nemenil.
+    const shuffled=[...rows].sort((a,b)=>{
+      const ah=comboDrawHash(`${drawKey}|sko-random|${a.player.id||a.player.name}|${a.groupIndex}|${a.rank}`);
+      const bh=comboDrawHash(`${drawKey}|sko-random|${b.player.id||b.player.name}|${b.groupIndex}|${b.rank}`);
+      return ah-bh || comboSeedCompare(a,b);
+    });
+    const total=shuffled.length;
+    if(total<2)return shuffled;
+    const N=TM.nextPow2(Math.max(2,total));
+    const opponents=comboFirstRoundOpponents(N);
+    const conflictCount=list=>{
+      let conflicts=0;
+      for(let seed=1;seed<=total;seed++){
+        const opp=opponents.get(seed);
+        if(!opp||opp>total||seed>opp)continue;
+        const a=list[seed-1],b=list[opp-1];
+        if(a&&b&&a.groupIndex===b.groupIndex)conflicts++;
+      }
+      return conflicts;
+    };
+    let best=[...shuffled], bestConflicts=conflictCount(shuffled);
+    if(bestConflicts){
+      for(let i=0;i<best.length;i++){
+        for(let j=i+1;j<best.length;j++){
+          const candidate=[...best];
+          [candidate[i],candidate[j]]=[candidate[j],candidate[i]];
+          const n=conflictCount(candidate);
+          if(n<bestConflicts){
+            best=candidate;
+            bestConflicts=n;
+            if(bestConflicts===0)break;
+          }
+        }
+        if(bestConflicts===0)break;
+      }
+    }
+    return best;
+  }
+
+  // RR→DKO ponecháva doterajšie seed pásma.
+  const winners=rows.filter(r=>r.rank===1).sort(comboSeedCompare);
+  const runners=rows.filter(r=>r.rank===2).sort(comboSeedCompare);
+  const lower=rows.filter(r=>r.rank>=3).sort((a,b)=>{
+    const ah=comboDrawHash(`${drawKey}|${a.player.id||a.player.name}|${a.groupIndex}|${a.rank}`);
+    const bh=comboDrawHash(`${drawKey}|${b.player.id||b.player.name}|${b.groupIndex}|${b.rank}`);
     return ah-bh || comboSeedCompare(a,b);
   });
-
-  const total=shuffled.length;
-  if(total<2)return shuffled;
+  const total=rows.length;
   const N=TM.nextPow2(Math.max(2,total));
   const opponents=comboFirstRoundOpponents(N);
-
-  // buildSKO() interpretuje poradie poľa ako virtuálne seed pozície 1..Q.
-  // Nie sú to športové seedy — slúžia iba na stabilné vloženie do slotov.
-  // Seed pozície > Q sú prázdne sloty (bye).
-  const conflictCount=list=>{
-    let conflicts=0;
-    for(let seed=1;seed<=total;seed++){
-      const opp=opponents.get(seed);
-      if(!opp||opp>total||seed>opp)continue;
-      const a=list[seed-1],b=list[opp-1];
-      if(a&&b&&a.groupIndex===b.groupIndex)conflicts++;
+  const seeded=Array(total).fill(null);
+  winners.forEach((row,index)=>{if(index<total)seeded[index]=row;});
+  const placeBand=(candidates,startSeed)=>{
+    const pool=[...candidates];
+    const endSeed=Math.min(total,startSeed+pool.length-1);
+    for(let seed=startSeed;seed<=endSeed;seed++){
+      const opponentSeed=opponents.get(seed);
+      const opponent=opponentSeed&&opponentSeed<=total?seeded[opponentSeed-1]:null;
+      let pick=opponent?pool.findIndex(row=>row.groupIndex!==opponent.groupIndex):-1;
+      if(pick<0)pick=0;
+      seeded[seed-1]=pool.splice(pick,1)[0];
     }
-    return conflicts;
   };
-
-  // Pri rovnakom náhodnom lose sa snažíme odstrániť iba kolízie hráčov
-  // z rovnakej skupiny v 1. kole. Nechránime víťazov, druhých ani nikoho
-  // pred voľným kolom.
-  let best=[...shuffled], bestConflicts=conflictCount(shuffled);
-  if(bestConflicts){
-    for(let i=0;i<best.length;i++){
-      for(let j=i+1;j<best.length;j++){
-        const candidate=[...best];
-        [candidate[i],candidate[j]]=[candidate[j],candidate[i]];
-        const n=conflictCount(candidate);
-        if(n<bestConflicts){
-          best=candidate;
-          bestConflicts=n;
-          if(bestConflicts===0)break;
-        }
-      }
-      if(bestConflicts===0)break;
+  placeBand(runners,winners.length+1);
+  placeBand(lower,winners.length+runners.length+1);
+  const bandOfSeed=seed=>seed<=winners.length?1:(seed<=winners.length+runners.length?2:3);
+  const conflictAt=seed=>{
+    const opp=opponents.get(seed);
+    if(!opp||opp>total||seed>opp)return false;
+    const a=seeded[seed-1],b=seeded[opp-1];
+    return !!(a&&b&&a.groupIndex===b.groupIndex);
+  };
+  const conflicts=()=>Array.from({length:total},(_,i)=>i+1).filter(conflictAt);
+  for(const seed of conflicts()){
+    const opp=opponents.get(seed);
+    const movable=bandOfSeed(seed)>=bandOfSeed(opp)?seed:opp;
+    const band=bandOfSeed(movable);
+    for(let other=1;other<=total;other++){
+      if(other===movable||bandOfSeed(other)!==band)continue;
+      const before=conflicts().length;
+      [seeded[movable-1],seeded[other-1]]=[seeded[other-1],seeded[movable-1]];
+      if(conflicts().length<before)break;
+      [seeded[movable-1],seeded[other-1]]=[seeded[other-1],seeded[movable-1]];
     }
   }
-  return best;
+  return seeded.filter(Boolean);
 }
 function comboOverallTop(rows,k){
   return [...rows].sort((a,b)=>
@@ -2012,7 +2053,7 @@ function maybeGenerateComboPhase(t){
   if(!comboAllGroupsDone(t)) return false;
   if(!t.phase2){
     const standings=comboStandings(t);
-    const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
+    const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'',t.format==='rr_sko');
     if(t.format==='rr_sko'){
       t.phase2={
         kind:'standard-sko',
@@ -2053,14 +2094,14 @@ function maybeGenerateComboPhase(t){
 
 function comboQualifierPayload(t){
   const standings=comboStandings(t);
-  const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
+  const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'',t.format==='rr_sko');
   return ordered.map((row,index)=>({
     tournament_player_id: row.player.id,
     source_group: row.groupIndex + 1,
     source_position: row.rank,
     qualification_position: index + 1,
     seed: index + 1,
-    metadata:{source_position:row.rank,seeding_policy:'rr_random_draw_v1'}
+    metadata:{source_position:row.rank,seeding_policy:t.format==='rr_sko'?'rr_random_draw_v1':'rr_rank_bands_v1'}
   }));
 }
 
