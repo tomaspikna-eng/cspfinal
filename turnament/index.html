@@ -624,6 +624,12 @@ const TM = {
     if(fromEnd===3) return 'Osemfinále';
     return `${rIdx+1}. kolo`;
   },
+  skoRoundName(bracket,rIdx){
+    const qualifiers=Number(bracket?.qualifierCount||bracket?.N||0);
+    const capacity=Number(bracket?.N||0);
+    if(rIdx===0 && qualifiers>1 && capacity>qualifiers) return '1. kolo SKO';
+    return this.roundName(rIdx,Number(bracket?.total||0));
+  },
   matchSig(m){ const s=p=>p?(p.bye?'b':(p.seed??'?')):'_'; return `${s(m.p1)}|${s(m.p2)}`; },
   // Postav Single KO pavúk. Každý zápas dostane globálne číslo.
   buildSKO(players,startNumber=1){
@@ -650,7 +656,7 @@ const TM = {
       rounds.push(round);
       r++;
     }
-    const bracket={ type:'sko', N, total, rounds };
+    const bracket={ type:'sko', N, total, qualifierCount:seeded.length, rounds };
     this.recomputeSKO(bracket);
     return bracket;
   },
@@ -1787,7 +1793,8 @@ function renderThirdPlaceMatch(t){
    Qualifiers are split into seed bands: group winners first, runners-up
    second, lower positions afterward. Lower qualifiers are deterministically
    shuffled, while first-round same-group rematches are avoided where possible.
-   The special 2-group / top-3 format uses fixed cross-group preliminaries.
+   RR+SKO always creates one standard SKO bracket from the actual number of
+   qualifiers; structural empty slots are internal only and are not matches.
 */
 function comboAllGroupsDone(t){
   return !!(t.grp && t.grp.groups && t.grp.groups.every(g=>g.matches.every(m=>m.winner!=null)));
@@ -1953,16 +1960,12 @@ function maybeGenerateComboPhase(t){
   if(!t.phase2){
     const standings=comboStandings(t);
     const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
-    // Protected seeds are explicitly SKO-only. rr_dko always follows the
-    // standard transition, regardless of any stale/local setting value.
-    const twoGroupTopThree=t.format==='rr_sko'&&isTwoGroupTopThreeCrossing(crossSeeded,2);
-  const k=t.format==='rr_sko'
-    ? (twoGroupTopThree?2:Math.min(Math.max(0,+t.protectedSeeds||0),Math.max(0,crossSeeded.length-1)))
-    : 0;
-    if(k>0){
-      t.phase2=createProtectedPhase2(crossSeeded,k);
-    }else if(t.format==='rr_sko'){
-      t.phase2={kind:'standard-sko',bracket:TM.buildSKO(crossSeeded.map(r=>r.player))};
+    if(t.format==='rr_sko'){
+      t.phase2={
+        kind:'standard-sko',
+        qualifierCount:crossSeeded.length,
+        bracket:TM.buildSKO(crossSeeded.map(r=>r.player))
+      };
     }else{
       const phase2Shortened=t.config?.dko_shortened_sko===true || (t.config?.dko_shortened_sko==null && [4,8,16,32,64].includes(Number(t.config?.dko_cutover_size)));
       const phase2Cutover=phase2Shortened ? ([4,8,16,32,64].includes(Number(t.config?.dko_cutover_size))?Number(t.config.dko_cutover_size):8) : 2;
@@ -2907,7 +2910,7 @@ function dkoBracketColumns(dko,phase2=false){
 }
 function renderBracketView(t){
   if(t.format==='sko'&&t.bracket){
-    return bracketColumns(t.bracket.rounds,t.bracket.rounds.map((_,ri)=>TM.roundName(ri,t.bracket.total)),'sko')+renderThirdPlaceMatch(t);
+    return bracketColumns(t.bracket.rounds,t.bracket.rounds.map((_,ri)=>TM.skoRoundName(t.bracket,ri)),'sko')+renderThirdPlaceMatch(t);
   }
   if(t.format==='dko'&&t.dko){
     return dkoBracketColumns(t.dko)+renderThirdPlaceMatch(t);
@@ -2920,11 +2923,11 @@ function renderBracketView(t){
   }
   const phase=t.phase2;
   if(!phase)return `<div class="note-box">Pavúk zatiaľ nie je dostupný.</div>`;
-  if(phase.kind==='standard-sko')return bracketColumns(phase.bracket.rounds,phase.bracket.rounds.map((_,ri)=>TM.roundName(ri,phase.bracket.total)),'p2s')+renderThirdPlaceMatch(t);
+  if(phase.kind==='standard-sko')return bracketColumns(phase.bracket.rounds,phase.bracket.rounds.map((_,ri)=>TM.skoRoundName(phase.bracket,ri)),'p2s')+renderThirdPlaceMatch(t);
   if(phase.kind==='standard-dko')return dkoBracketColumns(phase.dko,true)+renderThirdPlaceMatch(t);
   const activeBracket=phase.main||phase.prelim;
   const prefix=phase.main?'p2m':'p2p';
-  return bracketColumns(activeBracket.rounds,activeBracket.rounds.map((_,ri)=>TM.roundName(ri,activeBracket.total)),prefix)+renderThirdPlaceMatch(t);
+  return bracketColumns(activeBracket.rounds,activeBracket.rounds.map((_,ri)=>TM.skoRoundName(activeBracket,ri)),prefix)+renderThirdPlaceMatch(t);
 }
 
 /* ── Render zoznamu zápasov ── */
@@ -2937,7 +2940,7 @@ function renderMatchList(t){
     br.rounds.forEach((round,ri)=>{
       const visible=visibleSkoRound(round);
       if(!visible.length)return;
-      html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,br.total)}</span>${roundRaceControl('sko',ri)}</div>`;
+      html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.skoRoundName(br,ri)}</span>${roundRaceControl('sko',ri)}</div>`;
       round.forEach((m,mi)=>{ if(!isStructuralSkoWalkover(m))html+=matchRow(m,`sko:${ri}:${mi}`); });
       html+=`</div>`;
     });
@@ -3027,7 +3030,7 @@ function renderPhaseSKO(bracket,prefix,title,maxRound){
   bracket.rounds.slice(0,maxRound===undefined?undefined:maxRound+1).forEach((round,ri)=>{
     const visible=visibleSkoRound(round);
     if(!visible.length)return;
-    html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.roundName(ri,bracket.total)}</span>${roundRaceControl(prefix,ri)}</div>`;
+    html+=`<div class="round-block"><div class="round-head"><span class="round-name">${TM.skoRoundName(bracket,ri)}</span>${roundRaceControl(prefix,ri)}</div>`;
     round.forEach((m,mi)=>{ if(!isStructuralSkoWalkover(m))html+=matchRow(m,`${prefix}:${ri}:${mi}`); });
     html+=`</div>`;
   });
@@ -4640,7 +4643,6 @@ function renderWiz(){
       ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
         <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/><div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
         <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div></div>
-        ${wiz.format==='rr_sko'?`<div class="field"><label>Chránené nasadenie (K)</label><input type="number" id="wProtectedSeeds" min="0" max="${Math.max(0,wiz.groups*wiz.advance-1)}" value="${wiz.protectedSeeds}" oninput="wiz.protectedSeeds=Math.max(0,Math.min(${Math.max(0,wiz.groups*wiz.advance-1)},+this.value||0));refreshGroupNote()"/></div>`:''}
         <div class="note-box" id="groupNote"></div>`:''}`)}
       ${!isKarty()&&wiz.format!=='rr'?`<div class="field"><label>Hra o tretie miesto</label><button type="button" class="presence-toggle ${wiz.thirdPlace?'is-present':''}" role="switch" aria-checked="${wiz.thirdPlace?'true':'false'}" onclick="wiz.thirdPlace=!wiz.thirdPlace;renderWiz()"><span class="presence-switch" aria-hidden="true"></span><span class="presence-label">${wiz.thirdPlace?'Áno':'Nie'}</span></button><div class="hint">Po semifinále sa automaticky vytvorí zápas porazených o 3. miesto.</div></div>`:''}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
@@ -4660,11 +4662,10 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
-        ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup ${wiz.advance} = ${wiz.groups*wiz.advance} do KO</span></div>`:''}
+        ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup najviac ${wiz.advance} = ${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)} do KO</span></div>`:''}
         ${wiz.format==='rr'?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,1)}</span></div>`:''}
         ${isCombo()?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,wiz.groups)}</span></div>`:''}
         ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="sumrow"><span class="k">Skrátené SKO</span><span class="v">${wiz.dkoShortened?`Áno · TOP ${wiz.dkoCutover}`:'Nie'}</span></div>`:''}
-        ${wiz.format==='rr_sko'&&wiz.protectedSeeds?`<div class="sumrow"><span class="k">Chránené nasadenie</span><span class="v">K = ${wiz.protectedSeeds}</span></div>`:''}
         ${!isKarty()&&wiz.format!=='rr'?`<div class="sumrow"><span class="k">Hra o tretie miesto</span><span class="v">${wiz.thirdPlace?'Áno':'Nie'}</span></div>`:''}
         ${wiz.date?`<div class="sumrow"><span class="k">Dátum</span><span class="v">${wiz.date}</span></div>`:''}
       </div>
@@ -4769,13 +4770,23 @@ function removePlayer(i){
   renderWiz();
 }
 function clearPlayers(){ if(confirm('Vymazať všetkých hráčov?')){ wiz.players=[]; wiz.seedCount=0; renderWiz(); } }
+function comboQualifierCount(playerCount,groupCount,advance){
+  const players=Math.max(0,Number(playerCount)||0);
+  const groups=Math.max(1,Number(groupCount)||1);
+  const adv=Math.max(1,Number(advance)||1);
+  let total=0;
+  for(let gi=0;gi<groups;gi++){
+    const size=Math.floor(players/groups)+(gi<(players%groups)?1:0);
+    total+=Math.min(size,adv);
+  }
+  return total;
+}
 function refreshGroupNote(){
   const el=document.getElementById('groupNote'); if(!el) return;
-  const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total));
+  const total=comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance);
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
-  const protectedNote=wiz.format==='rr_sko'&&wiz.protectedSeeds?`<br><b>K = ${wiz.protectedSeeds}:</b> top ${wiz.protectedSeeds} celkovo chránených hráčov čaká na hlavný pavúk; ostatní odohrajú predkolo.`:'';
   const capacityNote=wiz.format==='rr_dko'&&total>TM.MAX_DKO_PLAYERS?`<br><b>Limit:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} postupujúcich.`:'';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pavúk <b>${N}</b>${N>total?` (${N-total} W.O.)`:''}.<br>Víťazi skupín tvoria prvé seed pásmo a v prvom kole KO sa nestretnú. Druhé miesta tvoria ďalšie seed pásmo; ostatní postupujúci sa rozlosujú do nižších seedov. Zápasom hráčov z rovnakej skupiny sa v prvom kole vyhneme, pokiaľ je to matematicky možné.${protectedNote}${capacityNote}`;
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pre <b>${total}</b> hráčov.<br>Veľkosť vyraďovacej časti sa vytvorí automaticky podľa reálneho počtu postupujúcich zo skupín. Víťazi skupín tvoria prvé seed pásmo, druhé miesta ďalšie pásmo a zápasom hráčov z rovnakej skupiny sa v prvom kole vyhneme, pokiaľ je to matematicky možné.${capacityNote}`;
 }
 
 function renderPreview(){
@@ -4811,8 +4822,8 @@ function renderPreview(){
     el.innerHTML=demoNote+html;
   }
   else {
-    const total=wiz.groups*wiz.advance, N=TM.nextPow2(Math.max(2,total)), koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
-    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR). Z každej postupuje ${wiz.advance} → ${total} do ${koType} pavúka ${N}. Nasadenie sa vytvorí podľa seed pásiem a ochrany skupín. Konfigurácia sa uloží.</div>`;
+    const total=comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance), koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
+    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR). Z každej postupuje najviac ${wiz.advance} → spolu ${total} do ${koType} pre ${total} hráčov. Vyraďovacia časť sa vytvorí podľa reálneho počtu postupujúcich a nasadenia zo skupín.</div>`;
   }
 }
 
