@@ -4784,7 +4784,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
-        ${isCombo()?`<div class="sumrow"><span class="k">Postup do KO</span><span class="v">Postupuje presne určený počet hráčov: ${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)}</span></div>`:''}
+        ${isCombo()?`<div class="sumrow"><span class="k">Postup do KO</span><span class="v">${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)} hráčov</span></div>`:''}
         ${wiz.format==='rr'?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,1)}</span></div>`:''}
         ${isCombo()?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,wiz.groups)}</span></div>`:''}
         ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="sumrow"><span class="k">Skrátené SKO</span><span class="v">${wiz.dkoShortened?`Áno · TOP ${wiz.dkoCutover}`:'Nie'}</span></div>`:''}
