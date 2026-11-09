@@ -1890,51 +1890,7 @@ function comboSeedBandName(rank){
   if(rank===2)return 'runner_up';
   return 'random_lower';
 }
-function comboCrossSeed(rows,groupCount,advance,drawKey='',randomDraw=false){
-  if(randomDraw){
-    // RR určuje iba to, KTO postúpi. Samotná SKO fáza je bez seedov:
-    // všetci postupujúci majú rovnakú šancu na ktorúkoľvek pozíciu vrátane
-    // voľného slotu pri neúplnom pavúku. Los je deterministický podľa ID
-    // turnaja, aby sa po reloade nemenil.
-    const shuffled=[...rows].sort((a,b)=>{
-      const ah=comboDrawHash(`${drawKey}|sko-random|${a.player.id||a.player.name}|${a.groupIndex}|${a.rank}`);
-      const bh=comboDrawHash(`${drawKey}|sko-random|${b.player.id||b.player.name}|${b.groupIndex}|${b.rank}`);
-      return ah-bh || comboSeedCompare(a,b);
-    });
-    const total=shuffled.length;
-    if(total<2)return shuffled;
-    const N=TM.nextPow2(Math.max(2,total));
-    const opponents=comboFirstRoundOpponents(N);
-    const conflictCount=list=>{
-      let conflicts=0;
-      for(let seed=1;seed<=total;seed++){
-        const opp=opponents.get(seed);
-        if(!opp||opp>total||seed>opp)continue;
-        const a=list[seed-1],b=list[opp-1];
-        if(a&&b&&a.groupIndex===b.groupIndex)conflicts++;
-      }
-      return conflicts;
-    };
-    let best=[...shuffled], bestConflicts=conflictCount(shuffled);
-    if(bestConflicts){
-      for(let i=0;i<best.length;i++){
-        for(let j=i+1;j<best.length;j++){
-          const candidate=[...best];
-          [candidate[i],candidate[j]]=[candidate[j],candidate[i]];
-          const n=conflictCount(candidate);
-          if(n<bestConflicts){
-            best=candidate;
-            bestConflicts=n;
-            if(bestConflicts===0)break;
-          }
-        }
-        if(bestConflicts===0)break;
-      }
-    }
-    return best;
-  }
-
-  // RR→DKO ponecháva doterajšie seed pásma.
+function comboCrossSeed(rows,groupCount,advance,drawKey=''){
   const winners=rows.filter(r=>r.rank===1).sort(comboSeedCompare);
   const runners=rows.filter(r=>r.rank===2).sort(comboSeedCompare);
   const lower=rows.filter(r=>r.rank>=3).sort((a,b)=>{
@@ -1947,6 +1903,7 @@ function comboCrossSeed(rows,groupCount,advance,drawKey='',randomDraw=false){
   const opponents=comboFirstRoundOpponents(N);
   const seeded=Array(total).fill(null);
   winners.forEach((row,index)=>{if(index<total)seeded[index]=row;});
+
   const placeBand=(candidates,startSeed)=>{
     const pool=[...candidates];
     const endSeed=Math.min(total,startSeed+pool.length-1);
@@ -1960,6 +1917,7 @@ function comboCrossSeed(rows,groupCount,advance,drawKey='',randomDraw=false){
   };
   placeBand(runners,winners.length+1);
   placeBand(lower,winners.length+runners.length+1);
+
   const bandOfSeed=seed=>seed<=winners.length?1:(seed<=winners.length+runners.length?2:3);
   const conflictAt=seed=>{
     const opp=opponents.get(seed);
@@ -2053,7 +2011,7 @@ function maybeGenerateComboPhase(t){
   if(!comboAllGroupsDone(t)) return false;
   if(!t.phase2){
     const standings=comboStandings(t);
-    const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'',t.format==='rr_sko');
+    const crossSeeded=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
     if(t.format==='rr_sko'){
       t.phase2={
         kind:'standard-sko',
@@ -2094,14 +2052,14 @@ function maybeGenerateComboPhase(t){
 
 function comboQualifierPayload(t){
   const standings=comboStandings(t);
-  const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'',t.format==='rr_sko');
+  const ordered=comboCrossSeed(standings,t.grp.groups.length,t.grp.advance,t.id||'');
   return ordered.map((row,index)=>({
     tournament_player_id: row.player.id,
     source_group: row.groupIndex + 1,
     source_position: row.rank,
     qualification_position: index + 1,
     seed: index + 1,
-    metadata:{source_position:row.rank,seeding_policy:t.format==='rr_sko'?'rr_random_draw_v1':'rr_rank_bands_v1'}
+    metadata:{seed_band:comboSeedBandName(row.rank),seeding_policy:'rr_rank_bands_v1'}
   }));
 }
 
@@ -3139,7 +3097,7 @@ function renderComboGroupList(t){
   if(!grp||!grp.groups)return `<div class="note-box">Skupiny sa nepodarilo vytvoriť.</div>`;
   const koType=t.format==='rr_dko'?'Double KO':'Single KO';
   const canMoveGroups=groupAssignmentsEditable();
-  let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje najviac ${grp.advance} → následne ${koType}. Postupujúci sa do vyraďovacej fázy losujú náhodne bez seedovej výhody; systém sa iba snaží zabrániť stretnutiu hráčov z rovnakej skupiny v prvom kole. ${canMoveGroups?'Pred prvým zápasom môžeš hráčov medzi skupinami manuálne prehodiť potiahnutím.':'Rozdelenie skupín je po začiatku hry uzamknuté.'}</div>`;
+  let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje najviac ${grp.advance} → následne ${koType}. Víťazi skupín majú chránené nasadenie. Ostatní postupujúci sa krížia medzi skupinami; pri 2 skupinách a postupe 3+3 je prvé kolo A2–B3 a B2–A3. ${canMoveGroups?'Pred prvým zápasom môžeš hráčov medzi skupinami manuálne prehodiť potiahnutím.':'Rozdelenie skupín je po začiatku hry uzamknuté.'}</div>`;
   grp.groups.forEach((g,gi)=>{
     const st=rrTable(g.players,g.matches);
     const adv=Math.min(grp.advance,g.players.length);
@@ -4950,7 +4908,7 @@ function refreshGroupNote(){
   const total=comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance);
   const koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
   const capacityNote=wiz.format==='rr_dko'&&total>TM.MAX_DKO_PLAYERS?`<br><b>Limit:</b> Double KO podporuje najviac ${TM.MAX_DKO_PLAYERS} postupujúcich.`:'';
-  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pre <b>${total}</b> hráčov.<br>Veľkosť vyraďovacej časti sa vytvorí automaticky podľa reálneho počtu postupujúcich zo skupín. Postupujúci sa do vyraďovacej fázy losujú náhodne bez seedovej výhody. Zápasu hráčov z rovnakej skupiny sa v prvom kole vyhneme, pokiaľ je to matematicky možné.${capacityNote}`;
+  el.innerHTML=`Postupujúci spolu: <b>${total}</b> → ${koType} pre <b>${total}</b> hráčov.<br>Veľkosť vyraďovacej časti sa vytvorí automaticky podľa reálneho počtu postupujúcich zo skupín. Víťazi skupín majú chránené nasadenie. Ostatní postupujúci sa krížia medzi skupinami a zápasu hráčov z rovnakej skupiny sa v prvom kole vyhneme, pokiaľ je to matematicky možné.${capacityNote}`;
 }
 
 function renderPreview(){
