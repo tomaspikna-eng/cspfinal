@@ -4603,6 +4603,12 @@ function stopWizardAutosave(){
     clearInterval(wizardAutosaveTimer);
     wizardAutosaveTimer=null;
   }
+  wizardAutosaveQueued=false;
+}
+async function waitForWizardAutosaveIdle(){
+  while(wizardAutosaveBusy){
+    await new Promise(resolve=>setTimeout(resolve,25));
+  }
 }
 async function cancelWizard(){
   stopWizardAutosave();
@@ -4964,7 +4970,12 @@ async function createTournament(){
     toast(`CSP IHS nepovoľuje ${blocked.length} hráčov v aktuálnych kategóriách.`,true);
     return;
   }
+  captureWizardInputs();
   stopWizardAutosave();
+  await waitForWizardAutosaveIdle();
+  // Autosave môže dokončiť starší snapshot. Finálny payload preto vždy
+  // vychádza z aktuálneho wizard stavu až po jeho úplnom zastavení.
+  captureWizardInputs();
   pendingTournamentWrite=true;
   const btn = document.querySelector('#wizPanel .btn-green');
   if(btn){ btn.disabled = true; btn.textContent = isKarty()?'Ukladám...':'Spúšťam...'; }
