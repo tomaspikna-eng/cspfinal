@@ -4480,7 +4480,12 @@ function captureWizardInputs(){
   if(venue)wiz.venue=venue.value||'';
   if(race)wiz.raceTo=Math.max(1,Number(race.value)||1);
   if(groups)wiz.groups=Math.max(1,Number(groups.value)||1);
-  if(advance)wiz.advance=Math.max(1,Number(advance.value)||1);
+  if(advance){
+    const G=Math.max(1,Number(wiz.groups)||1);
+    const total=Math.max(G,Number(advance.value)||G);
+    wiz.advance=Math.max(1,Math.floor(total/G));
+    advance.value=String(G*wiz.advance);
+  }
   if(protectedSeeds)wiz.protectedSeeds=Math.max(0,Number(protectedSeeds.value)||0);
 }
 function wizardSnapshot(){
@@ -4614,7 +4619,7 @@ async function cancelWizard(){
   go('dashboard');
 }
 
-function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, dkoShortened:false, dkoCutover:8, groups:2, advance:8, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
+function blankWiz(){ return {step:0, name:'', sport:'Biliard', discipline:'8-ball', date:'', venue:'', raceTo:5, config:{}, format:'sko', originalFormat:'sko', players:[], seedCount:0, dkoShortened:false, dkoCutover:8, groups:2, advance:1, protectedSeeds:0, thirdPlace:false, ihsCategories:[...IHS_ALL], showBulk:false, editId:null, structureLocked:false, formatLocked:false}; }
 function isCombo(){ return wiz.format==='rr_sko'||wiz.format==='rr_dko'; }
 function rrGroupMatchCount(totalPlayers,groups=1){
   const total=Math.max(0,Number(totalPlayers)||0), G=Math.max(1,Number(groups)||1);
@@ -4753,7 +4758,7 @@ function renderWiz(){
       ${wiz.format==='rr_sko'||wiz.format==='rr_dko'?`<div class="note-box"><b>Skupinová fáza:</b> ${comboGroupMatches} zápasov spolu vo všetkých skupinách.</div>`:''}
       ${isCombo()?`<div class="fmt-section">Nastavenie skupín</div><div class="row2">
         <div class="field"><label>Počet skupín</label><input type="number" id="wGroups" min="1" max="64" value="${wiz.groups}" oninput="wiz.groups=Math.max(1,+this.value);refreshGroupNote()"/><div class="hint">≈ ${perGroup} hráčov na skupinu</div></div>
-        <div class="field"><label>Postupuje z každej</label><input type="number" id="wAdvance" min="1" max="32" value="${wiz.advance}" oninput="wiz.advance=Math.max(1,+this.value);refreshGroupNote()"/></div></div>
+        <div class="field"><label>Postupuje spolu</label><input type="number" id="wAdvance" min="${Math.max(1,wiz.groups)}" max="256" step="${Math.max(1,wiz.groups)}" value="${Math.max(1,wiz.groups)*Math.max(1,wiz.advance)}" oninput="const g=Math.max(1,wiz.groups);wiz.advance=Math.max(1,Math.floor((+this.value||g)/g));this.value=g*wiz.advance;refreshGroupNote()"/><div class="hint">Celkový počet postupujúcich zo všetkých skupín.</div></div></div>
         <div class="note-box" id="groupNote"></div>`:''}`)}
       ${!isKarty()&&wiz.format!=='rr'?`<div class="field"><label>Hra o tretie miesto</label><button type="button" class="presence-toggle ${wiz.thirdPlace?'is-present':''}" role="switch" aria-checked="${wiz.thirdPlace?'true':'false'}" onclick="wiz.thirdPlace=!wiz.thirdPlace;renderWiz()"><span class="presence-switch" aria-hidden="true"></span><span class="presence-label">${wiz.thirdPlace?'Áno':'Nie'}</span></button><div class="hint">Po semifinále sa automaticky vytvorí zápas porazených o 3. miesto.</div></div>`:''}
       <div class="wiz-nav"><button class="btn btn-ghost" onclick="prevStep()">← Späť</button><button class="btn btn-primary" onclick="nextStep()">Ďalej →</button></div>`;
@@ -4773,7 +4778,7 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
         ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
-        ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} × postup najviac ${wiz.advance} = ${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)} do KO</span></div>`:''}
+        ${isCombo()?`<div class="sumrow"><span class="k">Skupiny</span><span class="v">${wiz.groups} skupiny · postupuje spolu ${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)} do KO</span></div>`:''}
         ${wiz.format==='rr'?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,1)}</span></div>`:''}
         ${isCombo()?`<div class="sumrow"><span class="k">Zápasy skupinovej fázy</span><span class="v">${rrGroupMatchCount(wiz.players.length,wiz.groups)}</span></div>`:''}
         ${wiz.format==='dko'||wiz.format==='rr_dko'?`<div class="sumrow"><span class="k">Skrátené SKO</span><span class="v">${wiz.dkoShortened?`Áno · TOP ${wiz.dkoCutover}`:'Nie'}</span></div>`:''}
