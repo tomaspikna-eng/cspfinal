@@ -4781,7 +4781,8 @@ function renderWiz(){
         <div class="sumrow"><span class="k">Formát</span><span class="v">${isKarty()?'Karty — generátor stolov':f.t}</span></div>
         <div class="sumrow"><span class="k">Hráči</span><span class="v">${wiz.players.length}</span></div>
         <div class="sumrow"><span class="k">Prítomní</span><span class="v">${presentCount}/${wiz.players.length}</span></div>
-        <div class="sumrow"><span class="k">Seedovanie</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
+        <div class="sumrow"><span class="k">${isCombo()?'Seedovanie skupín':'Seedovanie'}</span><span class="v">${wiz.seedCount>0?`${wiz.seedCount} seedov`:'bez seedovania'}</span></div>
+        ${isCombo()?`<div class="sumrow"><span class="k">Nasadenie do KO</span><span class="v">${wiz.format==='rr_sko'?'víťazi skupín chránení · kríženie skupín':'podľa umiestnenia v skupinách'}</span></div>`:''}
         ${isKarty()?'':`<div class="sumrow"><span class="k">Hrá sa na</span><span class="v">${wiz.raceTo||5}</span></div>`}
         <div class="sumrow"><span class="k">CSP IHS</span><span class="v">${(wiz.ihsCategories||IHS_ALL).map(ihsLevelLabel).join(' · ')}</span></div>
         ${isCombo()?`<div class="sumrow"><span class="k">Postup do KO</span><span class="v">${comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance)} hráčov</span></div>`:''}
@@ -4945,7 +4946,10 @@ function renderPreview(){
   }
   else {
     const total=comboQualifierCount(wiz.players.length,wiz.groups,wiz.advance), koType=wiz.format==='rr_dko'?'Double KO':'Single KO';
-    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR). Z každej postupuje najviac ${wiz.advance} → spolu ${total} do ${koType} pre ${total} hráčov. Vyraďovacia časť sa vytvorí podľa reálneho počtu postupujúcich a nasadenia zo skupín.</div>`;
+    const koInfo=wiz.format==='rr_sko'
+      ? 'Víťazi skupín majú chránené nasadenie, ostatní postupujúci sa krížia medzi skupinami.'
+      : 'Nasadenie vyraďovacej fázy vychádza z umiestnenia v skupinách.';
+    el.innerHTML=demoNote+`<div class="note-box"><b>${FORMATS[wiz.format].t}:</b> ${wiz.players.length} hráčov → ${wiz.groups} skupín (RR) → do ${koType} postupuje spolu ${total} hráčov. ${koInfo}</div>`;
   }
 }
 
