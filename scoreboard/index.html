@@ -77,6 +77,14 @@ summary b{color:var(--gold)}
 .status{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:4px 6px;text-align:center}
 .label2{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
 .current,.period{font-size:.4rem;font-weight:800;color:var(--gold);margin-top:4px}
+.snooker-table-status{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  min-height:48px;margin:-2px 0 14px;padding:8px 14px;
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;text-align:center;
+}
+.snooker-table-status.hidden{display:none}
+.snooker-table-status .label2{font-size:.62rem}
+.snooker-table-status strong{font-family:var(--mono);font-size:1.2rem;color:var(--gold)}
 
 .players{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
 .players.three{grid-template-columns:repeat(3,1fr)}
@@ -1279,6 +1287,11 @@ body.sport-racket #matchStatePanel .label2{font-size:.56rem;letter-spacing:.08em
     </div>
   </div>
 
+  <div class="snooker-table-status hidden" id="snookerTableStatus">
+    <span class="label2">Zostáva na stole</span>
+    <strong id="snookerRemainingPoints">147</strong>
+  </div>
+
   <div class="stage-row" id="stageRow">
   <div class="players" id="players"></div>
 
@@ -1378,6 +1391,10 @@ const defaultState={
 let state=structuredClone(defaultState);
 const $=id=>document.getElementById(id);
 const activePlayers=()=>state.players.slice(0,state.playerCount);
+function snookerRemainingPoints(){
+  const scored=activePlayers().reduce((sum,p)=>sum+Math.max(0,Number(p.framePoints)||0),0);
+  return Math.max(0,147-scored);
+}
 
 /* ════════════════════ REŽIM ════════════════════ */
 function mode(){
@@ -2376,6 +2393,11 @@ function render(){
     $("periodText").textContent=`${periodWord} ${state.period}`;
   }
   $("newPeriodBtn").textContent=newBtn;
+
+  const snookerStatus=$("snookerTableStatus");
+  const isSnooker=state.sport==="billiard"&&state.discipline==="Snooker";
+  snookerStatus.classList.toggle("hidden",!isSnooker);
+  if(isSnooker)$("snookerRemainingPoints").textContent=String(snookerRemainingPoints());
 
   // keypad visibility
   const keypad = (m==="points"||m==="darts");
