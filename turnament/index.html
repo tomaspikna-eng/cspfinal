@@ -141,6 +141,19 @@ input:focus,select:focus{border-color:var(--gold)}
 .match-view-switch{display:flex;align-items:center;gap:3px;padding:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px}
 .match-view-btn{padding:7px 11px;border-radius:7px;font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap}
 .match-view-btn.active{background:var(--green);color:#04150b}
+.combo-phase-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;align-items:start}
+.combo-phase-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:14px}
+.combo-phase-btn{width:100%;text-align:left;padding:12px 14px;border-radius:9px;border:1px solid transparent;color:var(--muted);font-size:.78rem;font-weight:850;background:transparent;transition:.12s}
+.combo-phase-btn:hover:not(:disabled){color:var(--fg);background:var(--bg-2);border-color:var(--line)}
+.combo-phase-btn.active{color:var(--fg);background:var(--bg-2);border-color:var(--gold-b);box-shadow:inset 3px 0 0 var(--gold)}
+.combo-phase-btn:disabled{opacity:.42;cursor:not-allowed}
+.combo-phase-content{min-width:0}
+@media(max-width:760px){
+  .combo-phase-layout{grid-template-columns:1fr;gap:12px}
+  .combo-phase-nav{position:static;flex-direction:row;overflow-x:auto}
+  .combo-phase-btn{width:auto;min-width:max-content;text-align:center}
+  .combo-phase-btn.active{box-shadow:inset 0 -3px 0 var(--gold)}
+}
 .bracket-scroll{overflow-x:auto;padding:3px 2px 14px}
 .bracket-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:18px;min-width:max-content;align-items:start}
 .bracket-column{display:flex;flex-direction:column;gap:12px;min-width:210px}
@@ -1647,6 +1660,7 @@ async function deleteTournament(id){
 /* ── DETAIL TURNAJA ── */
 let curT=null; // aktuálne otvorený turnaj (objekt v store)
 let matchViewMode='list';
+let comboPhaseView='groups';
 
 function buildComboGroupState(t,membershipRows=null){
   const players=Array.isArray(t?.players)?t.players:[];
@@ -2197,6 +2211,10 @@ async function viewDetail(id){
   // immediately after score entry, so the transition is deterministic on
   // reload and not tied to a particular click.
   maybeGenerateComboPhase(curT);
+  if(curT.format==='rr_sko'||curT.format==='rr_dko'){
+    comboPhaseView=curT.phase2?'final':'groups';
+    matchViewMode=curT.phase2?'bracket':'list';
+  }
   syncThirdPlaceMatch(curT);
   normalizeTournamentMatchIdentity(curT);
   if(matchRows.length){
@@ -2283,7 +2301,7 @@ async function viewDetail(id){
     </div>
     <div class="detail-grid">
       <div class="detail-card matches-wide">
-        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov'}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · dvojice v pavúku aj RR upravíš potiahnutím</span>`}</div>
+        <div class="dc-head match-head"><div><h3 id="matchViewTitle">${isCmb?(comboPhaseView==='final'?'Finálová fáza':'Skupinová fáza'):(matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov')}</h3>${isPublicReadOnly?'':`<span class="mono" style="font-size:.65rem;color:var(--muted)">klikni na zápas → výsledok · dvojice v pavúku aj RR upravíš potiahnutím</span>`}</div>
           <div class="match-view-switch" role="group" aria-label="Zobrazenie zápasov">
             <button class="match-view-btn ${matchViewMode==='list'?'active':''}" id="matchListViewBtn" onclick="setMatchView('list')">☷ Zoznam</button>
             <button class="match-view-btn ${matchViewMode==='bracket'?'active':''}" id="matchBracketViewBtn" onclick="setMatchView('bracket')">⑂ Pavúk</button>
@@ -2376,21 +2394,65 @@ async function editTournament(id){
   }
 }
 
-/* ── Prepínanie zoznam / pavúk ── */
+/* ── Prepínanie fázy + zoznam / pavúk ── */
+function updateMatchViewControls(){
+  const isCombo=curT&&(curT.format==='rr_sko'||curT.format==='rr_dko');
+  const title=document.getElementById('matchViewTitle');
+  if(title){
+    title.textContent=isCombo
+      ? (comboPhaseView==='final'?'Finálová fáza':'Skupinová fáza')
+      : (matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov');
+  }
+  document.getElementById('matchListViewBtn')?.classList.toggle('active',matchViewMode==='list');
+  document.getElementById('matchBracketViewBtn')?.classList.toggle('active',matchViewMode==='bracket');
+}
+function setComboPhase(view){
+  if(!curT||!(curT.format==='rr_sko'||curT.format==='rr_dko'))return;
+  const next=view==='final'?'final':'groups';
+  if(next==='final'&&!curT.phase2){
+    toast('Finálová fáza sa vytvorí po dohraní skupín.',true);
+    return;
+  }
+  comboPhaseView=next;
+  matchViewMode=next==='final'?'bracket':'list';
+  if(matchViewMode==='bracket')dkoBracketScrollLeft=null;
+  const area=document.getElementById('matchArea');
+  if(area)area.innerHTML=renderMatchArea(curT);
+  updateMatchViewControls();
+}
 function setMatchView(view){
   const enteringBracket=view==='bracket'&&matchViewMode!=='bracket';
   if(enteringBracket)dkoBracketScrollLeft=null;
   matchViewMode=view==='bracket'?'bracket':'list';
   const area=document.getElementById('matchArea');if(area)area.innerHTML=renderMatchArea(curT);
-  const title=document.getElementById('matchViewTitle');if(title)title.textContent=matchViewMode==='bracket'?'Pavúk':'Zoznam zápasov';
-  document.getElementById('matchListViewBtn')?.classList.toggle('active',matchViewMode==='list');
-  document.getElementById('matchBracketViewBtn')?.classList.toggle('active',matchViewMode==='bracket');
+  updateMatchViewControls();
+}
+function renderComboPhaseNav(t){
+  const finalAvailable=!!t?.phase2;
+  return `<div class="combo-phase-nav" role="tablist" aria-label="Fázy turnaja">
+    <button type="button" class="combo-phase-btn ${comboPhaseView==='groups'?'active':''}" role="tab" aria-selected="${comboPhaseView==='groups'}" onclick="setComboPhase('groups')">Skupinová fáza</button>
+    <button type="button" class="combo-phase-btn ${comboPhaseView==='final'?'active':''}" role="tab" aria-selected="${comboPhaseView==='final'}" onclick="setComboPhase('final')" ${finalAvailable?'':'disabled'}>Finálová fáza</button>
+  </div>`;
 }
 function renderMatchArea(t){
   applyPairingOverrides(t);
-  const body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
-  if(matchViewMode==='bracket')requestAnimationFrame(restoreDkoBracketScroll);
-  return body + renderTournamentEvaluation(t);
+  const isCombo=t&&(t.format==='rr_sko'||t.format==='rr_dko');
+  let body;
+  if(isCombo){
+    if(comboPhaseView==='final'){
+      body=t.phase2
+        ? (matchViewMode==='bracket'?renderBracketView(t):renderComboFinalList(t))
+        : `<div class="note-box">Finálová fáza sa vytvorí automaticky po dohraní skupín.</div>`;
+    }else{
+      body=renderComboGroupList(t);
+    }
+    body=`<div class="combo-phase-layout">${renderComboPhaseNav(t)}<div class="combo-phase-content">${body}</div></div>`;
+  }else{
+    body=matchViewMode==='bracket'?renderBracketView(t):renderMatchList(t);
+  }
+  if(matchViewMode==='bracket'&&(!isCombo||comboPhaseView==='final'))requestAnimationFrame(restoreDkoBracketScroll);
+  const evaluation=(!isCombo||comboPhaseView==='final')?renderTournamentEvaluation(t):'';
+  return body + evaluation;
 }
 
 function bracketPlayerLine(player,score,isWinner,isWalkoverSlot=false,loc='',side=0,draggable=false){
@@ -2988,39 +3050,50 @@ function renderMatchList(t){
     return html;
   }
   else {
-    // rr_sko / rr_dko — skupinová fáza
-    const grp=t.grp; if(!grp||!grp.groups) return `<div class="note-box">Skupiny sa nepodarilo vytvoriť.</div>`;
-    const koType=t.format==='rr_dko'?'Double KO':'Single KO';
-    const canMoveGroups=groupAssignmentsEditable();
-    let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. ${canMoveGroups?'Pred prvým zápasom môžeš hráčov medzi skupinami manuálne prehodiť potiahnutím.':'Rozdelenie skupín je po začiatku hry uzamknuté.'}</div>`;
-    grp.groups.forEach((g,gi)=>{
-      const st=rrTable(g.players, g.matches);
-      const adv=Math.min(grp.advance, g.players.length);
-      html+=`<div class="group-head-row"><div class="branch-label conv" style="margin-top:0">Skupina ${esc(g.name)} · ${g.players.length} hráčov</div>${renderGroupResourceControl(gi)}</div>`;
-      html+=`<div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
-      st.forEach((s,i)=>{
-        const gp=g.players.find(p=>p.name===s.name&&Number(p.seed||0)===Number(s.seed||0))||g.players.find(p=>p.name===s.name);
-        const movable=canMoveGroups&&gp?.id;
-        html+=`<div class="st-row2 ${i<adv?'adv':''}${movable?' group-player-draggable':''}"${movable?groupAssignmentAttrs(gi,gp.id):''}><span class="mono">${i+1}</span><span>${esc(s.name)}${i<adv?' <span class="adv-tag">postup</span>':''}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`;
-      });
-      html+=`</div>`;
-      html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)} · potiahni hráča na iného hráča v rovnakom kole</div>`;
-      let lastRound=0;
-      g.matches.forEach((m,mi)=>{ if(m.round!==lastRound){ html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`; lastRound=m.round; } html+=matchRow(m,`grp:${gi}:${mi}`); });
-    });
-    const allDone=grp.groups.every(g=>g.matches.every(m=>m.winner!=null));
-    if(!allDone){
-      html+=`<div class="note-box" style="margin-top:16px">${grp.groups.length===2&&grp.advance===3?`Po dohraní skupín ide 6 postupujúcich do Single KO. A2 hrá s B3, B2 s A3 a víťazi skupín A1/B1 sú nasadení priamo do ďalšieho kola. Voľné pozície sa nezobrazujú ani nepočítajú ako zápasy.`:`Po dohraní skupín sa vytvoria seed pásma. Víťazi skupín sa v 1. kole nestretnú; druhé miesta sú v ďalšom pásme a ostatní sa rozlosujú s ochranou proti opakovaniu zápasu z rovnakej skupiny, pokiaľ je to matematicky možné.`}</div>`;
-    }else if(!t.phase2){
-      // Defensive loading state only: maybeGenerateComboPhase() normally
-      // creates phase2 before this render call.
-      html+=`<div class="note-box" style="margin-top:16px">✓ Skupiny dohrané — generujem pavúk…</div>`;
-    }else{
-      html+=renderComboPhase2(t.phase2);
-      html+=renderThirdPlaceMatch(t);
-    }
-    return html;
+    return comboPhaseView==='final'?renderComboFinalList(t):renderComboGroupList(t);
   }
+}
+
+function renderComboGroupList(t){
+  const grp=t?.grp;
+  if(!grp||!grp.groups)return `<div class="note-box">Skupiny sa nepodarilo vytvoriť.</div>`;
+  const koType=t.format==='rr_dko'?'Double KO':'Single KO';
+  const canMoveGroups=groupAssignmentsEditable();
+  let html=`<div class="note-box" style="margin-bottom:16px">${grp.groups.length} skupín · z každej postupuje najviac ${grp.advance} → následne ${koType}. Víťazi skupín tvoria prvé seed pásmo, druhé miesta druhé pásmo, ostatní sa losujú do nižších seedov. ${canMoveGroups?'Pred prvým zápasom môžeš hráčov medzi skupinami manuálne prehodiť potiahnutím.':'Rozdelenie skupín je po začiatku hry uzamknuté.'}</div>`;
+  grp.groups.forEach((g,gi)=>{
+    const st=rrTable(g.players,g.matches);
+    const adv=Math.min(grp.advance,g.players.length);
+    html+=`<div class="group-head-row"><div class="branch-label conv" style="margin-top:0">Skupina ${esc(g.name)} · ${g.players.length} hráčov</div>${renderGroupResourceControl(gi)}</div>`;
+    html+=`<div class="standings"><div class="st-head2"><span>#</span><span>Hráč</span><span>V</span><span>P</span><span>Hry</span><span>%</span><span>Body</span></div>`;
+    st.forEach((s,i)=>{
+      const gp=g.players.find(p=>p.name===s.name&&Number(p.seed||0)===Number(s.seed||0))||g.players.find(p=>p.name===s.name);
+      const movable=canMoveGroups&&gp?.id;
+      html+=`<div class="st-row2 ${i<adv?'adv':''}${movable?' group-player-draggable':''}"${movable?groupAssignmentAttrs(gi,gp.id):''}><span class="mono">${i+1}</span><span>${esc(s.name)}${i<adv?' <span class="adv-tag">postup</span>':''}</span><span>${s.w}</span><span>${s.l}</span><span class="mono" style="color:var(--muted)">${s.gw}:${s.gl}</span><span class="mono">${s.pct}%</span><span class="mono" style="color:var(--gold)">${s.p}</span></div>`;
+    });
+    html+=`</div>`;
+    html+=`<div class="rr-round-label mono" style="margin-top:10px">Zápasy skupiny ${esc(g.name)} · potiahni hráča na iného hráča v rovnakom kole</div>`;
+    let lastRound=0;
+    g.matches.forEach((m,mi)=>{
+      if(m.round!==lastRound){
+        html+=`<div class="round-head" style="margin-top:12px"><span class="round-name">Kolo ${m.round}</span>${roundRaceControlByKey(`RR:${m.round}`)}</div>`;
+        lastRound=m.round;
+      }
+      html+=matchRow(m,`grp:${gi}:${mi}`);
+    });
+  });
+  if(!comboAllGroupsDone(t)){
+    html+=`<div class="note-box" style="margin-top:16px">Po dohraní skupín sa automaticky vytvorí samostatná Finálová fáza podľa reálneho počtu postupujúcich.</div>`;
+  }else if(!t.phase2){
+    html+=`<div class="note-box" style="margin-top:16px">✓ Skupiny dohrané — generujem Finálovú fázu…</div>`;
+  }else{
+    html+=`<div class="note-box" style="margin-top:16px">✓ Skupinová fáza je ukončená. Finálová fáza je pripravená v samostatnej záložke.</div>`;
+  }
+  return html;
+}
+
+function renderComboFinalList(t){
+  if(!t?.phase2)return `<div class="note-box">Finálová fáza sa vytvorí automaticky po dohraní skupín.</div>`;
+  return renderComboPhase2(t.phase2)+renderThirdPlaceMatch(t);
 }
 
 function renderPhaseSKO(bracket,prefix,title,maxRound){
