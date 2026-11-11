@@ -317,11 +317,12 @@
       window.dispatchEvent(new CustomEvent('csp:language-changed',{detail:{language:target}}));
     }catch(error){
       console.error('[CSP translate]',error);
+      // Translation failure on one page must never overwrite the user's
+      // global language preference for other tabs/windows.
       restoreSourceLanguage();
-      currentLanguage=SOURCE_LANGUAGE;
-      saveLanguage(SOURCE_LANGUAGE);
-      setSelectorValue(SOURCE_LANGUAGE);
-      if(!options.silent) console.warn('[CSP translate] Page remained in Slovak.');
+      currentLanguage=target;
+      setSelectorValue(target);
+      if(!options.silent) console.warn('[CSP translate] Translation failed on this page; saved language preference was preserved.');
     }finally{
       translating=false;
       document.body?.removeAttribute('aria-busy');
@@ -452,6 +453,19 @@
       bindLanguageSelectors();
       setSelectorValue(saved);
       setTimeout(()=>setSelectorValue(saved),100);
+    }
+  });
+
+  // localStorage is shared by all same-origin tabs/windows. The storage
+  // event fires in the *other* windows, so a language change is applied
+  // immediately everywhere without requiring reload/navigation.
+  window.addEventListener('storage',event=>{
+    if(event.key!==LANGUAGE_STORAGE_KEY) return;
+    const next=normalizeLanguage(event.newValue||SOURCE_LANGUAGE);
+    if(next!==currentLanguage) void applyLanguage(next,{silent:true});
+    else{
+      bindLanguageSelectors();
+      setSelectorValue(next);
     }
   });
 
