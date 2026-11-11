@@ -1712,7 +1712,11 @@ function finishScoreEventIfNeeded(i,action){
   const main=m==="frame"?p.score:m==="points"?p.frames:m==="darts"?p.legs:p.points;
   if(m==="universal")return;
   if(action.score_delta>0&&main>=state.raceTo){addLog(`🏆 ${p.name} dosiahol cieľ ${state.raceTo}`);render();showMatchWonDialog(i,m);return;}
-  if(action.score_delta>0&&m==="points"){
+  if(action.score_delta>0&&m==="frame"){
+    state.period++;
+    state.currentIndex=breakerIndex();
+    addLog(`▶ Frame ${state.period} — rozstrel ${activePlayers()[state.currentIndex].name}`);
+  }else if(action.score_delta>0&&m==="points"){
     state.period++;activePlayers().forEach(pl=>pl.framePoints=0);state.currentIndex=breakerIndex();
   }else if(action.score_delta>0&&m==="darts"){
     state.period++;state.starter=(state.starter+1)%state.playerCount;state.currentIndex=state.starter;activePlayers().forEach(pl=>pl.remaining=startScore());
