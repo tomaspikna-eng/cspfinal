@@ -1670,6 +1670,15 @@ function startTimer(){
   runningSince=Date.now();
   syncTimerButtons();
 }
+function startTimerFromServer(startedAt){
+  const startedMs=startedAt?new Date(startedAt).getTime():NaN;
+  accumulatedSeconds=Number.isFinite(startedMs)
+    ?Math.max(0,Math.floor((Date.now()-startedMs)/1000))
+    :0;
+  runningSince=Date.now();
+  tickMatchTimer();
+  syncTimerButtons();
+}
 function pauseTimer(){
   if(!runningSince) return; // already paused
   accumulatedSeconds=elapsedSeconds();
@@ -2790,8 +2799,9 @@ function renderStationState(row){
   $("stationP2Btn").disabled=!!row.player2_present||stationPresenceBusy.has(String(row.player2_id||""));
 
   const running=row.match_status==="in_progress"||row.match_status==="live";
-  $("stationStartBtn").disabled=!row.can_start||stationBusy;
-  $("stationStartBtn").textContent=running?"ZÁPAS PREBIEHA":row.can_start?"ZAČAŤ ZÁPAS":"ČAKÁM NA OBOCH HRÁČOV";
+  // SMART flow has no manual start step: the database starts the match
+  // automatically when the second player confirms presence.
+  $("stationStartBtn").classList.add("hidden");
 
   if(running && stationActiveMatchId!==row.match_id){
     openAssignedStationMatch(row);
@@ -2855,6 +2865,12 @@ async function openAssignedStationMatch(row){
   $("endMatchBtn").disabled=false;
   $("endMatchBtn").textContent="Ukončiť zápas";
   await loadTournamentMatch();
+  if((row?.match_status==="in_progress"||row?.match_status==="live")&&row?.started_at){
+    teMatchStarted=true;
+    startTimerFromServer(row.started_at);
+    addLog("▶ Obaja hráči potvrdení — zápas automaticky beží");
+    render();
+  }
   showScoreboardApp();
 }
 async function startAssignedStationMatch(){
@@ -2880,7 +2896,7 @@ function initFixedStationTablet(){
   showStationGate();
   $("stationP1Btn").onclick=()=>confirmStationPresence(stationState?.player1_id);
   $("stationP2Btn").onclick=()=>confirmStationPresence(stationState?.player2_id);
-  $("stationStartBtn").onclick=startAssignedStationMatch;
+  $("stationStartBtn").classList.add("hidden");
   fetchStationState();
   stationPollTimer=setInterval(fetchStationState,5000);
 }
