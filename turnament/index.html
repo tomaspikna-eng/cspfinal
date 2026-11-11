@@ -1411,6 +1411,7 @@ async function handleRealtimeMatch(payload,tournamentId){
     return;
   }
   const previous=[...realMatchesByKey.values()].find(row=>row.id===incoming.id);
+  const completedResourceId=previous?.tournament_resource_id||incoming?.tournament_resource_id||null;
   const row={...(previous||{}),...incoming};
   if(!row.round_key){ await silentSyncMatches(tournamentId); return; }
   realMatchesByKey.set(row.round_key,row);
@@ -1429,7 +1430,7 @@ async function handleRealtimeMatch(payload,tournamentId){
       // SMART stations are refilled only after the completed result has
       // propagated through the bracket, so newly available DKO/SKO pairings
       // can be created and assigned safely.
-      if(curT.status!=='completed')await autoFillSmartResources();
+      if(curT.status!=='completed'&&completedResourceId)await autoFillSmartResource(completedResourceId);
 
       const area=document.getElementById('matchArea');
       if(area)area.innerHTML=renderMatchArea(curT);
@@ -3724,19 +3725,17 @@ function smartCandidateReady(entry,busyPlayers,resourceId){
   return true;
 }
 
-async function autoFillSmartResources(){
-  if(isPublicReadOnly||!curT||smartAutoFillBusy)return;
+async function autoFillSmartResource(resourceId){
+  if(isPublicReadOnly||!curT||!resourceId||smartAutoFillBusy)return;
   smartAutoFillBusy=true;
   try{
     normalizeTournamentMatchIdentity(curT);
     await reloadRealMatches();
     await loadTournamentOperations(curT.id);
 
-    const freeSmart=tournamentOperations
-      .filter(r=>r.operating_mode==='smart'&&r.automation_enabled&&
-        !r.match_id&&['available','assigned'].includes(String(r.resource_status||'available')))
-      .sort((a,b)=>Number(a.resource_number||0)-Number(b.resource_number||0));
-    if(!freeSmart.length)return;
+    const resource=tournamentOperations.find(r=>r.resource_id===resourceId);
+    if(!resource||resource.operating_mode!=='smart'||!resource.automation_enabled||
+       resource.match_id||!['available','assigned'].includes(String(resource.resource_status||'available')))return;
 
     const busyPlayers=new Set();
     tournamentOperations.forEach(r=>{
@@ -3745,31 +3744,23 @@ async function autoFillSmartResources(){
       if(r.player2_id)busyPlayers.add(r.player2_id);
     });
 
-    const entries=tournamentSmartMatchEntries(curT);
-    for(const resource of freeSmart){
-      const candidate=entries.find(entry=>smartCandidateReady(entry,busyPlayers,resource.resource_id));
-      if(!candidate)continue;
+    const candidate=tournamentSmartMatchEntries(curT)
+      .find(entry=>smartCandidateReady(entry,busyPlayers,resource.resource_id));
+    if(!candidate)return;
 
-      const row=await ensureRealMatch(candidate.loc,candidate.m);
-      if(row.tournament_resource_id&&row.tournament_resource_id!==resource.resource_id)continue;
+    const row=await ensureRealMatch(candidate.loc,candidate.m);
+    if(row.tournament_resource_id&&row.tournament_resource_id!==resource.resource_id)return;
 
-      const {error}=await tournamentRpc('assign_tournament_match',{
-        p_resource_id:resource.resource_id,
-        p_match_id:row.id
-      });
-      if(error){
-        console.warn('[turnament] SMART auto assign skipped:',resource.resource_label,error);
-        continue;
-      }
+    const {error}=await tournamentRpc('assign_tournament_match',{
+      p_resource_id:resource.resource_id,
+      p_match_id:row.id
+    });
+    if(error)throw error;
 
-      const p1=resolvePlayerId(candidate.m.p1),p2=resolvePlayerId(candidate.m.p2);
-      if(p1)busyPlayers.add(p1);
-      if(p2)busyPlayers.add(p2);
-      row.tournament_resource_id=resource.resource_id;
-      row.tournament_resource_label=resource.resource_label;
-      row.status='called';
-      realMatchesByKey.set(row.round_key,row);
-    }
+    row.tournament_resource_id=resource.resource_id;
+    row.tournament_resource_label=resource.resource_label;
+    row.status='called';
+    realMatchesByKey.set(row.round_key,row);
 
     await reloadRealMatches();
     await loadTournamentOperations(curT.id);
@@ -4039,7 +4030,6 @@ async function toggleResourceMode(resourceId,current){
     const {error}=await cspAuth.client.rpc('set_tournament_resource_mode',{p_resource_id:resourceId,p_mode:next,p_automation_enabled:next==='smart'});
     if(error)throw error;
     await refreshOperationsPanel();
-    if(next==='smart')await autoFillSmartResources();
   }catch(err){console.error('[turnament] resource mode:',err);toast(err.message||'Režim sa nepodarilo zmeniť.',true)}
 }
 async function assignMatchResource(loc,resourceId){
