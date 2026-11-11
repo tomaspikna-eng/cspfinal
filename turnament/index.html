@@ -1131,6 +1131,7 @@ let tournamentOperations=[];
 let groupResourceAssignments=new Map();
 const matchResourceAssignInFlight=new Set();
 let smartAutoFillBusy=false;
+const smartAutoFillPending=new Set();
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -3725,49 +3726,62 @@ function smartCandidateReady(entry,busyPlayers,resourceId){
   return true;
 }
 
+async function fillOneSmartResource(resourceId){
+  normalizeTournamentMatchIdentity(curT);
+  await reloadRealMatches();
+  await loadTournamentOperations(curT.id);
+
+  const resource=tournamentOperations.find(r=>r.resource_id===resourceId);
+  if(!resource||resource.operating_mode!=='smart'||!resource.automation_enabled||
+     resource.match_id||!['available','assigned'].includes(String(resource.resource_status||'available')))return;
+
+  const busyPlayers=new Set();
+  tournamentOperations.forEach(r=>{
+    if(!r.match_id)return;
+    if(r.player1_id)busyPlayers.add(r.player1_id);
+    if(r.player2_id)busyPlayers.add(r.player2_id);
+  });
+
+  const candidate=tournamentSmartMatchEntries(curT)
+    .find(entry=>smartCandidateReady(entry,busyPlayers,resource.resource_id));
+  if(!candidate)return;
+
+  const row=await ensureRealMatch(candidate.loc,candidate.m);
+  if(row.tournament_resource_id&&row.tournament_resource_id!==resource.resource_id)return;
+
+  const {error}=await tournamentRpc('assign_tournament_match',{
+    p_resource_id:resource.resource_id,
+    p_match_id:row.id
+  });
+  if(error)throw error;
+
+  row.tournament_resource_id=resource.resource_id;
+  row.tournament_resource_label=resource.resource_label;
+  row.status='called';
+  realMatchesByKey.set(row.round_key,row);
+
+  await reloadRealMatches();
+  await loadTournamentOperations(curT.id);
+  patchAllVisibleMatches();
+  tournamentOperations.forEach(patchOperationCard);
+}
+
 async function autoFillSmartResource(resourceId){
-  if(isPublicReadOnly||!curT||!resourceId||smartAutoFillBusy)return;
+  if(isPublicReadOnly||!curT||!resourceId)return;
+  smartAutoFillPending.add(resourceId);
+  if(smartAutoFillBusy)return;
+
   smartAutoFillBusy=true;
   try{
-    normalizeTournamentMatchIdentity(curT);
-    await reloadRealMatches();
-    await loadTournamentOperations(curT.id);
-
-    const resource=tournamentOperations.find(r=>r.resource_id===resourceId);
-    if(!resource||resource.operating_mode!=='smart'||!resource.automation_enabled||
-       resource.match_id||!['available','assigned'].includes(String(resource.resource_status||'available')))return;
-
-    const busyPlayers=new Set();
-    tournamentOperations.forEach(r=>{
-      if(!r.match_id)return;
-      if(r.player1_id)busyPlayers.add(r.player1_id);
-      if(r.player2_id)busyPlayers.add(r.player2_id);
-    });
-
-    const candidate=tournamentSmartMatchEntries(curT)
-      .find(entry=>smartCandidateReady(entry,busyPlayers,resource.resource_id));
-    if(!candidate)return;
-
-    const row=await ensureRealMatch(candidate.loc,candidate.m);
-    if(row.tournament_resource_id&&row.tournament_resource_id!==resource.resource_id)return;
-
-    const {error}=await tournamentRpc('assign_tournament_match',{
-      p_resource_id:resource.resource_id,
-      p_match_id:row.id
-    });
-    if(error)throw error;
-
-    row.tournament_resource_id=resource.resource_id;
-    row.tournament_resource_label=resource.resource_label;
-    row.status='called';
-    realMatchesByKey.set(row.round_key,row);
-
-    await reloadRealMatches();
-    await loadTournamentOperations(curT.id);
-    patchAllVisibleMatches();
-    tournamentOperations.forEach(patchOperationCard);
-  }catch(err){
-    console.error('[turnament] SMART auto fill:',err);
+    while(smartAutoFillPending.size){
+      const nextResourceId=smartAutoFillPending.values().next().value;
+      smartAutoFillPending.delete(nextResourceId);
+      try{
+        await fillOneSmartResource(nextResourceId);
+      }catch(err){
+        console.error('[turnament] SMART auto fill:',nextResourceId,err);
+      }
+    }
   }finally{
     smartAutoFillBusy=false;
   }
