@@ -4,7 +4,7 @@
   function ensureCspTranslationLayer(){
     if (window.CSPTranslate || document.querySelector('script[data-csp-translate-loader]')) return;
     const script=document.createElement('script');
-    script.src='/assets/csp-translate.js?v=20261028-global-2';
+    script.src='/assets/csp-translate.js?v=20261111-window-sync-1';
     script.defer=true;
     script.dataset.cspTranslateLoader='1';
     document.head.appendChild(script);
