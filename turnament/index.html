@@ -1129,6 +1129,7 @@ let realtimeFallbackTimer = null;
 let resourceRefreshTimer = null;
 let tournamentOperations=[];
 let groupResourceAssignments=new Map();
+const matchResourceAssignInFlight=new Set();
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -3903,12 +3904,24 @@ async function toggleResourceMode(resourceId,current){
 }
 async function assignMatchResource(loc,resourceId){
   const m=getMatchByLoc(loc);if(!m)return;
+  const assignKey=`${loc}|${resourceId||'release'}`;
+  if(matchResourceAssignInFlight.has(assignKey))return;
+  matchResourceAssignInFlight.add(assignKey);
   try{
     const mappedGroupResource=groupResourceForLoc(loc);
     if(mappedGroupResource && resourceId && resourceId!==mappedGroupResource){
       throw new Error('Táto skupina má priradenú inú stanicu.');
     }
     const row=await ensureRealMatch(loc,m);
+
+    // Realtime/SMART automation can finish the same assignment just before
+    // the select onchange reaches this handler. Treat that as success.
+    if(resourceId && row.tournament_resource_id===resourceId){
+      await reloadRealMatches();
+      await refreshOperationsPanel();
+      return;
+    }
+
     if(!resourceId){
       if(row.tournament_resource_id){
         const {error}=await cspAuth.client.rpc('release_tournament_resource',{p_resource_id:row.tournament_resource_id});
@@ -3927,6 +3940,8 @@ async function assignMatchResource(loc,resourceId){
   }catch(err){
     console.error('[turnament] assign resource:',err);
     toast(cspAuth.formatError?cspAuth.formatError(err):err.message,true);
+  }finally{
+    matchResourceAssignInFlight.delete(assignKey);
   }
 }
 async function showResourceQr(resourceId){
