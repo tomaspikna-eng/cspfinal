@@ -1130,6 +1130,7 @@ let resourceRefreshTimer = null;
 let tournamentOperations=[];
 let groupResourceAssignments=new Map();
 const matchResourceAssignInFlight=new Set();
+let smartAutoFillBusy=false;
 function esc(value){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -1424,6 +1425,12 @@ async function handleRealtimeMatch(payload,tournamentId){
       const ok=await persistT();
       if(!ok)console.warn('[turnament] completed match is safe in matches; bracket snapshot retry will happen on next manager action.');
       await maybeAutoCompleteTournament(curT);
+
+      // SMART stations are refilled only after the completed result has
+      // propagated through the bracket, so newly available DKO/SKO pairings
+      // can be created and assigned safely.
+      if(curT.status!=='completed')await autoFillSmartResources();
+
       const area=document.getElementById('matchArea');
       if(area)area.innerHTML=renderMatchArea(curT);
     }
@@ -3643,6 +3650,137 @@ async function reloadRealMatches(){
   realMatchesByKey=new Map((data||[]).map(row=>[row.round_key,row]));
   return data||[];
 }
+
+function tournamentSmartMatchEntries(t){
+  const out=[];
+  const add=(m,loc)=>{
+    if(!m||!loc)return;
+    out.push({m,loc,number:Number(m.number)||Number.MAX_SAFE_INTEGER});
+  };
+  const addSko=(br,prefix)=>{
+    (br?.rounds||[]).forEach((round,ri)=>(round||[]).forEach((m,mi)=>{
+      if(!isStructuralSkoWalkover(m))add(m,`${prefix}:${ri}:${mi}`);
+    }));
+  };
+  const addDko=(dko,prefix='dko')=>{
+    if(!dko)return;
+    const w=prefix==='dko'?'dkoA':'p2dA';
+    const l=prefix==='dko'?'dkoB':'p2dB';
+    const k=prefix==='dko'?'dkoK':'p2dK';
+    const q=prefix==='dko'?'dkoQ':'p2dQ';
+    const s=prefix==='dko'?'dkoS':'p2dS';
+    const f=prefix==='dko'?'dkoF':'p2dF';
+
+    if(dko.W?.[0])dko.W[0].forEach((m,mi)=>add(m,`${w}:0:${mi}`));
+    for(let level=1;level<(dko.W?.length||0);level++){
+      (dko.W[level]||[]).forEach((m,mi)=>add(m,`${w}:${level}:${mi}`));
+      const narrowIndex=2*level-2;
+      (dko.L?.[narrowIndex]||[]).forEach((m,mi)=>add(m,`${l}:${narrowIndex}:${mi}`));
+      (dko.L?.[narrowIndex+1]||[]).forEach((m,mi)=>add(m,`${l}:${narrowIndex+1}:${mi}`));
+    }
+    (dko.KO||[]).forEach((round,ri)=>(round||[]).forEach((m,mi)=>add(m,`${k}:${ri}:${mi}`)));
+    (dko.QF||[]).forEach((m,mi)=>add(m,`${q}:0:${mi}`));
+    (dko.SF||[]).forEach((m,mi)=>add(m,`${s}:0:${mi}`));
+    if(dko.F)add(dko.F,`${f}:0:0`);
+  };
+
+  if(t?.format==='sko'){
+    addSko(t.bracket,'sko');
+  }else if(t?.format==='dko'){
+    addDko(t.dko,'dko');
+  }else if(t?.format==='rr'){
+    (t.rr?.matches||[]).forEach((m,mi)=>add(m,`rr:${mi}`));
+  }else if(t?.format==='rr_sko'||t?.format==='rr_dko'){
+    (t.grp?.groups||[]).forEach((g,gi)=>(g.matches||[]).forEach((m,mi)=>add(m,`grp:${gi}:${mi}`)));
+    const phase=t.phase2;
+    if(phase?.kind==='standard-sko')addSko(phase.bracket,'p2s');
+    else if(phase?.kind==='standard-dko')addDko(phase.dko,'p2d');
+    else if(phase?.kind==='protected-sko'){
+      addSko(phase.prelim,'p2p');
+      addSko(phase.main,'p2m');
+    }
+  }
+  if(t?.thirdPlaceMatch)add(t.thirdPlaceMatch,'third:0:0');
+
+  return out.sort((a,b)=>a.number-b.number);
+}
+
+function smartCandidateReady(entry,busyPlayers,resourceId){
+  const m=entry?.m;
+  if(!m?.p1||!m?.p2||m.p1.bye||m.p2.bye||m.winner)return false;
+  const p1=resolvePlayerId(m.p1),p2=resolvePlayerId(m.p2);
+  if(!p1||!p2||p1===p2)return false;
+  if(busyPlayers.has(p1)||busyPlayers.has(p2))return false;
+
+  const row=rowForMatch(m,entry.loc);
+  if(row){
+    if(['completed','forfeited','live','in_progress','disputed'].includes(String(row.status||'')))return false;
+    if(row.winner_id||row.completed_at||row.started_at)return false;
+    if(row.tournament_resource_id&&row.tournament_resource_id!==resourceId)return false;
+  }
+
+  const mapped=groupResourceForLoc(entry.loc);
+  if(mapped&&mapped!==resourceId)return false;
+  return true;
+}
+
+async function autoFillSmartResources(){
+  if(isPublicReadOnly||!curT||smartAutoFillBusy)return;
+  smartAutoFillBusy=true;
+  try{
+    normalizeTournamentMatchIdentity(curT);
+    await reloadRealMatches();
+    await loadTournamentOperations(curT.id);
+
+    const freeSmart=tournamentOperations
+      .filter(r=>r.operating_mode==='smart'&&r.automation_enabled&&
+        !r.match_id&&['available','assigned'].includes(String(r.resource_status||'available')))
+      .sort((a,b)=>Number(a.resource_number||0)-Number(b.resource_number||0));
+    if(!freeSmart.length)return;
+
+    const busyPlayers=new Set();
+    tournamentOperations.forEach(r=>{
+      if(!r.match_id)return;
+      if(r.player1_id)busyPlayers.add(r.player1_id);
+      if(r.player2_id)busyPlayers.add(r.player2_id);
+    });
+
+    const entries=tournamentSmartMatchEntries(curT);
+    for(const resource of freeSmart){
+      const candidate=entries.find(entry=>smartCandidateReady(entry,busyPlayers,resource.resource_id));
+      if(!candidate)continue;
+
+      const row=await ensureRealMatch(candidate.loc,candidate.m);
+      if(row.tournament_resource_id&&row.tournament_resource_id!==resource.resource_id)continue;
+
+      const {error}=await tournamentRpc('assign_tournament_match',{
+        p_resource_id:resource.resource_id,
+        p_match_id:row.id
+      });
+      if(error){
+        console.warn('[turnament] SMART auto assign skipped:',resource.resource_label,error);
+        continue;
+      }
+
+      const p1=resolvePlayerId(candidate.m.p1),p2=resolvePlayerId(candidate.m.p2);
+      if(p1)busyPlayers.add(p1);
+      if(p2)busyPlayers.add(p2);
+      row.tournament_resource_id=resource.resource_id;
+      row.tournament_resource_label=resource.resource_label;
+      row.status='called';
+      realMatchesByKey.set(row.round_key,row);
+    }
+
+    await reloadRealMatches();
+    await loadTournamentOperations(curT.id);
+    patchAllVisibleMatches();
+    tournamentOperations.forEach(patchOperationCard);
+  }catch(err){
+    console.error('[turnament] SMART auto fill:',err);
+  }finally{
+    smartAutoFillBusy=false;
+  }
+}
 async function startLiveMatch(loc){
   if(isPublicReadOnly){ toast('Verejný náhľad je iba na čítanie.',true); return; }
   const m=getMatchByLoc(loc);if(!m)return;
@@ -3899,7 +4037,9 @@ async function toggleResourceMode(resourceId,current){
   const next=current==='smart'?'manual':'smart';
   try{
     const {error}=await cspAuth.client.rpc('set_tournament_resource_mode',{p_resource_id:resourceId,p_mode:next,p_automation_enabled:next==='smart'});
-    if(error)throw error;await refreshOperationsPanel();
+    if(error)throw error;
+    await refreshOperationsPanel();
+    if(next==='smart')await autoFillSmartResources();
   }catch(err){console.error('[turnament] resource mode:',err);toast(err.message||'Režim sa nepodarilo zmeniť.',true)}
 }
 async function assignMatchResource(loc,resourceId){
